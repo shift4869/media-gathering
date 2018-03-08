@@ -105,3 +105,4 @@ ENV/
 *.ini
 *.html
 *.db
+log.txt
