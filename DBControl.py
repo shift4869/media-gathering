@@ -3,17 +3,10 @@ import configparser
 from datetime import datetime
 from datetime import date
 from datetime import timedelta
-import json
-import io
 import os
 import re
-from requests_oauthlib import OAuth1Session
 import sqlite3
-import sys
-import time
-import urllib
 
-import WriteHTML as WriteHTML
 import PictureGathering as PG
 
 dbname = 'PG_DB.db'
