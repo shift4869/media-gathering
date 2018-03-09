@@ -13,8 +13,8 @@ import urllib
 import WriteHTML as WriteHTML
 import DBControl as DBControl
 
-config = configparser.ConfigParser()
-config.read("config.ini")
+config = configparser.SafeConfigParser()
+config.read("config.ini", encoding='utf8')
 
 CONSUMER_KEY = config["token_keys"]["consumer_key"]
 CONSUMER_SECRET = config["token_keys"]["consumer_secret"]
@@ -48,7 +48,10 @@ p1 = 'img_filename,url,url_large,'
 p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
 p3 = 'saved_localpath,saved_created_at'
 pn = '?,?,?,?,?,?,?,?,?,?,?,?'
-sql = 'replace into Favorite (' + p1 + p2 + p3 + ') values (' + pn + ')'
+fav_sql = 'replace into Favorite (' + p1 + p2 + p3 + ') values (' + pn + ')'
+p1 = 'tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num'
+pn = '?,?,?,?,?,?,?'
+del_sql = 'replace into DeleteTarget (' + p1 + ') values (' + pn + ')'
 
 
 def TwitterAPIRequest(url, params):
@@ -115,14 +118,15 @@ def ImageSaver(tweets):
                         with open(save_file_fullpath, 'wb') as fout:
                             fout.write(img.read())
                             add_url_list.append(url_orig)
-
                             # DB操作
-                            DBControl.DBUpsert(url, tweet)
+                            DBControl.DBFavUpsert(url, tweet)
 
                     # image magickで画像変換
-                    img_magick_path = 'D:/Program Files/ImageMagick/magick.exe'
-                    os.system('"' + img_magick_path + '" -quality 60 ' +
-                              save_file_fullpath + " " + save_file_fullpath)
+                    if config["processes"]["image_magick"]:
+                        img_magick_path = config["processes"]["image_magick"]
+                        os.system('"' + img_magick_path + '" -quality 60 ' +
+                                  save_file_fullpath + " " +
+                                  save_file_fullpath)
 
                     # 更新日時を上書き
                     if config["timestamp"].getboolean("timestamp_created_at"):
@@ -165,15 +169,17 @@ def EndOfProcess():
                 for url in del_url_list:
                     fout.write(url + "\n")
 
-            if config["notification"].getboolean("post_done_reply_message"):
+            if config["notification"].getboolean("is_post_done_reply_message"):
                 PostTweet(done_msg)
                 print("Reply posted.")
                 fout.write("Reply posted.")
 
-            if config["notification"].getboolean("post_done_direct_message"):
-                PostDM(done_msg)
-                print("DM posted.")
-                fout.write("DM posted.")
+    # 古い通知リプライを消す
+    if config["notification"].getboolean("is_post_done_reply_message"):
+        targets = DBControl.DBDelSelect()
+        url = "https://api.twitter.com/1.1/statuses/destroy/{}.json"
+        for target in targets:
+            responce = oath.post(url.format(target[1]))  # tweet_id
 
     conn.close()
     sys.exit()
@@ -181,10 +187,10 @@ def EndOfProcess():
 
 def PostTweet(str):
     url = "https://api.twitter.com/1.1/users/show.json"
-    locked_user_name = "xxxxxxxxxxxx"
+    reply_user_name = config["notification"]["reply_to_user_name"]
 
     params = {
-        "screen_name": locked_user_name,
+        "screen_name": reply_user_name,
     }
     res = TwitterAPIRequest(url, params=params)
     if res is None:
@@ -193,7 +199,7 @@ def PostTweet(str):
     url = "https://api.twitter.com/1.1/statuses/update.json"
     reply_to_status_id = res["id_str"]
 
-    str = "@" + locked_user_name + " " + str
+    str = "@" + reply_user_name + " " + str
 
     params = {
         "status": str,
@@ -201,18 +207,7 @@ def PostTweet(str):
     }
     responce = oath.post(url, params=params)
 
-    if responce.status_code != 200:
-        print("Error code: {0}".format(responce.status_code))
-        return None
-
-
-def PostDM(str):
-    url = "https://api.twitter.com/1.1/direct_messages/new.json"
-    params = {
-        "screen_name": user_name,
-        "text": str,
-    }
-    responce = oath.post(url, params=params)
+    DBControl.DBDelInsert(json.loads(responce.text))
 
     if responce.status_code != 200:
         print("Error code: {0}".format(responce.status_code))

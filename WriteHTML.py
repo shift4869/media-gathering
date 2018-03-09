@@ -52,8 +52,7 @@ def MakeTHTag(row):
 
 
 def WriteHTML(del_url_list):
-    db = DBControl.DBSelect()
-    print(db)
+    db = DBControl.DBFavSelect()
     res = ''
 
     COLUMN_NUM = 5
