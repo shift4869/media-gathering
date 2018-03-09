@@ -48,7 +48,10 @@ p1 = 'img_filename,url,url_large,'
 p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
 p3 = 'saved_localpath,saved_created_at'
 pn = '?,?,?,?,?,?,?,?,?,?,?,?'
-sql = 'replace into Favorite (' + p1 + p2 + p3 + ') values (' + pn + ')'
+fav_sql = 'replace into Favorite (' + p1 + p2 + p3 + ') values (' + pn + ')'
+p1 = 'tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num'
+pn = '?,?,?,?,?,?,?'
+del_sql = 'replace into DeleteTarget (' + p1 + ') values (' + pn + ')'
 
 
 def TwitterAPIRequest(url, params):
@@ -116,7 +119,7 @@ def ImageSaver(tweets):
                             fout.write(img.read())
                             add_url_list.append(url_orig)
                             # DB操作
-                            DBControl.DBUpsert(url, tweet)
+                            DBControl.DBFavUpsert(url, tweet)
 
                     # image magickで画像変換
                     if config["processes"]["image_magick"]:
@@ -171,6 +174,13 @@ def EndOfProcess():
                 print("Reply posted.")
                 fout.write("Reply posted.")
 
+    # 古い通知リプライを消す
+    if config["notification"].getboolean("is_post_done_reply_message"):
+        targets = DBControl.DBDelSelect()
+        url = "https://api.twitter.com/1.1/statuses/destroy/{}.json"
+        for target in targets:
+            responce = oath.post(url.format(target[1]))  # tweet_id
+
     conn.close()
     sys.exit()
 
@@ -196,6 +206,8 @@ def PostTweet(str):
         "in_reply_to_status_id": reply_to_status_id,
     }
     responce = oath.post(url, params=params)
+
+    DBControl.DBDelInsert(json.loads(responce.text))
 
     if responce.status_code != 200:
         print("Error code: {0}".format(responce.status_code))
