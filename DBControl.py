@@ -63,7 +63,7 @@ def DBFavUpsert(url, tweet):
 
 def DBFavSelect(limit=200):
     query = 'select * from Favorite order by id desc limit {}'.format(limit)
-    return c.execute(query)
+    return list(c.execute(query))
 
 
 def DBDelInsert(tweet):
