@@ -171,11 +171,6 @@ def EndOfProcess():
                 print("Reply posted.")
                 fout.write("Reply posted.")
 
-            if config["notification"].getboolean("post_done_direct_message"):
-                PostDM(done_msg)
-                print("DM posted.")
-                fout.write("DM posted.")
-
     conn.close()
     sys.exit()
 
@@ -199,19 +194,6 @@ def PostTweet(str):
     params = {
         "status": str,
         "in_reply_to_status_id": reply_to_status_id,
-    }
-    responce = oath.post(url, params=params)
-
-    if responce.status_code != 200:
-        print("Error code: {0}".format(responce.status_code))
-        return None
-
-
-def PostDM(str):
-    url = "https://api.twitter.com/1.1/direct_messages/new.json"
-    params = {
-        "screen_name": user_name,
-        "text": str,
     }
     responce = oath.post(url, params=params)
 
