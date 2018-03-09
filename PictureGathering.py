@@ -115,14 +115,15 @@ def ImageSaver(tweets):
                         with open(save_file_fullpath, 'wb') as fout:
                             fout.write(img.read())
                             add_url_list.append(url_orig)
-
                             # DB操作
                             DBControl.DBUpsert(url, tweet)
 
                     # image magickで画像変換
-                    img_magick_path = 'D:/Program Files/ImageMagick/magick.exe'
-                    os.system('"' + img_magick_path + '" -quality 60 ' +
-                              save_file_fullpath + " " + save_file_fullpath)
+                    if config["processes"]["image_magick"]:
+                        img_magick_path = config["processes"]["image_magick"]
+                        os.system('"' + img_magick_path + '" -quality 60 ' +
+                                  save_file_fullpath + " " +
+                                  save_file_fullpath)
 
                     # 更新日時を上書き
                     if config["timestamp"].getboolean("timestamp_created_at"):
