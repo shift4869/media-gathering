@@ -13,8 +13,8 @@ import urllib
 import WriteHTML as WriteHTML
 import DBControl as DBControl
 
-config = configparser.ConfigParser()
-config.read("config.ini")
+config = configparser.SafeConfigParser()
+config.read("config.ini", encoding='utf8')
 
 CONSUMER_KEY = config["token_keys"]["consumer_key"]
 CONSUMER_SECRET = config["token_keys"]["consumer_secret"]
