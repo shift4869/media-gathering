@@ -103,6 +103,7 @@ ENV/
 # user
 .vscode
 *.ini
+!/config_example.ini
 *.html
 *.db
 log.txt
