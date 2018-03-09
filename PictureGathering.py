@@ -24,8 +24,8 @@ ACCESS_TOKEN_SECRET = config["token_keys"]["access_token_secret"]
 save_path = os.path.abspath(config["save_directory"]["save_path"])
 
 user_name = config["tweet_timeline"]["user_name"]
-get_pages = int(config["tweet_timeline"]["get_pages"]) + 1
 # count * get_pages　だけツイートをさかのぼってくれる。
+get_pages = int(config["tweet_timeline"]["get_pages"]) + 1
 count = int(config["tweet_timeline"]["count"])
 
 oath = OAuth1Session(
@@ -40,18 +40,6 @@ del_cnt = 0
 
 add_url_list = []
 del_url_list = []
-
-dbname = 'PG_DB.db'
-conn = sqlite3.connect(dbname)
-c = conn.cursor()
-p1 = 'img_filename,url,url_large,'
-p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
-p3 = 'saved_localpath,saved_created_at'
-pn = '?,?,?,?,?,?,?,?,?,?,?,?'
-fav_sql = 'replace into Favorite (' + p1 + p2 + p3 + ') values (' + pn + ')'
-p1 = 'tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num'
-pn = '?,?,?,?,?,?,?'
-del_sql = 'replace into DeleteTarget (' + p1 + ') values (' + pn + ')'
 
 
 def TwitterAPIRequest(url, params):
@@ -181,7 +169,7 @@ def EndOfProcess():
         for target in targets:
             responce = oath.post(url.format(target[1]))  # tweet_id
 
-    conn.close()
+    DBControl.DBClose()
     sys.exit()
 
 
