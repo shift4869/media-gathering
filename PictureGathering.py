@@ -24,8 +24,8 @@ ACCESS_TOKEN_SECRET = config["token_keys"]["access_token_secret"]
 save_path = os.path.abspath(config["save_directory"]["save_path"])
 
 user_name = config["tweet_timeline"]["user_name"]
-get_pages = int(config["tweet_timeline"]["get_pages"]) + 1
 # count * get_pages　だけツイートをさかのぼってくれる。
+get_pages = int(config["tweet_timeline"]["get_pages"]) + 1
 count = int(config["tweet_timeline"]["count"])
 
 oath = OAuth1Session(
