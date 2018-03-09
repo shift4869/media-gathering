@@ -41,18 +41,6 @@ del_cnt = 0
 add_url_list = []
 del_url_list = []
 
-dbname = 'PG_DB.db'
-conn = sqlite3.connect(dbname)
-c = conn.cursor()
-p1 = 'img_filename,url,url_large,'
-p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
-p3 = 'saved_localpath,saved_created_at'
-pn = '?,?,?,?,?,?,?,?,?,?,?,?'
-fav_sql = 'replace into Favorite (' + p1 + p2 + p3 + ') values (' + pn + ')'
-p1 = 'tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num'
-pn = '?,?,?,?,?,?,?'
-del_sql = 'replace into DeleteTarget (' + p1 + ') values (' + pn + ')'
-
 
 def TwitterAPIRequest(url, params):
     responce = oath.get(url, params=params)
@@ -181,7 +169,7 @@ def EndOfProcess():
         for target in targets:
             responce = oath.post(url.format(target[1]))  # tweet_id
 
-    conn.close()
+    DBControl.DBClose()
     sys.exit()
 
 

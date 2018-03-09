@@ -16,6 +16,18 @@ import urllib
 import WriteHTML as WriteHTML
 import PictureGathering as PG
 
+dbname = 'PG_DB.db'
+conn = sqlite3.connect(dbname)
+c = conn.cursor()
+p1 = 'img_filename,url,url_large,'
+p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
+p3 = 'saved_localpath,saved_created_at'
+pn = '?,?,?,?,?,?,?,?,?,?,?,?'
+fav_sql = 'replace into Favorite (' + p1 + p2 + p3 + ') values (' + pn + ')'
+p1 = 'tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num'
+pn = '?,?,?,?,?,?,?'
+del_sql = 'replace into DeleteTarget (' + p1 + ') values (' + pn + ')'
+
 
 def TweetURLGet(id_str):
     url = "https://api.twitter.com/1.1/statuses/show.json"
@@ -52,13 +64,13 @@ def DBFavUpsert(url, tweet):
              tweet["text"],
              save_file_fullpath,
              datetime.now().strftime(dts_format))
-    PG.c.execute(PG.fav_sql, param)
-    PG.conn.commit()
+    c.execute(fav_sql, param)
+    conn.commit()
 
 
 def DBFavSelect(limit=200):
     query = 'select * from Favorite order by id desc limit {}'.format(limit)
-    return PG.c.execute(query)
+    return c.execute(query)
 
 
 def DBDelInsert(tweet):
@@ -79,32 +91,33 @@ def DBDelInsert(tweet):
              tweet["text"],
              add_num,
              del_num)
-    PG.c.execute(PG.del_sql, param)
-    PG.conn.commit()
+    c.execute(del_sql, param)
+    conn.commit()
 
 
 def DBDelSelect():
     t = date.today()
     # t = date.today() + timedelta(1)
-    # y = t - timedelta(1)
-    # print(t.strftime('%Y-%m-%d'))
-    # print(y.strftime('%Y-%m-%d'))
 
     # 今日未満 = 昨日以前の通知ツイートをDBから取得
     s = "delete_done = 0 and created_at < '{}'".format(
             t.strftime('%Y-%m-%d'))
     query = "select * from DeleteTarget where " + s
-    res = list(PG.c.execute(query))
-    PG.conn.commit()
+    res = list(c.execute(query))
+    conn.commit()
 
     # 消去フラグを立てる
     u = "delete_done = 1, deleted_at = '{}'".format(t.strftime('%Y-%m-%d'))
     query = "update DeleteTarget set {} where {}".format(
             u, s)
-    PG.c.execute(query)
-    PG.conn.commit()
+    c.execute(query)
+    conn.commit()
 
     return res
 
-if __name__ == "__main__":
-    print(DBDelSelect())
+
+def DBClose():
+    conn.close()
+
+# if __name__ == "__main__":
+#    print(DBDelSelect())
