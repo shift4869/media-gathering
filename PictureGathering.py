@@ -165,7 +165,7 @@ def EndOfProcess():
                 for url in del_url_list:
                     fout.write(url + "\n")
 
-            if config["notification"].getboolean("post_done_reply_message"):
+            if config["notification"].getboolean("is_post_done_reply_message"):
                 PostTweet(done_msg)
                 print("Reply posted.")
                 fout.write("Reply posted.")
@@ -181,10 +181,10 @@ def EndOfProcess():
 
 def PostTweet(str):
     url = "https://api.twitter.com/1.1/users/show.json"
-    locked_user_name = "xxxxxxxxxxxx"
+    reply_user_name = config["notification"]["reply_to_user_name"]
 
     params = {
-        "screen_name": locked_user_name,
+        "screen_name": reply_user_name,
     }
     res = TwitterAPIRequest(url, params=params)
     if res is None:
@@ -193,7 +193,7 @@ def PostTweet(str):
     url = "https://api.twitter.com/1.1/statuses/update.json"
     reply_to_status_id = res["id_str"]
 
-    str = "@" + locked_user_name + " " + str
+    str = "@" + reply_user_name + " " + str
 
     params = {
         "status": str,
