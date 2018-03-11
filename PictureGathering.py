@@ -8,25 +8,41 @@ from requests_oauthlib import OAuth1Session
 import sqlite3
 import sys
 import time
+import traceback
 import urllib
 
 import WriteHTML as WriteHTML
 import DBControl as DBControl
 
-config = configparser.SafeConfigParser()
-config.read("config.ini", encoding='utf8')
+CONFIG_FILE_NAME = "config.ini"
 
-CONSUMER_KEY = config["token_keys"]["consumer_key"]
-CONSUMER_SECRET = config["token_keys"]["consumer_secret"]
-ACCESS_TOKEN_KEY = config["token_keys"]["access_token"]
-ACCESS_TOKEN_SECRET = config["token_keys"]["access_token_secret"]
+try:
+    config = configparser.SafeConfigParser()
+    if not config.read(CONFIG_FILE_NAME, encoding="utf8"):
+        raise IOError
 
-save_path = os.path.abspath(config["save_directory"]["save_path"])
+    CONSUMER_KEY = config["token_keys"]["consumer_key"]
+    CONSUMER_SECRET = config["token_keys"]["consumer_secret"]
+    ACCESS_TOKEN_KEY = config["token_keys"]["access_token"]
+    ACCESS_TOKEN_SECRET = config["token_keys"]["access_token_secret"]
 
-user_name = config["tweet_timeline"]["user_name"]
-# count * get_pages　だけツイートをさかのぼってくれる。
-get_pages = int(config["tweet_timeline"]["get_pages"]) + 1
-count = int(config["tweet_timeline"]["count"])
+    save_path = os.path.abspath(config["save_directory"]["save_path"])
+
+    # count * get_pages　だけツイートをさかのぼってくれる。
+    user_name = config["tweet_timeline"]["user_name"]
+    get_pages = int(config["tweet_timeline"]["get_pages"]) + 1
+    count = int(config["tweet_timeline"]["count"])
+except IOError:
+    print(CONFIG_FILE_NAME + " is not exist or cannot be opened.")
+    exit(-1)
+except KeyError:
+    ex, ms, tb = sys.exc_info()
+    traceback.print_exception(ex, ms, tb)
+    exit(-1)
+except Exception as e:
+    ex, ms, tb = sys.exc_info()
+    traceback.print_exception(ex, ms, tb)
+    exit(-1)
 
 oath = OAuth1Session(
     CONSUMER_KEY,
