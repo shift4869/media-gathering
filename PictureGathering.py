@@ -30,10 +30,11 @@ class Crawler:
             if not self.config.read(self.CONFIG_FILE_NAME, encoding="utf8"):
                 raise IOError
 
-            self.CONSUMER_KEY = self.config["token_keys"]["consumer_key"]
-            self.CONSUMER_SECRET = self.config["token_keys"]["consumer_secret"]
-            self.ACCESS_TOKEN_KEY = self.config["token_keys"]["access_token"]
-            self.ACCESS_TOKEN_SECRET = self.config["token_keys"]["access_token_secret"]
+            config = self.config["token_keys"]
+            self.CONSUMER_KEY = config["consumer_key"]
+            self.CONSUMER_SECRET = config["consumer_secret"]
+            self.ACCESS_TOKEN_KEY = config["access_token"]
+            self.ACCESS_TOKEN_SECRET = config["access_token_secret"]
 
             self.save_path = os.path.abspath(
                 self.config["save_directory"]["save_path"])
@@ -96,53 +97,53 @@ class Crawler:
 
     def ImageSaver(self, tweets):
         for tweet in tweets:
-            try:
-                image_list = tweet["extended_entities"]["media"]
-                # ex) tweet["created_at"] = "Tue Sep 04 15:55:52 +0000 2012"
-                td_format = '%a %b %d %H:%M:%S +0000 %Y'
-                created_time = time.strptime(tweet["created_at"], td_format)
-                atime = mtime = time.mktime(
-                    (created_time.tm_year,
-                     created_time.tm_mon,
-                     created_time.tm_mday,
-                     created_time.tm_hour,
-                     created_time.tm_min,
-                     created_time.tm_sec,
-                     0, 0, -1)
-                )
+            if "extended_entities" not in tweet:
+                print("画像を含んでいないツイートです。")
+                continue
+            image_list = tweet["extended_entities"]["media"]
+            # ex) tweet["created_at"] = "Tue Sep 04 15:55:52 +0000 2012"
+            td_format = '%a %b %d %H:%M:%S +0000 %Y'
+            created_time = time.strptime(tweet["created_at"], td_format)
+            atime = mtime = time.mktime(
+                (created_time.tm_year,
+                    created_time.tm_mon,
+                    created_time.tm_mday,
+                    created_time.tm_hour,
+                    created_time.tm_min,
+                    created_time.tm_sec,
+                    0, 0, -1)
+            )
 
-                for image_dict in image_list:
-                    url = image_dict["media_url"]
-                    url_orig = url + ":orig"
-                    save_file_path = os.path.join(self.save_path,
-                                                  os.path.basename(url))
-                    save_file_fullpath = os.path.abspath(save_file_path)
+            for image_dict in image_list:
+                url = image_dict["media_url"]
+                url_orig = url + ":orig"
+                save_file_path = os.path.join(self.save_path,
+                                              os.path.basename(url))
+                save_file_fullpath = os.path.abspath(save_file_path)
 
-                    if not os.path.isfile(save_file_fullpath):
-                        with urllib.request.urlopen(url_orig) as img:
-                            with open(save_file_fullpath, 'wb') as fout:
-                                fout.write(img.read())
-                                self.add_url_list.append(url_orig)
-                                # DB操作
-                                DBControl.DBFavUpsert(url, tweet,
-                                                      save_file_fullpath)
+                if not os.path.isfile(save_file_fullpath):
+                    with urllib.request.urlopen(url_orig) as img:
+                        with open(save_file_fullpath, 'wb') as fout:
+                            fout.write(img.read())
+                            self.add_url_list.append(url_orig)
+                            # DB操作
+                            DBControl.DBFavUpsert(url, tweet,
+                                                  save_file_fullpath)
 
-                        # image magickで画像変換
-                        if self.config["processes"]["image_magick"]:
-                            img_magick_path = self.config["processes"]["image_magick"]
-                            os.system('"' + img_magick_path +
-                                      '" -quality 60 ' +
-                                      save_file_fullpath + " " +
-                                      save_file_fullpath)
+                    # image magickで画像変換
+                    img_magick_path = self.config["processes"]["image_magick"]
+                    if img_magick_path:
+                        os.system('"' + img_magick_path + '" -quality 60 ' +
+                                  save_file_fullpath + " " +
+                                  save_file_fullpath)
 
-                        # 更新日時を上書き
-                        if self.config["timestamp"].getboolean("timestamp_created_at"):
-                            os.utime(save_file_fullpath, (atime, mtime))
+                    # 更新日時を上書き
+                    config = self.config["timestamp"]
+                    if config.getboolean("timestamp_created_at"):
+                        os.utime(save_file_fullpath, (atime, mtime))
 
-                        print(os.path.basename(url_orig) + " -> done!")
-                        self.add_cnt += 1
-            except KeyError:
-                print("KeyError:画像を含んでいないツイートです。")
+                    print(os.path.basename(url_orig) + " -> done!")
+                    self.add_cnt += 1
 
     def EndOfProcess(self):
         print("")
@@ -155,6 +156,8 @@ class Crawler:
         done_msg += "delete {0} old images. \n".format(self.del_cnt)
 
         print(done_msg)
+
+        config = self.config["notification"]
 
         WriteHTML.WriteHTML(self.del_url_list)
         with open('log.txt', 'a') as fout:
@@ -172,13 +175,13 @@ class Crawler:
                     for url in self.del_url_list:
                         fout.write(url + "\n")
 
-                if self.config["notification"].getboolean("is_post_done_reply_message"):
+                if config.getboolean("is_post_done_reply_message"):
                     self.PostTweet(done_msg)
                     print("Reply posted.")
                     fout.write("Reply posted.")
 
         # 古い通知リプライを消す
-        if self.config["notification"].getboolean("is_post_done_reply_message"):
+        if config.getboolean("is_post_done_reply_message"):
             targets = DBControl.DBDelSelect()
             url = "https://api.twitter.com/1.1/statuses/destroy/{}.json"
             for target in targets:
