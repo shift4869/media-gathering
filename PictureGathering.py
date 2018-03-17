@@ -24,6 +24,8 @@ class Crawler:
     add_url_list = []
     del_url_list = []
 
+    # oath = None
+
     def __init__(self):
         self.config = configparser.SafeConfigParser()
         try:
@@ -59,7 +61,7 @@ class Crawler:
             self.ACCESS_TOKEN_KEY,
             self.ACCESS_TOKEN_SECRET
         )
-
+    
     def TwitterAPIRequest(self, url, params):
         responce = self.oath.get(url, params=params)
 
@@ -123,7 +125,7 @@ class Crawler:
                                 fout.write(img.read())
                                 self.add_url_list.append(url_orig)
                                 # DB操作
-                                DBControl.DBFavUpsert(url, tweet)
+                                DBControl.DBFavUpsert(url, tweet, save_file_fullpath)
 
                         # image magickで画像変換
                         if self.config["processes"]["image_magick"]:
@@ -173,7 +175,7 @@ class Crawler:
                         fout.write(url + "\n")
 
                 if self.config["notification"].getboolean("is_post_done_reply_message"):
-                    PostTweet(done_msg)
+                    self.PostTweet(done_msg)
                     print("Reply posted.")
                     fout.write("Reply posted.")
 
