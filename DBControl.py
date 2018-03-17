@@ -25,8 +25,6 @@ del_sql = 'replace into DeleteTarget (' + p1 + ') values (' + pn + ')'
 # saved_localpath	saved_created_at
 def DBFavUpsert(url, tweet, save_file_fullpath):
     url_orig = url + ":orig"
-    # save_file_path = os.path.join(save_path, os.path.basename(url))
-    # save_file_fullpath = os.path.abspath(save_file_path)
     td_format = '%a %b %d %H:%M:%S +0000 %Y'
     dts_format = '%Y-%m-%d %H:%M:%S'
 
