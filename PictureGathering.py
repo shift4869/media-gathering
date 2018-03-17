@@ -24,8 +24,6 @@ class Crawler:
     add_url_list = []
     del_url_list = []
 
-    # oath = None
-
     def __init__(self):
         self.config = configparser.SafeConfigParser()
         try:
@@ -95,8 +93,6 @@ class Crawler:
         return self.TwitterAPIRequest(url, params)
 
     def ImageSaver(self, tweets):
-        # global add_cnt
-        # global add_url_list
         for tweet in tweets:
             try:
                 image_list = tweet["extended_entities"]["media"]
@@ -140,11 +136,8 @@ class Crawler:
 
                         print(os.path.basename(url_orig) + " -> done!")
                         self.add_cnt += 1
-                    # else :
-                    #     EndOfProcess(cnt)
             except KeyError:
                 print("KeyError:画像を含んでいないツイートです。")
-        # EndOfProcess(cnt)
 
     def EndOfProcess(self):
         print("")
@@ -218,8 +211,6 @@ class Crawler:
             return None
 
     def ShurinkFolder(self, holding_file_num):
-        # global del_cnt
-        # global del_url_list
         xs = []
         for root, dir, files in os.walk(self.save_path):
             for f in files:
@@ -249,11 +240,6 @@ class Crawler:
         self.EndOfProcess()
 
 if __name__ == "__main__":
-    # for i in range(1, get_pages):
-    #     tweets = FavTweetsGet(i)
-    #     ImageSaver(tweets)
-    # ShurinkFolder(int(config["holding"]["holding_file_num"]))
-    # EndOfProcess()
     c = Crawler()
     c.Crawl()
 
