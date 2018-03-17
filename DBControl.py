@@ -7,8 +7,6 @@ import os
 import re
 import sqlite3
 
-import PictureGathering as PG
-
 dbname = 'PG_DB.db'
 conn = sqlite3.connect(dbname)
 c = conn.cursor()
@@ -22,25 +20,27 @@ pn = '?,?,?,?,?,?,?'
 del_sql = 'replace into DeleteTarget (' + p1 + ') values (' + pn + ')'
 
 
-def TweetURLGet(id_str):
-    url = "https://api.twitter.com/1.1/statuses/show.json"
-    params = {
-        "id": id_str,
-    }
+# def TweetURLGet(id_str):
+#     url = "https://api.twitter.com/1.1/statuses/show.json"
+#     params = {
+#         "id": id_str,
+#     }
 
-    tweet = PG.TwitterAPIRequest(url, params)
-    return tweet["entities"]["media"][0]["expanded_url"]
+#     tweet = Crawler.TwitterAPIRequest(url, params)
+#     return tweet["entities"]["media"][0]["expanded_url"]
 
 
 # id	img_filename	url	url_large
 # tweet_id	tweet_url	created_at	user_id	user_name	screan_name	tweet_text
 # saved_localpath	saved_created_at
-def DBFavUpsert(url, tweet):
+def DBFavUpsert(url, tweet, save_file_fullpath):
     url_orig = url + ":orig"
-    save_file_path = os.path.join(PG.save_path, os.path.basename(url))
-    save_file_fullpath = os.path.abspath(save_file_path)
+    # save_file_path = os.path.join(save_path, os.path.basename(url))
+    # save_file_fullpath = os.path.abspath(save_file_path)
     td_format = '%a %b %d %H:%M:%S +0000 %Y'
     dts_format = '%Y-%m-%d %H:%M:%S'
+
+    print(tweet["entities"]["media"][0]["expanded_url"])
 
     # DB操作
     tca = tweet["created_at"]
@@ -49,7 +49,7 @@ def DBFavUpsert(url, tweet):
              url_orig,
              url+":large",
              tweet["id_str"],
-             TweetURLGet(tweet["id_str"]),
+             tweet["entities"]["media"][0]["expanded_url"],
              dst.strftime(dts_format),
              tweet["user"]["id_str"],
              tweet["user"]["name"],
