@@ -89,7 +89,7 @@ def DBDelInsert(tweet):
 
 
 def DBDelSelect():
-    t = date.today()
+    t = date.today() - timedelta(1)  # 2日前の通知ツイートを削除する
     # t = date.today() + timedelta(1)
 
     # 今日未満 = 昨日以前の通知ツイートをDBから取得
