@@ -129,8 +129,7 @@ class Crawler:
 
                         # image magickで画像変換
                         if self.config["processes"]["image_magick"]:
-                            img_magick_path =
-                            self.config["processes"]["image_magick"]
+                            img_magick_path = self.config["processes"]["image_magick"]
                             os.system('"' + img_magick_path +
                                       '" -quality 60 ' +
                                       save_file_fullpath + " " +
