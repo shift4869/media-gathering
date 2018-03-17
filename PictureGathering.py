@@ -33,8 +33,7 @@ class Crawler:
             self.CONSUMER_KEY = self.config["token_keys"]["consumer_key"]
             self.CONSUMER_SECRET = self.config["token_keys"]["consumer_secret"]
             self.ACCESS_TOKEN_KEY = self.config["token_keys"]["access_token"]
-            self.ACCESS_TOKEN_SECRET =
-            self.config["token_keys"]["access_token_secret"]
+            self.ACCESS_TOKEN_SECRET = self.config["token_keys"]["access_token_secret"]
 
             self.save_path = os.path.abspath(
                 self.config["save_directory"]["save_path"])
@@ -138,8 +137,7 @@ class Crawler:
                                       save_file_fullpath)
 
                         # 更新日時を上書き
-                        if self.config["timestamp"].
-                        getboolean("timestamp_created_at"):
+                        if self.config["timestamp"].getboolean("timestamp_created_at"):
                             os.utime(save_file_fullpath, (atime, mtime))
 
                         print(os.path.basename(url_orig) + " -> done!")
@@ -175,8 +173,7 @@ class Crawler:
                     for url in self.del_url_list:
                         fout.write(url + "\n")
 
-                if self.config["notification"].
-                getboolean("is_post_done_reply_message"):
+                if self.config["notification"].getboolean("is_post_done_reply_message"):
                     self.PostTweet(done_msg)
                     print("Reply posted.")
                     fout.write("Reply posted.")
