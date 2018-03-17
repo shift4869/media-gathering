@@ -100,5 +100,5 @@ def DBDelSelect():
 def DBClose():
     conn.close()
 
-# if __name__ == "__main__":
-#    print(DBDelSelect())
+if __name__ == "__main__":
+    print(DBDelSelect())
