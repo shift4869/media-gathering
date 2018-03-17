@@ -62,8 +62,8 @@ def WriteHTML(del_url_list):
     with open("PictureGathering.html", "w") as fout:
         fout.write(html)
 
-# if __name__ == "__main__":
-#     del_url_list = [
-#         # "http://pbs.twimg.com/media/example_xxxxxxxxxxx.png:orig",
-#     ]
-#     WriteHTML(del_url_list)
+if __name__ == "__main__":
+    del_url_list = [
+        # "http://pbs.twimg.com/media/example_xxxxxxxxxxx.png:orig",
+    ]
+    WriteHTML(del_url_list)
