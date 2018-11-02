@@ -1,16 +1,4 @@
 # coding: utf-8
-# from PIL import Image
-import json
-import os
-import time
-from datetime import datetime
-import io
-import sys
-import configparser
-import urllib
-from bs4 import BeautifulSoup
-
-
 import DBControl as DBControl
 
 template = '''<!DOCTYPE html>
@@ -41,7 +29,6 @@ POINTER_PATH = './pointer.png'
 
 
 def MakeTHTag(row):
-    # img = Image.open(row[11])
     pic_width = 256
     url = row[2]
     tweet_url = row[5]
@@ -52,24 +39,21 @@ def MakeTHTag(row):
 
 
 def WriteHTML(del_url_list):
-    db = DBControl.DBSelect()
-    print(db)
+    db = DBControl.DBFavSelect()
     res = ''
 
     COLUMN_NUM = 5
     cnt = 0
 
-    db = list(db)
-
     for row in reversed(db):
         if cnt == 0:
             res += "<tr>\n"
         res += MakeTHTag(row)
-        if cnt == COLUMN_NUM-1:
+        if cnt == COLUMN_NUM - 1:
             res += "</tr>\n"
-        cnt = (cnt+1) % COLUMN_NUM
+        cnt = (cnt + 1) % COLUMN_NUM
     if cnt != 0:
-        for k in range((COLUMN_NUM)-(cnt)):
+        for k in range((COLUMN_NUM) - (cnt)):
             res += "<th></th>\n"
         res += "</tr>\n"
 
