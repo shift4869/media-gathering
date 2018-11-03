@@ -35,11 +35,7 @@ def DBFavUpsert(url, tweet, save_file_fullpath):
     dst = datetime.strptime(tca, td_format)
     param = (os.path.basename(url),
              url_orig,
-<<<<<<< HEAD
              url + ":large",
-=======
-             url+":large",
->>>>>>> 0c34050650112468ff1b67d7b4d1b8e699913fd5
              tweet["id_str"],
              tweet["entities"]["media"][0]["expanded_url"],
              dst.strftime(dts_format),
@@ -104,9 +100,5 @@ def DBDelSelect():
 def DBClose():
     conn.close()
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 0c34050650112468ff1b67d7b4d1b8e699913fd5
 if __name__ == "__main__":
     print(DBDelSelect())
