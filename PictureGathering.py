@@ -188,11 +188,7 @@ class Crawler:
                 responce = self.oath.post(url.format(target[1]))  # tweet_id
 
         DBControl.DBClose()
-<<<<<<< HEAD
         # sys.exit()
-=======
-        sys.exit()
->>>>>>> 0c34050650112468ff1b67d7b4d1b8e699913fd5
 
     def PostTweet(self, str):
         url = "https://api.twitter.com/1.1/users/show.json"
@@ -222,11 +218,7 @@ class Crawler:
             print("Error code: {0}".format(responce.status_code))
             return None
 
-<<<<<<< HEAD
     def ShrinkFolder(self, holding_file_num):
-=======
-    def ShurinkFolder(self, holding_file_num):
->>>>>>> 0c34050650112468ff1b67d7b4d1b8e699913fd5
         xs = []
         for root, dir, files in os.walk(self.save_path):
             for f in files:
@@ -253,11 +245,7 @@ class Crawler:
         for i in range(1, self.get_pages):
             tweets = self.FavTweetsGet(i)
             self.ImageSaver(tweets)
-<<<<<<< HEAD
         self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
-=======
-        self.ShurinkFolder(int(self.config["holding"]["holding_file_num"]))
->>>>>>> 0c34050650112468ff1b67d7b4d1b8e699913fd5
         self.EndOfProcess()
 
 
