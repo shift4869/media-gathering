@@ -101,7 +101,7 @@ class Crawler:
                 break
 
         # 古い順にする
-        # rt_tweets = reversed(rt_tweets)
+        rt_tweets = reversed(rt_tweets)
 
         return rt_tweets
 
@@ -247,8 +247,10 @@ class Crawler:
                 # twitterの画像URLの仕様が変わったらここも変える必要がある
                 # http://pbs.twimg.com/media/{file.basename}.jpg:orig
                 base_url = 'http://pbs.twimg.com/media/{}:orig'
-                self.del_url_list.append(
-                    base_url.format(os.path.basename(file)))
+                self.del_url_list.append(base_url.format(os.path.basename(file)))
+
+                # DB内の存在フラグも更新する
+                DBControl.DBRetweetFlagUpdate(os.path.basename(file))
 
     def Crawl(self):
         tweets = self.RetweetsGet()

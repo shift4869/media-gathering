@@ -10,12 +10,19 @@ import sqlite3
 dbname = 'PG_DB.db'
 conn = sqlite3.connect(dbname)
 c = conn.cursor()
+
 p1 = 'img_filename,url,url_large,'
 p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
 p3 = 'saved_localpath,saved_created_at'
 pn = '?,?,?,?,?,?,?,?,?,?,?,?'
 fav_sql = 'replace into Favorite (' + p1 + p2 + p3 + ') values (' + pn + ')'
+
+p1 = 'img_filename,url,url_large,'
+p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
+p3 = 'saved_localpath,saved_created_at'
+pn = '?,?,?,?,?,?,?,?,?,?,?,?'
 retweet_sql = 'replace into Retweet (' + p1 + p2 + p3 + ') values (' + pn + ')'
+
 p1 = 'tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num'
 pn = '?,?,?,?,?,?,?'
 del_sql = 'replace into DeleteTarget (' + p1 + ') values (' + pn + ')'
@@ -85,8 +92,14 @@ def DBRetweetUpsert(url, tweet, save_file_fullpath):
 
 
 def DBRetweetSelect(limit=300):
-    query = 'select * from Retweet order by id desc limit {}'.format(limit)
+    query = 'select * from Retweet where is_exist_saved_file = \'True\' order by id desc limit {}'.format(limit)
     return list(c.execute(query))
+
+
+def DBRetweetFlagUpdate(filename):
+    query = 'update Retweet set is_exist_saved_file = 0 where img_filename = \'{}\''.format(filename)
+    c.execute(query)
+    conn.commit()
 
 
 def DBDelInsert(tweet):

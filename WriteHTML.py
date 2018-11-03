@@ -28,10 +28,8 @@ th_template = '''<th>
 POINTER_PATH = './pointer.png'
 
 
-def MakeTHTag(row):
+def MakeTHTag(url, tweet_url):
     pic_width = 256
-    url = row[2]
-    tweet_url = row[5]
     return th_template.format(pic_width=pic_width,
                               url=url,
                               tweet_url=tweet_url,
@@ -48,7 +46,7 @@ def WriteFavHTML(del_url_list):
     for row in reversed(db):
         if cnt == 0:
             res += "<tr>\n"
-        res += MakeTHTag(row)
+        res += MakeTHTag(url=row[2], tweet_url=row[5])
         if cnt == COLUMN_NUM - 1:
             res += "</tr>\n"
         cnt = (cnt + 1) % COLUMN_NUM
@@ -73,7 +71,7 @@ def WriteRetweetHTML(del_url_list):
     for row in reversed(db):
         if cnt == 0:
             res += "<tr>\n"
-        res += MakeTHTag(row)
+        res += MakeTHTag(url=row[3], tweet_url=row[6])
         if cnt == COLUMN_NUM - 1:
             res += "</tr>\n"
         cnt = (cnt + 1) % COLUMN_NUM
