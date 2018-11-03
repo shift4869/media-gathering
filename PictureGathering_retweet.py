@@ -154,6 +154,31 @@ class Crawler:
                     print(os.path.basename(url_orig) + " -> done!")
                     self.add_cnt += 1
 
+    def ShrinkFolder(self, holding_file_num):
+        xs = []
+        for root, dir, files in os.walk(self.save_retweet_path):
+            for f in files:
+                path = os.path.join(root, f)
+                xs.append((os.path.getmtime(path), path))
+
+        file_list = []
+        for mtime, path in sorted(xs, reverse=True):
+            file_list.append(path)
+
+        for i, file in enumerate(file_list):
+            if i > holding_file_num:
+                os.remove(file)
+                self.del_cnt += 1
+                # フォルダに既に保存しているファイルにはURLの情報がない
+                # ファイル名とドメインを結びつけてURLを手動で生成する
+                # twitterの画像URLの仕様が変わったらここも変える必要がある
+                # http://pbs.twimg.com/media/{file.basename}.jpg:orig
+                base_url = 'http://pbs.twimg.com/media/{}:orig'
+                self.del_url_list.append(base_url.format(os.path.basename(file)))
+
+                # DB内の存在フラグも更新する
+                DBControl.DBRetweetFlagUpdate(os.path.basename(file))
+
     def EndOfProcess(self):
         print("")
 
@@ -226,31 +251,6 @@ class Crawler:
         if responce.status_code != 200:
             print("Error code: {0}".format(responce.status_code))
             return None
-
-    def ShrinkFolder(self, holding_file_num):
-        xs = []
-        for root, dir, files in os.walk(self.save_retweet_path):
-            for f in files:
-                path = os.path.join(root, f)
-                xs.append((os.path.getmtime(path), path))
-
-        file_list = []
-        for mtime, path in sorted(xs, reverse=True):
-            file_list.append(path)
-
-        for i, file in enumerate(file_list):
-            if i > holding_file_num:
-                os.remove(file)
-                self.del_cnt += 1
-                # フォルダに既に保存しているファイルにはURLの情報がない
-                # ファイル名とドメインを結びつけてURLを手動で生成する
-                # twitterの画像URLの仕様が変わったらここも変える必要がある
-                # http://pbs.twimg.com/media/{file.basename}.jpg:orig
-                base_url = 'http://pbs.twimg.com/media/{}:orig'
-                self.del_url_list.append(base_url.format(os.path.basename(file)))
-
-                # DB内の存在フラグも更新する
-                DBControl.DBRetweetFlagUpdate(os.path.basename(file))
 
     def Crawl(self):
         tweets = self.RetweetsGet()
