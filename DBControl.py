@@ -49,7 +49,7 @@ def DBFavUpsert(url, tweet, save_file_fullpath):
     conn.commit()
 
 
-def DBFavSelect(limit=200):
+def DBFavSelect(limit=300):
     query = 'select * from Favorite order by id desc limit {}'.format(limit)
     return list(c.execute(query))
 
@@ -81,8 +81,7 @@ def DBDelSelect():
     # t = date.today() + timedelta(1)
 
     # 今日未満 = 昨日以前の通知ツイートをDBから取得
-    s = "delete_done = 0 and created_at < '{}'".format(
-            t.strftime('%Y-%m-%d'))
+    s = "delete_done = 0 and created_at < '{}'".format(t.strftime('%Y-%m-%d'))
     query = "select * from DeleteTarget where " + s
     res = list(c.execute(query))
     conn.commit()
@@ -99,6 +98,7 @@ def DBDelSelect():
 
 def DBClose():
     conn.close()
+
 
 if __name__ == "__main__":
     print(DBDelSelect())
