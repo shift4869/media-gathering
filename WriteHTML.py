@@ -28,17 +28,15 @@ th_template = '''<th>
 POINTER_PATH = './pointer.png'
 
 
-def MakeTHTag(row):
+def MakeTHTag(url, tweet_url):
     pic_width = 256
-    url = row[2]
-    tweet_url = row[5]
     return th_template.format(pic_width=pic_width,
                               url=url,
                               tweet_url=tweet_url,
                               pointer_path=POINTER_PATH)
 
 
-def WriteHTML(del_url_list):
+def WriteFavHTML(del_url_list):
     db = DBControl.DBFavSelect()
     res = ''
 
@@ -48,7 +46,7 @@ def WriteHTML(del_url_list):
     for row in reversed(db):
         if cnt == 0:
             res += "<tr>\n"
-        res += MakeTHTag(row)
+        res += MakeTHTag(url=row[2], tweet_url=row[5])
         if cnt == COLUMN_NUM - 1:
             res += "</tr>\n"
         cnt = (cnt + 1) % COLUMN_NUM
@@ -59,8 +57,34 @@ def WriteHTML(del_url_list):
 
     html = template.format(table_content=res)
 
-    with open("PictureGathering.html", "w") as fout:
+    with open("FavPictureGathering.html", "w") as fout:
         fout.write(html)
+
+
+def WriteRetweetHTML(del_url_list):
+    db = DBControl.DBRetweetSelect()
+    res = ''
+
+    COLUMN_NUM = 5
+    cnt = 0
+
+    for row in reversed(db):
+        if cnt == 0:
+            res += "<tr>\n"
+        res += MakeTHTag(url=row[3], tweet_url=row[6])
+        if cnt == COLUMN_NUM - 1:
+            res += "</tr>\n"
+        cnt = (cnt + 1) % COLUMN_NUM
+    if cnt != 0:
+        for k in range((COLUMN_NUM) - (cnt)):
+            res += "<th></th>\n"
+        res += "</tr>\n"
+
+    html = template.format(table_content=res)
+
+    with open("RetweetPictureGathering.html", "w") as fout:
+        fout.write(html)
+
 
 if __name__ == "__main__":
     del_url_list = [
