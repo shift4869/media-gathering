@@ -36,8 +36,7 @@ class Crawler:
             self.ACCESS_TOKEN_KEY = config["access_token"]
             self.ACCESS_TOKEN_SECRET = config["access_token_secret"]
 
-            self.save_path = os.path.abspath(
-                self.config["save_directory"]["save_path"])
+            self.save_fav_path = os.path.abspath(self.config["save_directory"]["save_fav_path"])
 
             # count * get_pages　だけツイートをさかのぼる。
             self.user_name = self.config["tweet_timeline"]["user_name"]
@@ -117,7 +116,7 @@ class Crawler:
             for image_dict in image_list:
                 url = image_dict["media_url"]
                 url_orig = url + ":orig"
-                save_file_path = os.path.join(self.save_path,
+                save_file_path = os.path.join(self.save_fav_path,
                                               os.path.basename(url))
                 save_file_fullpath = os.path.abspath(save_file_path)
 
@@ -149,7 +148,7 @@ class Crawler:
         print("")
 
         now_str = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-        done_msg = "PictureGathering run.\n"
+        done_msg = "Fav PictureGathering run.\n"
         done_msg += now_str
         done_msg += " Process Done !!\n"
         done_msg += "add {0} new images. ".format(self.add_cnt)
@@ -159,7 +158,7 @@ class Crawler:
 
         config = self.config["notification"]
 
-        WriteHTML.WriteHTML(self.del_url_list)
+        WriteHTML.WriteFavHTML(self.del_url_list)
         with open('log.txt', 'a') as fout:
             if self.add_cnt != 0 or self.del_cnt != 0:
                 fout.write("\n")
@@ -175,13 +174,13 @@ class Crawler:
                     for url in self.del_url_list:
                         fout.write(url + "\n")
 
-                if config.getboolean("is_post_done_reply_message"):
+                if config.getboolean("is_post_fav_done_reply"):
                     self.PostTweet(done_msg)
                     print("Reply posted.")
                     fout.write("Reply posted.")
 
         # 古い通知リプライを消す
-        if config.getboolean("is_post_done_reply_message"):
+        if config.getboolean("is_post_fav_done_reply"):
             targets = DBControl.DBDelSelect()
             url = "https://api.twitter.com/1.1/statuses/destroy/{}.json"
             for target in targets:
@@ -220,7 +219,7 @@ class Crawler:
 
     def ShrinkFolder(self, holding_file_num):
         xs = []
-        for root, dir, files in os.walk(self.save_path):
+        for root, dir, files in os.walk(self.save_fav_path):
             for f in files:
                 path = os.path.join(root, f)
                 xs.append((os.path.getmtime(path), path))

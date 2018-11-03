@@ -38,7 +38,7 @@ def MakeTHTag(row):
                               pointer_path=POINTER_PATH)
 
 
-def WriteHTML(del_url_list):
+def WriteFavHTML(del_url_list):
     db = DBControl.DBFavSelect()
     res = ''
 
@@ -59,7 +59,7 @@ def WriteHTML(del_url_list):
 
     html = template.format(table_content=res)
 
-    with open("PictureGathering.html", "w") as fout:
+    with open("FavPictureGathering.html", "w") as fout:
         fout.write(html)
 
 if __name__ == "__main__":
