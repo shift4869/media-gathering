@@ -37,13 +37,11 @@ class Crawler:
             self.ACCESS_TOKEN_KEY = config["access_token"]
             self.ACCESS_TOKEN_SECRET = config["access_token_secret"]
 
-            self.save_path = os.path.abspath(
-                self.config["save_directory"]["save_path"])
+            self.save_retweet_path = os.path.abspath(self.config["save_directory"]["save_retweet_path"])
 
-            # count * get_pages　だけツイートをさかのぼる。
+            # count * retweet_get_max_loop　だけツイートをさかのぼる。
             self.user_name = self.config["tweet_timeline"]["user_name"]
-            self.get_pages = int(
-                self.config["tweet_timeline"]["get_pages"]) + 1
+            self.retweet_get_max_loop = int(self.config["tweet_timeline"]["retweet_get_max_loop"])
             self.count = int(self.config["tweet_timeline"]["count"])
         except IOError:
             print(CONFIG_FILE_NAME + " is not exist or cannot be opened.")
@@ -64,6 +62,8 @@ class Crawler:
             self.ACCESS_TOKEN_SECRET
         )
 
+        self.max_id = None
+
     def TwitterAPIRequest(self, url, params):
         responce = self.oath.get(url, params=params)
 
@@ -74,33 +74,43 @@ class Crawler:
         res = json.loads(responce.text)
         return res
 
-    def FavTweetsGet(self, page):
-        kind_of_api = self.config["tweet_timeline"]["kind_of_timeline"]
-        if kind_of_api == "favorite":
-            url = "https://api.twitter.com/1.1/favorites/list.json"
+    def RetweetsGet(self):
+        url = "https://api.twitter.com/1.1/statuses/user_timeline.json"
+        rt_tweets = []
+        holding_num = int(self.config["holding"]["holding_file_num"])
+
+        for i in range(1, self.retweet_get_max_loop):
             params = {
                 "screen_name": self.user_name,
-                "page": page,
                 "count": self.count,
-                "include_entities": 1  # ツイートのメタデータ取得。これしないと複数枚の画像に対応できない。
+                "max_id": self.max_id,
+                "contributor_details": True,
+                "include_rts": True
             }
-        elif kind_of_api == "home":
-            url = "https://api.twitter.com/1.1/statuses/home_timeline.json"
-            params = {
-                "count": self.count,
-                "include_entities": 1
-            }
-        else:
-            print("kind_of_api is invalid .")
-            return None
+            timeline_tweeets = self.TwitterAPIRequest(url, params)
 
-        return self.TwitterAPIRequest(url, params)
+            for t in timeline_tweeets:
+                if t['retweeted'] and ("retweeted_status" in t):
+                    if "extended_entities" in t['retweeted_status']:
+                        rt_tweets.append(t['retweeted_status'])
+
+            self.max_id = timeline_tweeets[-1]['id'] - 1
+
+            # pprint.pprint(rt_tweets)
+            if len(rt_tweets) > holding_num:
+                break
+
+        # 古い順にする
+        # rt_tweets = reversed(rt_tweets)
+
+        return rt_tweets
 
     def ImageSaver(self, tweets):
         for tweet in tweets:
             if "extended_entities" not in tweet:
                 print("画像を含んでいないツイートです。")
                 continue
+
             image_list = tweet["extended_entities"]["media"]
             # ex) tweet["created_at"] = "Tue Sep 04 15:55:52 +0000 2012"
             td_format = '%a %b %d %H:%M:%S +0000 %Y'
@@ -118,8 +128,7 @@ class Crawler:
             for image_dict in image_list:
                 url = image_dict["media_url"]
                 url_orig = url + ":orig"
-                save_file_path = os.path.join(self.save_path,
-                                              os.path.basename(url))
+                save_file_path = os.path.join(self.save_retweet_path, os.path.basename(url))
                 save_file_fullpath = os.path.abspath(save_file_path)
 
                 if not os.path.isfile(save_file_fullpath):
@@ -128,8 +137,7 @@ class Crawler:
                             fout.write(img.read())
                             self.add_url_list.append(url_orig)
                             # DB操作
-                            DBControl.DBFavUpsert(url, tweet,
-                                                  save_file_fullpath)
+                            DBControl.DBRetweetUpsert(url, tweet, save_file_fullpath)
 
                     # image magickで画像変換
                     img_magick_path = self.config["processes"]["image_magick"]
@@ -150,7 +158,7 @@ class Crawler:
         print("")
 
         now_str = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-        done_msg = "PictureGathering run.\n"
+        done_msg = "Retweet PictureGathering run.\n"
         done_msg += now_str
         done_msg += " Process Done !!\n"
         done_msg += "add {0} new images. ".format(self.add_cnt)
@@ -160,7 +168,7 @@ class Crawler:
 
         config = self.config["notification"]
 
-        WriteHTML.WriteHTML(self.del_url_list)
+        WriteHTML.WriteRetweetHTML(self.del_url_list)
         with open('log.txt', 'a') as fout:
             if self.add_cnt != 0 or self.del_cnt != 0:
                 fout.write("\n")
@@ -176,13 +184,13 @@ class Crawler:
                     for url in self.del_url_list:
                         fout.write(url + "\n")
 
-                if config.getboolean("is_post_done_reply_message"):
+                if config.getboolean("is_post_retweet_done_reply"):
                     self.PostTweet(done_msg)
                     print("Reply posted.")
                     fout.write("Reply posted.")
 
         # 古い通知リプライを消す
-        if config.getboolean("is_post_done_reply_message"):
+        if config.getboolean("is_post_retweet_done_reply"):
             targets = DBControl.DBDelSelect()
             url = "https://api.twitter.com/1.1/statuses/destroy/{}.json"
             for target in targets:
@@ -221,7 +229,7 @@ class Crawler:
 
     def ShrinkFolder(self, holding_file_num):
         xs = []
-        for root, dir, files in os.walk(self.save_path):
+        for root, dir, files in os.walk(self.save_retweet_path):
             for f in files:
                 path = os.path.join(root, f)
                 xs.append((os.path.getmtime(path), path))
@@ -243,9 +251,8 @@ class Crawler:
                     base_url.format(os.path.basename(file)))
 
     def Crawl(self):
-        for i in range(1, self.get_pages):
-            tweets = self.FavTweetsGet(i)
-            self.ImageSaver(tweets)
+        tweets = self.RetweetsGet()
+        self.ImageSaver(tweets)
         self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
         self.EndOfProcess()
 

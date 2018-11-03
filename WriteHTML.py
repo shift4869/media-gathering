@@ -62,6 +62,32 @@ def WriteFavHTML(del_url_list):
     with open("FavPictureGathering.html", "w") as fout:
         fout.write(html)
 
+
+def WriteRetweetHTML(del_url_list):
+    db = DBControl.DBRetweetSelect()
+    res = ''
+
+    COLUMN_NUM = 5
+    cnt = 0
+
+    for row in reversed(db):
+        if cnt == 0:
+            res += "<tr>\n"
+        res += MakeTHTag(row)
+        if cnt == COLUMN_NUM - 1:
+            res += "</tr>\n"
+        cnt = (cnt + 1) % COLUMN_NUM
+    if cnt != 0:
+        for k in range((COLUMN_NUM) - (cnt)):
+            res += "<th></th>\n"
+        res += "</tr>\n"
+
+    html = template.format(table_content=res)
+
+    with open("RetweetPictureGathering.html", "w") as fout:
+        fout.write(html)
+
+
 if __name__ == "__main__":
     del_url_list = [
         # "http://pbs.twimg.com/media/example_xxxxxxxxxxx.png:orig",

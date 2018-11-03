@@ -15,6 +15,7 @@ p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
 p3 = 'saved_localpath,saved_created_at'
 pn = '?,?,?,?,?,?,?,?,?,?,?,?'
 fav_sql = 'replace into Favorite (' + p1 + p2 + p3 + ') values (' + pn + ')'
+retweet_sql = 'replace into Retweet (' + p1 + p2 + p3 + ') values (' + pn + ')'
 p1 = 'tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num'
 pn = '?,?,?,?,?,?,?'
 del_sql = 'replace into DeleteTarget (' + p1 + ') values (' + pn + ')'
@@ -51,6 +52,40 @@ def DBFavUpsert(url, tweet, save_file_fullpath):
 
 def DBFavSelect(limit=300):
     query = 'select * from Favorite order by id desc limit {}'.format(limit)
+    return list(c.execute(query))
+
+
+# id	img_filename	url	url_large
+# tweet_id	tweet_url	created_at	user_id	user_name	screan_name	tweet_text
+# saved_localpath	saved_created_at
+def DBRetweetUpsert(url, tweet, save_file_fullpath):
+    url_orig = url + ":orig"
+    td_format = '%a %b %d %H:%M:%S +0000 %Y'
+    dts_format = '%Y-%m-%d %H:%M:%S'
+
+    print(tweet["entities"]["media"][0]["expanded_url"])
+
+    # DB操作
+    tca = tweet["created_at"]
+    dst = datetime.strptime(tca, td_format)
+    param = (os.path.basename(url),
+             url_orig,
+             url + ":large",
+             tweet["id_str"],
+             tweet["entities"]["media"][0]["expanded_url"],
+             dst.strftime(dts_format),
+             tweet["user"]["id_str"],
+             tweet["user"]["name"],
+             tweet["user"]["screen_name"],
+             tweet["text"],
+             save_file_fullpath,
+             datetime.now().strftime(dts_format))
+    c.execute(retweet_sql, param)
+    conn.commit()
+
+
+def DBRetweetSelect(limit=300):
+    query = 'select * from Retweet order by id desc limit {}'.format(limit)
     return list(c.execute(query))
 
 
