@@ -1,0 +1,111 @@
+# coding: utf-8
+from datetime import datetime
+from datetime import date
+from datetime import timedelta
+from mock import patch
+import os
+import unittest
+
+import freezegun
+
+import DBControl
+
+
+class TestDBControl(unittest.TestCase):
+    def setUp(self):
+        self.img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
+        self.img_filename_s = os.path.basename(self.img_url_s)
+        self.tweet_url_s = 'http://www.tweet.sample.com'
+        self.save_file_fullpath_s = os.getcwd()
+        self.tweet_s = self.__GetTweetSample(self.img_url_s)
+
+    def __GetTweetSample(self, img_url_s):
+        # ツイートオブジェクトのサンプルを生成する
+        tweet_s = {}
+        tweet_s.setdefault("entities", {})
+        tweet_s["entities"].setdefault("media", [])
+        tweet_s["entities"]["media"].append({"expanded_url": img_url_s})
+        tweet_s.setdefault("created_at", "Sat Nov 18 17:12:58 +0000 2018")
+        tweet_s.setdefault("user", {})
+        tweet_s.setdefault("id_str", "12345_id_str_sample")
+        tweet_s["user"].setdefault("id_str", "12345_id_str_sample")
+        tweet_s["user"].setdefault("name", "shift_name_sample")
+        tweet_s["user"].setdefault("screen_name", "_shift4869_screen_name_sample")
+        tweet_s.setdefault("text", "tweet_text_sample")
+        return tweet_s
+
+    def test_SQLText(self):
+        # 使用するSQL構文をチェックする
+        # 実際にDB操作はしないためモックは省略
+        controlar = DBControl.DBControlar()
+
+        p1 = 'img_filename,url,url_large,'
+        p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
+        p3 = 'saved_localpath,saved_created_at'
+        pn = '?,?,?,?,?,?,?,?,?,?,?,?'
+        expect = 'replace into Favorite (' + p1 + p2 + p3 + ') values (' + pn + ')'
+        actual = controlar._DBControlar__fav_sql
+        self.assertEqual(expect, actual)
+
+        p1 = 'img_filename,url,url_large,'
+        p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
+        p3 = 'saved_localpath,saved_created_at'
+        pn = '?,?,?,?,?,?,?,?,?,?,?,?'
+        expect = 'replace into Retweet (' + p1 + p2 + p3 + ') values (' + pn + ')'
+        actual = controlar._DBControlar__retweet_sql
+        self.assertEqual(expect, actual)
+
+        p1 = 'tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num'
+        pn = '?,?,?,?,?,?,?'
+        expect = 'replace into DeleteTarget (' + p1 + ') values (' + pn + ')'
+        actual = controlar._DBControlar__del_sql
+        self.assertEqual(expect, actual)
+
+        limit_s = 300
+        expect = 'select * from Retweet where is_exist_saved_file = \'True\' order by id desc limit {}'.format(limit_s)
+        actual = controlar._DBControlar__GetRetweetSelectSQL(limit_s)
+        self.assertEqual(expect, actual)
+
+        expect = 'update Retweet set is_exist_saved_file = 0 where img_filename = \'{}\''.format(self.img_filename_s)
+        actual = controlar._DBControlar__GetRetweetFlagUpdateSQL(self.img_filename_s)
+        self.assertEqual(expect, actual)
+
+        with freezegun.freeze_time('2018-11-18 17:12:58'):
+            url_orig_s = self.img_url_s + ":orig"
+            td_format_s = '%a %b %d %H:%M:%S +0000 %Y'
+            dts_format_s = '%Y-%m-%d %H:%M:%S'
+            tca = self.tweet_s["created_at"]
+            dst = datetime.strptime(tca, td_format_s)
+            expect = (os.path.basename(self.img_url_s),
+                      url_orig_s,
+                      self.img_url_s + ":large",
+                      self.tweet_s["id_str"],
+                      self.tweet_s["entities"]["media"][0]["expanded_url"],
+                      dst.strftime(dts_format_s),
+                      self.tweet_s["user"]["id_str"],
+                      self.tweet_s["user"]["name"],
+                      self.tweet_s["user"]["screen_name"],
+                      self.tweet_s["text"],
+                      self.save_file_fullpath_s,
+                      datetime.now().strftime(dts_format_s))
+            actual = controlar._DBControlar__GetUpdateParam(self.img_url_s, self.tweet_s, self.save_file_fullpath_s)
+            self.assertEqual(expect, actual)
+
+    def test_DBFavUpsert(self):
+        # DB操作をモックに置き換える
+        with patch('DBControl.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+            mocksql.connect().cursor().execute.return_value = 'execute sql done'
+            mocksql.connect().commit.return_value = 'commit done'
+            controlar = DBControl.DBControlar()
+
+            # DB操作を伴う操作を行う
+            controlar.DBFavUpsert(self.img_url_s, self.tweet_s, self.save_file_fullpath_s)
+
+            # DB操作が規定の引数で呼び出されたことを確認する
+            param_s = controlar._DBControlar__GetUpdateParam(self.img_url_s, self.tweet_s, self.save_file_fullpath_s)
+            fav_sql_s = controlar._DBControlar__fav_sql
+            mocksql.connect().cursor().execute.assert_called_once_with(fav_sql_s, param_s)
+
+
+if __name__ == "__main__":
+    unittest.main()
