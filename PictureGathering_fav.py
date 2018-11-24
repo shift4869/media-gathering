@@ -116,8 +116,7 @@ class Crawler:
             for image_dict in image_list:
                 url = image_dict["media_url"]
                 url_orig = url + ":orig"
-                save_file_path = os.path.join(self.save_fav_path,
-                                              os.path.basename(url))
+                save_file_path = os.path.join(self.save_fav_path, os.path.basename(url))
                 save_file_fullpath = os.path.abspath(save_file_path)
 
                 if not os.path.isfile(save_file_fullpath):
@@ -126,8 +125,7 @@ class Crawler:
                             fout.write(img.read())
                             self.add_url_list.append(url_orig)
                             # DB操作
-                            DBControl.DBFavUpsert(url, tweet,
-                                                  save_file_fullpath)
+                            DBControl.DBFavUpsert(url, tweet, save_file_fullpath)
 
                     # image magickで画像変換
                     img_magick_path = self.config["processes"]["image_magick"]
