@@ -36,13 +36,18 @@ class DBControlar:
         pn = '?,?,?,?,?,?,?'
         return 'replace into DeleteTarget (' + p1 + ') values (' + pn + ')'
 
+    def __GetFavoriteSelectSQL(self, limit=300):
+        return 'select * from Favorite order by id desc limit {}'.format(limit)
+
     def __GetRetweetSelectSQL(self, limit=300):
         return 'select * from Retweet where is_exist_saved_file = \'True\' order by id desc limit {}'.format(limit)
 
-    def __GetRetweetFlagUpdateSQL(self, filename):
+    def __GetRetweetFlagUpdateSQL(self, filename=""):
         return 'update Retweet set is_exist_saved_file = 0 where img_filename = \'{}\''.format(filename)
 
     def __GetUpdateParam(self, url, tweet, save_file_fullpath):
+        # img_filename,url,url_large,tweet_id,tweet_url,created_at,
+        # user_id,user_name,screan_name,tweet_text,saved_localpath,saved_created_at
         url_orig = url + ":orig"
         td_format = '%a %b %d %H:%M:%S +0000 %Y'
         dts_format = '%Y-%m-%d %H:%M:%S'
@@ -62,15 +67,90 @@ class DBControlar:
                  datetime.now().strftime(dts_format))
         return param
 
+    def __GetDelUpdateParam(self, tweet):
+        pattern = ' +[0-9] '
+        text = tweet["text"]
+        add_num = int(re.findall(pattern, text)[0])
+        del_num = int(re.findall(pattern, text)[1])
+        td_format = '%a %b %d %H:%M:%S +0000 %Y'
+        dts_format = '%Y-%m-%d %H:%M:%S'
+
+        # DB操作
+        tca = tweet["created_at"]
+        dst = datetime.strptime(tca, td_format)
+        param = (tweet["id_str"],
+                 False,
+                 dst.strftime(dts_format),
+                 None,
+                 tweet["text"],
+                 add_num,
+                 del_num)
+        return param
+
     def DBFavUpsert(self, url, tweet, save_file_fullpath):
         with closing(sqlite3.connect(self.dbname)) as conn:
             c = conn.cursor()
-
             param = self.__GetUpdateParam(url, tweet, save_file_fullpath)
-
             c.execute(self.__fav_sql, param)
             conn.commit()
-        # return (self.__fav_sql, param)
+
+    def DBFavSelect(self, limit=300):
+        ret = []
+        with closing(sqlite3.connect(self.dbname)) as conn:
+            c = conn.cursor()
+            query = self.__GetFavoriteSelectSQL(limit)
+            ret = c.execute(query)
+        return list(ret)
+
+    # id	img_filename	url	url_large
+    # tweet_id	tweet_url	created_at	user_id	user_name	screan_name	tweet_text
+    # saved_localpath	saved_created_at
+    def DBRetweetUpsert(self, url, tweet, save_file_fullpath):
+        with closing(sqlite3.connect(self.dbname)) as conn:
+            c = conn.cursor()
+            param = self.__GetUpdateParam(url, tweet, save_file_fullpath)
+            c.execute(self.__retweet_sql, param)
+            conn.commit()
+
+    def DBRetweetSelect(self, limit=300):
+        with closing(sqlite3.connect(self.dbname)) as conn:
+            c = conn.cursor()
+            query = self.__GetRetweetSelectSQL(limit)
+            res = c.execute(query)
+        return list(res)
+
+    def DBRetweetFlagUpdate(self, filename=""):
+        with closing(sqlite3.connect(self.dbname)) as conn:
+            c = conn.cursor()
+            query = self.__GetRetweetFlagUpdateSQL(filename)
+            c.execute(query)
+            conn.commit()
+
+    def DBDelInsert(self, tweet):
+        with closing(sqlite3.connect(self.dbname)) as conn:
+            c = conn.cursor()
+            param = self.__GetDelUpdateParam(tweet)
+            c.execute(self.__del_sql, param)
+            conn.commit()
+
+    def DBDelSelect(self):
+        with closing(sqlite3.connect(self.dbname)) as conn:
+            c = conn.cursor()
+            # 2日前の通知ツイートを削除する(1日前の日付より前)
+            t = date.today() - timedelta(1)
+
+            # 今日未満 = 昨日以前の通知ツイートをDBから取得
+            w = "delete_done = 0 and created_at < '{}'".format(t.strftime('%Y-%m-%d'))
+            query = "select * from DeleteTarget where " + w
+            res = list(c.execute(query))
+            conn.commit()
+
+            # 消去フラグを立てる
+            u = "delete_done = 1, deleted_at = '{}'".format(t.strftime('%Y-%m-%d'))
+            query = "update DeleteTarget set {} where {}".format(u, w)
+            c.execute(query)
+            conn.commit()
+        return res
 
 
 dbname = 'PG_DB.db'
