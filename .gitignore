@@ -108,3 +108,4 @@ ENV/
 *.db
 log.txt
 *.stackdump
+*.db-journal
