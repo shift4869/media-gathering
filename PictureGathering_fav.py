@@ -27,6 +27,7 @@ class Crawler:
     def __init__(self):
         self.config = configparser.SafeConfigParser()
         try:
+            self.db_cont = DBControl.DBControlar()
             if not self.config.read(self.CONFIG_FILE_NAME, encoding="utf8"):
                 raise IOError
 
@@ -40,8 +41,7 @@ class Crawler:
 
             # count * get_pages　だけツイートをさかのぼる。
             self.user_name = self.config["tweet_timeline"]["user_name"]
-            self.get_pages = int(
-                self.config["tweet_timeline"]["get_pages"]) + 1
+            self.get_pages = int(self.config["tweet_timeline"]["get_pages"]) + 1
             self.count = int(self.config["tweet_timeline"]["count"])
         except IOError:
             print(CONFIG_FILE_NAME + " is not exist or cannot be opened.")
@@ -116,8 +116,7 @@ class Crawler:
             for image_dict in image_list:
                 url = image_dict["media_url"]
                 url_orig = url + ":orig"
-                save_file_path = os.path.join(self.save_fav_path,
-                                              os.path.basename(url))
+                save_file_path = os.path.join(self.save_fav_path, os.path.basename(url))
                 save_file_fullpath = os.path.abspath(save_file_path)
 
                 if not os.path.isfile(save_file_fullpath):
@@ -126,8 +125,7 @@ class Crawler:
                             fout.write(img.read())
                             self.add_url_list.append(url_orig)
                             # DB操作
-                            DBControl.DBFavUpsert(url, tweet,
-                                                  save_file_fullpath)
+                            self.db_cont.DBFavUpsert(url, tweet, save_file_fullpath)
 
                     # image magickで画像変換
                     img_magick_path = self.config["processes"]["image_magick"]
@@ -204,12 +202,12 @@ class Crawler:
 
         # 古い通知リプライを消す
         if config.getboolean("is_post_fav_done_reply"):
-            targets = DBControl.DBDelSelect()
+            targets = self.db_cont.DBDelSelect()
             url = "https://api.twitter.com/1.1/statuses/destroy/{}.json"
             for target in targets:
                 responce = self.oath.post(url.format(target[1]))  # tweet_id
 
-        DBControl.DBClose()
+        # self.db_cont.DBClose()
         # sys.exit()
 
     def PostTweet(self, str):
@@ -234,7 +232,7 @@ class Crawler:
         }
         responce = self.oath.post(url, params=params)
 
-        DBControl.DBDelInsert(json.loads(responce.text))
+        self.db_cont.DBDelInsert(json.loads(responce.text))
 
         if responce.status_code != 200:
             print("Error code: {0}".format(responce.status_code))

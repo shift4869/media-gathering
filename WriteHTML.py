@@ -26,6 +26,7 @@ th_template = '''<th>
     </th>
 '''
 POINTER_PATH = './pointer.png'
+db_cont = DBControl.DBControlar()
 
 
 def MakeTHTag(url, tweet_url):
@@ -37,7 +38,7 @@ def MakeTHTag(url, tweet_url):
 
 
 def WriteFavHTML(del_url_list):
-    db = DBControl.DBFavSelect()
+    db = db_cont.DBFavSelect()
     res = ''
 
     COLUMN_NUM = 5
@@ -62,7 +63,7 @@ def WriteFavHTML(del_url_list):
 
 
 def WriteRetweetHTML(del_url_list):
-    db = DBControl.DBRetweetSelect()
+    db = db_cont.DBRetweetSelect()
     res = ''
 
     COLUMN_NUM = 5
