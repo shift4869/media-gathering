@@ -13,7 +13,7 @@ import traceback
 import urllib
 
 import WriteHTML as WriteHTML
-import DBControl as DBControl
+import DBControlar as DBControlar
 
 
 class Crawler:
@@ -28,7 +28,7 @@ class Crawler:
     def __init__(self):
         self.config = configparser.SafeConfigParser()
         try:
-            self.db_cont = DBControl.DBControlar()
+            self.db_cont = DBControlar.DBControlar()
             if not self.config.read(self.CONFIG_FILE_NAME, encoding="utf8"):
                 raise IOError
 
@@ -222,7 +222,7 @@ class Crawler:
             for target in targets:
                 responce = self.oath.post(url.format(target[1]))  # tweet_id
 
-        # DBControl.DBClose()
+        # DBControlar.DBClose()
         # sys.exit()
 
     def PostTweet(self, str):
@@ -247,7 +247,7 @@ class Crawler:
         }
         responce = self.oath.post(url, params=params)
 
-        DBControl.DBDelInsert(json.loads(responce.text))
+        self.db_cont.DBDelInsert(json.loads(responce.text))
 
         if responce.status_code != 200:
             print("Error code: {0}".format(responce.status_code))
