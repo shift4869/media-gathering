@@ -12,7 +12,7 @@ import traceback
 import urllib
 
 import WriteHTML as WriteHTML
-import DBControl as DBControl
+import DBControlar as DBControlar
 
 
 class Crawler:
@@ -27,7 +27,7 @@ class Crawler:
     def __init__(self):
         self.config = configparser.SafeConfigParser()
         try:
-            self.db_cont = DBControl.DBControlar()
+            self.db_cont = DBControlar.DBControlar()
             if not self.config.read(self.CONFIG_FILE_NAME, encoding="utf8"):
                 raise IOError
 
