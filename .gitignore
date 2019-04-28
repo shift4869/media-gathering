@@ -107,3 +107,5 @@ ENV/
 *.html
 *.db
 log.txt
+*.stackdump
+*.db-journal
