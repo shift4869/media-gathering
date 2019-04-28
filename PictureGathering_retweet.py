@@ -13,7 +13,7 @@ import traceback
 import urllib
 
 import WriteHTML as WriteHTML
-import DBControl as DBControl
+import DBControlar as DBControlar
 
 
 class Crawler:
@@ -28,6 +28,7 @@ class Crawler:
     def __init__(self):
         self.config = configparser.SafeConfigParser()
         try:
+            self.db_cont = DBControlar.DBControlar()
             if not self.config.read(self.CONFIG_FILE_NAME, encoding="utf8"):
                 raise IOError
 
@@ -137,7 +138,7 @@ class Crawler:
                             fout.write(img.read())
                             self.add_url_list.append(url_orig)
                             # DB操作
-                            DBControl.DBRetweetUpsert(url, tweet, save_file_fullpath)
+                            self.db_cont.DBRetweetUpsert(url, tweet, save_file_fullpath)
 
                     # image magickで画像変換
                     img_magick_path = self.config["processes"]["image_magick"]
@@ -177,7 +178,7 @@ class Crawler:
                 self.del_url_list.append(base_url.format(os.path.basename(file)))
 
                 # DB内の存在フラグも更新する
-                DBControl.DBRetweetFlagUpdate(os.path.basename(file))
+                self.db_cont.DBRetweetFlagUpdate(os.path.basename(file))
 
     def EndOfProcess(self):
         print("")
@@ -216,12 +217,12 @@ class Crawler:
 
         # 古い通知リプライを消す
         if config.getboolean("is_post_retweet_done_reply"):
-            targets = DBControl.DBDelSelect()
+            targets = self.db_cont.DBDelSelect()
             url = "https://api.twitter.com/1.1/statuses/destroy/{}.json"
             for target in targets:
                 responce = self.oath.post(url.format(target[1]))  # tweet_id
 
-        DBControl.DBClose()
+        # DBControlar.DBClose()
         # sys.exit()
 
     def PostTweet(self, str):
@@ -246,7 +247,7 @@ class Crawler:
         }
         responce = self.oath.post(url, params=params)
 
-        DBControl.DBDelInsert(json.loads(responce.text))
+        self.db_cont.DBDelInsert(json.loads(responce.text))
 
         if responce.status_code != 200:
             print("Error code: {0}".format(responce.status_code))
