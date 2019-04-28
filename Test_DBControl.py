@@ -169,7 +169,7 @@ class TestDBControlar(unittest.TestCase):
             actual = controlar.DBRetweetSelect(limit_s)
 
             # DB操作が規定の引数で呼び出されたことを確認する
-            retweet_select_sql_s = controlar._DBControlarar__GetRetweetSelectSQL(limit_s)
+            retweet_select_sql_s = controlar._DBControlar__GetRetweetSelectSQL(limit_s)
             mocksql.connect().cursor().execute.assert_called_once_with(retweet_select_sql_s)
 
             # 取得した値の確認
