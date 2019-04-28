@@ -1,5 +1,5 @@
 # coding: utf-8
-import DBControl as DBControl
+import DBControlar as DBControlar
 
 template = '''<!DOCTYPE html>
 <html>
@@ -26,7 +26,7 @@ th_template = '''<th>
     </th>
 '''
 POINTER_PATH = './pointer.png'
-db_cont = DBControl.DBControlar()
+db_cont = DBControlar.DBControlar()
 
 
 def MakeTHTag(url, tweet_url):
