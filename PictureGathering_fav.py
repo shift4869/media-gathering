@@ -26,7 +26,7 @@ class Crawler:
     del_url_list = []
 
     def __init__(self):
-        self.config = configparser.SafeConfigParser()
+        self.config = configparser.ConfigParser()
         try:
             self.db_cont = DBControlar.DBControlar()
             if not self.config.read(self.CONFIG_FILE_NAME, encoding="utf8"):
