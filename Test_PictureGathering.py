@@ -246,6 +246,38 @@ class TestCrawler(unittest.TestCase):
         #     actual = controlar._DBControlar__GetUpdateParam(self.img_url_s, self.tweet_s, self.save_file_fullpath_s)
         #     self.assertEqual(expect, actual)
 
+    def test_ShrinkFolder(self):
+        # フォルダ内ファイルの数を一定にする機能をチェックする
+        crawler = PictureGathering_fav.Crawler()
+        holding_file_num = int(crawler.config["holding"]["holding_file_num"])
+
+        xs = []
+        for root, dir, files in os.walk(crawler.save_fav_path):
+            for f in files:
+                path = os.path.join(root, f)
+                xs.append((os.path.getmtime(path), path))
+
+        file_list = []
+        for mtime, path in sorted(xs, reverse=True):
+            file_list.append(path)
+
+        expect_del_cnt = 0
+        expect_del_url_list = []
+        for i, file in enumerate(file_list):
+            if i > holding_file_num:
+                # os.remove(file)
+                expect_del_cnt += 1
+                base_url = 'http://pbs.twimg.com/media/{}:orig'
+                expect_del_url_list.append(
+                    base_url.format(os.path.basename(file)))
+
+        with patch('PictureGathering_fav.os') as mockos:
+            mockos.rename.return_value = 0
+            self.assertEqual(0, crawler.ShrinkFolder(holding_file_num))
+
+            self.assertEqual(expect_del_cnt, crawler.del_cnt)
+            self.assertEqual(expect_del_url_list, crawler.del_url_list)
+
     # def test_DBFavUpsert(self):
     #     # DB操作をモックに置き換える
     #     with patch('DBControlar.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):

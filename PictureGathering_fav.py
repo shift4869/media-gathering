@@ -178,6 +178,7 @@ class Crawler:
                 base_url = 'http://pbs.twimg.com/media/{}:orig'
                 self.del_url_list.append(
                     base_url.format(os.path.basename(file)))
+        return 0
 
     def EndOfProcess(self):
         print("")
