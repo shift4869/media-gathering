@@ -149,25 +149,31 @@ class TestCrawler(unittest.TestCase):
         self.assertIsInstance(crawler.oath, OAuth1Session)
 
     def test_TwitterAPIRequest(self):
-        pass
         # TwitterAPIの応答をチェックする
-        # crawler = PictureGathering_fav.Crawler()
+        crawler = PictureGathering_fav.Crawler()
 
-        # url = "https://api.twitter.com/1.1/favorites/list.json"
-        # params = {
-        #     "screen_name": self.user_name,
-        #     "page": page,
-        #     "count": self.count,
-        #     "include_entities": 1  # ツイートのメタデータ取得。複数枚の画像取得用。
-        # }
+        for i in range(1, crawler.get_pages):
+            url = "https://api.twitter.com/1.1/favorites/list.json"
+            params = {
+                "screen_name": crawler.user_name,
+                "page": i,
+                "count": crawler.count,
+                "include_entities": 1  # ツイートのメタデータ取得。複数枚の画像取得用。
+            }
+            self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
 
-        # p1 = 'img_filename,url,url_large,'
-        # p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
-        # p3 = 'saved_localpath,saved_created_at'
-        # pn = '?,?,?,?,?,?,?,?,?,?,?,?'
-        # expect = 'replace into Favorite (' + p1 + p2 + p3 + ') values (' + pn + ')'
-        # actual = controlar._DBControlar__fav_sql
-        # self.assertEqual(expect, actual)
+        url = "https://api.twitter.com/1.1/statuses/home_timeline.json"
+        params = {
+            "count": crawler.count,
+            "include_entities": 1
+        }
+        self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
+
+        url = "https://api.twitter.com/1.1/users/show.json"
+        params = {
+            "screen_name": crawler.config["notification"]["reply_to_user_name"],
+        }
+        self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
 
         # with freezegun.freeze_time('2018-11-18 17:12:58'):
         #     url_orig_s = self.img_url_s + ":orig"
