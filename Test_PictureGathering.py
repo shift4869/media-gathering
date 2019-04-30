@@ -184,6 +184,47 @@ class TestCrawler(unittest.TestCase):
             for i in range(1, crawler.get_pages):
                 res = crawler.FavTweetsGet(i)
                 self.assertIsNotNone(res)
+
+    def test_ImageSaver(self):
+        # 画像保存をチェックする
+        use_file_list = []
+        with patch('DBControlar.DBControlar.DBFavUpsert') as mocksql:
+            with patch('PictureGathering_fav.urllib.request.urlopen') as mockurllib:
+                with patch('PictureGathering_fav.os.system') as mocksystem:
+                    mocksql.return_value = 0
+                    mocksystem.return_value = 0
+                    crawler = PictureGathering_fav.Crawler()
+                    crawler.save_fav_path = os.getcwd()
+
+                    def urlopen_side_effect(url_orig):
+                        url = url_orig.replace(":orig", "")
+                        save_file_path = os.path.join(crawler.save_fav_path, os.path.basename(url))
+
+                        with open(save_file_path, 'wb') as fout:
+                            fout.write("test".encode())
+
+                        use_file_list.append(save_file_path)
+                        return open(save_file_path, 'rb')
+
+                    mockurllib.side_effect = urlopen_side_effect
+
+                    tweets = []
+                    tweets.append(self.media_tweet_s)
+                    expect_save_num = len(self.media_tweet_s["extended_entities"]["media"])
+                    self.assertEqual(0, crawler.ImageSaver(tweets))
+
+                    self.assertEqual(expect_save_num, crawler.add_cnt)
+                    self.assertEqual(expect_save_num, mocksql.call_count)
+                    self.assertEqual(expect_save_num, mockurllib.call_count)
+                    self.assertEqual(expect_save_num, mocksystem.call_count)
+
+        for path in use_file_list:
+            self.assertTrue(os.path.exists(path))
+
+        # テストで使用したファイルを削除する（後始末）
+        for path in use_file_list:
+            os.remove(path)
+
         # with freezegun.freeze_time('2018-11-18 17:12:58'):
         #     url_orig_s = self.img_url_s + ":orig"
         #     td_format_s = '%a %b %d %H:%M:%S +0000 %Y'
