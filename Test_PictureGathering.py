@@ -3,6 +3,7 @@ import configparser
 from datetime import datetime
 from datetime import date
 from datetime import timedelta
+import json
 from mock import patch
 import os
 from requests_oauthlib import OAuth1Session
@@ -24,30 +25,60 @@ class TestCrawler(unittest.TestCase):
         self.save_file_fullpath_s = os.getcwd()
         self.tweet_s = self.__GetTweetSample(self.img_url_s)
         self.del_tweet_s = self.__GetDelTweetSample()
+        self.media_tweet_s = self.__GetMediaTweetSample(self.img_url_s)
+
+    def __GetMediaTweetSample(self, img_url_s):
+        # ツイートオブジェクトのサンプルを生成する
+        tweet_json = f'''{{
+            "extended_entities": {{
+                "media": [{{
+                    "media_url": "{img_url_s}_1"
+                }},
+                {{
+                    "media_url": "{img_url_s}_2"
+                }}
+                ]
+            }},
+            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id_str": "12345_id_str_sample",
+            "user": {{
+                "id_str": "12345_id_str_sample",
+                "name": "shift_name_sample",
+                "screen_name": "_shift4869_screen_name_sample"
+            }},
+            "text": "tweet_text_sample"
+        }}'''
+        tweet_s = json.loads(tweet_json)
+        return tweet_s
 
     def __GetTweetSample(self, img_url_s):
         # ツイートオブジェクトのサンプルを生成する
-        tweet_s = {}
-        tweet_s.setdefault("entities", {})
-        tweet_s["entities"].setdefault("media", [])
-        tweet_s["entities"]["media"].append({"expanded_url": self.tweet_url_s})
-        tweet_s.setdefault("created_at", "Sat Nov 18 17:12:58 +0000 2018")
-        tweet_s.setdefault("user", {})
-        tweet_s.setdefault("id_str", "12345_id_str_sample")
-        tweet_s["user"].setdefault("id_str", "12345_id_str_sample")
-        tweet_s["user"].setdefault("name", "shift_name_sample")
-        tweet_s["user"].setdefault(
-            "screen_name", "_shift4869_screen_name_sample")
-        tweet_s.setdefault("text", "tweet_text_sample")
+        tweet_json = f'''{{
+            "entities": {{
+                "media": {{
+                    "expanded_url": "{self.tweet_url_s}"
+                }}
+            }},
+            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id_str": "12345_id_str_sample",
+            "user": {{
+                "id_str": "12345_id_str_sample",
+                "name": "shift_name_sample",
+                "screen_name": "_shift4869_screen_name_sample"
+            }},
+            "text": "tweet_text_sample"
+        }}'''
+        tweet_s = json.loads(tweet_json)
         return tweet_s
 
     def __GetDelTweetSample(self):
         # ツイートオブジェクトのサンプルを生成する
-        tweet_s = {}
-        tweet_s.setdefault(
-            "text", "@s_shift4869 PictureGathering run.\n2018/03/09 11:59:38 Process Done !!\nadd 1 new images. delete 0 old images.")
-        tweet_s.setdefault("created_at", "Sat Nov 18 17:12:58 +0000 2018")
-        tweet_s.setdefault("id_str", "12345_id_str_sample")
+        tweet_json = f'''{{
+            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id_str": "12345_id_str_sample",
+            "text": "@s_shift4869 PictureGathering run.\\n2018/03/09 11:59:38 Process Done !!\\nadd 1 new images. delete 0 old images."
+        }}'''
+        tweet_s = json.loads(tweet_json)
         return tweet_s
 
     def test_CrawlerInit(self):
