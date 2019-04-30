@@ -103,7 +103,13 @@ class Crawler:
             if "extended_entities" not in tweet:
                 print("画像を含んでいないツイートです。")
                 continue
+            if "media" not in tweet["extended_entities"]:
+                print("画像を含んでいないツイートです。")
+                continue
             image_list = tweet["extended_entities"]["media"]
+
+            # 画像つきツイートが投稿された日時を取得する
+            # もしcreated_atが不正な形式だった場合、strptimeはValueErrorを返す
             # ex) tweet["created_at"] = "Tue Sep 04 15:55:52 +0000 2012"
             td_format = '%a %b %d %H:%M:%S +0000 %Y'
             created_time = time.strptime(tweet["created_at"], td_format)
@@ -118,6 +124,9 @@ class Crawler:
             )
 
             for image_dict in image_list:
+                if "media_url" not in image_dict:
+                    print("画像を含んでいないツイートです。")
+                    continue
                 url = image_dict["media_url"]
                 url_orig = url + ":orig"
                 save_file_path = os.path.join(self.save_fav_path, os.path.basename(url))
@@ -145,6 +154,7 @@ class Crawler:
 
                     print(os.path.basename(url_orig) + " -> done!")
                     self.add_cnt += 1
+        return 0
 
     def ShrinkFolder(self, holding_file_num):
         xs = []
