@@ -109,3 +109,4 @@ ENV/
 log.txt
 *.stackdump
 *.db-journal
+*.vbs

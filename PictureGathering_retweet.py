@@ -4,6 +4,7 @@ from datetime import datetime
 import json
 import io
 import os
+import requests
 import pprint
 from requests_oauthlib import OAuth1Session
 import sqlite3
@@ -32,11 +33,14 @@ class Crawler:
             if not self.config.read(self.CONFIG_FILE_NAME, encoding="utf8"):
                 raise IOError
 
-            config = self.config["token_keys"]
-            self.CONSUMER_KEY = config["consumer_key"]
-            self.CONSUMER_SECRET = config["consumer_secret"]
-            self.ACCESS_TOKEN_KEY = config["access_token"]
-            self.ACCESS_TOKEN_SECRET = config["access_token_secret"]
+            config = self.config["twitter_token_keys"]
+            self.TW_CONSUMER_KEY = config["consumer_key"]
+            self.TW_CONSUMER_SECRET = config["consumer_secret"]
+            self.TW_ACCESS_TOKEN_KEY = config["access_token"]
+            self.TW_ACCESS_TOKEN_SECRET = config["access_token_secret"]
+
+            config = self.config["line_token_keys"]
+            self.LN_TOKEN_KEY = config["token_key"]
 
             self.save_retweet_path = os.path.abspath(self.config["save_directory"]["save_retweet_path"])
 
@@ -57,10 +61,10 @@ class Crawler:
             exit(-1)
 
         self.oath = OAuth1Session(
-            self.CONSUMER_KEY,
-            self.CONSUMER_SECRET,
-            self.ACCESS_TOKEN_KEY,
-            self.ACCESS_TOKEN_SECRET
+            self.TW_CONSUMER_KEY,
+            self.TW_CONSUMER_SECRET,
+            self.TW_ACCESS_TOKEN_KEY,
+            self.TW_ACCESS_TOKEN_SECRET
         )
 
         self.max_id = None
@@ -215,6 +219,11 @@ class Crawler:
                     print("Reply posted.")
                     fout.write("Reply posted.")
 
+                if config.getboolean("is_post_line_notify"):
+                    self.PostLineNotify(done_msg)
+                    print("Line Notify posted.")
+                    fout.write("Line Notify posted.")
+
         # 古い通知リプライを消す
         if config.getboolean("is_post_retweet_done_reply"):
             targets = self.db_cont.DBDelSelect()
@@ -248,6 +257,19 @@ class Crawler:
         responce = self.oath.post(url, params=params)
 
         self.db_cont.DBDelInsert(json.loads(responce.text))
+
+        if responce.status_code != 200:
+            print("Error code: {0}".format(responce.status_code))
+            return None
+
+    def PostLineNotify(self, str):
+        url = "https://notify-api.line.me/api/notify"
+        token = self.LN_TOKEN_KEY
+
+        headers = {"Authorization": "Bearer " + token}
+        payload = {"message": str}
+
+        responce = requests.post(url, headers=headers, params=payload)
 
         if responce.status_code != 200:
             print("Error code: {0}".format(responce.status_code))
