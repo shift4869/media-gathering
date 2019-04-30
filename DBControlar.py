@@ -68,7 +68,7 @@ class DBControlar:
         return param
 
     def __GetDelUpdateParam(self, tweet):
-        pattern = ' +[0-9] '
+        pattern = ' +[0-9]* '
         text = tweet["text"]
         add_num = int(re.findall(pattern, text)[0])
         del_num = int(re.findall(pattern, text)[1])
