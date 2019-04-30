@@ -175,6 +175,15 @@ class TestCrawler(unittest.TestCase):
         }
         self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
 
+    def test_FavTweetsGet(self):
+        # Favツイートの取得をチェックする
+        with patch('PictureGathering_fav.Crawler.TwitterAPIRequest') as mocksql:
+            mocksql.return_value = self.tweet_s
+            crawler = PictureGathering_fav.Crawler()
+
+            for i in range(1, crawler.get_pages):
+                res = crawler.FavTweetsGet(i)
+                self.assertIsNotNone(res)
         # with freezegun.freeze_time('2018-11-18 17:12:58'):
         #     url_orig_s = self.img_url_s + ":orig"
         #     td_format_s = '%a %b %d %H:%M:%S +0000 %Y'
