@@ -110,8 +110,10 @@ class TestCrawler(unittest.TestCase):
 
         self.assertEqual(os.path.abspath(expect_config["save_directory"]["save_fav_path"]),
                          crawler.save_fav_path)
+        self.assertTrue(os.path.exists(crawler.save_fav_path))
         # self.assertEqual(os.path.abspath(expect_config["save_directory"]["save_retweet_path"]),
         #                  crawler.save_retweet_path)
+        # self.assertTrue(os.path.exists(crawler.save_retweet_path))
 
         self.assertEqual(expect_config["tweet_timeline"]["user_name"],
                          crawler.user_name)
@@ -141,6 +143,8 @@ class TestCrawler(unittest.TestCase):
 
         self.assertIn(expect_config["processes"]["image_magick"],
                       crawler.config["processes"]["image_magick"])
+        if crawler.config["processes"]["image_magick"] != "":
+            self.assertTrue(os.path.exists(crawler.config["processes"]["image_magick"]))
 
         self.assertIsInstance(crawler.oath, OAuth1Session)
 
