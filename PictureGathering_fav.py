@@ -26,7 +26,7 @@ class Crawler:
     del_url_list = []
 
     def __init__(self):
-        self.config = configparser.SafeConfigParser()
+        self.config = configparser.ConfigParser()
         try:
             self.db_cont = DBControlar.DBControlar()
             if not self.config.read(self.CONFIG_FILE_NAME, encoding="utf8"):
@@ -103,7 +103,13 @@ class Crawler:
             if "extended_entities" not in tweet:
                 print("画像を含んでいないツイートです。")
                 continue
+            if "media" not in tweet["extended_entities"]:
+                print("画像を含んでいないツイートです。")
+                continue
             image_list = tweet["extended_entities"]["media"]
+
+            # 画像つきツイートが投稿された日時を取得する
+            # もしcreated_atが不正な形式だった場合、strptimeはValueErrorを返す
             # ex) tweet["created_at"] = "Tue Sep 04 15:55:52 +0000 2012"
             td_format = '%a %b %d %H:%M:%S +0000 %Y'
             created_time = time.strptime(tweet["created_at"], td_format)
@@ -118,6 +124,9 @@ class Crawler:
             )
 
             for image_dict in image_list:
+                if "media_url" not in image_dict:
+                    print("画像を含んでいないツイートです。")
+                    continue
                 url = image_dict["media_url"]
                 url_orig = url + ":orig"
                 save_file_path = os.path.join(self.save_fav_path, os.path.basename(url))
@@ -145,6 +154,7 @@ class Crawler:
 
                     print(os.path.basename(url_orig) + " -> done!")
                     self.add_cnt += 1
+        return 0
 
     def ShrinkFolder(self, holding_file_num):
         xs = []
@@ -152,6 +162,7 @@ class Crawler:
             for f in files:
                 path = os.path.join(root, f)
                 xs.append((os.path.getmtime(path), path))
+        os.walk(self.save_fav_path).close()
 
         file_list = []
         for mtime, path in sorted(xs, reverse=True):
@@ -168,6 +179,7 @@ class Crawler:
                 base_url = 'http://pbs.twimg.com/media/{}:orig'
                 self.del_url_list.append(
                     base_url.format(os.path.basename(file)))
+        return 0
 
     def EndOfProcess(self):
         print("")
@@ -216,8 +228,7 @@ class Crawler:
             for target in targets:
                 responce = self.oath.post(url.format(target[1]))  # tweet_id
 
-        # self.db_cont.DBClose()
-        # sys.exit()
+        return 0
 
     def PostTweet(self, str):
         url = "https://api.twitter.com/1.1/users/show.json"
@@ -247,6 +258,8 @@ class Crawler:
             print("Error code: {0}".format(responce.status_code))
             return None
 
+        return 0
+
     def PostLineNotify(self, str):
         url = "https://notify-api.line.me/api/notify"
         token = self.LN_TOKEN_KEY
@@ -260,12 +273,15 @@ class Crawler:
             print("Error code: {0}".format(responce.status_code))
             return None
 
+        return 0
+
     def Crawl(self):
         for i in range(1, self.get_pages):
             tweets = self.FavTweetsGet(i)
             self.ImageSaver(tweets)
         self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
         self.EndOfProcess()
+        return 0
 
 
 if __name__ == "__main__":
