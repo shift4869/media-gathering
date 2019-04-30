@@ -162,6 +162,7 @@ class Crawler:
             for f in files:
                 path = os.path.join(root, f)
                 xs.append((os.path.getmtime(path), path))
+        os.walk(self.save_fav_path).close()
 
         file_list = []
         for mtime, path in sorted(xs, reverse=True):
@@ -227,8 +228,7 @@ class Crawler:
             for target in targets:
                 responce = self.oath.post(url.format(target[1]))  # tweet_id
 
-        # self.db_cont.DBClose()
-        # sys.exit()
+        return 0
 
     def PostTweet(self, str):
         url = "https://api.twitter.com/1.1/users/show.json"
@@ -258,6 +258,8 @@ class Crawler:
             print("Error code: {0}".format(responce.status_code))
             return None
 
+        return 0
+
     def PostLineNotify(self, str):
         url = "https://notify-api.line.me/api/notify"
         token = self.LN_TOKEN_KEY
@@ -271,12 +273,15 @@ class Crawler:
             print("Error code: {0}".format(responce.status_code))
             return None
 
+        return 0
+
     def Crawl(self):
         for i in range(1, self.get_pages):
             tweets = self.FavTweetsGet(i)
             self.ImageSaver(tweets)
         self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
         self.EndOfProcess()
+        return 0
 
 
 if __name__ == "__main__":
