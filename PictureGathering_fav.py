@@ -1,4 +1,5 @@
 # coding: utf-8
+import argparse
 import configparser
 from datetime import datetime
 import json
@@ -18,12 +19,6 @@ import DBControlar as DBControlar
 
 class Crawler:
     CONFIG_FILE_NAME = "config.ini"
-
-    add_cnt = 0
-    del_cnt = 0
-
-    add_url_list = []
-    del_url_list = []
 
     def __init__(self):
         self.config = configparser.ConfigParser()
@@ -65,6 +60,14 @@ class Crawler:
             self.TW_ACCESS_TOKEN_KEY,
             self.TW_ACCESS_TOKEN_SECRET
         )
+
+        self.type = "Fav"
+
+        self.add_cnt = 0
+        self.del_cnt = 0
+
+        self.add_url_list = []
+        self.del_url_list = []
 
     def TwitterAPIRequest(self, url, params):
         responce = self.oath.get(url, params=params)
@@ -284,6 +287,11 @@ class Crawler:
         return 0
 
 
+class FavCrawler(Crawler):
+    def __init__(self):
+        super().__init__()
+        self.type = "Fav"
+
 if __name__ == "__main__":
-    c = Crawler()
+    c = FavCrawler()
     c.Crawl()

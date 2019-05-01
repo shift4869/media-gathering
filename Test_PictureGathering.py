@@ -233,27 +233,6 @@ class TestCrawler(unittest.TestCase):
         for path in use_file_list:
             os.remove(path)
 
-        # with freezegun.freeze_time('2018-11-18 17:12:58'):
-        #     url_orig_s = self.img_url_s + ":orig"
-        #     td_format_s = '%a %b %d %H:%M:%S +0000 %Y'
-        #     dts_format_s = '%Y-%m-%d %H:%M:%S'
-        #     tca = self.tweet_s["created_at"]
-        #     dst = datetime.strptime(tca, td_format_s)
-        #     expect = (os.path.basename(self.img_url_s),
-        #               url_orig_s,
-        #               self.img_url_s + ":large",
-        #               self.tweet_s["id_str"],
-        #               self.tweet_s["entities"]["media"][0]["expanded_url"],
-        #               dst.strftime(dts_format_s),
-        #               self.tweet_s["user"]["id_str"],
-        #               self.tweet_s["user"]["name"],
-        #               self.tweet_s["user"]["screen_name"],
-        #               self.tweet_s["text"],
-        #               self.save_file_fullpath_s,
-        #               datetime.now().strftime(dts_format_s))
-        #     actual = controlar._DBControlar__GetUpdateParam(self.img_url_s, self.tweet_s, self.save_file_fullpath_s)
-        #     self.assertEqual(expect, actual)
-
     def test_ShrinkFolder(self):
         # フォルダ内ファイルの数を一定にする機能をチェックする
         crawler = PictureGathering_fav.Crawler()
