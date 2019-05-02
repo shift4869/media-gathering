@@ -1,22 +1,6 @@
 # coding: utf-8
-from abc import ABCMeta, abstractmethod
 import argparse
-import configparser
-from datetime import datetime
-import json
-import io
-import os
-import requests
-from requests_oauthlib import OAuth1Session
-import sqlite3
-import sys
-import time
-import traceback
-import urllib
 
-import WriteHTML as WriteHTML
-import DBControlar as DBControlar
-import Crawler as Crawler
 import FavCrawler as FavCrawler
 import RetweetCrawler as RetweetCrawler
 
