@@ -1,12 +1,11 @@
 # coding: utf-8
+from abc import ABCMeta, abstractmethod
 import configparser
 from datetime import datetime
 import json
-import io
 import os
 import requests
 from requests_oauthlib import OAuth1Session
-import sqlite3
 import sys
 import time
 import traceback
@@ -16,14 +15,8 @@ import WriteHTML as WriteHTML
 import DBControlar as DBControlar
 
 
-class Crawler:
+class Crawler(metaclass=ABCMeta):
     CONFIG_FILE_NAME = "config.ini"
-
-    add_cnt = 0
-    del_cnt = 0
-
-    add_url_list = []
-    del_url_list = []
 
     def __init__(self):
         self.config = configparser.ConfigParser()
@@ -41,14 +34,13 @@ class Crawler:
             config = self.config["line_token_keys"]
             self.LN_TOKEN_KEY = config["token_key"]
 
-            self.save_fav_path = os.path.abspath(self.config["save_directory"]["save_fav_path"])
-
-            # count * get_pages　だけツイートをさかのぼる。
             self.user_name = self.config["tweet_timeline"]["user_name"]
-            self.get_pages = int(self.config["tweet_timeline"]["get_pages"]) + 1
             self.count = int(self.config["tweet_timeline"]["count"])
+
+            self.save_path = ""
+            self.type = ""
         except IOError:
-            print(CONFIG_FILE_NAME + " is not exist or cannot be opened.")
+            print(self.CONFIG_FILE_NAME + " is not exist or cannot be opened.")
             exit(-1)
         except KeyError:
             ex, ms, tb = sys.exc_info()
@@ -66,6 +58,12 @@ class Crawler:
             self.TW_ACCESS_TOKEN_SECRET
         )
 
+        self.add_cnt = 0
+        self.del_cnt = 0
+
+        self.add_url_list = []
+        self.del_url_list = []
+
     def TwitterAPIRequest(self, url, params):
         responce = self.oath.get(url, params=params)
 
@@ -75,28 +73,6 @@ class Crawler:
 
         res = json.loads(responce.text)
         return res
-
-    def FavTweetsGet(self, page):
-        kind_of_api = self.config["tweet_timeline"]["kind_of_timeline"]
-        if kind_of_api == "favorite":
-            url = "https://api.twitter.com/1.1/favorites/list.json"
-            params = {
-                "screen_name": self.user_name,
-                "page": page,
-                "count": self.count,
-                "include_entities": 1  # ツイートのメタデータ取得。これしないと複数枚の画像に対応できない。
-            }
-        elif kind_of_api == "home":
-            url = "https://api.twitter.com/1.1/statuses/home_timeline.json"
-            params = {
-                "count": self.count,
-                "include_entities": 1
-            }
-        else:
-            print("kind_of_api is invalid .")
-            return None
-
-        return self.TwitterAPIRequest(url, params)
 
     def ImageSaver(self, tweets):
         for tweet in tweets:
@@ -129,7 +105,7 @@ class Crawler:
                     continue
                 url = image_dict["media_url"]
                 url_orig = url + ":orig"
-                save_file_path = os.path.join(self.save_fav_path, os.path.basename(url))
+                save_file_path = os.path.join(self.save_path, os.path.basename(url))
                 save_file_fullpath = os.path.abspath(save_file_path)
 
                 if not os.path.isfile(save_file_fullpath):
@@ -158,11 +134,11 @@ class Crawler:
 
     def ShrinkFolder(self, holding_file_num):
         xs = []
-        for root, dir, files in os.walk(self.save_fav_path):
+        for root, dir, files in os.walk(self.save_path):
             for f in files:
                 path = os.path.join(root, f)
                 xs.append((os.path.getmtime(path), path))
-        os.walk(self.save_fav_path).close()
+        os.walk(self.save_path).close()
 
         file_list = []
         for mtime, path in sorted(xs, reverse=True):
@@ -181,21 +157,20 @@ class Crawler:
                     base_url.format(os.path.basename(file)))
         return 0
 
+    @abstractmethod
+    def MakeDoneMessage(self):
+        pass
+
     def EndOfProcess(self):
         print("")
 
-        now_str = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-        done_msg = "Fav PictureGathering run.\n"
-        done_msg += now_str
-        done_msg += " Process Done !!\n"
-        done_msg += "add {0} new images. ".format(self.add_cnt)
-        done_msg += "delete {0} old images. \n".format(self.del_cnt)
+        done_msg = self.MakeDoneMessage()
 
         print(done_msg)
 
         config = self.config["notification"]
 
-        WriteHTML.WriteFavHTML(self.del_url_list)
+        WriteHTML.WriteResultHTML(self.type, self.del_url_list)
         with open('log.txt', 'a') as fout:
             if self.add_cnt != 0 or self.del_cnt != 0:
                 fout.write("\n")
@@ -275,15 +250,11 @@ class Crawler:
 
         return 0
 
+    @abstractmethod
     def Crawl(self):
-        for i in range(1, self.get_pages):
-            tweets = self.FavTweetsGet(i)
-            self.ImageSaver(tweets)
-        self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
-        self.EndOfProcess()
-        return 0
-
+        pass
 
 if __name__ == "__main__":
-    c = Crawler()
-    c.Crawl()
+    # c = Crawler()
+    # c.Crawl()
+    pass
