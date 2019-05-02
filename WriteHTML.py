@@ -37,6 +37,13 @@ def MakeTHTag(url, tweet_url):
                               pointer_path=POINTER_PATH)
 
 
+def WriteResultHTML(op_type, del_url_list):
+    if op_type == "Fav":
+        WriteFavHTML(del_url_list)
+    elif op_type == "RT":
+        WriteRetweetHTML(del_url_list)
+
+
 def WriteFavHTML(del_url_list):
     db = db_cont.DBFavSelect()
     res = ''
@@ -91,4 +98,4 @@ if __name__ == "__main__":
     del_url_list = [
         # "http://pbs.twimg.com/media/example_xxxxxxxxxxx.png:orig",
     ]
-    WriteHTML(del_url_list)
+    WriteResultHTML("Fav", del_url_list)
