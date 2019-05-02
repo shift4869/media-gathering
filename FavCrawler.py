@@ -1,20 +1,9 @@
 # coding: utf-8
-import configparser
 from datetime import datetime
-import json
-import io
 import os
-import requests
-import pprint
-from requests_oauthlib import OAuth1Session
-import sqlite3
 import sys
-import time
 import traceback
-import urllib
 
-import WriteHTML as WriteHTML
-import DBControlar as DBControlar
 from Crawler import Crawler
 
 
