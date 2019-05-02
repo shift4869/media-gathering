@@ -186,7 +186,12 @@ class Crawler(metaclass=ABCMeta):
                     for url in self.del_url_list:
                         fout.write(url + "\n")
 
-                if config.getboolean("is_post_fav_done_reply"):
+                if self.type == "Fav" and config.getboolean("is_post_fav_done_reply"):
+                    self.PostTweet(done_msg)
+                    print("Reply posted.")
+                    fout.write("Reply posted.")
+
+                if self.type == "RT" and config.getboolean("is_post_retweet_done_reply"):
                     self.PostTweet(done_msg)
                     print("Reply posted.")
                     fout.write("Reply posted.")
