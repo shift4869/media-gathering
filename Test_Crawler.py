@@ -193,35 +193,40 @@ class TestCrawler(unittest.TestCase):
     def test_ImageSaver(self):
         # 画像保存をチェックする
         use_file_list = []
-        with patch('DBControlar.DBControlar.DBFavUpsert') as mocksql:
-            with patch('Crawler.urllib.request.urlopen') as mockurllib:
-                with patch('Crawler.os.system') as mocksystem:
-                    mocksql.return_value = 0
-                    mocksystem.return_value = 0
-                    crawler = ConcreteCrawler()
-                    crawler.save_path = os.getcwd()
 
-                    def urlopen_side_effect(url_orig):
-                        url = url_orig.replace(":orig", "")
-                        save_file_path = os.path.join(crawler.save_path, os.path.basename(url))
+        with ExitStack() as stack:
+            # with句にpatchを複数入れる
+            mocksql = stack.enter_context(patch('DBControlar.DBControlar.DBFavUpsert'))
+            mockurllib = stack.enter_context(patch('Crawler.urllib.request.urlopen'))
+            mocksystem = stack.enter_context(patch('Crawler.os.system'))
 
-                        with open(save_file_path, 'wb') as fout:
-                            fout.write("test".encode())
+            # mock設定
+            mocksql.return_value = 0
+            mocksystem.return_value = 0
+            crawler = ConcreteCrawler()
+            crawler.save_path = os.getcwd()
 
-                        use_file_list.append(save_file_path)
-                        return open(save_file_path, 'rb')
+            def urlopen_side_effect(url_orig):
+                url = url_orig.replace(":orig", "")
+                save_file_path = os.path.join(crawler.save_path, os.path.basename(url))
 
-                    mockurllib.side_effect = urlopen_side_effect
+                with open(save_file_path, 'wb') as fout:
+                    fout.write("test".encode())
 
-                    tweets = []
-                    tweets.append(self.media_tweet_s)
-                    expect_save_num = len(self.media_tweet_s["extended_entities"]["media"])
-                    self.assertEqual(0, crawler.ImageSaver(tweets))
+                use_file_list.append(save_file_path)
+                return open(save_file_path, 'rb')
 
-                    self.assertEqual(expect_save_num, crawler.add_cnt)
-                    self.assertEqual(expect_save_num, mocksql.call_count)
-                    self.assertEqual(expect_save_num, mockurllib.call_count)
-                    self.assertEqual(expect_save_num, mocksystem.call_count)
+            mockurllib.side_effect = urlopen_side_effect
+
+            tweets = []
+            tweets.append(self.media_tweet_s)
+            expect_save_num = len(self.media_tweet_s["extended_entities"]["media"])
+            self.assertEqual(0, crawler.ImageSaver(tweets))
+
+            self.assertEqual(expect_save_num, crawler.add_cnt)
+            self.assertEqual(expect_save_num, mocksql.call_count)
+            self.assertEqual(expect_save_num, mockurllib.call_count)
+            self.assertEqual(expect_save_num, mocksystem.call_count)
 
         for path in use_file_list:
             self.assertTrue(os.path.exists(path))
