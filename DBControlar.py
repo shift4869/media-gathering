@@ -37,13 +37,17 @@ class DBControlar:
         return 'replace into DeleteTarget (' + p1 + ') values (' + pn + ')'
 
     def __GetFavoriteSelectSQL(self, limit=300):
-        return 'select * from Favorite order by id desc limit {}'.format(limit)
+        return 'select * from Favorite order by created_at desc limit {}'.format(limit)
 
     def __GetRetweetSelectSQL(self, limit=300):
-        return 'select * from Retweet where is_exist_saved_file = \'True\' order by id desc limit {}'.format(limit)
+        return 'select * from Retweet where is_exist_saved_file = 1 order by created_at desc limit {}'.format(limit)
 
-    def __GetRetweetFlagUpdateSQL(self, filename=""):
-        return 'update Retweet set is_exist_saved_file = 0 where img_filename = \'{}\''.format(filename)
+    def __GetRetweetFlagUpdateSQL(self, filename="", set_flag=0):
+        # filenameはシングルクォート必要、カンマ区切りOK
+        return 'update Retweet set is_exist_saved_file = {} where img_filename in ({})'.format(set_flag, filename)
+
+    def __GetRetweetFlagClearSQL(self):
+        return 'update Retweet set is_exist_saved_file = 0'
 
     def __GetUpdateParam(self, url, tweet, save_file_fullpath):
         # img_filename,url,url_large,tweet_id,tweet_url,created_at,
@@ -118,10 +122,18 @@ class DBControlar:
             res = list(c.execute(query))
         return res
 
-    def DBRetweetFlagUpdate(self, filename=""):
+    def DBRetweetFlagUpdate(self, file_list=[], set_flag=0):
+        filename = "'" + "','".join(file_list) + "'"
         with closing(sqlite3.connect(self.dbname)) as conn:
             c = conn.cursor()
-            query = self.__GetRetweetFlagUpdateSQL(filename)
+            query = self.__GetRetweetFlagUpdateSQL(filename, set_flag)
+            c.execute(query)
+            conn.commit()
+
+    def DBRetweetFlagClear(self):
+        with closing(sqlite3.connect(self.dbname)) as conn:
+            c = conn.cursor()
+            query = self.__GetRetweetFlagClearSQL()
             c.execute(query)
             conn.commit()
 

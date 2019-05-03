@@ -117,7 +117,7 @@ class Crawler(metaclass=ABCMeta):
                             if self.type == "Fav":
                                 self.db_cont.DBFavUpsert(url, tweet, save_file_fullpath)
                             elif self.type == "RT":
-                                self.db_cont.DBRetweetUpsert(url, tweet, save_file_fullpath)                                
+                                self.db_cont.DBRetweetUpsert(url, tweet, save_file_fullpath)
 
                     # image magickで画像変換
                     img_magick_path = self.config["processes"]["image_magick"]
@@ -147,17 +147,28 @@ class Crawler(metaclass=ABCMeta):
         for mtime, path in sorted(xs, reverse=True):
             file_list.append(path)
 
+        # フォルダに既に保存しているファイルにはURLの情報がない
+        # ファイル名とドメインを結びつけてURLを手動で生成する
+        # twitterの画像URLの仕様が変わったらここも変える必要がある
+        # http://pbs.twimg.com/media/{file.basename}.jpg:orig
+        base_url = 'http://pbs.twimg.com/media/{}:orig'
+        del_img_filename = []
+        add_img_filename = []
         for i, file in enumerate(file_list):
             if i > holding_file_num:
                 os.remove(file)
                 self.del_cnt += 1
-                # フォルダに既に保存しているファイルにはURLの情報がない
-                # ファイル名とドメインを結びつけてURLを手動で生成する
-                # twitterの画像URLの仕様が変わったらここも変える必要がある
-                # http://pbs.twimg.com/media/{file.basename}.jpg:orig
-                base_url = 'http://pbs.twimg.com/media/{}:orig'
-                self.del_url_list.append(
-                    base_url.format(os.path.basename(file)))
+                self.del_url_list.append(base_url.format(os.path.basename(file)))
+                del_img_filename.append(os.path.basename(file))
+            else:
+                self.add_url_list.append(base_url.format(os.path.basename(file)))
+                add_img_filename.append(os.path.basename(file))
+
+        # 存在マーキングを更新する
+        if self.type == "RT":
+            self.db_cont.DBRetweetFlagClear()
+            self.db_cont.DBRetweetFlagUpdate(add_img_filename, 1)
+
         return 0
 
     @abstractmethod
