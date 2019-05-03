@@ -51,7 +51,7 @@ def WriteFavHTML(del_url_list):
     COLUMN_NUM = 5
     cnt = 0
 
-    for row in reversed(db):
+    for row in db:
         if cnt == 0:
             res += "<tr>\n"
         res += MakeTHTag(url=row[2], tweet_url=row[5])
@@ -76,7 +76,7 @@ def WriteRetweetHTML(del_url_list):
     COLUMN_NUM = 5
     cnt = 0
 
-    for row in reversed(db):
+    for row in db:
         if cnt == 0:
             res += "<tr>\n"
         res += MakeTHTag(url=row[3], tweet_url=row[6])
