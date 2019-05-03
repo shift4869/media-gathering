@@ -1,21 +1,30 @@
 # coding: utf-8
 import configparser
 from contextlib import ExitStack
-from datetime import datetime
-from datetime import date
-from datetime import timedelta
 import json
 from mock import patch, MagicMock, PropertyMock
 import os
 import requests
 from requests_oauthlib import OAuth1Session
-import shutil
+import sys
 import unittest
 
-import freezegun
 
 import DBControlar
-import PictureGathering_fav
+import Crawler
+
+
+class ConcreteCrawler(Crawler.Crawler):
+    def __init__(self):
+        super().__init__()
+        self.save_path = os.getcwd()
+        self.type = "Test"
+
+    def MakeDoneMessage(self):
+        return "Crawler Test : done"
+
+    def Crawl(self):
+        return 0
 
 
 class TestCrawler(unittest.TestCase):
@@ -27,13 +36,7 @@ class TestCrawler(unittest.TestCase):
         self.tweet_url_s = 'http://www.tweet.sample.com'
         self.save_file_fullpath_s = os.getcwd()
         self.tweet_s = self.__GetTweetSample(self.img_url_s)
-        self.del_tweet_s = self.__GetDelTweetSample()
         self.media_tweet_s = self.__GetMediaTweetSample(self.img_url_s)
-
-        PictureGathering_fav.Crawler.add_cnt = 0
-        PictureGathering_fav.Crawler.del_cnt = 0
-        PictureGathering_fav.Crawler.add_url_list = []
-        PictureGathering_fav.Crawler.del_url_list = []
 
     def __GetMediaTweetSample(self, img_url_s):
         # ツイートオブジェクトのサンプルを生成する
@@ -79,19 +82,17 @@ class TestCrawler(unittest.TestCase):
         tweet_s = json.loads(tweet_json)
         return tweet_s
 
-    def __GetDelTweetSample(self):
-        # ツイートオブジェクトのサンプルを生成する
-        tweet_json = f'''{{
-            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
-            "id_str": "12345_id_str_sample",
-            "text": "@s_shift4869 PictureGathering run.\\n2018/03/09 11:59:38 Process Done !!\\nadd 1 new images. delete 0 old images."
-        }}'''
-        tweet_s = json.loads(tweet_json)
-        return tweet_s
+    def test_ConcreteCrawler(self):
+        # ConcreteCrawlerをテストする
+        crawler = ConcreteCrawler()
+
+        self.assertEqual("Test", crawler.type)
+        self.assertEqual("Crawler Test : done", crawler.MakeDoneMessage())
+        self.assertEqual(0, crawler.Crawl())
 
     def test_CrawlerInit(self):
         # Crawlerの初期状態をテストする
-        crawler = PictureGathering_fav.Crawler()
+        crawler = ConcreteCrawler()
 
         # config
         expect_config = configparser.ConfigParser()
@@ -116,9 +117,9 @@ class TestCrawler(unittest.TestCase):
         self.assertEqual(expect_config["line_token_keys"]["token_key"],
                          crawler.LN_TOKEN_KEY)
 
-        self.assertEqual(os.path.abspath(expect_config["save_directory"]["save_fav_path"]),
-                         crawler.save_fav_path)
-        self.assertTrue(os.path.exists(crawler.save_fav_path))
+        # self.assertEqual(os.path.abspath(expect_config["save_directory"]["save_fav_path"]),
+        #                 crawler.save_path)
+        # self.assertTrue(os.path.exists(crawler.save_path))
         # self.assertEqual(os.path.abspath(expect_config["save_directory"]["save_retweet_path"]),
         #                  crawler.save_retweet_path)
         # self.assertTrue(os.path.exists(crawler.save_retweet_path))
@@ -127,40 +128,46 @@ class TestCrawler(unittest.TestCase):
                          crawler.user_name)
         # self.assertEqual(int(expect_config["tweet_timeline"]["retweet_get_max_loop"]),
         #                  crawler.retweet_get_max_loop)
-        self.assertEqual(int(expect_config["tweet_timeline"]["get_pages"]) + 1,
-                         crawler.get_pages)
+        # self.assertEqual(int(expect_config["tweet_timeline"]["get_pages"]) + 1,
+        #                  crawler.get_pages)
         self.assertEqual(int(expect_config["tweet_timeline"]["count"]),
                          crawler.count)
         self.assertIn(crawler.config["tweet_timeline"]["kind_of_timeline"],
                       ["favorite", "home"])
 
-        self.assertIn(expect_config["timestamp"]["timestamp_created_at"],
-                      crawler.config["timestamp"]["timestamp_created_at"])
+        self.assertEqual(expect_config["timestamp"]["timestamp_created_at"],
+                         crawler.config["timestamp"]["timestamp_created_at"])
 
-        self.assertIn(expect_config["notification"]["is_post_fav_done_reply"],
-                      crawler.config["notification"]["is_post_fav_done_reply"])
-        self.assertIn(expect_config["notification"]["is_post_retweet_done_reply"],
-                      crawler.config["notification"]["is_post_retweet_done_reply"])
-        self.assertIn(expect_config["notification"]["reply_to_user_name"],
-                      crawler.config["notification"]["reply_to_user_name"])
-        self.assertIn(expect_config["notification"]["is_post_line_notify"],
-                      crawler.config["notification"]["is_post_line_notify"])
+        self.assertEqual(expect_config["notification"]["is_post_fav_done_reply"],
+                         crawler.config["notification"]["is_post_fav_done_reply"])
+        self.assertEqual(expect_config["notification"]["is_post_retweet_done_reply"],
+                         crawler.config["notification"]["is_post_retweet_done_reply"])
+        self.assertEqual(expect_config["notification"]["reply_to_user_name"],
+                         crawler.config["notification"]["reply_to_user_name"])
+        self.assertEqual(expect_config["notification"]["is_post_line_notify"],
+                         crawler.config["notification"]["is_post_line_notify"])
 
-        self.assertIn(expect_config["holding"]["holding_file_num"],
-                      crawler.config["holding"]["holding_file_num"])
+        self.assertEqual(expect_config["holding"]["holding_file_num"],
+                         crawler.config["holding"]["holding_file_num"])
 
-        self.assertIn(expect_config["processes"]["image_magick"],
-                      crawler.config["processes"]["image_magick"])
+        self.assertEqual(expect_config["processes"]["image_magick"],
+                         crawler.config["processes"]["image_magick"])
         if crawler.config["processes"]["image_magick"] != "":
             self.assertTrue(os.path.exists(crawler.config["processes"]["image_magick"]))
 
         self.assertIsInstance(crawler.oath, OAuth1Session)
 
+        self.assertEqual(0, crawler.add_cnt)
+        self.assertEqual(0, crawler.del_cnt)
+        self.assertEqual([], crawler.add_url_list)
+        self.assertEqual([], crawler.del_url_list)
+
     def test_TwitterAPIRequest(self):
         # TwitterAPIの応答をチェックする
-        crawler = PictureGathering_fav.Crawler()
+        crawler = ConcreteCrawler()
+        get_pages = int(crawler.config["tweet_timeline"]["get_pages"]) + 1
 
-        for i in range(1, crawler.get_pages):
+        for i in range(1, get_pages):
             url = "https://api.twitter.com/1.1/favorites/list.json"
             params = {
                 "screen_name": crawler.user_name,
@@ -183,48 +190,43 @@ class TestCrawler(unittest.TestCase):
         }
         self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
 
-    def test_FavTweetsGet(self):
-        # Favツイートの取得をチェックする
-        with patch('PictureGathering_fav.Crawler.TwitterAPIRequest') as mocksql:
-            mocksql.return_value = self.tweet_s
-            crawler = PictureGathering_fav.Crawler()
-
-            for i in range(1, crawler.get_pages):
-                res = crawler.FavTweetsGet(i)
-                self.assertIsNotNone(res)
-
     def test_ImageSaver(self):
         # 画像保存をチェックする
         use_file_list = []
-        with patch('DBControlar.DBControlar.DBFavUpsert') as mocksql:
-            with patch('PictureGathering_fav.urllib.request.urlopen') as mockurllib:
-                with patch('PictureGathering_fav.os.system') as mocksystem:
-                    mocksql.return_value = 0
-                    mocksystem.return_value = 0
-                    crawler = PictureGathering_fav.Crawler()
-                    crawler.save_fav_path = os.getcwd()
 
-                    def urlopen_side_effect(url_orig):
-                        url = url_orig.replace(":orig", "")
-                        save_file_path = os.path.join(crawler.save_fav_path, os.path.basename(url))
+        with ExitStack() as stack:
+            # with句にpatchを複数入れる
+            mocksql = stack.enter_context(patch('DBControlar.DBControlar.DBFavUpsert'))
+            mockurllib = stack.enter_context(patch('Crawler.urllib.request.urlopen'))
+            mocksystem = stack.enter_context(patch('Crawler.os.system'))
 
-                        with open(save_file_path, 'wb') as fout:
-                            fout.write("test".encode())
+            # mock設定
+            mocksql.return_value = 0
+            mocksystem.return_value = 0
+            crawler = ConcreteCrawler()
+            crawler.save_path = os.getcwd()
 
-                        use_file_list.append(save_file_path)
-                        return open(save_file_path, 'rb')
+            def urlopen_side_effect(url_orig):
+                url = url_orig.replace(":orig", "")
+                save_file_path = os.path.join(crawler.save_path, os.path.basename(url))
 
-                    mockurllib.side_effect = urlopen_side_effect
+                with open(save_file_path, 'wb') as fout:
+                    fout.write("test".encode())
 
-                    tweets = []
-                    tweets.append(self.media_tweet_s)
-                    expect_save_num = len(self.media_tweet_s["extended_entities"]["media"])
-                    self.assertEqual(0, crawler.ImageSaver(tweets))
+                use_file_list.append(save_file_path)
+                return open(save_file_path, 'rb')
 
-                    self.assertEqual(expect_save_num, crawler.add_cnt)
-                    self.assertEqual(expect_save_num, mocksql.call_count)
-                    self.assertEqual(expect_save_num, mockurllib.call_count)
-                    self.assertEqual(expect_save_num, mocksystem.call_count)
+            mockurllib.side_effect = urlopen_side_effect
+
+            tweets = []
+            tweets.append(self.media_tweet_s)
+            expect_save_num = len(self.media_tweet_s["extended_entities"]["media"])
+            self.assertEqual(0, crawler.ImageSaver(tweets))
+
+            self.assertEqual(expect_save_num, crawler.add_cnt)
+            self.assertEqual(expect_save_num, mocksql.call_count)
+            self.assertEqual(expect_save_num, mockurllib.call_count)
+            self.assertEqual(expect_save_num, mocksystem.call_count)
 
         for path in use_file_list:
             self.assertTrue(os.path.exists(path))
@@ -235,15 +237,16 @@ class TestCrawler(unittest.TestCase):
 
     def test_ShrinkFolder(self):
         # フォルダ内ファイルの数を一定にする機能をチェックする
-        crawler = PictureGathering_fav.Crawler()
+        crawler = ConcreteCrawler()
         holding_file_num = int(crawler.config["holding"]["holding_file_num"])
+        crawler.save_path = os.path.abspath(crawler.config["save_directory"]["save_fav_path"])
 
         xs = []
-        for root, dir, files in os.walk(crawler.save_fav_path):
+        for root, dir, files in os.walk(crawler.save_path):
             for f in files:
                 path = os.path.join(root, f)
                 xs.append((os.path.getmtime(path), path))
-        os.walk(crawler.save_fav_path).close()
+        os.walk(crawler.save_path).close()
 
         file_list = []
         for mtime, path in sorted(xs, reverse=True):
@@ -259,7 +262,7 @@ class TestCrawler(unittest.TestCase):
                 expect_del_url_list.append(
                     base_url.format(os.path.basename(file)))
 
-        with patch('PictureGathering_fav.os.remove') as mockos:
+        with patch('Crawler.os.remove') as mockos:
             mockos.return_value = 0
             self.assertEqual(0, crawler.ShrinkFolder(holding_file_num))
 
@@ -268,12 +271,12 @@ class TestCrawler(unittest.TestCase):
 
     def test_EndOfProcess(self):
         # 取得後処理をチェックする
-        crawler = PictureGathering_fav.Crawler()
+        crawler = ConcreteCrawler()
         with ExitStack() as stack:
             # with句にpatchを複数入れる
             mockwhtml = stack.enter_context(patch('WriteHTML.WriteFavHTML'))
-            mockcptweet = stack.enter_context(patch('PictureGathering_fav.Crawler.PostTweet'))
-            mockcplnotify = stack.enter_context(patch('PictureGathering_fav.Crawler.PostLineNotify'))
+            mockcptweet = stack.enter_context(patch('Crawler.Crawler.PostTweet'))
+            mockcplnotify = stack.enter_context(patch('Crawler.Crawler.PostLineNotify'))
             mocksql = stack.enter_context(patch('DBControlar.DBControlar.DBDelSelect'))
             mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.post'))
 
@@ -295,10 +298,10 @@ class TestCrawler(unittest.TestCase):
 
     def test_PostTweet(self):
         # ツイートポスト機能をチェックする
-        crawler = PictureGathering_fav.Crawler()
+        crawler = ConcreteCrawler()
         with ExitStack() as stack:
             # with句にpatchを複数入れる
-            mockctapi = stack.enter_context(patch('PictureGathering_fav.Crawler.TwitterAPIRequest'))
+            mockctapi = stack.enter_context(patch('Crawler.Crawler.TwitterAPIRequest'))
             mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.post'))
             mocksql = stack.enter_context(patch('DBControlar.DBControlar.DBDelInsert'))
 
@@ -321,10 +324,10 @@ class TestCrawler(unittest.TestCase):
 
     def test_PostLineNotify(self):
         # LINE通知ポスト機能をチェックする
-        crawler = PictureGathering_fav.Crawler()
+        crawler = ConcreteCrawler()
         with ExitStack() as stack:
             # with句にpatchを複数入れる
-            mockreq = stack.enter_context(patch('PictureGathering_fav.requests.post'))
+            mockreq = stack.enter_context(patch('Crawler.requests.post'))
 
             # mock設定
             responce = MagicMock()
@@ -336,36 +339,8 @@ class TestCrawler(unittest.TestCase):
             self.assertEqual(0, crawler.PostLineNotify("test"))
             mockreq.assert_called_once()
 
-    def test_Crawl(self):
-        # 全体の流れをチェックする
-        crawler = PictureGathering_fav.Crawler()
-        with ExitStack() as stack:
-            # with句にpatchを複数入れる
-            mockft = stack.enter_context(patch('PictureGathering_fav.Crawler.FavTweetsGet'))
-            mockis = stack.enter_context(patch('PictureGathering_fav.Crawler.ImageSaver'))
-            mocksf = stack.enter_context(patch('PictureGathering_fav.Crawler.ShrinkFolder'))
-            mockeop = stack.enter_context(patch('PictureGathering_fav.Crawler.EndOfProcess'))
-
-            # mock設定
-            rv_list = []
-            rv_list.append({"test": "sample"})
-            mockft.return_value = rv_list
-            mockis.return_value = 0
-            mocksf.return_value = 0
-            mockeop.return_value = 0
-
-            expect_config = configparser.ConfigParser()
-            self.assertTrue(os.path.exists(self.CONFIG_FILE_NAME))
-            self.assertFalse(
-                expect_config.read("ERROR_PATH" + self.CONFIG_FILE_NAME, encoding="utf8")
-            )
-            expect_config.read(self.CONFIG_FILE_NAME, encoding="utf8")
-            get_pages = int(expect_config["tweet_timeline"]["get_pages"])
-            self.assertEqual(0, crawler.Crawl())
-            self.assertEqual(get_pages, mockft.call_count)
-            self.assertEqual(get_pages, mockis.call_count)
-            mocksf.assert_called_once()
-            mockeop.assert_called_once()
 
 if __name__ == "__main__":
+    if sys.argv:
+        del sys.argv[1:]
     unittest.main()
