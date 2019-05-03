@@ -114,7 +114,10 @@ class Crawler(metaclass=ABCMeta):
                             fout.write(img.read())
                             self.add_url_list.append(url_orig)
                             # DB操作
-                            self.db_cont.DBFavUpsert(url, tweet, save_file_fullpath)
+                            if self.type == "Fav":
+                                self.db_cont.DBFavUpsert(url, tweet, save_file_fullpath)
+                            elif self.type == "RT":
+                                self.db_cont.DBRetweetUpsert(url, tweet, save_file_fullpath)                                
 
                     # image magickで画像変換
                     img_magick_path = self.config["processes"]["image_magick"]
@@ -202,7 +205,7 @@ class Crawler(metaclass=ABCMeta):
                     fout.write("Line Notify posted.")
 
         # 古い通知リプライを消す
-        if config.getboolean("is_post_fav_done_reply"):
+        if config.getboolean("is_post_fav_done_reply") or config.getboolean("is_post_retweet_done_reply"):
             targets = self.db_cont.DBDelSelect()
             url = "https://api.twitter.com/1.1/statuses/destroy/{}.json"
             for target in targets:
