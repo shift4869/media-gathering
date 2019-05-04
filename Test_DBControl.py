@@ -2,8 +2,10 @@
 from datetime import datetime
 from datetime import date
 from datetime import timedelta
+import json
 from mock import patch
 import os
+import sys
 import unittest
 
 import freezegun
@@ -22,25 +24,32 @@ class TestDBControlar(unittest.TestCase):
 
     def __GetTweetSample(self, img_url_s):
         # ツイートオブジェクトのサンプルを生成する
-        tweet_s = {}
-        tweet_s.setdefault("entities", {})
-        tweet_s["entities"].setdefault("media", [])
-        tweet_s["entities"]["media"].append({"expanded_url": self.tweet_url_s})
-        tweet_s.setdefault("created_at", "Sat Nov 18 17:12:58 +0000 2018")
-        tweet_s.setdefault("user", {})
-        tweet_s.setdefault("id_str", "12345_id_str_sample")
-        tweet_s["user"].setdefault("id_str", "12345_id_str_sample")
-        tweet_s["user"].setdefault("name", "shift_name_sample")
-        tweet_s["user"].setdefault("screen_name", "_shift4869_screen_name_sample")
-        tweet_s.setdefault("text", "tweet_text_sample")
+        tweet_json = f'''{{
+            "entities": {{
+                "media": [{{
+                    "expanded_url": "{self.tweet_url_s}"
+                }}]
+            }},
+            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id_str": "12345_id_str_sample",
+            "user": {{
+                "id_str": "12345_id_str_sample",
+                "name": "shift_name_sample",
+                "screen_name": "_shift4869_screen_name_sample"
+            }},
+            "text": "tweet_text_sample"
+        }}'''
+        tweet_s = json.loads(tweet_json)
         return tweet_s
 
     def __GetDelTweetSample(self):
         # ツイートオブジェクトのサンプルを生成する
-        tweet_s = {}
-        tweet_s.setdefault("text", "@s_shift4869 PictureGathering run.\n2018/03/09 11:59:38 Process Done !!\nadd 1 new images. delete 0 old images.")
-        tweet_s.setdefault("created_at", "Sat Nov 18 17:12:58 +0000 2018")
-        tweet_s.setdefault("id_str", "12345_id_str_sample")
+        tweet_json = f'''{{
+            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id_str": "12345_id_str_sample",
+            "text": "@s_shift4869 PictureGathering run.\\n2018/03/09 11:59:38 Process Done !!\\nadd 1 new images. delete 0 old images."
+        }}'''
+        tweet_s = json.loads(tweet_json)
         return tweet_s
 
     def test_SQLText(self):
@@ -71,17 +80,20 @@ class TestDBControlar(unittest.TestCase):
         self.assertEqual(expect, actual)
 
         limit_s = 300
-        expect = 'select * from Favorite order by id desc limit {}'.format(limit_s)
+        expect = 'select * from Favorite order by created_at desc limit {}'.format(limit_s)
         actual = controlar._DBControlar__GetFavoriteSelectSQL(limit_s)
         self.assertEqual(expect, actual)
 
         limit_s = 300
-        expect = 'select * from Retweet where is_exist_saved_file = \'True\' order by id desc limit {}'.format(limit_s)
+        expect = 'select * from Retweet where is_exist_saved_file = 1 order by created_at desc limit {}'.format(limit_s)
         actual = controlar._DBControlar__GetRetweetSelectSQL(limit_s)
         self.assertEqual(expect, actual)
 
-        expect = 'update Retweet set is_exist_saved_file = 0 where img_filename = \'{}\''.format(self.img_filename_s)
-        actual = controlar._DBControlar__GetRetweetFlagUpdateSQL(self.img_filename_s)
+        set_flag = 0
+        file_list = ["sample_1.png", "sample_2.png"]
+        filename = "'" + "','".join(file_list) + "'"
+        expect = 'update Retweet set is_exist_saved_file = {} where img_filename in ({})'.format(set_flag, filename)
+        actual = controlar._DBControlar__GetRetweetFlagUpdateSQL(filename, set_flag)
         self.assertEqual(expect, actual)
 
         with freezegun.freeze_time('2018-11-18 17:12:58'):
@@ -185,11 +197,28 @@ class TestDBControlar(unittest.TestCase):
             controlar = DBControlar.DBControlar()
 
             # DB操作を伴う操作を行う
-            controlar.DBRetweetFlagUpdate(self.img_filename_s)
+            set_flag = 0
+            file_list = ["sample_1.png", "sample_2.png"]
+            filename = "'" + "','".join(file_list) + "'"
+            controlar.DBRetweetFlagUpdate(file_list, set_flag)
 
             # DB操作が規定の引数で呼び出されたことを確認する
-            retweet_flag_update_sql_s = controlar._DBControlar__GetRetweetFlagUpdateSQL(self.img_filename_s)
+            retweet_flag_update_sql_s = controlar._DBControlar__GetRetweetFlagUpdateSQL(filename, set_flag)
             mocksql.connect().cursor().execute.assert_called_once_with(retweet_flag_update_sql_s)
+
+    def test_DBRetweetFlagClear(self):
+        # DB操作をモックに置き換える
+        with patch('DBControlar.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+            mocksql.connect().cursor().execute.return_value = 'execute sql done'
+            mocksql.connect().commit.return_value = 'commit done'
+            controlar = DBControlar.DBControlar()
+
+            # DB操作を伴う操作を行う
+            controlar.DBRetweetFlagClear()
+
+            # DB操作が規定の引数で呼び出されたことを確認する
+            retweet_flag_clear_sql_s = controlar._DBControlar__GetRetweetFlagClearSQL()
+            mocksql.connect().cursor().execute.assert_called_once_with(retweet_flag_clear_sql_s)
 
     def test_DBDelInsert(self):
         # DB操作をモックに置き換える
@@ -232,4 +261,6 @@ class TestDBControlar(unittest.TestCase):
             self.assertEqual(expect, actual[0])
 
 if __name__ == "__main__":
+    if sys.argv:
+        del sys.argv[1:]
     unittest.main()
