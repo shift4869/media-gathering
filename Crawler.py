@@ -11,8 +11,9 @@ import time
 import traceback
 import urllib
 
-import WriteHTML as WriteHTML
+import FavCrawler as FavCrawler
 import DBControlar as DBControlar
+import WriteHTML as WriteHTML
 
 
 class Crawler(metaclass=ABCMeta):
@@ -77,12 +78,12 @@ class Crawler(metaclass=ABCMeta):
     def ImageSaver(self, tweets):
         for tweet in tweets:
             if "extended_entities" not in tweet:
-                print("画像を含んでいないツイートです。")
+                print("メディアを含んでいないツイートです。")
                 continue
             if "media" not in tweet["extended_entities"]:
-                print("画像を含んでいないツイートです。")
+                print("メディアを含んでいないツイートです。")
                 continue
-            image_list = tweet["extended_entities"]["media"]
+            media_list = tweet["extended_entities"]["media"]
 
             # 画像つきツイートが投稿された日時を取得する
             # もしcreated_atが不正な形式だった場合、strptimeはValueErrorを返す
@@ -99,39 +100,67 @@ class Crawler(metaclass=ABCMeta):
                     0, 0, -1)
             )
 
-            for image_dict in image_list:
-                if "media_url" not in image_dict:
-                    print("画像を含んでいないツイートです。")
+            for media_dict in media_list:
+                media_type = "None"
+                if "type" not in media_dict:
+                    print("メディアタイプが不明です。")
                     continue
-                url = image_dict["media_url"]
-                url_orig = url + ":orig"
-                save_file_path = os.path.join(self.save_path, os.path.basename(url))
-                save_file_fullpath = os.path.abspath(save_file_path)
+                media_type = media_dict["type"]
+
+                if media_type == "photo":
+                    if "media_url" not in media_dict:
+                        print("画像を含んでいないツイートです。")
+                        continue
+                    url = media_dict["media_url"]
+                    url_orig = url + ":orig"
+                    url_large = url + ":large"
+                    file_name = os.path.basename(url)
+                    save_file_path = os.path.join(self.save_path, os.path.basename(url))
+                    save_file_fullpath = os.path.abspath(save_file_path)
+                elif media_type == "video":
+                    if "video_info" not in media_dict:
+                        print("動画を含んでいないツイートです。")
+                        continue
+                    video_variants = media_dict["video_info"]["variants"]
+                    bitrate = -sys.maxsize  # 最小値
+                    for video_variant in video_variants:
+                        if video_variant["content_type"] == "video/mp4":
+                            if int(video_variant["bitrate"]) > bitrate:
+                                # 同じ動画の中で一番ビットレートが高い動画を保存する
+                                url = video_variant["url"]
+                                bitrate = int(video_variant["bitrate"])
+                    url_path = urllib.parse.urlparse(url).path
+                    url_orig = urllib.parse.urljoin(url, os.path.basename(url_path))
+                    url_large = url_orig
+                    file_name = os.path.basename(url_orig)
+                    save_file_path = os.path.join(self.save_path, os.path.basename(url_orig))
+                    save_file_fullpath = os.path.abspath(save_file_path)
 
                 if not os.path.isfile(save_file_fullpath):
-                    with urllib.request.urlopen(url_orig) as img:
-                        with open(save_file_fullpath, 'wb') as fout:
-                            fout.write(img.read())
-                            self.add_url_list.append(url_orig)
-                            # DB操作
-                            if self.type == "Fav":
-                                self.db_cont.DBFavUpsert(url, tweet, save_file_fullpath)
-                            elif self.type == "RT":
-                                self.db_cont.DBRetweetUpsert(url, tweet, save_file_fullpath)
+                    # URLから画像を取得してローカルに保存
+                    urllib.request.urlretrieve(url_orig, save_file_fullpath)
+                    self.add_url_list.append(url_orig)
+
+                    # DB操作
+                    if self.type == "Fav":
+                        self.db_cont.DBFavUpsert(file_name, url_orig, url_large, tweet, save_file_fullpath)
+                    elif self.type == "RT":
+                        self.db_cont.DBRetweetUpsert(url, tweet, save_file_fullpath)
 
                     # image magickで画像変換
-                    img_magick_path = self.config["processes"]["image_magick"]
-                    if img_magick_path:
-                        os.system('"' + img_magick_path + '" -quality 60 ' +
-                                  save_file_fullpath + " " +
-                                  save_file_fullpath)
+                    if media_type == "photo":
+                        img_magick_path = self.config["processes"]["image_magick"]
+                        if img_magick_path:
+                            os.system('"' + img_magick_path + '" -quality 60 ' +
+                                      save_file_fullpath + " " +
+                                      save_file_fullpath)
 
                     # 更新日時を上書き
                     config = self.config["timestamp"]
                     if config.getboolean("timestamp_created_at"):
                         os.utime(save_file_fullpath, (atime, mtime))
 
-                    print(os.path.basename(url_orig) + " -> done!")
+                    print(os.path.basename(save_file_fullpath) + " -> done!")
                     self.add_cnt += 1
         return 0
 
@@ -151,10 +180,10 @@ class Crawler(metaclass=ABCMeta):
         # ファイル名とドメインを結びつけてURLを手動で生成する
         # twitterの画像URLの仕様が変わったらここも変える必要がある
         # http://pbs.twimg.com/media/{file.basename}.jpg:orig
-        base_url = 'http://pbs.twimg.com/media/{}:orig'
-        del_img_filename = []
-        add_img_filename = []
+        image_base_url = 'http://pbs.twimg.com/media/{}:orig'
+        video_base_url = 'https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/b0ZDq8zG_HppFWb6.mp4?tag=10'
         for i, file in enumerate(file_list):
+            base_url = video_base_url if ".mp4" in file else image_base_url
             if i > holding_file_num:
                 os.remove(file)
                 self.del_cnt += 1
@@ -274,6 +303,5 @@ class Crawler(metaclass=ABCMeta):
         pass
 
 if __name__ == "__main__":
-    # c = Crawler()
-    # c.Crawl()
-    pass
+    c = FavCrawler.FavCrawler()
+    c.Crawl()

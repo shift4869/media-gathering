@@ -49,17 +49,16 @@ class DBControlar:
     def __GetRetweetFlagClearSQL(self):
         return 'update Retweet set is_exist_saved_file = 0'
 
-    def __GetUpdateParam(self, url, tweet, save_file_fullpath):
+    def __GetUpdateParam(self, file_name, url_orig, url_large, tweet, save_file_fullpath):
         # img_filename,url,url_large,tweet_id,tweet_url,created_at,
         # user_id,user_name,screan_name,tweet_text,saved_localpath,saved_created_at
-        url_orig = url + ":orig"
         td_format = '%a %b %d %H:%M:%S +0000 %Y'
         dts_format = '%Y-%m-%d %H:%M:%S'
         tca = tweet["created_at"]
         dst = datetime.strptime(tca, td_format)
-        param = (os.path.basename(url),
+        param = (file_name,
                  url_orig,
-                 url + ":large",
+                 url_large,
                  tweet["id_str"],
                  tweet["entities"]["media"][0]["expanded_url"],
                  dst.strftime(dts_format),
@@ -91,10 +90,10 @@ class DBControlar:
                  del_num)
         return param
 
-    def DBFavUpsert(self, url, tweet, save_file_fullpath):
+    def DBFavUpsert(self, file_name, url_orig, url_large, tweet, save_file_fullpath):
         with closing(sqlite3.connect(self.dbname)) as conn:
             c = conn.cursor()
-            param = self.__GetUpdateParam(url, tweet, save_file_fullpath)
+            param = self.__GetUpdateParam(file_name, url_orig, url_large, tweet, save_file_fullpath)
             c.execute(self.__fav_sql, param)
             conn.commit()
 
