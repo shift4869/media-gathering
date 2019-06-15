@@ -16,7 +16,7 @@ template = '''<!DOCTYPE html>
 th_template = '''<th>
      <div style="position: relative; width: {pic_width}px;" >
       <a href="{url}" target="_blank">
-      <img border="0" src="{url}" alt="{url}" width="{pic_width}px">
+      <img border="0" src="{url_thumbnail}" alt="{url}" width="{pic_width}px">
       </a>
       <a href="{tweet_url}" target="_blank">
       <img src="{pointer_path}" alt="pointer"
@@ -29,10 +29,11 @@ POINTER_PATH = './pointer.png'
 db_cont = DBControlar.DBControlar()
 
 
-def MakeTHTag(url, tweet_url):
+def MakeTHTag(url, url_thumbnail, tweet_url):
     pic_width = 256
     return th_template.format(pic_width=pic_width,
                               url=url,
+                              url_thumbnail=url_thumbnail,
                               tweet_url=tweet_url,
                               pointer_path=POINTER_PATH)
 
@@ -54,7 +55,7 @@ def WriteFavHTML(del_url_list):
     for row in db:
         if cnt == 0:
             res += "<tr>\n"
-        res += MakeTHTag(url=row[2], tweet_url=row[5])
+        res += MakeTHTag(url=row[3], url_thumbnail=row[4], tweet_url=row[6])
         if cnt == COLUMN_NUM - 1:
             res += "</tr>\n"
         cnt = (cnt + 1) % COLUMN_NUM
@@ -79,7 +80,7 @@ def WriteRetweetHTML(del_url_list):
     for row in db:
         if cnt == 0:
             res += "<tr>\n"
-        res += MakeTHTag(url=row[3], tweet_url=row[6])
+        res += MakeTHTag(url=row[3], url_thumbnail=row[4], tweet_url=row[6])
         if cnt == COLUMN_NUM - 1:
             res += "</tr>\n"
         cnt = (cnt + 1) % COLUMN_NUM

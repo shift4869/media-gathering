@@ -11,7 +11,7 @@ import time
 import traceback
 import urllib
 
-import FavCrawler as FavCrawler
+import RetweetCrawler as RetweetCrawler
 import DBControlar as DBControlar
 import WriteHTML as WriteHTML
 
@@ -113,7 +113,7 @@ class Crawler(metaclass=ABCMeta):
                         continue
                     url = media_dict["media_url"]
                     url_orig = url + ":orig"
-                    url_large = url + ":large"
+                    url_thumbnail = url + ":large"
                     file_name = os.path.basename(url)
                     save_file_path = os.path.join(self.save_path, os.path.basename(url))
                     save_file_fullpath = os.path.abspath(save_file_path)
@@ -131,10 +131,13 @@ class Crawler(metaclass=ABCMeta):
                                 bitrate = int(video_variant["bitrate"])
                     url_path = urllib.parse.urlparse(url).path
                     url_orig = urllib.parse.urljoin(url, os.path.basename(url_path))
-                    url_large = url_orig
+                    url_thumbnail = media_dict["media_url"] + ":orig"  # サムネ
                     file_name = os.path.basename(url_orig)
                     save_file_path = os.path.join(self.save_path, os.path.basename(url_orig))
                     save_file_fullpath = os.path.abspath(save_file_path)
+                else:
+                    print("メディアタイプが不明です。")
+                    continue
 
                 if not os.path.isfile(save_file_fullpath):
                     # URLから画像を取得してローカルに保存
@@ -143,9 +146,9 @@ class Crawler(metaclass=ABCMeta):
 
                     # DB操作
                     if self.type == "Fav":
-                        self.db_cont.DBFavUpsert(file_name, url_orig, url_large, tweet, save_file_fullpath)
+                        self.db_cont.DBFavUpsert(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
                     elif self.type == "RT":
-                        self.db_cont.DBRetweetUpsert(url, tweet, save_file_fullpath)
+                        self.db_cont.DBRetweetUpsert(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
 
                     # image magickで画像変換
                     if media_type == "photo":
@@ -180,17 +183,22 @@ class Crawler(metaclass=ABCMeta):
         # ファイル名とドメインを結びつけてURLを手動で生成する
         # twitterの画像URLの仕様が変わったらここも変える必要がある
         # http://pbs.twimg.com/media/{file.basename}.jpg:orig
-        image_base_url = 'http://pbs.twimg.com/media/{}:orig'
-        video_base_url = 'https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/b0ZDq8zG_HppFWb6.mp4?tag=10'
+        # 動画ファイルのURLはDBに問い合わせる
+        add_img_filename = []
         for i, file in enumerate(file_list):
-            base_url = video_base_url if ".mp4" in file else image_base_url
+            url = ""
+            if ".mp4" in file:  # media_type == "video":
+                url = self.GetVideoURL(os.path.basename(file))
+            else:  # media_type == "photo":
+                image_base_url = 'http://pbs.twimg.com/media/{}:orig'
+                url = image_base_url.format(os.path.basename(file))
+
             if i > holding_file_num:
                 os.remove(file)
                 self.del_cnt += 1
-                self.del_url_list.append(base_url.format(os.path.basename(file)))
-                del_img_filename.append(os.path.basename(file))
+                self.del_url_list.append(url)
             else:
-                self.add_url_list.append(base_url.format(os.path.basename(file)))
+                self.add_url_list.append(url)
                 add_img_filename.append(os.path.basename(file))
 
         # 存在マーキングを更新する
@@ -199,6 +207,10 @@ class Crawler(metaclass=ABCMeta):
             self.db_cont.DBRetweetFlagUpdate(add_img_filename, 1)
 
         return 0
+
+    @abstractmethod
+    def GetVideoURL(self, file_name):
+        pass
 
     @abstractmethod
     def MakeDoneMessage(self):
@@ -303,5 +315,5 @@ class Crawler(metaclass=ABCMeta):
         pass
 
 if __name__ == "__main__":
-    c = FavCrawler.FavCrawler()
+    c = RetweetCrawler.RetweetCrawler()
     c.Crawl()
