@@ -18,14 +18,14 @@ class DBControlar:
         self.__del_sql = self.__GetDeleteTargetUpsertSQL()
 
     def __GetFavriteUpsertSQL(self):
-        p1 = 'img_filename,url,url_large,'
+        p1 = 'img_filename,url,url_thumbnail,'
         p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
         p3 = 'saved_localpath,saved_created_at'
         pn = '?,?,?,?,?,?,?,?,?,?,?,?'
         return 'replace into Favorite (' + p1 + p2 + p3 + ') values (' + pn + ')'
 
     def __GetRetweetUpsertSQL(self):
-        p1 = 'img_filename,url,url_large,'
+        p1 = 'img_filename,url,url_thumbnail,'
         p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
         p3 = 'saved_localpath,saved_created_at'
         pn = '?,?,?,?,?,?,?,?,?,?,?,?'
@@ -39,8 +39,16 @@ class DBControlar:
     def __GetFavoriteSelectSQL(self, limit=300):
         return 'select * from Favorite order by created_at desc limit {}'.format(limit)
 
+    def __GetFavoriteVideoURLSelectSQL(self, filename):
+        # filenameはシングルクォート必要、カンマ区切りOK
+        return 'select * from Favorite where img_filename = {}'.format(filename)
+
     def __GetRetweetSelectSQL(self, limit=300):
         return 'select * from Retweet where is_exist_saved_file = 1 order by created_at desc limit {}'.format(limit)
+
+    def __GetRetweetVideoURLSelectSQL(self, filename):
+        # filenameはシングルクォート必要、カンマ区切りOK
+        return 'select * from Retweet where img_filename = {}'.format(filename)
 
     def __GetRetweetFlagUpdateSQL(self, filename="", set_flag=0):
         # filenameはシングルクォート必要、カンマ区切りOK
@@ -49,8 +57,8 @@ class DBControlar:
     def __GetRetweetFlagClearSQL(self):
         return 'update Retweet set is_exist_saved_file = 0'
 
-    def __GetUpdateParam(self, file_name, url_orig, url_large, tweet, save_file_fullpath):
-        # img_filename,url,url_large,tweet_id,tweet_url,created_at,
+    def __GetUpdateParam(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath):
+        # img_filename,url,url_thumbnail,tweet_id,tweet_url,created_at,
         # user_id,user_name,screan_name,tweet_text,saved_localpath,saved_created_at
         td_format = '%a %b %d %H:%M:%S +0000 %Y'
         dts_format = '%Y-%m-%d %H:%M:%S'
@@ -58,7 +66,7 @@ class DBControlar:
         dst = datetime.strptime(tca, td_format)
         param = (file_name,
                  url_orig,
-                 url_large,
+                 url_thumbnail,
                  tweet["id_str"],
                  tweet["entities"]["media"][0]["expanded_url"],
                  dst.strftime(dts_format),
@@ -90,10 +98,10 @@ class DBControlar:
                  del_num)
         return param
 
-    def DBFavUpsert(self, file_name, url_orig, url_large, tweet, save_file_fullpath):
+    def DBFavUpsert(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath):
         with closing(sqlite3.connect(self.dbname)) as conn:
             c = conn.cursor()
-            param = self.__GetUpdateParam(file_name, url_orig, url_large, tweet, save_file_fullpath)
+            param = self.__GetUpdateParam(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
             c.execute(self.__fav_sql, param)
             conn.commit()
 
@@ -104,13 +112,20 @@ class DBControlar:
             res = list(c.execute(query))
         return res
 
-    # id	img_filename	url	url_large
-    # tweet_id	tweet_url	created_at	user_id	user_name	screan_name	tweet_text
-    # saved_localpath	saved_created_at
-    def DBRetweetUpsert(self, url, tweet, save_file_fullpath):
+    def DBFavVideoURLSelect(self, filename):
         with closing(sqlite3.connect(self.dbname)) as conn:
             c = conn.cursor()
-            param = self.__GetUpdateParam(url, tweet, save_file_fullpath)
+            query = self.__GetFavoriteVideoURLSelectSQL(filename)
+            res = list(c.execute(query))
+        return res
+
+    # id	img_filename	url	url_thumbnail
+    # tweet_id	tweet_url	created_at	user_id	user_name	screan_name	tweet_text
+    # saved_localpath	saved_created_at
+    def DBRetweetUpsert(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath):
+        with closing(sqlite3.connect(self.dbname)) as conn:
+            c = conn.cursor()
+            param = self.__GetUpdateParam(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
             c.execute(self.__retweet_sql, param)
             conn.commit()
 
@@ -118,6 +133,13 @@ class DBControlar:
         with closing(sqlite3.connect(self.dbname)) as conn:
             c = conn.cursor()
             query = self.__GetRetweetSelectSQL(limit)
+            res = list(c.execute(query))
+        return res
+
+    def DBRetweetVideoURLSelect(self, filename):
+        with closing(sqlite3.connect(self.dbname)) as conn:
+            c = conn.cursor()
+            query = self.__GetRetweetVideoURLSelectSQL(filename)
             res = list(c.execute(query))
         return res
 
