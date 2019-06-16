@@ -11,7 +11,7 @@ import time
 import traceback
 import urllib
 
-import RetweetCrawler as RetweetCrawler
+# import RetweetCrawler as RetweetCrawler
 import DBControlar as DBControlar
 import WriteHTML as WriteHTML
 
