@@ -75,6 +75,42 @@ class Crawler(metaclass=ABCMeta):
         res = json.loads(responce.text)
         return res
 
+    # tweet["extended_entities"]["media"]から保存対象のメディアURLを取得する
+    # 引数や辞書構造が不正だった場合空文字列を返す
+    def GetMediaUrl(self, media_dict):
+        media_type = "None"
+        if "type" not in media_dict:
+            print("メディアタイプが不明です。")
+            return ""
+        media_type = media_dict["type"]
+
+        url = ""
+        if media_type == "photo":
+            if "media_url" not in media_dict:
+                print("画像を含んでいないツイートです。")
+                return ""
+            url = media_dict["media_url"]
+        elif media_type == "video":
+            if "video_info" not in media_dict:
+                print("動画を含んでいないツイートです。")
+                return ""
+            video_variants = media_dict["video_info"]["variants"]
+            bitrate = -sys.maxsize  # 最小値
+            for video_variant in video_variants:
+                if video_variant["content_type"] == "video/mp4":
+                    if int(video_variant["bitrate"]) > bitrate:
+                        # 同じ動画の中で一番ビットレートが高い動画を保存する
+                        url = video_variant["url"]
+                        bitrate = int(video_variant["bitrate"])
+            # クエリを除去
+            url_path = urllib.parse.urlparse(url).path
+            url = urllib.parse.urljoin(url, os.path.basename(url_path))
+        else:
+            print("メディアタイプが不明です。")
+            return ""
+
+        return url
+
     def ImageSaver(self, tweets):
         for tweet in tweets:
             if "extended_entities" not in tweet:
@@ -107,30 +143,18 @@ class Crawler(metaclass=ABCMeta):
                     continue
                 media_type = media_dict["type"]
 
+                url = self.GetMediaUrl(media_dict)
+                if url == "":
+                    continue
+
                 if media_type == "photo":
-                    if "media_url" not in media_dict:
-                        print("画像を含んでいないツイートです。")
-                        continue
-                    url = media_dict["media_url"]
                     url_orig = url + ":orig"
                     url_thumbnail = url + ":large"
                     file_name = os.path.basename(url)
                     save_file_path = os.path.join(self.save_path, os.path.basename(url))
                     save_file_fullpath = os.path.abspath(save_file_path)
                 elif media_type == "video":
-                    if "video_info" not in media_dict:
-                        print("動画を含んでいないツイートです。")
-                        continue
-                    video_variants = media_dict["video_info"]["variants"]
-                    bitrate = -sys.maxsize  # 最小値
-                    for video_variant in video_variants:
-                        if video_variant["content_type"] == "video/mp4":
-                            if int(video_variant["bitrate"]) > bitrate:
-                                # 同じ動画の中で一番ビットレートが高い動画を保存する
-                                url = video_variant["url"]
-                                bitrate = int(video_variant["bitrate"])
-                    url_path = urllib.parse.urlparse(url).path
-                    url_orig = urllib.parse.urljoin(url, os.path.basename(url_path))
+                    url_orig = url
                     url_thumbnail = media_dict["media_url"] + ":orig"  # サムネ
                     file_name = os.path.basename(url_orig)
                     save_file_path = os.path.join(self.save_path, os.path.basename(url_orig))
@@ -167,7 +191,8 @@ class Crawler(metaclass=ABCMeta):
                     self.add_cnt += 1
         return 0
 
-    def ShrinkFolder(self, holding_file_num):
+    # save_pathにあるファイル名一覧を取得する
+    def GetExistFilelist(self):
         xs = []
         for root, dir, files in os.walk(self.save_path):
             for f in files:
@@ -175,9 +200,13 @@ class Crawler(metaclass=ABCMeta):
                 xs.append((os.path.getmtime(path), path))
         os.walk(self.save_path).close()
 
-        file_list = []
+        filelist = []
         for mtime, path in sorted(xs, reverse=True):
-            file_list.append(path)
+            filelist.append(path)
+        return filelist
+
+    def ShrinkFolder(self, holding_file_num):
+        filelist = self.GetExistFilelist()
 
         # フォルダに既に保存しているファイルにはURLの情報がない
         # ファイル名とドメインを結びつけてURLを手動で生成する
@@ -185,7 +214,7 @@ class Crawler(metaclass=ABCMeta):
         # http://pbs.twimg.com/media/{file.basename}.jpg:orig
         # 動画ファイルのURLはDBに問い合わせる
         add_img_filename = []
-        for i, file in enumerate(file_list):
+        for i, file in enumerate(filelist):
             url = ""
             if ".mp4" in file:  # media_type == "video":
                 url = self.GetVideoURL(os.path.basename(file))
