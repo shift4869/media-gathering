@@ -2,6 +2,8 @@
 from abc import ABCMeta, abstractmethod
 import configparser
 from datetime import datetime
+from datetime import timezone
+from datetime import timedelta
 import json
 import os
 import requests
@@ -65,15 +67,110 @@ class Crawler(metaclass=ABCMeta):
         self.add_url_list = []
         self.del_url_list = []
 
+    def GetTwitterAPIResourceType(self, url):
+        # クエリを除去
+        called_url = urllib.parse.urlparse(url).path
+        url = urllib.parse.urljoin(url, os.path.basename(called_url))
+        resources = []
+        if "users" in url:
+            resources.append("users")
+        elif "statuses" in url:
+            resources.append("statuses")
+        elif "favorites" in url:
+            resources.append("favorites")
+        return ",".join(resources)
+
+    def GetTwitterAPILimitContext(self, res_text, params):
+        r = params["resources"]
+        for p in res_text["resources"][r].keys():
+            remaining = res_text['resources'][r][p]['remaining']
+            reset = res_text['resources'][r][p]['reset']
+            return int(remaining), int(reset)
+
+    def WaitUntilReset(self, dt_unix):
+        seconds = dt_unix - time.mktime(datetime.now().timetuple())
+        seconds = max(seconds, 0)
+        print('\n     =======================')
+        print('     == waiting {} sec =='.format(seconds))
+        print('     =======================')
+        sys.stdout.flush()
+        time.sleep(seconds + 10)  # 念のため + 10 秒
+        return
+
+    def CheckTwitterAPILimit(self, called_url):
+        unavailableCnt = 0
+        while True:
+            url = "https://api.twitter.com/1.1/application/rate_limit_status.json"
+            params = {
+                "resources": self.GetTwitterAPIResourceType(called_url)
+            }
+            responce = self.oath.get(url, params=params)
+
+            if responce.status_code == 503:
+                # 503 : Service Unavailable
+                if unavailableCnt > 10:
+                    raise Exception('Twitter API error %d' % responce.status_code)
+
+                unavailableCnt += 1
+                print('Service Unavailable 503')
+                self.waitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
+                continue
+
+            unavailableCnt = 0
+
+            if responce.status_code != 200:
+                raise Exception('Twitter API error %d' % responce.status_code)
+
+            remaining, reset = self.GetTwitterAPILimitContext(json.loads(responce.text), params)
+            if (remaining == 0):
+                self.waitUntilReset(reset)
+            else:
+                break
+        return
+
+    def WaitTwitterAPIUntilReset(self, responce):
+        # X-Rate-Limit-Remaining が入ってないことが稀にあるのでチェック
+        if 'X-Rate-Limit-Remaining' in responce.headers and 'X-Rate-Limit-Reset' in responce.headers:
+            # 回数制限（ヘッダ参照）
+            remain_cnt = int(responce.headers['X-Rate-Limit-Remaining'])
+            dt_unix = int(responce.headers['X-Rate-Limit-Reset'])
+            dt_jst_aware = datetime.fromtimestamp(dt_unix, timezone(timedelta(hours=9)))
+            remain_sec = dt_unix - time.mktime(datetime.now().timetuple())
+            print('リクエストURL {}'.format(responce.url))
+            print('アクセス可能回数 {}'.format(remain_cnt))
+            print('リセット時刻 {}'.format(dt_jst_aware))
+            print('リセットまでの残り時間 %s[s]' % remain_sec)
+            if remain_cnt == 0:
+                self.WaitUntilReset(dt_unix) 
+                self.CheckTwitterAPILimit(responce.url)
+        else:
+            # 回数制限（API参照）
+            print('not found  -  X-Rate-Limit-Remaining or X-Rate-Limit-Reset')
+            self.CheckTwitterAPILimit(responce.url)
+        return
+
     def TwitterAPIRequest(self, url, params):
-        responce = self.oath.get(url, params=params)
+        unavailableCnt = 0
+        while True:
+            responce = self.oath.get(url, params=params)
 
-        if responce.status_code != 200:
-            print("Error code: {0}".format(responce.status_code))
-            return None
+            if responce.status_code == 503:
+                # 503 : Service Unavailable
+                if unavailableCnt > 10:
+                    return None
 
-        res = json.loads(responce.text)
-        return res
+                unavailableCnt += 1
+                print('Service Unavailable 503')
+                self.WaitTwitterAPIUntilReset(responce)
+                continue
+            unavailableCnt = 0
+
+            if responce.status_code != 200:
+                print("Error code: {0}".format(responce.status_code))
+                return None
+
+            res = json.loads(responce.text)
+            return res
 
     # tweet["extended_entities"]["media"]から保存対象のメディアURLを取得する
     # 引数や辞書構造が不正だった場合空文字列を返す
