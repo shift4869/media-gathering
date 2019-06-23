@@ -25,6 +25,21 @@ class RetweetCrawler(Crawler):
         rt_tweets = []
         holding_num = int(self.config["holding"]["holding_file_num"])
 
+        # 存在マーキングをクリアする
+        self.db_cont.DBRetweetFlagClear()
+
+        # 既存ファイル一覧を取得する
+        exist_filepaths = self.GetExistFilelist()
+        exist_filenames = []
+        for exist_filepath in exist_filepaths:
+            exist_filenames.append(os.path.basename(exist_filepath))
+        exist_oldest_filename = exist_filenames[-1]
+
+        # 存在マーキングを更新する
+        self.db_cont.DBRetweetFlagUpdate(exist_filenames, 1)
+
+        get_cnt = 0
+        end_flag = False
         for i in range(1, self.retweet_get_max_loop):
             params = {
                 "screen_name": self.user_name,
@@ -38,11 +53,36 @@ class RetweetCrawler(Crawler):
             for t in timeline_tweeets:
                 if t['retweeted'] and ("retweeted_status" in t):
                     if "extended_entities" in t['retweeted_status']:
-                        rt_tweets.append(t['retweeted_status'])
+                        entities = t['retweeted_status']["extended_entities"]
+                        include_new_flag = False
+                        # 一つでも保存していない画像を含んでいるか判定
+                        for entity in entities["media"]:
+                            media_url = self.GetMediaUrl(entity)
+                            filename = os.path.basename(media_url)
 
+                            # 既存ファイルの最後のファイル名と一致したら探索を途中で打ち切る
+                            if filename == exist_oldest_filename:
+                                end_flag = True
+
+                            # 存在しないならそのツイートを収集対象とする
+                            if filename not in exist_filenames:
+                                include_new_flag = True
+                                break
+
+                        # 一つでも保存していない画像を含んでいたらツイートを収集する
+                        if include_new_flag:
+                            rt_tweets.append(t['retweeted_status'])
+                            get_cnt = get_cnt + 1
+
+                        # 探索を途中で打ち切る
+                        if end_flag:
+                            break
+
+            # 次のRTから取得する
             self.max_id = timeline_tweeets[-1]['id'] - 1
 
-            if len(rt_tweets) > holding_num:
+            # 収集したツイートが保持数を超えたor既存ファイルの最後まで探索した場合break
+            if get_cnt > holding_num or end_flag:
                 break
 
         # 古い順にする
