@@ -1,6 +1,7 @@
 # coding: utf-8
 import configparser
 from contextlib import ExitStack
+import copy
 from datetime import datetime
 from datetime import timezone
 from datetime import timedelta
@@ -214,21 +215,40 @@ class TestCrawler(unittest.TestCase):
             url = "https://api.twitter.com/1.1/favorites/list.json"
 
             # mock設定
-            responce = MagicMock()
-            p_status_code = PropertyMock()
-            p_status_code.return_value = 503
-            type(responce).status_code = p_status_code
+            def responce_factory(status_code, url, headers, text):
+                responce = MagicMock()
+                p_status_code = PropertyMock()
+                p_status_code.return_value = status_code
+                type(responce).status_code = p_status_code
 
-            p_url = PropertyMock()
-            p_url.return_value = url
-            type(responce).url = p_url
+                p_url = PropertyMock()
+                p_url.return_value = url
+                type(responce).url = p_url
 
-            p_headers = PropertyMock()
-            p_headers.return_value = {"X-Rate-Limit-Remaining": "100",
-                                    "X-Rate-Limit-Reset": time.mktime(datetime.now().timetuple())}
-            type(responce).headers = p_headers
+                p_headers = PropertyMock()
+                p_headers.return_value = headers
+                type(responce).headers = p_headers
 
-            mockoauth.return_value = responce
+                p_text = PropertyMock()
+                p_text.return_value = text
+                type(responce).text = p_text
+
+                return responce
+
+            headers100 = {"X-Rate-Limit-Remaining": "100",
+                          "X-Rate-Limit-Reset": time.mktime(datetime.now().timetuple())}
+
+            headers0 = {"X-Rate-Limit-Remaining": "0",
+                        "X-Rate-Limit-Reset": time.mktime(datetime.now().timetuple())}
+
+            text = f'''{{"text": "api_responce_text_sample"}}'''
+
+            responce1 = responce_factory(503, url, headers100, text)
+            responce2 = responce_factory(503, url, headers0, text)
+            responce3 = responce_factory(200, url, headers100, text)
+
+            mockoauth.side_effect = (responce1, responce2, responce3)
+            # mockoauth.return_value = responce
 
             for i in range(1, get_pages):
                 params = {

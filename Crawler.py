@@ -141,7 +141,7 @@ class Crawler(metaclass=ABCMeta):
             print('リセット時刻 {}'.format(dt_jst_aware))
             print('リセットまでの残り時間 %s[s]' % remain_sec)
             if remain_cnt == 0:
-                self.WaitUntilReset(dt_unix) 
+                self.WaitUntilReset(dt_unix)
                 self.CheckTwitterAPILimit(responce.url)
         else:
             # 回数制限（API参照）
