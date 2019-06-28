@@ -208,10 +208,14 @@ class TestCrawler(unittest.TestCase):
         with ExitStack() as stack:
             # with句にpatchを複数入れる
             mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.get'))
+            mockTWAunntilreset = stack.enter_context(patch('Crawler.Crawler.CheckTwitterAPILimit'))
+            mocktime = stack.enter_context(patch('time.sleep'))
+
+            # WaitTwitterAPIUntilResetまでをテストする
 
             crawler = ConcreteCrawler()
             crawler.save_path = os.getcwd()
-            get_pages = int(crawler.config["tweet_timeline"]["get_pages"]) + 1
+            # get_pages = int(crawler.config["tweet_timeline"]["get_pages"]) + 1
             url = "https://api.twitter.com/1.1/favorites/list.json"
 
             # mock設定
@@ -248,29 +252,29 @@ class TestCrawler(unittest.TestCase):
             responce3 = responce_factory(200, url, headers100, text)
 
             mockoauth.side_effect = (responce1, responce2, responce3)
-            # mockoauth.return_value = responce
+            mockTWAunntilreset.return_value = None
+            mocktime.return_value = None
 
-            for i in range(1, get_pages):
-                params = {
-                    "screen_name": crawler.user_name,
-                    "page": i,
-                    "count": crawler.count,
-                    "include_entities": 1  # ツイートのメタデータ取得。複数枚の画像取得用。
-                }
-                self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
-
-            url = "https://api.twitter.com/1.1/statuses/home_timeline.json"
             params = {
+                "screen_name": crawler.user_name,
+                "page": 1,
                 "count": crawler.count,
-                "include_entities": 1
+                "include_entities": 1  # ツイートのメタデータ取得。複数枚の画像取得用。
             }
             self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
 
-            url = "https://api.twitter.com/1.1/users/show.json"
-            params = {
-                "screen_name": crawler.config["notification"]["reply_to_user_name"],
-            }
-            self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
+            # url = "https://api.twitter.com/1.1/statuses/home_timeline.json"
+            # params = {
+            #     "count": crawler.count,
+            #     "include_entities": 1
+            # }
+            # self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
+
+            # url = "https://api.twitter.com/1.1/users/show.json"
+            # params = {
+            #     "screen_name": crawler.config["notification"]["reply_to_user_name"],
+            # }
+            # self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
 
     def test_ImageSaver(self):
         # 画像保存をチェックする
@@ -300,6 +304,8 @@ class TestCrawler(unittest.TestCase):
 
                 with open(save_file_path, 'wb') as fout:
                     fout.write("test".encode())
+
+                use_file_list.append(save_file_path)
 
                 return save_file_path
 
