@@ -97,6 +97,7 @@ class TestCrawler(unittest.TestCase):
         crawler = ConcreteCrawler()
 
         # self.assertEqual("Test", crawler.type)
+        self.assertEqual("video_sample.mp4", crawler.GetVideoURL())
         self.assertEqual("Crawler Test : done", crawler.MakeDoneMessage())
         self.assertEqual(0, crawler.Crawl())
 
@@ -172,6 +173,55 @@ class TestCrawler(unittest.TestCase):
         self.assertEqual([], crawler.add_url_list)
         self.assertEqual([], crawler.del_url_list)
 
+    def test_GetTwitterAPIResourceType(self):
+        # 使用するTwitterAPIのAPIリソースタイプ取得をチェックする
+        crawler = ConcreteCrawler()
+
+        # ツイートをポストする
+        reply_user_name = crawler.config["notification"]["reply_to_user_name"]
+        url = "https://api.twitter.com/1.1/users/show.json"
+        params = {
+            "screen_name": reply_user_name,
+        }
+        self.assertEqual("users", crawler.GetTwitterAPIResourceType(url))
+
+        # ふぁぼリスト取得
+        page = 1
+        url = "https://api.twitter.com/1.1/favorites/list.json"
+        params = {
+            "screen_name": crawler.user_name,
+            "page": page,
+            "count": crawler.count,
+            "include_entities": 1
+        }
+        self.assertEqual("favorites", crawler.GetTwitterAPIResourceType(url))
+
+        # 自分のタイムラインを取得する（あまり使わない）
+        url = "https://api.twitter.com/1.1/statuses/home_timeline.json"
+        params = {
+            "count": crawler.count,
+            "include_entities": 1
+        }
+        self.assertEqual("statuses", crawler.GetTwitterAPIResourceType(url))
+
+        # 自分の最新ツイートを取得する（ここからRTを抜き出す）
+        max_id = -1
+        url = "https://api.twitter.com/1.1/statuses/user_timeline.json"
+        params = {
+            "screen_name": crawler.user_name,
+            "count": crawler.count,
+            "max_id": max_id,
+            "contributor_details": True,
+            "include_rts": True
+        }
+        self.assertEqual("statuses", crawler.GetTwitterAPIResourceType(url))
+
+        # レートリミット取得
+        # url = "https://api.twitter.com/1.1/application/rate_limit_status.json"
+        # params = {
+        #    "resources": self.GetTwitterAPIResourceType(called_url)
+        # }
+
     def test_TwitterAPIRequestActual(self):
         # TwitterAPIの応答をチェックする
         # mock置き換えはせず、実際にTwitterAPIを使用して応答を確認する
@@ -204,11 +254,10 @@ class TestCrawler(unittest.TestCase):
     def test_TwitterAPIRequestCheckLimit(self):
         # TwitterAPIが利用できない場合の挙動をチェックする
         # mock置き換えによりTwitterAPIが503を返す状況をシミュレートする
-
         with ExitStack() as stack:
             # with句にpatchを複数入れる
             mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.get'))
-            mockTWAunntilreset = stack.enter_context(patch('Crawler.Crawler.CheckTwitterAPILimit'))
+            mockTWAuntilreset = stack.enter_context(patch('Crawler.Crawler.CheckTwitterAPILimit'))
             mocktime = stack.enter_context(patch('time.sleep'))
 
             # WaitTwitterAPIUntilResetまでをテストする
@@ -252,7 +301,7 @@ class TestCrawler(unittest.TestCase):
             responce3 = responce_factory(200, url, headers100, text)
 
             mockoauth.side_effect = (responce1, responce2, responce3)
-            mockTWAunntilreset.return_value = None
+            mockTWAuntilreset.return_value = None
             mocktime.return_value = None
 
             params = {
