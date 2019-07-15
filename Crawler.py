@@ -81,10 +81,17 @@ class Crawler(metaclass=ABCMeta):
         return ",".join(resources)
 
     def GetTwitterAPILimitContext(self, res_text, params):
+        if "resources" not in params:
+            return -1, -1  # 引数エラー
         r = params["resources"]
+
+        if r not in res_text["resources"]:
+            return -1, -1  # 引数エラー
+
         for p in res_text["resources"][r].keys():
-            remaining = res_text['resources'][r][p]['remaining']
-            reset = res_text['resources'][r][p]['reset']
+            # remainingとresetを取得する
+            remaining = res_text["resources"][r][p]["remaining"]
+            reset = res_text["resources"][r][p]["reset"]
             return int(remaining), int(reset)
 
     def WaitUntilReset(self, dt_unix):
