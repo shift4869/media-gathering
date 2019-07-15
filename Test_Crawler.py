@@ -97,7 +97,7 @@ class TestCrawler(unittest.TestCase):
         crawler = ConcreteCrawler()
 
         # self.assertEqual("Test", crawler.type)
-        self.assertEqual("video_sample.mp4", crawler.GetVideoURL())
+        self.assertEqual("video_sample.mp4", crawler.GetVideoURL(""))
         self.assertEqual("Crawler Test : done", crawler.MakeDoneMessage())
         self.assertEqual(0, crawler.Crawl())
 
@@ -221,6 +221,33 @@ class TestCrawler(unittest.TestCase):
         # params = {
         #    "resources": self.GetTwitterAPIResourceType(called_url)
         # }
+
+    def test_GetTwitterAPILimitContext(self):
+        # Limitを取得するAPIの返り値を解釈して残数と開放時間を取得する処理をチェックする
+        crawler = ConcreteCrawler()
+
+        url = "https://api.twitter.com/1.1/application/rate_limit_status.json"
+        params = {
+            "resources": "favorites"
+        }
+
+        # responce = crawler.oath.get(url, params=params)
+        # favorites_limit_text_sample = responce.text
+        favorites_limit_text_sample = f'''{{
+            "resources": {{
+                "favorites": {{
+                    "\/favorites\/list": {{
+                        "limit":75,
+                        "remaining":70,
+                        "reset":1563195985
+                    }}
+                }}
+            }}
+        }}'''
+
+        remaining, reset = crawler.GetTwitterAPILimitContext(json.loads(favorites_limit_text_sample), params)
+        self.assertEqual(70, remaining)
+        self.assertEqual(1563195985, reset)
 
     def test_TwitterAPIRequestActual(self):
         # TwitterAPIの応答をチェックする
