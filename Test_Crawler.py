@@ -249,6 +249,176 @@ class TestCrawler(unittest.TestCase):
         self.assertEqual(70, remaining)
         self.assertEqual(1563195985, reset)
 
+    def test_WaitUntilReset(self):
+        # 指定UNIX時間まで待機する処理の呼び出しをチェックする
+        crawler = ConcreteCrawler()
+
+        with ExitStack() as stack:
+            mocktime = stack.enter_context(patch('time.sleep'))
+
+            dt_unix = time.mktime(datetime.now().timetuple()) + 1
+
+            res = crawler.WaitUntilReset(dt_unix)
+            mocktime.assert_called()
+            self.assertEqual(0, res)
+
+    def test_CheckTwitterAPILimit(self):
+        # TwitterAPI制限を取得する機能をチェックする
+        # mock置き換えによりTwitterAPIが503を返す状況もシミュレートする
+        with ExitStack() as stack:
+            mockTWARType = stack.enter_context(patch('Crawler.Crawler.GetTwitterAPIResourceType'))
+            mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.get'))
+            mockWaitUntilReset = stack.enter_context(patch('Crawler.Crawler.WaitUntilReset'))
+            mockTWALimitContext = stack.enter_context(patch('Crawler.Crawler.GetTwitterAPILimitContext'))
+
+            crawler = ConcreteCrawler()
+            url = "https://api.twitter.com/1.1/favorites/list.json"
+
+            mockTWARType.return_value = "favorites"
+
+            # mock設定
+            def responce_factory(status_code, text):
+                responce = MagicMock()
+                p_status_code = PropertyMock()
+                p_status_code.return_value = status_code
+                type(responce).status_code = p_status_code
+
+                p_text = PropertyMock()
+                p_text.return_value = text
+                type(responce).text = p_text
+
+                return responce
+
+            text = f'''{{"text": "api_responce_text_sample"}}'''
+
+            responce1 = responce_factory(503, text)
+            responce2 = responce_factory(200, text)
+            responce3 = responce_factory(200, text)
+            responce4 = responce_factory(200, text)
+            responce5 = responce_factory(404, text)
+
+            mockoauth.side_effect = (responce1, responce2, responce3, responce4, responce5)
+            mockWaitUntilReset.return_value = 0
+            mockTWALimitContext.side_effect = ((70, 0), (0, 0), (75, 0))
+
+            # 1回目(503からのcontinueで200、remaining=70)
+            self.assertIsNotNone(crawler.CheckTwitterAPILimit(url))
+            self.assertEqual(2, mockTWARType.call_count)
+            self.assertEqual(2, mockoauth.call_count)
+            self.assertEqual(1, mockWaitUntilReset.call_count)
+            self.assertEqual(1, mockTWALimitContext.call_count)
+
+            # 2回目(200、remaining=0->200、remaining=75)
+            self.assertIsNotNone(crawler.CheckTwitterAPILimit(url))
+            self.assertEqual(4, mockTWARType.call_count)
+            self.assertEqual(4, mockoauth.call_count)
+            self.assertEqual(2, mockWaitUntilReset.call_count)
+            self.assertEqual(3, mockTWALimitContext.call_count)
+
+            # 3回目(404)
+            with self.assertRaises(Exception):
+                crawler.CheckTwitterAPILimit(url)
+
+    def test_WaitTwitterAPIUntilReset(self):
+        # TwitterAPIが利用できるまで待つ機能をチェックする
+        with ExitStack() as stack:
+            mockWaitUntilReset = stack.enter_context(patch('Crawler.Crawler.WaitUntilReset'))
+            mockTWALimit = stack.enter_context(patch('Crawler.Crawler.CheckTwitterAPILimit'))
+
+            crawler = ConcreteCrawler()
+
+            # mock設定
+            def responce_factory(url, headers):
+                responce = MagicMock()
+                p_url = PropertyMock()
+                p_url.return_value = url
+                type(responce).url = p_url
+
+                p_headers = PropertyMock()
+                p_headers.return_value = headers
+                type(responce).headers = p_headers
+
+                return responce
+
+            headers100 = {"X-Rate-Limit-Remaining": "100",
+                          "X-Rate-Limit-Reset": time.mktime(datetime.now().timetuple())}
+
+            headers0 = {"X-Rate-Limit-Remaining": "0",
+                        "X-Rate-Limit-Reset": time.mktime(datetime.now().timetuple())}
+
+            url = "https://api.twitter.com/1.1/favorites/list.json"
+            responce1 = responce_factory(url, headers100)
+            responce2 = responce_factory(url, headers0)
+            responce3 = MagicMock()
+            p_url = PropertyMock()
+            p_url.return_value = url
+            type(responce3).url = p_url
+
+            mockWaitUntilReset.return_value = 0
+            mockTWALimit.return_value = 0
+
+            # 1回目(headersあり、Remaining=100)
+            self.assertIsNotNone(crawler.WaitTwitterAPIUntilReset(responce1))
+            self.assertEqual(0, mockWaitUntilReset.call_count)
+            self.assertEqual(0, mockTWALimit.call_count)
+
+            # 2回目(headersあり、Remaining=0)
+            self.assertIsNotNone(crawler.WaitTwitterAPIUntilReset(responce2))
+            self.assertEqual(1, mockWaitUntilReset.call_count)
+            self.assertEqual(1, mockTWALimit.call_count)
+
+            # 3回目(headersなし)
+            self.assertIsNotNone(crawler.WaitTwitterAPIUntilReset(responce3))
+            self.assertEqual(1, mockWaitUntilReset.call_count)
+            self.assertEqual(2, mockTWALimit.call_count)
+
+    def test_TwitterAPIRequestMocked(self):
+        # TwitterAPIが利用できない場合の挙動をチェックする
+        # mock置き換えによりTwitterAPIが503を返す状況をシミュレートする
+        with ExitStack() as stack:
+            mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.get'))
+            mockTWAUntilReset = stack.enter_context(patch('Crawler.Crawler.WaitTwitterAPIUntilReset'))
+
+            crawler = ConcreteCrawler()
+
+            # mock設定
+            def responce_factory(status_code, text):
+                responce = MagicMock()
+                p_status_code = PropertyMock()
+                p_status_code.return_value = status_code
+                type(responce).status_code = p_status_code
+
+                p_text = PropertyMock()
+                p_text.return_value = text
+                type(responce).text = p_text
+
+                return responce
+
+            text = f'''{{"text": "api_responce_text_sample"}}'''
+
+            url = "https://api.twitter.com/1.1/favorites/list.json"
+            responce1 = responce_factory(503, text)
+            responce2 = responce_factory(200, text)
+            responce3 = responce_factory(404, text)
+
+            mockoauth.side_effect = (responce1, responce2, responce3)
+            mockTWAUntilReset.return_value = 0
+
+            params = {
+                "screen_name": crawler.user_name,
+                "page": 1,
+                "count": crawler.count,
+                "include_entities": 1
+            }
+
+            # 1回目(503からのcontinueで200)
+            self.assertEqual(json.loads(text), crawler.TwitterAPIRequest(url, params))
+            self.assertEqual(1, mockTWAUntilReset.call_count)
+
+            # 2回目(404)
+            with self.assertRaises(Exception):
+                crawler.TwitterAPIRequest(url, params)
+
     def test_TwitterAPIRequestActual(self):
         # TwitterAPIの応答をチェックする
         # mock置き換えはせず、実際にTwitterAPIを使用して応答を確認する
@@ -278,79 +448,8 @@ class TestCrawler(unittest.TestCase):
         }
         self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
 
-    def test_TwitterAPIRequestCheckLimit(self):
-        # TwitterAPIが利用できない場合の挙動をチェックする
-        # mock置き換えによりTwitterAPIが503を返す状況をシミュレートする
-        with ExitStack() as stack:
-            # with句にpatchを複数入れる
-            mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.get'))
-            mockTWAuntilreset = stack.enter_context(patch('Crawler.Crawler.CheckTwitterAPILimit'))
-            mocktime = stack.enter_context(patch('time.sleep'))
-
-            # WaitTwitterAPIUntilResetまでをテストする
-
-            crawler = ConcreteCrawler()
-            crawler.save_path = os.getcwd()
-            # get_pages = int(crawler.config["tweet_timeline"]["get_pages"]) + 1
-            url = "https://api.twitter.com/1.1/favorites/list.json"
-
-            # mock設定
-            def responce_factory(status_code, url, headers, text):
-                responce = MagicMock()
-                p_status_code = PropertyMock()
-                p_status_code.return_value = status_code
-                type(responce).status_code = p_status_code
-
-                p_url = PropertyMock()
-                p_url.return_value = url
-                type(responce).url = p_url
-
-                p_headers = PropertyMock()
-                p_headers.return_value = headers
-                type(responce).headers = p_headers
-
-                p_text = PropertyMock()
-                p_text.return_value = text
-                type(responce).text = p_text
-
-                return responce
-
-            headers100 = {"X-Rate-Limit-Remaining": "100",
-                          "X-Rate-Limit-Reset": time.mktime(datetime.now().timetuple())}
-
-            headers0 = {"X-Rate-Limit-Remaining": "0",
-                        "X-Rate-Limit-Reset": time.mktime(datetime.now().timetuple())}
-
-            text = f'''{{"text": "api_responce_text_sample"}}'''
-
-            responce1 = responce_factory(503, url, headers100, text)
-            responce2 = responce_factory(503, url, headers0, text)
-            responce3 = responce_factory(200, url, headers100, text)
-
-            mockoauth.side_effect = (responce1, responce2, responce3)
-            mockTWAuntilreset.return_value = None
-            mocktime.return_value = None
-
-            params = {
-                "screen_name": crawler.user_name,
-                "page": 1,
-                "count": crawler.count,
-                "include_entities": 1  # ツイートのメタデータ取得。複数枚の画像取得用。
-            }
-            self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
-
-            # url = "https://api.twitter.com/1.1/statuses/home_timeline.json"
-            # params = {
-            #     "count": crawler.count,
-            #     "include_entities": 1
-            # }
-            # self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
-
-            # url = "https://api.twitter.com/1.1/users/show.json"
-            # params = {
-            #     "screen_name": crawler.config["notification"]["reply_to_user_name"],
-            # }
-            # self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
+    def test_GetMediaUrl(self):
+        pass
 
     def test_ImageSaver(self):
         # 画像保存をチェックする
