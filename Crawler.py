@@ -102,7 +102,7 @@ class Crawler(metaclass=ABCMeta):
         print('     =======================')
         sys.stdout.flush()
         time.sleep(seconds + 10)  # 念のため + 10 秒
-        return
+        return 0
 
     def CheckTwitterAPILimit(self, called_url):
         unavailableCnt = 0
@@ -120,7 +120,7 @@ class Crawler(metaclass=ABCMeta):
 
                 unavailableCnt += 1
                 print('Service Unavailable 503')
-                self.waitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
+                self.WaitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
                 continue
 
             unavailableCnt = 0
@@ -130,10 +130,10 @@ class Crawler(metaclass=ABCMeta):
 
             remaining, reset = self.GetTwitterAPILimitContext(json.loads(responce.text), params)
             if (remaining == 0):
-                self.waitUntilReset(reset)
+                self.WaitUntilReset(reset)
             else:
                 break
-        return
+        return 0
 
     def WaitTwitterAPIUntilReset(self, responce):
         # X-Rate-Limit-Remaining が入ってないことが稀にあるのでチェック
@@ -154,7 +154,7 @@ class Crawler(metaclass=ABCMeta):
             # 回数制限（API参照）
             print('not found  -  X-Rate-Limit-Remaining or X-Rate-Limit-Reset')
             self.CheckTwitterAPILimit(responce.url)
-        return
+        return 0
 
     def TwitterAPIRequest(self, url, params):
         unavailableCnt = 0
@@ -164,7 +164,7 @@ class Crawler(metaclass=ABCMeta):
             if responce.status_code == 503:
                 # 503 : Service Unavailable
                 if unavailableCnt > 10:
-                    return None
+                    raise Exception('Twitter API error %d' % responce.status_code)
 
                 unavailableCnt += 1
                 print('Service Unavailable 503')
@@ -173,8 +173,7 @@ class Crawler(metaclass=ABCMeta):
             unavailableCnt = 0
 
             if responce.status_code != 200:
-                print("Error code: {0}".format(responce.status_code))
-                return None
+                raise Exception('Twitter API error %d' % responce.status_code)
 
             res = json.loads(responce.text)
             return res
