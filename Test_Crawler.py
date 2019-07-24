@@ -449,7 +449,61 @@ class TestCrawler(unittest.TestCase):
         self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
 
     def test_GetMediaUrl(self):
-        pass
+        # メディアURL取得処理のテスト
+        img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
+        video_url_s = 'https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4'
+        img_filename_s = os.path.basename(img_url_s)
+
+        crawler = ConcreteCrawler()
+
+        # typeなし
+        media_tweet_json = f'''{{
+            "media_url": "{img_url_s}"
+        }}'''
+        self.assertEqual("", crawler.GetMediaUrl(json.loads(media_tweet_json)))
+
+        # media_urlなし(photo)
+        media_tweet_json = f'''{{
+            "type": "photo"
+        }}'''
+        self.assertEqual("", crawler.GetMediaUrl(json.loads(media_tweet_json)))
+
+        # photo
+        media_tweet_json = f'''{{
+            "type": "photo",
+            "media_url": "{img_url_s}"
+        }}'''
+        self.assertEqual(img_url_s, crawler.GetMediaUrl(json.loads(media_tweet_json)))
+
+        # media_urlなし(video)
+        media_tweet_json = f'''{{
+            "type": "video"
+        }}'''
+        self.assertEqual("", crawler.GetMediaUrl(json.loads(media_tweet_json)))
+
+        # video
+        media_tweet_json = f'''{{
+            "type": "video",
+            "video_info": {{
+                "variants":[{{
+                    "content_type": "video/mp4",
+                    "bitrate": 640,
+                    "url": "{video_url_s}_640"
+                }},
+                {{
+                    "content_type": "video/mp4",
+                    "bitrate": 2048,
+                    "url": "{video_url_s}_2048"
+                }},
+                {{
+                    "content_type": "video/mp4",
+                    "bitrate": 1024,
+                    "url": "{video_url_s}_1024"
+                }}
+                ]
+            }}
+        }}'''
+        self.assertEqual(video_url_s + "_2048", crawler.GetMediaUrl(json.loads(media_tweet_json)))
 
     def test_ImageSaver(self):
         # 画像保存をチェックする
