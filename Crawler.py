@@ -334,11 +334,13 @@ class Crawler(metaclass=ABCMeta):
                 add_img_filename.append(os.path.basename(file))
 
         # 存在マーキングを更新する
-        if self.type == "RT":
-            self.db_cont.DBRetweetFlagClear()
-            self.db_cont.DBRetweetFlagUpdate(add_img_filename, 1)
+        self.UpdateDBExistMark(add_img_filename)
 
         return 0
+
+    @abstractmethod
+    def UpdateDBExistMark(self, add_img_filename):
+        pass
 
     @abstractmethod
     def GetVideoURL(self, file_name):

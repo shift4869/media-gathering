@@ -10,6 +10,7 @@ from mock import patch, MagicMock, PropertyMock
 import os
 import requests
 from requests_oauthlib import OAuth1Session
+import random
 import sys
 import time
 import unittest
@@ -24,6 +25,9 @@ class ConcreteCrawler(Crawler.Crawler):
         super().__init__()
         self.save_path = os.getcwd()
         self.type = "Fav"  # Favorite取得としておく
+
+    def UpdateDBExistMark(self, file_name):
+        return "DBExistMark updated"
 
     def GetVideoURL(self, file_name):
         return "video_sample.mp4"
@@ -505,6 +509,44 @@ class TestCrawler(unittest.TestCase):
         }}'''
         self.assertEqual(video_url_s + "_2048", crawler.GetMediaUrl(json.loads(media_tweet_json)))
 
+    def test_GetExistFilelist(self):
+        # save_pathにあるファイル名一覧取得処理をチェックする
+        crawler = ConcreteCrawler()
+
+        xs = []
+        for root, dir, files in os.walk(crawler.save_path):
+            for f in files:
+                path = os.path.join(root, f)
+                xs.append((os.path.getmtime(path), path))
+        os.walk(crawler.save_path).close()
+
+        expect_filelist = []
+        for mtime, path in sorted(xs, reverse=True):
+            expect_filelist.append(path)
+
+        self.assertAlmostEqual(expect_filelist, crawler.GetExistFilelist())
+
+    def test_ShrinkFolder(self):
+        # フォルダ内ファイルの数を一定にする機能をチェックする
+        with ExitStack() as stack:
+            mockGetExistFilelist = stack.enter_context(patch('Crawler.Crawler.GetExistFilelist'))
+            mockGetVideoURL = stack.enter_context(patch('Crawler.Crawler.GetVideoURL'))
+            mockUpdateDBExistMark = stack.enter_context(patch('Crawler.Crawler.UpdateDBExistMark'))
+
+            crawler = ConcreteCrawler()
+            holding_file_num = 10
+
+            sample_num = int(holding_file_num * 2 / 3)
+            img_sample = ["sample_img_{}.png".format(i) for i in range(sample_num)]
+            video_sample = ["sample_video_{}.mp4".format(i) for i in range(sample_num)]
+            file_sample = random.sample(img_sample + video_sample, sample_num * 2)
+            mockGetExistFilelist.return_value = file_sample
+
+            self.assertEqual(0, crawler.ShrinkFolder(holding_file_num))
+
+            self.assertEqual(expect_del_cnt, crawler.del_cnt)
+            self.assertEqual(expect_del_url_list, crawler.del_url_list)
+
     def test_ImageSaver(self):
         # 画像保存をチェックする
         use_file_list = []
@@ -556,40 +598,6 @@ class TestCrawler(unittest.TestCase):
         # テストで使用したファイルを削除する（後始末）
         for path in use_file_list:
             os.remove(path)
-
-    def test_ShrinkFolder(self):
-        # フォルダ内ファイルの数を一定にする機能をチェックする
-        crawler = ConcreteCrawler()
-        holding_file_num = int(crawler.config["holding"]["holding_file_num"])
-        crawler.save_path = os.path.abspath(crawler.config["save_directory"]["save_fav_path"])
-
-        xs = []
-        for root, dir, files in os.walk(crawler.save_path):
-            for f in files:
-                path = os.path.join(root, f)
-                xs.append((os.path.getmtime(path), path))
-        os.walk(crawler.save_path).close()
-
-        file_list = []
-        for mtime, path in sorted(xs, reverse=True):
-            file_list.append(path)
-
-        expect_del_cnt = 0
-        expect_del_url_list = []
-        for i, file in enumerate(file_list):
-            if i > holding_file_num:
-                # os.remove(file)
-                expect_del_cnt += 1
-                base_url = 'http://pbs.twimg.com/media/{}:orig'
-                expect_del_url_list.append(
-                    base_url.format(os.path.basename(file)))
-
-        with patch('Crawler.os.remove') as mockos:
-            mockos.return_value = 0
-            self.assertEqual(0, crawler.ShrinkFolder(holding_file_num))
-
-            self.assertEqual(expect_del_cnt, crawler.del_cnt)
-            self.assertEqual(expect_del_url_list, crawler.del_url_list)
 
     def test_EndOfProcess(self):
         # 取得後処理をチェックする
@@ -665,4 +673,4 @@ class TestCrawler(unittest.TestCase):
 if __name__ == "__main__":
     if sys.argv:
         del sys.argv[1:]
-    unittest.main()
+    unittest.main(warnings='ignore')
