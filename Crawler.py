@@ -2,6 +2,8 @@
 from abc import ABCMeta, abstractmethod
 import configparser
 from datetime import datetime
+from datetime import timezone
+from datetime import timedelta
 import json
 import os
 import requests
@@ -65,15 +67,152 @@ class Crawler(metaclass=ABCMeta):
         self.add_url_list = []
         self.del_url_list = []
 
+    def GetTwitterAPIResourceType(self, url):
+        # クエリを除去
+        called_url = urllib.parse.urlparse(url).path
+        url = urllib.parse.urljoin(url, os.path.basename(called_url))
+        resources = []
+        if "users" in url:
+            resources.append("users")
+        elif "statuses" in url:
+            resources.append("statuses")
+        elif "favorites" in url:
+            resources.append("favorites")
+        return ",".join(resources)
+
+    def GetTwitterAPILimitContext(self, res_text, params):
+        if "resources" not in params:
+            return -1, -1  # 引数エラー
+        r = params["resources"]
+
+        if r not in res_text["resources"]:
+            return -1, -1  # 引数エラー
+
+        for p in res_text["resources"][r].keys():
+            # remainingとresetを取得する
+            remaining = res_text["resources"][r][p]["remaining"]
+            reset = res_text["resources"][r][p]["reset"]
+            return int(remaining), int(reset)
+
+    def WaitUntilReset(self, dt_unix):
+        seconds = dt_unix - time.mktime(datetime.now().timetuple())
+        seconds = max(seconds, 0)
+        print('\n     =======================')
+        print('     == waiting {} sec =='.format(seconds))
+        print('     =======================')
+        sys.stdout.flush()
+        time.sleep(seconds + 10)  # 念のため + 10 秒
+        return 0
+
+    def CheckTwitterAPILimit(self, called_url):
+        unavailableCnt = 0
+        while True:
+            url = "https://api.twitter.com/1.1/application/rate_limit_status.json"
+            params = {
+                "resources": self.GetTwitterAPIResourceType(called_url)
+            }
+            responce = self.oath.get(url, params=params)
+
+            if responce.status_code == 503:
+                # 503 : Service Unavailable
+                if unavailableCnt > 10:
+                    raise Exception('Twitter API error %d' % responce.status_code)
+
+                unavailableCnt += 1
+                print('Service Unavailable 503')
+                self.WaitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
+                continue
+
+            unavailableCnt = 0
+
+            if responce.status_code != 200:
+                raise Exception('Twitter API error %d' % responce.status_code)
+
+            remaining, reset = self.GetTwitterAPILimitContext(json.loads(responce.text), params)
+            if (remaining == 0):
+                self.WaitUntilReset(reset)
+            else:
+                break
+        return 0
+
+    def WaitTwitterAPIUntilReset(self, responce):
+        # X-Rate-Limit-Remaining が入ってないことが稀にあるのでチェック
+        if 'X-Rate-Limit-Remaining' in responce.headers and 'X-Rate-Limit-Reset' in responce.headers:
+            # 回数制限（ヘッダ参照）
+            remain_cnt = int(responce.headers['X-Rate-Limit-Remaining'])
+            dt_unix = int(responce.headers['X-Rate-Limit-Reset'])
+            dt_jst_aware = datetime.fromtimestamp(dt_unix, timezone(timedelta(hours=9)))
+            remain_sec = dt_unix - time.mktime(datetime.now().timetuple())
+            print('リクエストURL {}'.format(responce.url))
+            print('アクセス可能回数 {}'.format(remain_cnt))
+            print('リセット時刻 {}'.format(dt_jst_aware))
+            print('リセットまでの残り時間 %s[s]' % remain_sec)
+            if remain_cnt == 0:
+                self.WaitUntilReset(dt_unix)
+                self.CheckTwitterAPILimit(responce.url)
+        else:
+            # 回数制限（API参照）
+            print('not found  -  X-Rate-Limit-Remaining or X-Rate-Limit-Reset')
+            self.CheckTwitterAPILimit(responce.url)
+        return 0
+
     def TwitterAPIRequest(self, url, params):
-        responce = self.oath.get(url, params=params)
+        unavailableCnt = 0
+        while True:
+            responce = self.oath.get(url, params=params)
 
-        if responce.status_code != 200:
-            print("Error code: {0}".format(responce.status_code))
-            return None
+            if responce.status_code == 503:
+                # 503 : Service Unavailable
+                if unavailableCnt > 10:
+                    raise Exception('Twitter API error %d' % responce.status_code)
 
-        res = json.loads(responce.text)
-        return res
+                unavailableCnt += 1
+                print('Service Unavailable 503')
+                self.WaitTwitterAPIUntilReset(responce)
+                continue
+            unavailableCnt = 0
+
+            if responce.status_code != 200:
+                raise Exception('Twitter API error %d' % responce.status_code)
+
+            res = json.loads(responce.text)
+            return res
+
+    # tweet["extended_entities"]["media"]から保存対象のメディアURLを取得する
+    # 引数や辞書構造が不正だった場合空文字列を返す
+    def GetMediaUrl(self, media_dict):
+        media_type = "None"
+        if "type" not in media_dict:
+            print("メディアタイプが不明です。")
+            return ""
+        media_type = media_dict["type"]
+
+        url = ""
+        if media_type == "photo":
+            if "media_url" not in media_dict:
+                print("画像を含んでいないツイートです。")
+                return ""
+            url = media_dict["media_url"]
+        elif media_type == "video":
+            if "video_info" not in media_dict:
+                print("動画を含んでいないツイートです。")
+                return ""
+            video_variants = media_dict["video_info"]["variants"]
+            bitrate = -sys.maxsize  # 最小値
+            for video_variant in video_variants:
+                if video_variant["content_type"] == "video/mp4":
+                    if int(video_variant["bitrate"]) > bitrate:
+                        # 同じ動画の中で一番ビットレートが高い動画を保存する
+                        url = video_variant["url"]
+                        bitrate = int(video_variant["bitrate"])
+            # クエリを除去
+            url_path = urllib.parse.urlparse(url).path
+            url = urllib.parse.urljoin(url, os.path.basename(url_path))
+        else:
+            print("メディアタイプが不明です。")
+            return ""
+
+        return url
 
     def ImageSaver(self, tweets):
         for tweet in tweets:
@@ -107,30 +246,18 @@ class Crawler(metaclass=ABCMeta):
                     continue
                 media_type = media_dict["type"]
 
+                url = self.GetMediaUrl(media_dict)
+                if url == "":
+                    continue
+
                 if media_type == "photo":
-                    if "media_url" not in media_dict:
-                        print("画像を含んでいないツイートです。")
-                        continue
-                    url = media_dict["media_url"]
                     url_orig = url + ":orig"
                     url_thumbnail = url + ":large"
                     file_name = os.path.basename(url)
                     save_file_path = os.path.join(self.save_path, os.path.basename(url))
                     save_file_fullpath = os.path.abspath(save_file_path)
                 elif media_type == "video":
-                    if "video_info" not in media_dict:
-                        print("動画を含んでいないツイートです。")
-                        continue
-                    video_variants = media_dict["video_info"]["variants"]
-                    bitrate = -sys.maxsize  # 最小値
-                    for video_variant in video_variants:
-                        if video_variant["content_type"] == "video/mp4":
-                            if int(video_variant["bitrate"]) > bitrate:
-                                # 同じ動画の中で一番ビットレートが高い動画を保存する
-                                url = video_variant["url"]
-                                bitrate = int(video_variant["bitrate"])
-                    url_path = urllib.parse.urlparse(url).path
-                    url_orig = urllib.parse.urljoin(url, os.path.basename(url_path))
+                    url_orig = url
                     url_thumbnail = media_dict["media_url"] + ":orig"  # サムネ
                     file_name = os.path.basename(url_orig)
                     save_file_path = os.path.join(self.save_path, os.path.basename(url_orig))
@@ -167,7 +294,8 @@ class Crawler(metaclass=ABCMeta):
                     self.add_cnt += 1
         return 0
 
-    def ShrinkFolder(self, holding_file_num):
+    # save_pathにあるファイル名一覧を取得する
+    def GetExistFilelist(self):
         xs = []
         for root, dir, files in os.walk(self.save_path):
             for f in files:
@@ -175,9 +303,13 @@ class Crawler(metaclass=ABCMeta):
                 xs.append((os.path.getmtime(path), path))
         os.walk(self.save_path).close()
 
-        file_list = []
+        filelist = []
         for mtime, path in sorted(xs, reverse=True):
-            file_list.append(path)
+            filelist.append(path)
+        return filelist
+
+    def ShrinkFolder(self, holding_file_num):
+        filelist = self.GetExistFilelist()
 
         # フォルダに既に保存しているファイルにはURLの情報がない
         # ファイル名とドメインを結びつけてURLを手動で生成する
@@ -185,7 +317,7 @@ class Crawler(metaclass=ABCMeta):
         # http://pbs.twimg.com/media/{file.basename}.jpg:orig
         # 動画ファイルのURLはDBに問い合わせる
         add_img_filename = []
-        for i, file in enumerate(file_list):
+        for i, file in enumerate(filelist):
             url = ""
             if ".mp4" in file:  # media_type == "video":
                 url = self.GetVideoURL(os.path.basename(file))
@@ -202,11 +334,13 @@ class Crawler(metaclass=ABCMeta):
                 add_img_filename.append(os.path.basename(file))
 
         # 存在マーキングを更新する
-        if self.type == "RT":
-            self.db_cont.DBRetweetFlagClear()
-            self.db_cont.DBRetweetFlagUpdate(add_img_filename, 1)
+        self.UpdateDBExistMark(add_img_filename)
 
         return 0
+
+    @abstractmethod
+    def UpdateDBExistMark(self, add_img_filename):
+        pass
 
     @abstractmethod
     def GetVideoURL(self, file_name):
