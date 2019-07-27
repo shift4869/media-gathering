@@ -545,17 +545,25 @@ class TestCrawler(unittest.TestCase):
             file_sample = random.sample(img_sample + video_sample, sample_num)  # 結合してシャッフル
             mockGetExistFilelist.return_value = file_sample
 
-            def GetVideoURLsideeffect(file_name):
-                return video_base_url.format(file_name)
+            def GetVideoURLsideeffect(filename):
+                return video_base_url.format(filename)
 
             mockGetVideoURL.side_effect = GetVideoURLsideeffect
             mockUpdateDBExistMark = None
 
             self.assertEqual(0, crawler.ShrinkFolder(holding_file_num - 1))
 
+            def MakeUrl(filename):
+                if ".mp4" in filename:  # media_type == "video":
+                    return video_base_url.format(filename)
+                else:  # media_type == "photo":
+                    return image_base_url.format(filename)
+
             expect_del_cnt = len(file_sample) - holding_file_num
             expect_del_url_list = file_sample[-expect_del_cnt:len(file_sample)]
+            expect_del_url_list = list(map(MakeUrl, expect_del_url_list))
             expect_add_url_list = file_sample[0:holding_file_num]
+            expect_add_url_list = list(map(MakeUrl, expect_add_url_list))
 
             self.assertEqual(expect_del_cnt, crawler.del_cnt)
             self.assertEqual(expect_del_url_list, crawler.del_url_list)
@@ -583,7 +591,7 @@ class TestCrawler(unittest.TestCase):
             crawler = ConcreteCrawler()
             crawler.save_path = os.getcwd()
 
-            def urlopen_side_effect(url_orig, save_file_fullpath):
+            def urlopen_sideeffect(url_orig, save_file_fullpath):
                 url = url_orig.replace(":orig", "")
                 save_file_path = os.path.join(crawler.save_path, os.path.basename(url))
 
@@ -594,7 +602,7 @@ class TestCrawler(unittest.TestCase):
 
                 return save_file_path
 
-            mockurllib.side_effect = urlopen_side_effect
+            mockurllib.side_effect = urlopen_sideeffect
 
             tweets = []
             tweets.append(self.media_tweet_s)
