@@ -530,22 +530,36 @@ class TestCrawler(unittest.TestCase):
         # フォルダ内ファイルの数を一定にする機能をチェックする
         with ExitStack() as stack:
             mockGetExistFilelist = stack.enter_context(patch('Crawler.Crawler.GetExistFilelist'))
-            mockGetVideoURL = stack.enter_context(patch('Crawler.Crawler.GetVideoURL'))
+            mockGetVideoURL = stack.enter_context(patch('__main__.ConcreteCrawler.GetVideoURL'))
             mockUpdateDBExistMark = stack.enter_context(patch('Crawler.Crawler.UpdateDBExistMark'))
+            mockos = stack.enter_context(patch('Crawler.os.remove'))
+            image_base_url = 'http://pbs.twimg.com/media/{}:orig'
+            video_base_url = 'https://video.twimg.com/ext_tw_video/1144527536388337664/pu/vid/626x882/{}'
 
             crawler = ConcreteCrawler()
             holding_file_num = 10
 
-            sample_num = int(holding_file_num * 2 / 3)
-            img_sample = ["sample_img_{}.png".format(i) for i in range(sample_num)]
-            video_sample = ["sample_video_{}.mp4".format(i) for i in range(sample_num)]
-            file_sample = random.sample(img_sample + video_sample, sample_num * 2)
+            sample_num = holding_file_num * 2 // 3 * 2
+            img_sample = ["sample_img_{}.png".format(i) for i in range(sample_num // 2 + 1)]
+            video_sample = ["sample_video_{}.mp4".format(i) for i in range(sample_num // 2 + 1)]
+            file_sample = random.sample(img_sample + video_sample, sample_num)  # 結合してシャッフル
             mockGetExistFilelist.return_value = file_sample
 
-            self.assertEqual(0, crawler.ShrinkFolder(holding_file_num))
+            def GetVideoURLsideeffect(file_name):
+                return video_base_url.format(file_name)
+
+            mockGetVideoURL.side_effect = GetVideoURLsideeffect
+            mockUpdateDBExistMark = None
+
+            self.assertEqual(0, crawler.ShrinkFolder(holding_file_num - 1))
+
+            expect_del_cnt = len(file_sample) - holding_file_num
+            expect_del_url_list = file_sample[-expect_del_cnt:len(file_sample)]
+            expect_add_url_list = file_sample[0:holding_file_num]
 
             self.assertEqual(expect_del_cnt, crawler.del_cnt)
             self.assertEqual(expect_del_url_list, crawler.del_url_list)
+            self.assertEqual(expect_add_url_list, crawler.add_url_list)
 
     def test_ImageSaver(self):
         # 画像保存をチェックする
