@@ -1,10 +1,15 @@
 # coding: utf-8
 from datetime import datetime
+from logging import getLogger, DEBUG, INFO
 import os
 import sys
 import traceback
 
 from Crawler import Crawler
+
+
+logger = getLogger("root")
+logger.setLevel(INFO)
 
 
 class RetweetCrawler(Crawler):
@@ -14,8 +19,7 @@ class RetweetCrawler(Crawler):
             self.retweet_get_max_loop = int(self.config["tweet_timeline"]["retweet_get_max_loop"])
             self.save_path = os.path.abspath(self.config["save_directory"]["save_retweet_path"])
         except KeyError:
-            ex, ms, tb = sys.exc_info()
-            traceback.print_exception(ex, ms, tb)
+            logger.exception("invalid config file eeror.")
             exit(-1)
         self.max_id = None
         self.type = "RT"
@@ -106,7 +110,7 @@ class RetweetCrawler(Crawler):
         done_msg += now_str
         done_msg += " Process Done !!\n"
         done_msg += "add {0} new images. ".format(self.add_cnt)
-        done_msg += "delete {0} old images. \n".format(self.del_cnt)
+        done_msg += "delete {0} old images.".format(self.del_cnt)
         return done_msg
 
     def Crawl(self):
@@ -117,5 +121,6 @@ class RetweetCrawler(Crawler):
 
 
 if __name__ == "__main__":
+    logger.info("Retweet Crawler run.")
     c = RetweetCrawler()
     c.Crawl()

@@ -5,6 +5,8 @@ from datetime import datetime
 from datetime import timezone
 from datetime import timedelta
 import json
+import logging.config
+from logging import getLogger, DEBUG, INFO
 import os
 import requests
 from requests_oauthlib import OAuth1Session
@@ -16,6 +18,11 @@ import urllib
 # import RetweetCrawler as RetweetCrawler
 import DBControlar as DBControlar
 import WriteHTML as WriteHTML
+
+
+logging.config.fileConfig("logging.ini")
+logger = getLogger("root")
+logger.setLevel(INFO)
 
 
 class Crawler(metaclass=ABCMeta):
@@ -43,15 +50,13 @@ class Crawler(metaclass=ABCMeta):
             self.save_path = ""
             self.type = ""
         except IOError:
-            print(self.CONFIG_FILE_NAME + " is not exist or cannot be opened.")
+            logger.exception(self.CONFIG_FILE_NAME + " is not exist or cannot be opened.")
             exit(-1)
         except KeyError:
-            ex, ms, tb = sys.exc_info()
-            traceback.print_exception(ex, ms, tb)
+            logger.exception("invalid config file eeror.")
             exit(-1)
         except Exception:
-            ex, ms, tb = sys.exc_info()
-            traceback.print_exception(ex, ms, tb)
+            logger.exception("unknown error.")
             exit(-1)
 
         self.oath = OAuth1Session(
@@ -97,9 +102,9 @@ class Crawler(metaclass=ABCMeta):
     def WaitUntilReset(self, dt_unix):
         seconds = dt_unix - time.mktime(datetime.now().timetuple())
         seconds = max(seconds, 0)
-        print('\n     =======================')
-        print('     == waiting {} sec =='.format(seconds))
-        print('     =======================')
+        logger.debug('=======================')
+        logger.debug('== waiting {} sec =='.format(seconds))
+        logger.debug('=======================')
         sys.stdout.flush()
         time.sleep(seconds + 10)  # 念のため + 10 秒
         return 0
@@ -119,7 +124,7 @@ class Crawler(metaclass=ABCMeta):
                     raise Exception('Twitter API error %d' % responce.status_code)
 
                 unavailableCnt += 1
-                print('Service Unavailable 503')
+                logger.info('Service Unavailable 503')
                 self.WaitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
                 continue
 
@@ -143,16 +148,16 @@ class Crawler(metaclass=ABCMeta):
             dt_unix = int(responce.headers['X-Rate-Limit-Reset'])
             dt_jst_aware = datetime.fromtimestamp(dt_unix, timezone(timedelta(hours=9)))
             remain_sec = dt_unix - time.mktime(datetime.now().timetuple())
-            print('リクエストURL {}'.format(responce.url))
-            print('アクセス可能回数 {}'.format(remain_cnt))
-            print('リセット時刻 {}'.format(dt_jst_aware))
-            print('リセットまでの残り時間 %s[s]' % remain_sec)
+            logger.debug('リクエストURL {}'.format(responce.url))
+            logger.debug('アクセス可能回数 {}'.format(remain_cnt))
+            logger.debug('リセット時刻 {}'.format(dt_jst_aware))
+            logger.debug('リセットまでの残り時間 %s[s]' % remain_sec)
             if remain_cnt == 0:
                 self.WaitUntilReset(dt_unix)
                 self.CheckTwitterAPILimit(responce.url)
         else:
             # 回数制限（API参照）
-            print('not found  -  X-Rate-Limit-Remaining or X-Rate-Limit-Reset')
+            logger.debug('not found  -  X-Rate-Limit-Remaining or X-Rate-Limit-Reset')
             self.CheckTwitterAPILimit(responce.url)
         return 0
 
@@ -167,7 +172,7 @@ class Crawler(metaclass=ABCMeta):
                     raise Exception('Twitter API error %d' % responce.status_code)
 
                 unavailableCnt += 1
-                print('Service Unavailable 503')
+                logger.info('Service Unavailable 503')
                 self.WaitTwitterAPIUntilReset(responce)
                 continue
             unavailableCnt = 0
@@ -183,19 +188,19 @@ class Crawler(metaclass=ABCMeta):
     def GetMediaUrl(self, media_dict):
         media_type = "None"
         if "type" not in media_dict:
-            print("メディアタイプが不明です。")
+            logger.info("メディアタイプが不明です。")
             return ""
         media_type = media_dict["type"]
 
         url = ""
         if media_type == "photo":
             if "media_url" not in media_dict:
-                print("画像を含んでいないツイートです。")
+                logger.info("画像を含んでいないツイートです。")
                 return ""
             url = media_dict["media_url"]
         elif media_type == "video":
             if "video_info" not in media_dict:
-                print("動画を含んでいないツイートです。")
+                logger.info("動画を含んでいないツイートです。")
                 return ""
             video_variants = media_dict["video_info"]["variants"]
             bitrate = -sys.maxsize  # 最小値
@@ -209,7 +214,7 @@ class Crawler(metaclass=ABCMeta):
             url_path = urllib.parse.urlparse(url).path
             url = urllib.parse.urljoin(url, os.path.basename(url_path))
         else:
-            print("メディアタイプが不明です。")
+            logger.info("メディアタイプが不明です。")
             return ""
 
         return url
@@ -217,10 +222,10 @@ class Crawler(metaclass=ABCMeta):
     def ImageSaver(self, tweets):
         for tweet in tweets:
             if "extended_entities" not in tweet:
-                print("メディアを含んでいないツイートです。")
+                logger.debug("メディアを含んでいないツイートです。")
                 continue
             if "media" not in tweet["extended_entities"]:
-                print("メディアを含んでいないツイートです。")
+                logger.debug("メディアを含んでいないツイートです。")
                 continue
             media_list = tweet["extended_entities"]["media"]
 
@@ -242,7 +247,7 @@ class Crawler(metaclass=ABCMeta):
             for media_dict in media_list:
                 media_type = "None"
                 if "type" not in media_dict:
-                    print("メディアタイプが不明です。")
+                    logger.debug("メディアタイプが不明です。")
                     continue
                 media_type = media_dict["type"]
 
@@ -263,7 +268,7 @@ class Crawler(metaclass=ABCMeta):
                     save_file_path = os.path.join(self.save_path, os.path.basename(url_orig))
                     save_file_fullpath = os.path.abspath(save_file_path)
                 else:
-                    print("メディアタイプが不明です。")
+                    logger.debug("メディアタイプが不明です。")
                     continue
 
                 if not os.path.isfile(save_file_fullpath):
@@ -290,7 +295,7 @@ class Crawler(metaclass=ABCMeta):
                     if config.getboolean("timestamp_created_at"):
                         os.utime(save_file_fullpath, (atime, mtime))
 
-                    print(os.path.basename(save_file_fullpath) + " -> done!")
+                    logger.info(os.path.basename(save_file_fullpath) + " -> done!")
                     self.add_cnt += 1
         return 0
 
@@ -351,44 +356,37 @@ class Crawler(metaclass=ABCMeta):
         pass
 
     def EndOfProcess(self):
-        print("")
+        logger.info("")
 
         done_msg = self.MakeDoneMessage()
 
-        print(done_msg)
+        logger.info(done_msg)
 
         config = self.config["notification"]
 
         WriteHTML.WriteResultHTML(self.type, self.del_url_list)
-        with open('log.txt', 'a') as fout:
-            if self.add_cnt != 0 or self.del_cnt != 0:
-                fout.write("\n")
-                fout.write(done_msg)
+        if self.add_cnt != 0 or self.del_cnt != 0:
+            if self.add_cnt != 0:
+                logger.info("add url:")
+                for url in self.add_url_list:
+                    logger.info(url)
 
-                if self.add_cnt != 0:
-                    fout.write("add url:\n")
-                    for url in self.add_url_list:
-                        fout.write(url + "\n")
+            if self.del_cnt != 0:
+                logger.info("del url:")
+                for url in self.del_url_list:
+                    logger.info(url)
 
-                if self.del_cnt != 0:
-                    fout.write("del url:\n")
-                    for url in self.del_url_list:
-                        fout.write(url + "\n")
+            if self.type == "Fav" and config.getboolean("is_post_fav_done_reply"):
+                self.PostTweet(done_msg)
+                logger.info("Reply posted.")
 
-                if self.type == "Fav" and config.getboolean("is_post_fav_done_reply"):
-                    self.PostTweet(done_msg)
-                    print("Reply posted.")
-                    fout.write("Reply posted.")
+            if self.type == "RT" and config.getboolean("is_post_retweet_done_reply"):
+                self.PostTweet(done_msg)
+                logger.info("Reply posted.")
 
-                if self.type == "RT" and config.getboolean("is_post_retweet_done_reply"):
-                    self.PostTweet(done_msg)
-                    print("Reply posted.")
-                    fout.write("Reply posted.")
-
-                if config.getboolean("is_post_line_notify"):
-                    self.PostLineNotify(done_msg)
-                    print("Line Notify posted.")
-                    fout.write("Line Notify posted.")
+            if config.getboolean("is_post_line_notify"):
+                self.PostLineNotify(done_msg)
+                logger.info("Line Notify posted.")
 
         # 古い通知リプライを消す
         if config.getboolean("is_post_fav_done_reply") or config.getboolean("is_post_retweet_done_reply"):
@@ -424,7 +422,7 @@ class Crawler(metaclass=ABCMeta):
         self.db_cont.DBDelInsert(json.loads(responce.text))
 
         if responce.status_code != 200:
-            print("Error code: {0}".format(responce.status_code))
+            logger.error("Error code: {0}".format(responce.status_code))
             return None
 
         return 0
@@ -439,7 +437,7 @@ class Crawler(metaclass=ABCMeta):
         responce = requests.post(url, headers=headers, params=payload)
 
         if responce.status_code != 200:
-            print("Error code: {0}".format(responce.status_code))
+            logger.error("Error code: {0}".format(responce.status_code))
             return None
 
         return 0
