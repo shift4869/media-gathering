@@ -1,10 +1,14 @@
 # coding: utf-8
 from datetime import datetime
+from logging import getLogger, DEBUG, INFO
 import os
 import sys
-import traceback
 
 from Crawler import Crawler
+
+
+logger = getLogger("root")
+logger.setLevel(INFO)
 
 
 class FavCrawler(Crawler):
@@ -13,8 +17,7 @@ class FavCrawler(Crawler):
         try:
             self.save_path = os.path.abspath(self.config["save_directory"]["save_fav_path"])
         except KeyError:
-            ex, ms, tb = sys.exc_info()
-            traceback.print_exception(ex, ms, tb)
+            logger.exception("save_directory/save_fav_path is invalid.")
             exit(-1)
         self.type = "Fav"
 
@@ -35,7 +38,7 @@ class FavCrawler(Crawler):
                 "include_entities": 1
             }
         else:
-            print("kind_of_api is invalid .")
+            logger.error("kind_of_api is invalid.")
             return None
 
         return self.TwitterAPIRequest(url, params)
@@ -55,7 +58,7 @@ class FavCrawler(Crawler):
         done_msg += now_str
         done_msg += " Process Done !!\n"
         done_msg += "add {0} new images. ".format(self.add_cnt)
-        done_msg += "delete {0} old images. \n".format(self.del_cnt)
+        done_msg += "delete {0} old images.".format(self.del_cnt)
         return done_msg
 
     def Crawl(self):
@@ -70,5 +73,6 @@ class FavCrawler(Crawler):
 
 
 if __name__ == "__main__":
+    logger.info("Fav Crawler run.")
     c = FavCrawler()
     c.Crawl()
