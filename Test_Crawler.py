@@ -1,12 +1,18 @@
 # coding: utf-8
 import configparser
 from contextlib import ExitStack
+import copy
+from datetime import datetime
+from datetime import timezone
+from datetime import timedelta
 import json
 from mock import patch, MagicMock, PropertyMock
 import os
 import requests
 from requests_oauthlib import OAuth1Session
+import random
 import sys
+import time
 import unittest
 
 
@@ -18,7 +24,13 @@ class ConcreteCrawler(Crawler.Crawler):
     def __init__(self):
         super().__init__()
         self.save_path = os.getcwd()
-        self.type = "Test"
+        self.type = "Fav"  # Favorite取得としておく
+
+    def UpdateDBExistMark(self, file_name):
+        return "DBExistMark updated"
+
+    def GetVideoURL(self, file_name):
+        return "video_sample.mp4"
 
     def MakeDoneMessage(self):
         return "Crawler Test : done"
@@ -43,9 +55,11 @@ class TestCrawler(unittest.TestCase):
         tweet_json = f'''{{
             "extended_entities": {{
                 "media": [{{
+                    "type": "photo",
                     "media_url": "{img_url_s}_1"
                 }},
                 {{
+                    "type": "photo",
                     "media_url": "{img_url_s}_2"
                 }}
                 ]
@@ -86,7 +100,8 @@ class TestCrawler(unittest.TestCase):
         # ConcreteCrawlerをテストする
         crawler = ConcreteCrawler()
 
-        self.assertEqual("Test", crawler.type)
+        # self.assertEqual("Test", crawler.type)
+        self.assertEqual("video_sample.mp4", crawler.GetVideoURL(""))
         self.assertEqual("Crawler Test : done", crawler.MakeDoneMessage())
         self.assertEqual(0, crawler.Crawl())
 
@@ -162,8 +177,255 @@ class TestCrawler(unittest.TestCase):
         self.assertEqual([], crawler.add_url_list)
         self.assertEqual([], crawler.del_url_list)
 
-    def test_TwitterAPIRequest(self):
+    def test_GetTwitterAPIResourceType(self):
+        # 使用するTwitterAPIのAPIリソースタイプ取得をチェックする
+        crawler = ConcreteCrawler()
+
+        # ツイートをポストする
+        reply_user_name = crawler.config["notification"]["reply_to_user_name"]
+        url = "https://api.twitter.com/1.1/users/show.json"
+        params = {
+            "screen_name": reply_user_name,
+        }
+        self.assertEqual("users", crawler.GetTwitterAPIResourceType(url))
+
+        # ふぁぼリスト取得
+        page = 1
+        url = "https://api.twitter.com/1.1/favorites/list.json"
+        params = {
+            "screen_name": crawler.user_name,
+            "page": page,
+            "count": crawler.count,
+            "include_entities": 1
+        }
+        self.assertEqual("favorites", crawler.GetTwitterAPIResourceType(url))
+
+        # 自分のタイムラインを取得する（あまり使わない）
+        url = "https://api.twitter.com/1.1/statuses/home_timeline.json"
+        params = {
+            "count": crawler.count,
+            "include_entities": 1
+        }
+        self.assertEqual("statuses", crawler.GetTwitterAPIResourceType(url))
+
+        # 自分の最新ツイートを取得する（ここからRTを抜き出す）
+        max_id = -1
+        url = "https://api.twitter.com/1.1/statuses/user_timeline.json"
+        params = {
+            "screen_name": crawler.user_name,
+            "count": crawler.count,
+            "max_id": max_id,
+            "contributor_details": True,
+            "include_rts": True
+        }
+        self.assertEqual("statuses", crawler.GetTwitterAPIResourceType(url))
+
+        # レートリミット取得
+        # url = "https://api.twitter.com/1.1/application/rate_limit_status.json"
+        # params = {
+        #    "resources": self.GetTwitterAPIResourceType(called_url)
+        # }
+
+    def test_GetTwitterAPILimitContext(self):
+        # Limitを取得するAPIの返り値を解釈して残数と開放時間を取得する処理をチェックする
+        crawler = ConcreteCrawler()
+
+        url = "https://api.twitter.com/1.1/application/rate_limit_status.json"
+        params = {
+            "resources": "favorites"
+        }
+
+        # responce = crawler.oath.get(url, params=params)
+        # favorites_limit_text_sample = responce.text
+        favorites_limit_text_sample = f'''{{
+            "resources": {{
+                "favorites": {{
+                    "\/favorites\/list": {{
+                        "limit":75,
+                        "remaining":70,
+                        "reset":1563195985
+                    }}
+                }}
+            }}
+        }}'''
+
+        remaining, reset = crawler.GetTwitterAPILimitContext(json.loads(favorites_limit_text_sample), params)
+        self.assertEqual(70, remaining)
+        self.assertEqual(1563195985, reset)
+
+    def test_WaitUntilReset(self):
+        # 指定UNIX時間まで待機する処理の呼び出しをチェックする
+        crawler = ConcreteCrawler()
+
+        with ExitStack() as stack:
+            mocktime = stack.enter_context(patch('time.sleep'))
+
+            dt_unix = time.mktime(datetime.now().timetuple()) + 1
+
+            res = crawler.WaitUntilReset(dt_unix)
+            mocktime.assert_called()
+            self.assertEqual(0, res)
+
+    def test_CheckTwitterAPILimit(self):
+        # TwitterAPI制限を取得する機能をチェックする
+        # mock置き換えによりTwitterAPIが503を返す状況もシミュレートする
+        with ExitStack() as stack:
+            mockTWARType = stack.enter_context(patch('Crawler.Crawler.GetTwitterAPIResourceType'))
+            mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.get'))
+            mockWaitUntilReset = stack.enter_context(patch('Crawler.Crawler.WaitUntilReset'))
+            mockTWALimitContext = stack.enter_context(patch('Crawler.Crawler.GetTwitterAPILimitContext'))
+
+            crawler = ConcreteCrawler()
+            url = "https://api.twitter.com/1.1/favorites/list.json"
+
+            mockTWARType.return_value = "favorites"
+
+            # mock設定
+            def responce_factory(status_code, text):
+                responce = MagicMock()
+                p_status_code = PropertyMock()
+                p_status_code.return_value = status_code
+                type(responce).status_code = p_status_code
+
+                p_text = PropertyMock()
+                p_text.return_value = text
+                type(responce).text = p_text
+
+                return responce
+
+            text = f'''{{"text": "api_responce_text_sample"}}'''
+
+            responce1 = responce_factory(503, text)
+            responce2 = responce_factory(200, text)
+            responce3 = responce_factory(200, text)
+            responce4 = responce_factory(200, text)
+            responce5 = responce_factory(404, text)
+
+            mockoauth.side_effect = (responce1, responce2, responce3, responce4, responce5)
+            mockWaitUntilReset.return_value = 0
+            mockTWALimitContext.side_effect = ((70, 0), (0, 0), (75, 0))
+
+            # 1回目(503からのcontinueで200、remaining=70)
+            self.assertIsNotNone(crawler.CheckTwitterAPILimit(url))
+            self.assertEqual(2, mockTWARType.call_count)
+            self.assertEqual(2, mockoauth.call_count)
+            self.assertEqual(1, mockWaitUntilReset.call_count)
+            self.assertEqual(1, mockTWALimitContext.call_count)
+
+            # 2回目(200、remaining=0->200、remaining=75)
+            self.assertIsNotNone(crawler.CheckTwitterAPILimit(url))
+            self.assertEqual(4, mockTWARType.call_count)
+            self.assertEqual(4, mockoauth.call_count)
+            self.assertEqual(2, mockWaitUntilReset.call_count)
+            self.assertEqual(3, mockTWALimitContext.call_count)
+
+            # 3回目(404)
+            with self.assertRaises(Exception):
+                crawler.CheckTwitterAPILimit(url)
+
+    def test_WaitTwitterAPIUntilReset(self):
+        # TwitterAPIが利用できるまで待つ機能をチェックする
+        with ExitStack() as stack:
+            mockWaitUntilReset = stack.enter_context(patch('Crawler.Crawler.WaitUntilReset'))
+            mockTWALimit = stack.enter_context(patch('Crawler.Crawler.CheckTwitterAPILimit'))
+
+            crawler = ConcreteCrawler()
+
+            # mock設定
+            def responce_factory(url, headers):
+                responce = MagicMock()
+                p_url = PropertyMock()
+                p_url.return_value = url
+                type(responce).url = p_url
+
+                p_headers = PropertyMock()
+                p_headers.return_value = headers
+                type(responce).headers = p_headers
+
+                return responce
+
+            headers100 = {"X-Rate-Limit-Remaining": "100",
+                          "X-Rate-Limit-Reset": time.mktime(datetime.now().timetuple())}
+
+            headers0 = {"X-Rate-Limit-Remaining": "0",
+                        "X-Rate-Limit-Reset": time.mktime(datetime.now().timetuple())}
+
+            url = "https://api.twitter.com/1.1/favorites/list.json"
+            responce1 = responce_factory(url, headers100)
+            responce2 = responce_factory(url, headers0)
+            responce3 = MagicMock()
+            p_url = PropertyMock()
+            p_url.return_value = url
+            type(responce3).url = p_url
+
+            mockWaitUntilReset.return_value = 0
+            mockTWALimit.return_value = 0
+
+            # 1回目(headersあり、Remaining=100)
+            self.assertIsNotNone(crawler.WaitTwitterAPIUntilReset(responce1))
+            self.assertEqual(0, mockWaitUntilReset.call_count)
+            self.assertEqual(0, mockTWALimit.call_count)
+
+            # 2回目(headersあり、Remaining=0)
+            self.assertIsNotNone(crawler.WaitTwitterAPIUntilReset(responce2))
+            self.assertEqual(1, mockWaitUntilReset.call_count)
+            self.assertEqual(1, mockTWALimit.call_count)
+
+            # 3回目(headersなし)
+            self.assertIsNotNone(crawler.WaitTwitterAPIUntilReset(responce3))
+            self.assertEqual(1, mockWaitUntilReset.call_count)
+            self.assertEqual(2, mockTWALimit.call_count)
+
+    def test_TwitterAPIRequestMocked(self):
+        # TwitterAPIが利用できない場合の挙動をチェックする
+        # mock置き換えによりTwitterAPIが503を返す状況をシミュレートする
+        with ExitStack() as stack:
+            mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.get'))
+            mockTWAUntilReset = stack.enter_context(patch('Crawler.Crawler.WaitTwitterAPIUntilReset'))
+
+            crawler = ConcreteCrawler()
+
+            # mock設定
+            def responce_factory(status_code, text):
+                responce = MagicMock()
+                p_status_code = PropertyMock()
+                p_status_code.return_value = status_code
+                type(responce).status_code = p_status_code
+
+                p_text = PropertyMock()
+                p_text.return_value = text
+                type(responce).text = p_text
+
+                return responce
+
+            text = f'''{{"text": "api_responce_text_sample"}}'''
+
+            url = "https://api.twitter.com/1.1/favorites/list.json"
+            responce1 = responce_factory(503, text)
+            responce2 = responce_factory(200, text)
+            responce3 = responce_factory(404, text)
+
+            mockoauth.side_effect = (responce1, responce2, responce3)
+            mockTWAUntilReset.return_value = 0
+
+            params = {
+                "screen_name": crawler.user_name,
+                "page": 1,
+                "count": crawler.count,
+                "include_entities": 1
+            }
+
+            # 1回目(503からのcontinueで200)
+            self.assertEqual(json.loads(text), crawler.TwitterAPIRequest(url, params))
+            self.assertEqual(1, mockTWAUntilReset.call_count)
+
+            # 2回目(404)
+            with self.assertRaises(Exception):
+                crawler.TwitterAPIRequest(url, params)
+
+    def test_TwitterAPIRequestActual(self):
         # TwitterAPIの応答をチェックする
+        # mock置き換えはせず、実際にTwitterAPIを使用して応答を確認する
         crawler = ConcreteCrawler()
         get_pages = int(crawler.config["tweet_timeline"]["get_pages"]) + 1
 
@@ -190,14 +452,137 @@ class TestCrawler(unittest.TestCase):
         }
         self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
 
+    def test_GetMediaUrl(self):
+        # メディアURL取得処理のテスト
+        img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
+        video_url_s = 'https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4'
+        img_filename_s = os.path.basename(img_url_s)
+
+        crawler = ConcreteCrawler()
+
+        # typeなし
+        media_tweet_json = f'''{{
+            "media_url": "{img_url_s}"
+        }}'''
+        self.assertEqual("", crawler.GetMediaUrl(json.loads(media_tweet_json)))
+
+        # media_urlなし(photo)
+        media_tweet_json = f'''{{
+            "type": "photo"
+        }}'''
+        self.assertEqual("", crawler.GetMediaUrl(json.loads(media_tweet_json)))
+
+        # photo
+        media_tweet_json = f'''{{
+            "type": "photo",
+            "media_url": "{img_url_s}"
+        }}'''
+        self.assertEqual(img_url_s, crawler.GetMediaUrl(json.loads(media_tweet_json)))
+
+        # media_urlなし(video)
+        media_tweet_json = f'''{{
+            "type": "video"
+        }}'''
+        self.assertEqual("", crawler.GetMediaUrl(json.loads(media_tweet_json)))
+
+        # video
+        media_tweet_json = f'''{{
+            "type": "video",
+            "video_info": {{
+                "variants":[{{
+                    "content_type": "video/mp4",
+                    "bitrate": 640,
+                    "url": "{video_url_s}_640"
+                }},
+                {{
+                    "content_type": "video/mp4",
+                    "bitrate": 2048,
+                    "url": "{video_url_s}_2048"
+                }},
+                {{
+                    "content_type": "video/mp4",
+                    "bitrate": 1024,
+                    "url": "{video_url_s}_1024"
+                }}
+                ]
+            }}
+        }}'''
+        self.assertEqual(video_url_s + "_2048", crawler.GetMediaUrl(json.loads(media_tweet_json)))
+
+    def test_GetExistFilelist(self):
+        # save_pathにあるファイル名一覧取得処理をチェックする
+        crawler = ConcreteCrawler()
+
+        xs = []
+        for root, dir, files in os.walk(crawler.save_path):
+            for f in files:
+                path = os.path.join(root, f)
+                xs.append((os.path.getmtime(path), path))
+        os.walk(crawler.save_path).close()
+
+        expect_filelist = []
+        for mtime, path in sorted(xs, reverse=True):
+            expect_filelist.append(path)
+
+        self.assertAlmostEqual(expect_filelist, crawler.GetExistFilelist())
+
+    def test_ShrinkFolder(self):
+        # フォルダ内ファイルの数を一定にする機能をチェックする
+        with ExitStack() as stack:
+            mockGetExistFilelist = stack.enter_context(patch('Crawler.Crawler.GetExistFilelist'))
+            mockGetVideoURL = stack.enter_context(patch('__main__.ConcreteCrawler.GetVideoURL'))
+            mockUpdateDBExistMark = stack.enter_context(patch('Crawler.Crawler.UpdateDBExistMark'))
+            mockos = stack.enter_context(patch('Crawler.os.remove'))
+            image_base_url = 'http://pbs.twimg.com/media/{}:orig'
+            video_base_url = 'https://video.twimg.com/ext_tw_video/1144527536388337664/pu/vid/626x882/{}'
+
+            crawler = ConcreteCrawler()
+            holding_file_num = 10
+
+            sample_num = holding_file_num * 2 // 3 * 2
+            img_sample = ["sample_img_{}.png".format(i) for i in range(sample_num // 2 + 1)]
+            video_sample = ["sample_video_{}.mp4".format(i) for i in range(sample_num // 2 + 1)]
+            file_sample = random.sample(img_sample + video_sample, sample_num)  # 結合してシャッフル
+            mockGetExistFilelist.return_value = file_sample
+
+            def GetVideoURLsideeffect(filename):
+                return video_base_url.format(filename)
+
+            mockGetVideoURL.side_effect = GetVideoURLsideeffect
+            mockUpdateDBExistMark = None
+
+            self.assertEqual(0, crawler.ShrinkFolder(holding_file_num - 1))
+
+            def MakeUrl(filename):
+                if ".mp4" in filename:  # media_type == "video":
+                    return video_base_url.format(filename)
+                else:  # media_type == "photo":
+                    return image_base_url.format(filename)
+
+            expect_del_cnt = len(file_sample) - holding_file_num
+            expect_del_url_list = file_sample[-expect_del_cnt:len(file_sample)]
+            expect_del_url_list = list(map(MakeUrl, expect_del_url_list))
+            expect_add_url_list = file_sample[0:holding_file_num]
+            expect_add_url_list = list(map(MakeUrl, expect_add_url_list))
+
+            self.assertEqual(expect_del_cnt, crawler.del_cnt)
+            self.assertEqual(expect_del_url_list, crawler.del_url_list)
+            self.assertEqual(expect_add_url_list, crawler.add_url_list)
+
     def test_ImageSaver(self):
         # 画像保存をチェックする
         use_file_list = []
 
+        # 前テストで使用したファイルが残っていた場合削除する
+        sample_img = ["sample.png_1", "sample.png_2"]
+        for file in sample_img:
+            if os.path.exists(file):
+                os.remove(file)
+
         with ExitStack() as stack:
             # with句にpatchを複数入れる
             mocksql = stack.enter_context(patch('DBControlar.DBControlar.DBFavUpsert'))
-            mockurllib = stack.enter_context(patch('Crawler.urllib.request.urlopen'))
+            mockurllib = stack.enter_context(patch('Crawler.urllib.request.urlretrieve'))
             mocksystem = stack.enter_context(patch('Crawler.os.system'))
 
             # mock設定
@@ -206,7 +591,7 @@ class TestCrawler(unittest.TestCase):
             crawler = ConcreteCrawler()
             crawler.save_path = os.getcwd()
 
-            def urlopen_side_effect(url_orig):
+            def urlopen_sideeffect(url_orig, save_file_fullpath):
                 url = url_orig.replace(":orig", "")
                 save_file_path = os.path.join(crawler.save_path, os.path.basename(url))
 
@@ -214,9 +599,10 @@ class TestCrawler(unittest.TestCase):
                     fout.write("test".encode())
 
                 use_file_list.append(save_file_path)
-                return open(save_file_path, 'rb')
 
-            mockurllib.side_effect = urlopen_side_effect
+                return save_file_path
+
+            mockurllib.side_effect = urlopen_sideeffect
 
             tweets = []
             tweets.append(self.media_tweet_s)
@@ -234,40 +620,6 @@ class TestCrawler(unittest.TestCase):
         # テストで使用したファイルを削除する（後始末）
         for path in use_file_list:
             os.remove(path)
-
-    def test_ShrinkFolder(self):
-        # フォルダ内ファイルの数を一定にする機能をチェックする
-        crawler = ConcreteCrawler()
-        holding_file_num = int(crawler.config["holding"]["holding_file_num"])
-        crawler.save_path = os.path.abspath(crawler.config["save_directory"]["save_fav_path"])
-
-        xs = []
-        for root, dir, files in os.walk(crawler.save_path):
-            for f in files:
-                path = os.path.join(root, f)
-                xs.append((os.path.getmtime(path), path))
-        os.walk(crawler.save_path).close()
-
-        file_list = []
-        for mtime, path in sorted(xs, reverse=True):
-            file_list.append(path)
-
-        expect_del_cnt = 0
-        expect_del_url_list = []
-        for i, file in enumerate(file_list):
-            if i > holding_file_num:
-                # os.remove(file)
-                expect_del_cnt += 1
-                base_url = 'http://pbs.twimg.com/media/{}:orig'
-                expect_del_url_list.append(
-                    base_url.format(os.path.basename(file)))
-
-        with patch('Crawler.os.remove') as mockos:
-            mockos.return_value = 0
-            self.assertEqual(0, crawler.ShrinkFolder(holding_file_num))
-
-            self.assertEqual(expect_del_cnt, crawler.del_cnt)
-            self.assertEqual(expect_del_url_list, crawler.del_url_list)
 
     def test_EndOfProcess(self):
         # 取得後処理をチェックする
@@ -343,4 +695,4 @@ class TestCrawler(unittest.TestCase):
 if __name__ == "__main__":
     if sys.argv:
         del sys.argv[1:]
-    unittest.main()
+    unittest.main(warnings='ignore')

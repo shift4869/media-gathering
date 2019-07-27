@@ -40,6 +40,10 @@ class FavCrawler(Crawler):
 
         return self.TwitterAPIRequest(url, params)
 
+    def UpdateDBExistMark(self, add_img_filename):
+        # TODO:存在マーキングを更新する
+        pass
+
     def GetVideoURL(self, filename):
         # 'https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/b0ZDq8zG_HppFWb6.mp4?tag=10'
         responce = self.db_cont.DBFavVideoURLSelect("'" + filename + "'")
