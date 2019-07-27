@@ -104,9 +104,10 @@ ENV/
 .vscode
 *.ini
 !/config_example.ini
+!/logging.ini
 *.html
 *.db
-log.txt
+log*.txt*
 *.stackdump
 *.db-journal
 *.vbs
