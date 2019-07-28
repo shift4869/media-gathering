@@ -4,7 +4,7 @@ from logging import getLogger, DEBUG, INFO
 import os
 import sys
 
-from Crawler import Crawler
+from . import Crawler
 
 
 logger = getLogger("root")

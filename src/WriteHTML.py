@@ -1,5 +1,5 @@
 # coding: utf-8
-import DBControlar as DBControlar
+from . import DBControlar
 
 template = '''<!DOCTYPE html>
 <html>
@@ -25,7 +25,9 @@ th_template = '''<th>
      </div>
     </th>
 '''
-POINTER_PATH = './pointer.png'
+POINTER_PATH = '../pointer.png'
+FAV_HTML_PATH = '../html/FavPictureGathering.html'
+RETWEET_HTML_PATH = '../html/RetweetPictureGathering.html'
 db_cont = DBControlar.DBControlar()
 
 
@@ -66,7 +68,7 @@ def WriteFavHTML(del_url_list):
 
     html = template.format(table_content=res)
 
-    with open("FavPictureGathering.html", "w") as fout:
+    with open(FAV_HTML_PATH, "w") as fout:
         fout.write(html)
 
 
@@ -91,7 +93,7 @@ def WriteRetweetHTML(del_url_list):
 
     html = template.format(table_content=res)
 
-    with open("RetweetPictureGathering.html", "w") as fout:
+    with open(RETWEET_HTML_PATH, "w") as fout:
         fout.write(html)
 
 
