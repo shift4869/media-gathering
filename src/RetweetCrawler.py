@@ -3,9 +3,8 @@ from datetime import datetime
 from logging import getLogger, DEBUG, INFO
 import os
 import sys
-import traceback
 
-from Crawler import Crawler
+from . import Crawler
 
 
 logger = getLogger("root")
