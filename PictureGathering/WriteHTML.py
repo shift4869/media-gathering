@@ -1,5 +1,5 @@
 # coding: utf-8
-from . import DBControlar
+from PictureGathering.DBControlar import DBControlar
 
 template = '''<!DOCTYPE html>
 <html>
@@ -25,9 +25,9 @@ th_template = '''<th>
      </div>
     </th>
 '''
-POINTER_PATH = '../pointer.png'
-FAV_HTML_PATH = '../html/FavPictureGathering.html'
-RETWEET_HTML_PATH = '../html/RetweetPictureGathering.html'
+POINTER_PATH = './pointer.png'
+FAV_HTML_PATH = './html/FavPictureGathering.html'
+RETWEET_HTML_PATH = './html/RetweetPictureGathering.html'
 db_cont = DBControlar.DBControlar()
 
 
