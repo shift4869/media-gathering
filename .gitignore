@@ -103,8 +103,8 @@ ENV/
 # user
 .vscode
 *.ini
-!/config_example.ini
-!/logging.ini
+!config_example.ini
+!logging.ini
 *.html
 *.db
 log*.txt*
