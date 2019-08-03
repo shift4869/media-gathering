@@ -1,5 +1,5 @@
 # coding: utf-8
-from PictureGathering.DBControlar import DBControlar
+from PictureGathering import DBControlar
 
 template = '''<!DOCTYPE html>
 <html>
