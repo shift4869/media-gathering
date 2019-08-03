@@ -17,7 +17,7 @@ import traceback
 import urllib
 
 # import RetweetCrawler as RetweetCrawler
-from PictureGathering import DBControlar, WriteHTML
+from PictureGathering import DBController, WriteHTML
 
 
 path = Path(__file__).parent
@@ -35,7 +35,7 @@ class Crawler(metaclass=ABCMeta):
     def __init__(self):
         self.config = configparser.ConfigParser()
         try:
-            self.db_cont = DBControlar.DBControlar()
+            self.db_cont = DBController.DBController()
             if not self.config.read(self.CONFIG_FILE_NAME, encoding="utf8"):
                 raise IOError
 
