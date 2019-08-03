@@ -3,7 +3,7 @@ from datetime import datetime
 from datetime import date
 from datetime import timedelta
 import json
-from logging import getLogger, WARN
+from logging import getLogger, WARNING
 from mock import patch
 import os
 import sys
@@ -15,7 +15,7 @@ from PictureGathering import DBController
 
 
 logger = getLogger("root")
-logger.setLevel(WARN)
+logger.setLevel(WARNING)
 
 
 class TestDBController(unittest.TestCase):
