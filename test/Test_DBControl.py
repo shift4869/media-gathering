@@ -3,6 +3,7 @@ from datetime import datetime
 from datetime import date
 from datetime import timedelta
 import json
+from logging import getLogger, WARN
 from mock import patch
 import os
 import sys
@@ -11,6 +12,10 @@ import unittest
 import freezegun
 
 from PictureGathering import DBController
+
+
+logger = getLogger("root")
+logger.setLevel(WARN)
 
 
 class TestDBController(unittest.TestCase):

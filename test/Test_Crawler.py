@@ -6,6 +6,7 @@ from datetime import datetime
 from datetime import timezone
 from datetime import timedelta
 import json
+from logging import getLogger, WARN
 from mock import patch, MagicMock, PropertyMock
 import os
 import requests
@@ -17,6 +18,10 @@ import unittest
 
 
 from PictureGathering import Crawler, DBController, WriteHTML
+
+
+logger = getLogger("root")
+logger.setLevel(WARN)
 
 
 class ConcreteCrawler(Crawler.Crawler):
