@@ -17,8 +17,7 @@ import traceback
 import urllib
 
 # import RetweetCrawler as RetweetCrawler
-from PictureGathering.DBControlar import DBControlar
-from PictureGathering.WriteHTML import *
+from PictureGathering import DBControlar, WriteHTML
 
 
 path = Path(__file__).parent
