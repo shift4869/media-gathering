@@ -57,7 +57,7 @@ def WriteFavHTML(del_url_list):
     for row in db:
         if cnt == 0:
             res += "<tr>\n"
-        res += MakeTHTag(url=row[3], url_thumbnail=row[4], tweet_url=row[6])
+        res += MakeTHTag(url=row["url"], url_thumbnail=row["url_thumbnail"], tweet_url=row["tweet_url"])
         if cnt == COLUMN_NUM - 1:
             res += "</tr>\n"
         cnt = (cnt + 1) % COLUMN_NUM
@@ -82,7 +82,7 @@ def WriteRetweetHTML(del_url_list):
     for row in db:
         if cnt == 0:
             res += "<tr>\n"
-        res += MakeTHTag(url=row[3], url_thumbnail=row[4], tweet_url=row[6])
+        res += MakeTHTag(url=row["url"], url_thumbnail=row["url_thumbnail"], tweet_url=row["tweet_url"])
         if cnt == COLUMN_NUM - 1:
             res += "</tr>\n"
         cnt = (cnt + 1) % COLUMN_NUM

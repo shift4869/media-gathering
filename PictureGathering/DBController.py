@@ -107,6 +107,7 @@ class DBController:
 
     def DBFavSelect(self, limit=300):
         with closing(sqlite3.connect(self.dbname)) as conn:
+            conn.row_factory = sqlite3.Row
             c = conn.cursor()
             query = self.__GetFavoriteSelectSQL(limit)
             res = list(c.execute(query))
@@ -114,6 +115,7 @@ class DBController:
 
     def DBFavVideoURLSelect(self, filename):
         with closing(sqlite3.connect(self.dbname)) as conn:
+            conn.row_factory = sqlite3.Row
             c = conn.cursor()
             query = self.__GetFavoriteVideoURLSelectSQL(filename)
             res = list(c.execute(query))
@@ -131,6 +133,7 @@ class DBController:
 
     def DBRetweetSelect(self, limit=300):
         with closing(sqlite3.connect(self.dbname)) as conn:
+            conn.row_factory = sqlite3.Row
             c = conn.cursor()
             query = self.__GetRetweetSelectSQL(limit)
             res = list(c.execute(query))
@@ -138,6 +141,7 @@ class DBController:
 
     def DBRetweetVideoURLSelect(self, filename):
         with closing(sqlite3.connect(self.dbname)) as conn:
+            conn.row_factory = sqlite3.Row
             c = conn.cursor()
             query = self.__GetRetweetVideoURLSelectSQL(filename)
             res = list(c.execute(query))
@@ -167,6 +171,7 @@ class DBController:
 
     def DBDelSelect(self):
         with closing(sqlite3.connect(self.dbname)) as conn:
+            conn.row_factory = sqlite3.Row
             c = conn.cursor()
             # 2日前の通知ツイートを削除する(1日前の日付より前)
             t = date.today() - timedelta(1)

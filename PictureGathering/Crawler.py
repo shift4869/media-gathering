@@ -397,7 +397,7 @@ class Crawler(metaclass=ABCMeta):
             targets = self.db_cont.DBDelSelect()
             url = "https://api.twitter.com/1.1/statuses/destroy/{}.json"
             for target in targets:
-                responce = self.oath.post(url.format(target[1]))  # tweet_id
+                responce = self.oath.post(url.format(target["tweet_id"]))  # tweet_id
 
         return 0
 
