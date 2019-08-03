@@ -98,13 +98,15 @@ class TestDBController(unittest.TestCase):
 
         with freezegun.freeze_time('2018-11-18 17:12:58'):
             url_orig_s = self.img_url_s + ":orig"
+            url_thumbnail_s = self.img_url_s + ":large"
+            file_name_s = os.path.basename(url_orig_s)
             td_format_s = '%a %b %d %H:%M:%S +0000 %Y'
             dts_format_s = '%Y-%m-%d %H:%M:%S'
             tca = self.tweet_s["created_at"]
             dst = datetime.strptime(tca, td_format_s)
-            expect = (os.path.basename(self.img_url_s),
+            expect = (file_name_s,
                       url_orig_s,
-                      self.img_url_s + ":large",
+                      url_thumbnail_s,
                       self.tweet_s["id_str"],
                       self.tweet_s["entities"]["media"][0]["expanded_url"],
                       dst.strftime(dts_format_s),
@@ -114,30 +116,36 @@ class TestDBController(unittest.TestCase):
                       self.tweet_s["text"],
                       self.save_file_fullpath_s,
                       datetime.now().strftime(dts_format_s))
-            actual = controlar._DBController__GetUpdateParam(self.img_url_s, self.tweet_s, self.save_file_fullpath_s)
+            actual = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, self.tweet_s, self.save_file_fullpath_s)
             self.assertEqual(expect, actual)
 
     def test_DBFavUpsert(self):
         # DB操作をモックに置き換える
-        with patch('DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+        with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
             controlar = DBController.DBController()
 
             # DB操作を伴う操作を行う
-            controlar.DBFavUpsert(self.img_url_s, self.tweet_s, self.save_file_fullpath_s)
+            url_orig_s = self.img_url_s + ":orig"
+            url_thumbnail_s = self.img_url_s + ":large"
+            file_name_s = os.path.basename(url_orig_s)
+            controlar.DBFavUpsert(file_name_s, url_orig_s, url_thumbnail_s, self.tweet_s, self.save_file_fullpath_s)
 
             # DB操作が規定の引数で呼び出されたことを確認する
-            param_s = controlar._DBController__GetUpdateParam(self.img_url_s, self.tweet_s, self.save_file_fullpath_s)
+            param_s = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, self.tweet_s, self.save_file_fullpath_s)
             fav_sql_s = controlar._DBController__fav_sql
             mocksql.connect().cursor().execute.assert_called_once_with(fav_sql_s, param_s)
 
     def test_DBFavSelect(self):
         # DB操作をモックに置き換える
-        with patch('DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+        with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             controlar = DBController.DBController()
-            expect = ("rowid_sample",) + controlar._DBController__GetUpdateParam(self.img_url_s, self.tweet_s, self.save_file_fullpath_s)
+            url_orig_s = self.img_url_s + ":orig"
+            url_thumbnail_s = self.img_url_s + ":large"
+            file_name_s = os.path.basename(url_orig_s)
+            expect = ("rowid_sample",) + controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, self.tweet_s, self.save_file_fullpath_s)
             mocksql.connect().cursor().execute.return_value = [expect]
 
             # DB操作を伴う操作を行う
@@ -155,25 +163,32 @@ class TestDBController(unittest.TestCase):
 
     def test_DBRetweetUpsert(self):
         # DB操作をモックに置き換える
-        with patch('DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+        with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
             controlar = DBController.DBController()
 
             # DB操作を伴う操作を行う
-            controlar.DBRetweetUpsert(self.img_url_s, self.tweet_s, self.save_file_fullpath_s)
+            url_orig_s = self.img_url_s + ":orig"
+            url_thumbnail_s = self.img_url_s + ":large"
+            file_name_s = os.path.basename(url_orig_s)
+            controlar.DBRetweetUpsert(file_name_s, url_orig_s, url_thumbnail_s, self.tweet_s, self.save_file_fullpath_s)
 
             # DB操作が規定の引数で呼び出されたことを確認する
-            param_s = controlar._DBController__GetUpdateParam(self.img_url_s, self.tweet_s, self.save_file_fullpath_s)
+            param_s = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, self.tweet_s, self.save_file_fullpath_s)
             retweet_sql_s = controlar._DBController__retweet_sql
             mocksql.connect().cursor().execute.assert_called_once_with(retweet_sql_s, param_s)
 
     def test_DBRetweetSelect(self):
         # DB操作をモックに置き換える
-        with patch('DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+        with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             controlar = DBController.DBController()
-            expect = ("rowid_sample", "is_exist_save_file_flag_sample") + controlar._DBController__GetUpdateParam(self.img_url_s, self.tweet_s, self.save_file_fullpath_s)
+            url_orig_s = self.img_url_s + ":orig"
+            url_thumbnail_s = self.img_url_s + ":large"
+            file_name_s = os.path.basename(url_orig_s)
+            expect = ("rowid_sample", "is_exist_save_file_flag_sample") + \
+                controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, self.tweet_s, self.save_file_fullpath_s)
             mocksql.connect().cursor().execute.return_value = [expect]
 
             # DB操作を伴う操作を行う
@@ -191,7 +206,7 @@ class TestDBController(unittest.TestCase):
 
     def test_DBRetweetFlagUpdate(self):
         # DB操作をモックに置き換える
-        with patch('DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+        with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
             controlar = DBController.DBController()
@@ -208,7 +223,7 @@ class TestDBController(unittest.TestCase):
 
     def test_DBRetweetFlagClear(self):
         # DB操作をモックに置き換える
-        with patch('DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+        with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
             controlar = DBController.DBController()
@@ -222,7 +237,7 @@ class TestDBController(unittest.TestCase):
 
     def test_DBDelInsert(self):
         # DB操作をモックに置き換える
-        with patch('DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+        with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
             controlar = DBController.DBController()
@@ -236,7 +251,7 @@ class TestDBController(unittest.TestCase):
 
     def test_DBDelSelect(self):
         # DB操作をモックに置き換える
-        with patch('DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+        with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
             controlar = DBController.DBController()
