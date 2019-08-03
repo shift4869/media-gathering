@@ -17,21 +17,21 @@ import traceback
 import urllib
 
 # import RetweetCrawler as RetweetCrawler
-from . import DBControlar
-from . import WriteHTML
+from PictureGathering.DBControlar import DBControlar
+from PictureGathering.WriteHTML import *
 
 
 path = Path(__file__).parent
 path /= './'
 print(path.resolve())
 
-logging.config.fileConfig("../log/logging.ini")
+logging.config.fileConfig("./log/logging.ini")
 logger = getLogger("root")
 logger.setLevel(INFO)
 
 
 class Crawler(metaclass=ABCMeta):
-    CONFIG_FILE_NAME = "../config/config.ini"
+    CONFIG_FILE_NAME = "./config/config.ini"
 
     def __init__(self):
         self.config = configparser.ConfigParser()

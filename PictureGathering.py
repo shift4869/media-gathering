@@ -1,8 +1,8 @@
 # coding: utf-8
 import argparse
 
-import src.FavCrawler as FavCrawler
-import src.RetweetCrawler as RetweetCrawler
+import PictureGathering.FavCrawler as FavCrawler
+import PictureGathering.RetweetCrawler as RetweetCrawler
 
 
 if __name__ == "__main__":

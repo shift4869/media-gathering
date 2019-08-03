@@ -4,7 +4,7 @@ from logging import getLogger, DEBUG, INFO
 import os
 import sys
 
-from . import Crawler
+from PictureGathering.Crawler import Crawler
 
 
 logger = getLogger("root")
