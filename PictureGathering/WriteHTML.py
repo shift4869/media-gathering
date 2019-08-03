@@ -1,5 +1,5 @@
 # coding: utf-8
-from PictureGathering import DBControlar
+from PictureGathering import DBController
 
 template = '''<!DOCTYPE html>
 <html>
@@ -28,7 +28,7 @@ th_template = '''<th>
 POINTER_PATH = './pointer.png'
 FAV_HTML_PATH = './html/FavPictureGathering.html'
 RETWEET_HTML_PATH = './html/RetweetPictureGathering.html'
-db_cont = DBControlar.DBControlar()
+db_cont = DBController.DBController()
 
 
 def MakeTHTag(url, url_thumbnail, tweet_url):

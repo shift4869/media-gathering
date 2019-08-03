@@ -9,7 +9,7 @@ import re
 import sqlite3
 
 
-class DBControlar:
+class DBController:
     dbname = 'PG_DB.db'
 
     def __init__(self):
@@ -185,4 +185,4 @@ class DBControlar:
         return res
 
 if __name__ == "__main__":
-    db_cont = DBControlar()
+    db_cont = DBController()
