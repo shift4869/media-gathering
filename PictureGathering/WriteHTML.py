@@ -1,5 +1,5 @@
 # coding: utf-8
-import DBControlar as DBControlar
+from PictureGathering import DBController
 
 template = '''<!DOCTYPE html>
 <html>
@@ -26,7 +26,9 @@ th_template = '''<th>
     </th>
 '''
 POINTER_PATH = './pointer.png'
-db_cont = DBControlar.DBControlar()
+FAV_HTML_PATH = './html/FavPictureGathering.html'
+RETWEET_HTML_PATH = './html/RetweetPictureGathering.html'
+db_cont = DBController.DBController()
 
 
 def MakeTHTag(url, url_thumbnail, tweet_url):
@@ -55,7 +57,7 @@ def WriteFavHTML(del_url_list):
     for row in db:
         if cnt == 0:
             res += "<tr>\n"
-        res += MakeTHTag(url=row[3], url_thumbnail=row[4], tweet_url=row[6])
+        res += MakeTHTag(url=row["url"], url_thumbnail=row["url_thumbnail"], tweet_url=row["tweet_url"])
         if cnt == COLUMN_NUM - 1:
             res += "</tr>\n"
         cnt = (cnt + 1) % COLUMN_NUM
@@ -66,7 +68,7 @@ def WriteFavHTML(del_url_list):
 
     html = template.format(table_content=res)
 
-    with open("FavPictureGathering.html", "w") as fout:
+    with open(FAV_HTML_PATH, "w") as fout:
         fout.write(html)
 
 
@@ -80,7 +82,7 @@ def WriteRetweetHTML(del_url_list):
     for row in db:
         if cnt == 0:
             res += "<tr>\n"
-        res += MakeTHTag(url=row[3], url_thumbnail=row[4], tweet_url=row[6])
+        res += MakeTHTag(url=row["url"], url_thumbnail=row["url_thumbnail"], tweet_url=row["tweet_url"])
         if cnt == COLUMN_NUM - 1:
             res += "</tr>\n"
         cnt = (cnt + 1) % COLUMN_NUM
@@ -91,7 +93,7 @@ def WriteRetweetHTML(del_url_list):
 
     html = template.format(table_content=res)
 
-    with open("RetweetPictureGathering.html", "w") as fout:
+    with open(RETWEET_HTML_PATH, "w") as fout:
         fout.write(html)
 
 

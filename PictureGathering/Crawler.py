@@ -8,6 +8,7 @@ import json
 import logging.config
 from logging import getLogger, DEBUG, INFO
 import os
+from pathlib import Path
 import requests
 from requests_oauthlib import OAuth1Session
 import sys
@@ -16,22 +17,25 @@ import traceback
 import urllib
 
 # import RetweetCrawler as RetweetCrawler
-import DBControlar as DBControlar
-import WriteHTML as WriteHTML
+from PictureGathering import DBController, WriteHTML
 
 
-logging.config.fileConfig("logging.ini")
+path = Path(__file__).parent
+path /= './'
+print(path.resolve())
+
+logging.config.fileConfig("./log/logging.ini")
 logger = getLogger("root")
 logger.setLevel(INFO)
 
 
 class Crawler(metaclass=ABCMeta):
-    CONFIG_FILE_NAME = "config.ini"
+    CONFIG_FILE_NAME = "./config/config.ini"
 
     def __init__(self):
         self.config = configparser.ConfigParser()
         try:
-            self.db_cont = DBControlar.DBControlar()
+            self.db_cont = DBController.DBController()
             if not self.config.read(self.CONFIG_FILE_NAME, encoding="utf8"):
                 raise IOError
 
@@ -393,7 +397,7 @@ class Crawler(metaclass=ABCMeta):
             targets = self.db_cont.DBDelSelect()
             url = "https://api.twitter.com/1.1/statuses/destroy/{}.json"
             for target in targets:
-                responce = self.oath.post(url.format(target[1]))  # tweet_id
+                responce = self.oath.post(url.format(target["tweet_id"]))  # tweet_id
 
         return 0
 
