@@ -6,6 +6,7 @@ from datetime import datetime
 from datetime import timezone
 from datetime import timedelta
 import json
+from logging import getLogger, WARNING
 from mock import patch, MagicMock, PropertyMock
 import os
 import requests
@@ -16,8 +17,11 @@ import time
 import unittest
 
 
-import DBControlar
-import Crawler
+from PictureGathering import Crawler, DBController, WriteHTML
+
+
+logger = getLogger("root")
+logger.setLevel(WARNING)
 
 
 class ConcreteCrawler(Crawler.Crawler):
@@ -41,7 +45,7 @@ class ConcreteCrawler(Crawler.Crawler):
 
 class TestCrawler(unittest.TestCase):
     def setUp(self):
-        self.CONFIG_FILE_NAME = "config.ini"
+        self.CONFIG_FILE_NAME = "./config/config.ini"
 
         self.img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
         self.img_filename_s = os.path.basename(self.img_url_s)
@@ -270,10 +274,10 @@ class TestCrawler(unittest.TestCase):
         # TwitterAPI制限を取得する機能をチェックする
         # mock置き換えによりTwitterAPIが503を返す状況もシミュレートする
         with ExitStack() as stack:
-            mockTWARType = stack.enter_context(patch('Crawler.Crawler.GetTwitterAPIResourceType'))
+            mockTWARType = stack.enter_context(patch('PictureGathering.Crawler.Crawler.GetTwitterAPIResourceType'))
             mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.get'))
-            mockWaitUntilReset = stack.enter_context(patch('Crawler.Crawler.WaitUntilReset'))
-            mockTWALimitContext = stack.enter_context(patch('Crawler.Crawler.GetTwitterAPILimitContext'))
+            mockWaitUntilReset = stack.enter_context(patch('PictureGathering.Crawler.Crawler.WaitUntilReset'))
+            mockTWALimitContext = stack.enter_context(patch('PictureGathering.Crawler.Crawler.GetTwitterAPILimitContext'))
 
             crawler = ConcreteCrawler()
             url = "https://api.twitter.com/1.1/favorites/list.json"
@@ -326,8 +330,8 @@ class TestCrawler(unittest.TestCase):
     def test_WaitTwitterAPIUntilReset(self):
         # TwitterAPIが利用できるまで待つ機能をチェックする
         with ExitStack() as stack:
-            mockWaitUntilReset = stack.enter_context(patch('Crawler.Crawler.WaitUntilReset'))
-            mockTWALimit = stack.enter_context(patch('Crawler.Crawler.CheckTwitterAPILimit'))
+            mockWaitUntilReset = stack.enter_context(patch('PictureGathering.Crawler.Crawler.WaitUntilReset'))
+            mockTWALimit = stack.enter_context(patch('PictureGathering.Crawler.Crawler.CheckTwitterAPILimit'))
 
             crawler = ConcreteCrawler()
 
@@ -381,7 +385,7 @@ class TestCrawler(unittest.TestCase):
         # mock置き換えによりTwitterAPIが503を返す状況をシミュレートする
         with ExitStack() as stack:
             mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.get'))
-            mockTWAUntilReset = stack.enter_context(patch('Crawler.Crawler.WaitTwitterAPIUntilReset'))
+            mockTWAUntilReset = stack.enter_context(patch('PictureGathering.Crawler.Crawler.WaitTwitterAPIUntilReset'))
 
             crawler = ConcreteCrawler()
 
@@ -529,10 +533,10 @@ class TestCrawler(unittest.TestCase):
     def test_ShrinkFolder(self):
         # フォルダ内ファイルの数を一定にする機能をチェックする
         with ExitStack() as stack:
-            mockGetExistFilelist = stack.enter_context(patch('Crawler.Crawler.GetExistFilelist'))
+            mockGetExistFilelist = stack.enter_context(patch('PictureGathering.Crawler.Crawler.GetExistFilelist'))
             mockGetVideoURL = stack.enter_context(patch('__main__.ConcreteCrawler.GetVideoURL'))
-            mockUpdateDBExistMark = stack.enter_context(patch('Crawler.Crawler.UpdateDBExistMark'))
-            mockos = stack.enter_context(patch('Crawler.os.remove'))
+            mockUpdateDBExistMark = stack.enter_context(patch('PictureGathering.Crawler.Crawler.UpdateDBExistMark'))
+            mockos = stack.enter_context(patch('PictureGathering.Crawler.os.remove'))
             image_base_url = 'http://pbs.twimg.com/media/{}:orig'
             video_base_url = 'https://video.twimg.com/ext_tw_video/1144527536388337664/pu/vid/626x882/{}'
 
@@ -581,9 +585,9 @@ class TestCrawler(unittest.TestCase):
 
         with ExitStack() as stack:
             # with句にpatchを複数入れる
-            mocksql = stack.enter_context(patch('DBControlar.DBControlar.DBFavUpsert'))
-            mockurllib = stack.enter_context(patch('Crawler.urllib.request.urlretrieve'))
-            mocksystem = stack.enter_context(patch('Crawler.os.system'))
+            mocksql = stack.enter_context(patch('PictureGathering.DBController.DBController.DBFavUpsert'))
+            mockurllib = stack.enter_context(patch('PictureGathering.Crawler.urllib.request.urlretrieve'))
+            mocksystem = stack.enter_context(patch('PictureGathering.Crawler.os.system'))
 
             # mock設定
             mocksql.return_value = 0
@@ -626,10 +630,10 @@ class TestCrawler(unittest.TestCase):
         crawler = ConcreteCrawler()
         with ExitStack() as stack:
             # with句にpatchを複数入れる
-            mockwhtml = stack.enter_context(patch('WriteHTML.WriteFavHTML'))
-            mockcptweet = stack.enter_context(patch('Crawler.Crawler.PostTweet'))
-            mockcplnotify = stack.enter_context(patch('Crawler.Crawler.PostLineNotify'))
-            mocksql = stack.enter_context(patch('DBControlar.DBControlar.DBDelSelect'))
+            mockwhtml = stack.enter_context(patch('PictureGathering.WriteHTML.WriteFavHTML'))
+            mockcptweet = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostTweet'))
+            mockcplnotify = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostLineNotify'))
+            mocksql = stack.enter_context(patch('PictureGathering.DBController.DBController.DBDelSelect'))
             mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.post'))
 
             # mock設定
@@ -653,9 +657,9 @@ class TestCrawler(unittest.TestCase):
         crawler = ConcreteCrawler()
         with ExitStack() as stack:
             # with句にpatchを複数入れる
-            mockctapi = stack.enter_context(patch('Crawler.Crawler.TwitterAPIRequest'))
+            mockctapi = stack.enter_context(patch('PictureGathering.Crawler.Crawler.TwitterAPIRequest'))
             mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.post'))
-            mocksql = stack.enter_context(patch('DBControlar.DBControlar.DBDelInsert'))
+            mocksql = stack.enter_context(patch('PictureGathering.DBController.DBController.DBDelInsert'))
 
             # mock設定
             mockctapi.return_value = {"id_str": "12345_id_str_sample"}
@@ -679,7 +683,7 @@ class TestCrawler(unittest.TestCase):
         crawler = ConcreteCrawler()
         with ExitStack() as stack:
             # with句にpatchを複数入れる
-            mockreq = stack.enter_context(patch('Crawler.requests.post'))
+            mockreq = stack.enter_context(patch('PictureGathering.Crawler.requests.post'))
 
             # mock設定
             responce = MagicMock()
