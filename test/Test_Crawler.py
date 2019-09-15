@@ -633,6 +633,7 @@ class TestCrawler(unittest.TestCase):
             mockwhtml = stack.enter_context(patch('PictureGathering.WriteHTML.WriteFavHTML'))
             mockcptweet = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostTweet'))
             mockcplnotify = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostLineNotify'))
+            mockcplnotify = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostSlackNotify'))
             mocksql = stack.enter_context(patch('PictureGathering.DBController.DBController.DBDelSelect'))
             mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.post'))
 
@@ -694,6 +695,20 @@ class TestCrawler(unittest.TestCase):
 
             self.assertEqual(0, crawler.PostLineNotify("test"))
             mockreq.assert_called_once()
+
+    def test_PostSlackNotify(self):
+        # Slack通知ポスト機能をチェックする
+        crawler = ConcreteCrawler()
+        with ExitStack() as stack:
+            # with句にpatchを複数入れる
+            mockslack = stack.enter_context(patch('PictureGathering.Crawler.slackweb.Slack.notify'))
+
+            # mock設定
+            mockslack.return_value = 0
+
+            str = "text"
+            self.assertEqual(0, crawler.PostSlackNotify(str))
+            mockslack.assert_called_once_with(text="<!here> " + str)
 
 
 if __name__ == "__main__":
