@@ -11,18 +11,15 @@ import os
 from pathlib import Path
 import requests
 from requests_oauthlib import OAuth1Session
+import slackweb
 import sys
 import time
 import traceback
 import urllib
 
-# import RetweetCrawler as RetweetCrawler
+
 from PictureGathering import DBController, WriteHTML
 
-
-path = Path(__file__).parent
-path /= './'
-print(path.resolve())
 
 logging.config.fileConfig("./log/logging.ini")
 logger = getLogger("root")
@@ -47,6 +44,9 @@ class Crawler(metaclass=ABCMeta):
 
             config = self.config["line_token_keys"]
             self.LN_TOKEN_KEY = config["token_key"]
+
+            config = self.config["slack_webhook_url"]
+            self.SLACK_WEBHOOK_URL = config["webhook_url"]
 
             self.user_name = self.config["tweet_timeline"]["user_name"]
             self.count = int(self.config["tweet_timeline"]["count"])
@@ -392,6 +392,10 @@ class Crawler(metaclass=ABCMeta):
                 self.PostLineNotify(done_msg)
                 logger.info("Line Notify posted.")
 
+            if config.getboolean("is_post_slack_notify"):
+                self.PostSlackNotify(done_msg)
+                logger.info("Slack Notify posted.")
+
         # 古い通知リプライを消す
         if config.getboolean("is_post_fav_done_reply") or config.getboolean("is_post_retweet_done_reply"):
             targets = self.db_cont.DBDelSelect()
@@ -446,10 +450,22 @@ class Crawler(metaclass=ABCMeta):
 
         return 0
 
+    def PostSlackNotify(self, str):
+        try:
+            slack = slackweb.Slack(url=self.SLACK_WEBHOOK_URL)
+            slack.notify(text="<!here> " + str)
+        except ValueError:
+            logger.error("Webhook URL error: {0} is invalid".format(self.SLACK_WEBHOOK_URL))
+            return None
+
+        return 0
+
     @abstractmethod
     def Crawl(self):
         pass
 
 if __name__ == "__main__":
-    c = RetweetCrawler.RetweetCrawler()
-    c.Crawl()
+    # import FavCrawler as FavCrawler
+    # c = FavCrawler.FavCrawler()
+    # c.Crawl()
+    pass
