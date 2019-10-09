@@ -409,7 +409,7 @@ class Crawler(metaclass=ABCMeta):
     def PostTweet(self, str):
         url = "https://api.twitter.com/1.1/users/show.json"
         reply_user_name = self.config["notification"]["reply_to_user_name"]
-        random_pickup = True
+        random_pickup = False  # 自分がアップロードしたことになるのでメディア欄が侵食されるためオフに
 
         params = {
             "screen_name": reply_user_name,
@@ -419,9 +419,9 @@ class Crawler(metaclass=ABCMeta):
             return None
 
         # 画像をランダムにピックアップしてアップロードする
+        media_ids = ""
         if random_pickup:
             url = "https://upload.twitter.com/1.1/media/upload.json"
-            media_ids = ""
 
             pickup_url_list = random.sample(self.add_url_list, 4)
             for pickup_url in pickup_url_list:
