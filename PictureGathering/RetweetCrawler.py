@@ -111,6 +111,7 @@ class RetweetCrawler(Crawler):
         done_msg += " Process Done !!\n"
         done_msg += "add {0} new images. ".format(self.add_cnt)
         done_msg += "delete {0} old images.".format(self.del_cnt)
+        done_msg += "\n"
         return done_msg
 
     def Crawl(self):

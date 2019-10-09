@@ -9,6 +9,7 @@ import logging.config
 from logging import getLogger, DEBUG, INFO
 import os
 from pathlib import Path
+import random
 import requests
 from requests_oauthlib import OAuth1Session
 import slackweb
@@ -408,6 +409,7 @@ class Crawler(metaclass=ABCMeta):
     def PostTweet(self, str):
         url = "https://api.twitter.com/1.1/users/show.json"
         reply_user_name = self.config["notification"]["reply_to_user_name"]
+        random_pickup = True
 
         params = {
             "screen_name": reply_user_name,
@@ -415,6 +417,32 @@ class Crawler(metaclass=ABCMeta):
         res = self.TwitterAPIRequest(url, params=params)
         if res is None:
             return None
+
+        # 画像をランダムにピックアップしてアップロードする
+        if random_pickup:
+            url = "https://upload.twitter.com/1.1/media/upload.json"
+            media_ids = ""
+
+            pickup_url_list = random.sample(self.add_url_list, 4)
+            for pickup_url in pickup_url_list:
+                files = {
+                    "media": urllib.request.urlopen(pickup_url).read()
+                }
+                responce = self.oath.post(url, files=files)
+
+                if responce.status_code != 200:
+                    logger.error("Error code: {0}".format(responce.status_code))
+                    return None
+
+                media_id = json.loads(responce.text)['media_id']
+                media_id_string = json.loads(responce.text)['media_id_string']
+                logger.debug("Media ID: {} ".format(media_id))
+
+                # メディアIDの文字列をカンマ","で結合
+                if media_ids == "":
+                    media_ids += media_id_string
+                else:
+                    media_ids = media_ids + "," + media_id_string
 
         url = "https://api.twitter.com/1.1/statuses/update.json"
         reply_to_status_id = res["id_str"]
@@ -425,8 +453,14 @@ class Crawler(metaclass=ABCMeta):
             "status": str,
             "in_reply_to_status_id": reply_to_status_id,
         }
-        responce = self.oath.post(url, params=params)
 
+        # 画像つきツイートの場合
+        if media_ids != "":
+            # メディアID（カンマ区切り）をパラメータに含める
+            params["media_ids"] = media_ids
+
+        responce = self.oath.post(url, params=params)
+        logger.debug(responce.text)
         self.db_cont.DBDelInsert(json.loads(responce.text))
 
         if responce.status_code != 200:
