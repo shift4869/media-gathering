@@ -66,7 +66,7 @@ class FavCrawler(Crawler):
         # 画像URLをランダムにピックアップする
         random_pickup = True
         if random_pickup:
-            pickup_url_list = random.sample(self.add_url_list, 4)
+            pickup_url_list = random.sample(self.add_url_list, min(4, len(self.add_url_list)))
             for pickup_url in pickup_url_list:
                 done_msg += pickup_url + "\n"
 
