@@ -2,6 +2,7 @@
 from datetime import datetime
 from logging import getLogger, DEBUG, INFO
 import os
+import random
 import sys
 
 from PictureGathering.Crawler import Crawler
@@ -111,6 +112,16 @@ class RetweetCrawler(Crawler):
         done_msg += " Process Done !!\n"
         done_msg += "add {0} new images. ".format(self.add_cnt)
         done_msg += "delete {0} old images.".format(self.del_cnt)
+        done_msg += "\n"
+
+        # 画像URLをランダムにピックアップする
+        random_pickup = True
+        if random_pickup:
+            pickup_url_list = random.sample(self.add_url_list, min(4, len(self.add_url_list)))
+            for pickup_url in pickup_url_list:
+                pickup_url = str(pickup_url).replace(":orig", "")
+                done_msg += pickup_url + "\n"
+
         return done_msg
 
     def Crawl(self):
