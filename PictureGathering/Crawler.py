@@ -340,7 +340,7 @@ class Crawler(metaclass=ABCMeta):
                 self.del_cnt += 1
                 self.del_url_list.append(url)
             else:
-                self.add_url_list.append(url)
+                # self.add_url_list.append(url)
                 add_img_filename.append(os.path.basename(file))
 
         # 存在マーキングを更新する
