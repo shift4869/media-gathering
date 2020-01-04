@@ -494,11 +494,6 @@ class Crawler(metaclass=ABCMeta):
     def PostDiscordNotify(self, str):
         url = self.DISCORD_WEBHOOK_URL
 
-        data = ["http://pbs.twimg.com/media/ENbaF8QUwAAJLlA.png",
-                "http://pbs.twimg.com/media/ENbSaPMU4AY6GzM.png",
-                "http://pbs.twimg.com/media/ENbHyDIUcAA1I2_.jpg",
-                "http://pbs.twimg.com/media/ENbYKp5VAAEfemD.jpg"]
-
         headers = {
             "Content-Type": "application/json"
         }
@@ -508,32 +503,7 @@ class Crawler(metaclass=ABCMeta):
             "content": str
         }
 
-        embeds = f'''{{
-            "embeds": [{{
-                "fields": [{{
-                    "name": "1",
-                    "value": "{data[0]}"
-                }},
-                {{
-                    "name": "2",
-                    "value": "{data[1]}",
-                    "inline": true
-                }},
-                {{
-                    "name": "3",
-                    "value": "{data[2]}"
-                }},
-                {{
-                    "name": "4",
-                    "value": "{data[3]}",
-                    "inline": true
-                }}
-                ]
-            }}]
-        }}'''
-        # payload = json.loads(embeds)
-
-        responce = requests.post(url, data=payload)
+        responce = requests.post(url, headers=headers, data=json.dumps(payload))
 
         if responce.status_code != 204:  # 成功すると204 No Contentが返ってくる
             logger.error("Error code: {0}".format(responce.status_code))
