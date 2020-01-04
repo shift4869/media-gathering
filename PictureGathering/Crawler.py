@@ -46,6 +46,9 @@ class Crawler(metaclass=ABCMeta):
             config = self.config["line_token_keys"]
             self.LN_TOKEN_KEY = config["token_key"]
 
+            config = self.config["discord_webhook_url"]
+            self.DISCORD_TOKEN_KEY = config["token_key"]
+
             config = self.config["slack_webhook_url"]
             self.SLACK_WEBHOOK_URL = config["webhook_url"]
 
