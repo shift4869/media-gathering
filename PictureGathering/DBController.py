@@ -64,6 +64,7 @@ class DBController:
         dts_format = '%Y-%m-%d %H:%M:%S'
         tca = tweet["created_at"]
         dst = datetime.strptime(tca, td_format)
+        text = tweet["text"] if "text" in tweet else tweet["full_text"]
         param = (file_name,
                  url_orig,
                  url_thumbnail,
@@ -73,7 +74,7 @@ class DBController:
                  tweet["user"]["id_str"],
                  tweet["user"]["name"],
                  tweet["user"]["screen_name"],
-                 tweet["text"],
+                 text,
                  save_file_fullpath,
                  datetime.now().strftime(dts_format))
         return param

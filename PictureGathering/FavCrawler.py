@@ -30,13 +30,15 @@ class FavCrawler(Crawler):
                 "screen_name": self.user_name,
                 "page": page,
                 "count": self.count,
-                "include_entities": 1  # ツイートのメタデータ取得。これしないと複数枚の画像に対応できない。
+                "include_entities": 1,  # ツイートのメタデータ取得。これしないと複数枚の画像に対応できない。
+                "tweet_mode": "extended"
             }
         elif kind_of_api == "home":
             url = "https://api.twitter.com/1.1/statuses/home_timeline.json"
             params = {
                 "count": self.count,
-                "include_entities": 1
+                "include_entities": 1,
+                "tweet_mode": "extended"
             }
         else:
             logger.error("kind_of_api is invalid.")
