@@ -50,7 +50,8 @@ class RetweetCrawler(Crawler):
                 "count": self.count,
                 "max_id": self.max_id,
                 "contributor_details": True,
-                "include_rts": True
+                "include_rts": True,
+                "tweet_mode": "extended"
             }
             timeline_tweeets = self.TwitterAPIRequest(url, params)
 
