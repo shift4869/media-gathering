@@ -46,6 +46,9 @@ class Crawler(metaclass=ABCMeta):
             config = self.config["line_token_keys"]
             self.LN_TOKEN_KEY = config["token_key"]
 
+            config = self.config["discord_webhook_url"]
+            self.DISCORD_WEBHOOK_URL = config["webhook_url"]
+
             config = self.config["slack_webhook_url"]
             self.SLACK_WEBHOOK_URL = config["webhook_url"]
 
@@ -393,6 +396,10 @@ class Crawler(metaclass=ABCMeta):
                 self.PostLineNotify(done_msg)
                 logger.info("Line Notify posted.")
 
+            if config.getboolean("is_post_discord_notify"):
+                self.PostDiscordNotify(done_msg)
+                logger.info("Discord Notify posted.")
+
             if config.getboolean("is_post_slack_notify"):
                 self.PostSlackNotify(done_msg)
                 logger.info("Slack Notify posted.")
@@ -484,6 +491,26 @@ class Crawler(metaclass=ABCMeta):
 
         return 0
 
+    def PostDiscordNotify(self, str):
+        url = self.DISCORD_WEBHOOK_URL
+
+        headers = {
+            "Content-Type": "application/json"
+        }
+
+        # "content": "😎普通の絵文字\r:sunglasses:Discordの絵文字も:ok_woman:"
+        payload = {
+            "content": str
+        }
+
+        responce = requests.post(url, headers=headers, data=json.dumps(payload))
+
+        if responce.status_code != 204:  # 成功すると204 No Contentが返ってくる
+            logger.error("Error code: {0}".format(responce.status_code))
+            return None
+
+        return 0
+
     def PostSlackNotify(self, str):
         try:
             slack = slackweb.Slack(url=self.SLACK_WEBHOOK_URL)
@@ -498,8 +525,9 @@ class Crawler(metaclass=ABCMeta):
     def Crawl(self):
         pass
 
+
 if __name__ == "__main__":
-    # import FavCrawler as FavCrawler
-    # c = FavCrawler.FavCrawler()
-    # c.Crawl()
+    import FavCrawler as FavCrawler
+    c = FavCrawler.FavCrawler()
+    c.Crawl()
     pass
