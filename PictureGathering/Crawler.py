@@ -1,4 +1,10 @@
 # coding: utf-8
+"""クローラー
+    * Fav/Retweetクローラーのベースとなるクローラークラス
+    * API呼び出しなど共通処理はこのクローラークラスに記述する
+    * 設定ファイルとして {CONFIG_FILE_NAME} にあるconfig.iniファイルを使用する
+"""
+
 from abc import ABCMeta, abstractmethod
 import configparser
 from datetime import datetime
@@ -28,6 +34,30 @@ logger.setLevel(INFO)
 
 
 class Crawler(metaclass=ABCMeta):
+    """クローラー
+
+        Fav/Retweetクローラーのベースとなるクローラークラス
+
+    Attributes:
+        CONFIG_FILE_NAME (string): 設定ファイルパス
+        config (ConfigParser): 設定ini構造体
+        db_cont (DBController): DB操作用クラス実体
+        TW_CONSUMER_KEY: TwitterAPI利用キー
+        TW_CONSUMER_SECRET: TwitterAPI利用シークレットキー
+        TW_ACCESS_TOKEN_KEY: TwitterAPIアクセストークンキー
+        TW_ACCESS_TOKEN_SECRET: TwitterAPIアクセストークンシークレットキー
+        LN_TOKEN_KEY: LINE notifyのトークン
+        SLACK_WEBHOOK_URL: SlackのWebhook URL
+        user_name: Twitterのユーザーネーム
+        count: 一度に取得するFav/Retweetの数
+        save_path: 画像保存先パス
+        type: 継承先を表すタイプ識別{Fav, RT}
+        oath: TwitterAPI利用セッション
+        add_cnt: 新規追加した画像の数
+        del_cnt: 削除した画像の数
+        add_url_list: 新規追加した画像のURLリスト
+        del_url_list: 削除した画像のURLリスト
+    """
     CONFIG_FILE_NAME = "./config/config.ini"
 
     def __init__(self):
