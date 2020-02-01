@@ -280,6 +280,7 @@ class TestDBController(unittest.TestCase):
             # 取得した値の確認
             self.assertEqual(expect, actual[0])
 
+
 if __name__ == "__main__":
     if sys.argv:
         del sys.argv[1:]
