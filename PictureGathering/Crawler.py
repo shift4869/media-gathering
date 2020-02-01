@@ -1,32 +1,30 @@
 # coding: utf-8
 """クローラー
-    * Fav/Retweetクローラーのベースとなるクローラークラス
-    * API呼び出しなど共通処理はこのクローラークラスに記述する
-    * 設定ファイルとして {CONFIG_FILE_NAME} にあるconfig.iniファイルを使用する
+
+Fav/Retweetクローラーのベースとなるクローラークラス
+API呼び出しなど共通処理はこのクローラークラスに記述する
+設定ファイルとして {CONFIG_FILE_NAME} にあるconfig.iniファイルを使用する
 """
 
-from abc import ABCMeta, abstractmethod
 import configparser
-from datetime import datetime
-from datetime import timezone
-from datetime import timedelta
 import json
 import logging.config
-from logging import getLogger, DEBUG, INFO
 import os
-from pathlib import Path
 import random
-import requests
-from requests_oauthlib import OAuth1Session
-import slackweb
 import sys
 import time
 import traceback
 import urllib
+from abc import ABCMeta, abstractmethod
+from datetime import datetime, timedelta, timezone
+from logging import DEBUG, INFO, getLogger
+from pathlib import Path
 
+import requests
+import slackweb
+from requests_oauthlib import OAuth1Session
 
 from PictureGathering import DBController, WriteHTML
-
 
 logging.config.fileConfig("./log/logging.ini")
 logger = getLogger("root")
@@ -36,28 +34,36 @@ logger.setLevel(INFO)
 class Crawler(metaclass=ABCMeta):
     """クローラー
 
-        Fav/Retweetクローラーのベースとなるクローラークラス
+    Fav/Retweetクローラーのベースとなるクローラークラス
+
+    Note:
+        このクラスを継承するためには@abstractmethodデコレータつきのメソッドを実装する必要がある。
+
+    Args:
+        metaclass (metaclass): 抽象クラス指定
 
     Attributes:
-        CONFIG_FILE_NAME (string): 設定ファイルパス
+        CONFIG_FILE_NAME (str): 設定ファイルパス
         config (ConfigParser): 設定ini構造体
         db_cont (DBController): DB操作用クラス実体
-        TW_CONSUMER_KEY: TwitterAPI利用キー
-        TW_CONSUMER_SECRET: TwitterAPI利用シークレットキー
-        TW_ACCESS_TOKEN_KEY: TwitterAPIアクセストークンキー
-        TW_ACCESS_TOKEN_SECRET: TwitterAPIアクセストークンシークレットキー
-        LN_TOKEN_KEY: LINE notifyのトークン
-        SLACK_WEBHOOK_URL: SlackのWebhook URL
-        user_name: Twitterのユーザーネーム
-        count: 一度に取得するFav/Retweetの数
-        save_path: 画像保存先パス
-        type: 継承先を表すタイプ識別{Fav, RT}
-        oath: TwitterAPI利用セッション
-        add_cnt: 新規追加した画像の数
-        del_cnt: 削除した画像の数
-        add_url_list: 新規追加した画像のURLリスト
-        del_url_list: 削除した画像のURLリスト
+        TW_CONSUMER_KEY (str): TwitterAPI利用キー
+        TW_CONSUMER_SECRET (str): TwitterAPI利用シークレットキー
+        TW_ACCESS_TOKEN_KEY (str): TwitterAPIアクセストークンキー
+        TW_ACCESS_TOKEN_SECRET (str): TwitterAPIアクセストークンシークレットキー
+        LN_TOKEN_KEY (str): LINE notifyのトークン
+        SLACK_WEBHOOK_URL (str): SlackのWebhook URL
+        DISCORD_WEBHOOK_URL (str): DiscordのWebhook URL
+        user_name (str): Twitterのユーザーネーム
+        count (int): 一度に取得するFav/Retweetの数
+        save_path (str): 画像保存先パス
+        type (str): 継承先を表すタイプ識別{Fav, RT}
+        oath (OAuth1Session): TwitterAPI利用セッション
+        add_cnt (int): 新規追加した画像の数
+        del_cnt (int): 削除した画像の数
+        add_url_list (list): 新規追加した画像のURLリスト
+        del_url_list (list): 削除した画像のURLリスト
     """
+
     CONFIG_FILE_NAME = "./config/config.ini"
 
     def __init__(self):
@@ -110,8 +116,14 @@ class Crawler(metaclass=ABCMeta):
         self.add_url_list = []
         self.del_url_list = []
 
-    def GetTwitterAPIResourceType(self, url):
-        # クエリを除去
+    def GetTwitterAPIResourceType(self, url: str) -> str:
+        """使用するTwitterAPIのAPIリソースタイプを返す
+
+        :param url: TwitterAPIのエンドポイントURL
+        :type url: str
+        :return: APIリソースタイプ
+        """
+
         called_url = urllib.parse.urlparse(url).path
         url = urllib.parse.urljoin(url, os.path.basename(called_url))
         resources = []
@@ -560,4 +572,3 @@ if __name__ == "__main__":
     import FavCrawler as FavCrawler
     c = FavCrawler.FavCrawler()
     c.Crawl()
-    pass
