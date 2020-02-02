@@ -119,9 +119,11 @@ class Crawler(metaclass=ABCMeta):
     def GetTwitterAPIResourceType(self, url: str) -> str:
         """使用するTwitterAPIのAPIリソースタイプを返す
 
-        :param url: TwitterAPIのエンドポイントURL
-        :type url: str
-        :return: APIリソースタイプ
+        Args:
+            url (str): TwitterAPIのエンドポイントURL
+
+        Returns:
+            str: APIリソースタイプ
         """
 
         called_url = urllib.parse.urlparse(url).path
@@ -135,7 +137,21 @@ class Crawler(metaclass=ABCMeta):
             resources.append("favorites")
         return ",".join(resources)
 
-    def GetTwitterAPILimitContext(self, res_text, params):
+    def GetTwitterAPILimitContext(self, res_text: dict, params: dict) -> (int, int):
+        """Limitを取得するAPIの返り値を解釈して残数と開放時間を取得する
+
+        Note:
+            TwitterAPIリファレンス:rate_limit_status
+            http://westplain.sakuraweb.com/translate/twitter/Documentation/REST-APIs/Public-API/GET-application-rate_limit_status.cgi
+
+        Args:
+            res_text (dict): TwitterAPI:rate_limit_statusの返り値(json)
+            params (dict): TwitterAPI:rate_limit_statusを呼び出したときのパラメータ辞書
+
+        Returns:
+            int, int: 残り使用回数, 制限リセット時間(UNIXエポック秒)
+        """
+
         if "resources" not in params:
             return -1, -1  # 引数エラー
         r = params["resources"]
@@ -149,7 +165,19 @@ class Crawler(metaclass=ABCMeta):
             reset = res_text["resources"][r][p]["reset"]
             return int(remaining), int(reset)
 
-    def WaitUntilReset(self, dt_unix):
+    def WaitUntilReset(self, dt_unix: float) -> int:
+        """指定UNIX時間まで待機する
+
+        Notes:
+            念のため(dt_unix + 10)秒まで待機する
+
+        Args:
+            dt_unix (float): UNIX時間の指定
+
+        Returns:
+            int: 成功時0
+        """
+
         seconds = dt_unix - time.mktime(datetime.now().timetuple())
         seconds = max(seconds, 0)
         logger.debug('=======================')
@@ -159,7 +187,20 @@ class Crawler(metaclass=ABCMeta):
         time.sleep(seconds + 10)  # 念のため + 10 秒
         return 0
 
-    def CheckTwitterAPILimit(self, called_url):
+    def CheckTwitterAPILimit(self, called_url: str) -> int:
+        """TwitterAPI制限を取得する
+
+        Args:
+            called_url (str): API制限を取得したいTwitterAPIエンドポイントURL
+
+        Raises:
+            Exception: API制限情報を取得するのに503で10回失敗した場合エラー
+            Exception: API制限情報取得した結果が200でない場合エラー
+
+        Returns:
+            int: 成功時0、このメソッド実行後はcalled_urlのエンドポイントが利用可能であることが保証される
+        """
+
         unavailableCnt = 0
         while True:
             url = "https://api.twitter.com/1.1/application/rate_limit_status.json"
@@ -190,7 +231,16 @@ class Crawler(metaclass=ABCMeta):
                 break
         return 0
 
-    def WaitTwitterAPIUntilReset(self, responce):
+    def WaitTwitterAPIUntilReset(self, responce: dict) -> int:
+        """TwitterAPIが利用できるまで待つ
+
+        Args:
+            responce (dict): 利用できるまで待つTwitterAPIを使ったときのレスポンス
+
+        Returns:
+            int: 成功時0、このメソッド実行後はresponceに対応するエンドポイントが利用可能であることが保証される
+        """
+
         # X-Rate-Limit-Remaining が入ってないことが稀にあるのでチェック
         if 'X-Rate-Limit-Remaining' in responce.headers and 'X-Rate-Limit-Reset' in responce.headers:
             # 回数制限（ヘッダ参照）
@@ -211,7 +261,21 @@ class Crawler(metaclass=ABCMeta):
             self.CheckTwitterAPILimit(responce.url)
         return 0
 
-    def TwitterAPIRequest(self, url, params):
+    def TwitterAPIRequest(self, url: str, params: dict) -> dict:
+        """TwitterAPIを使用するラッパメソッド
+
+        Args:
+            url (str): TwitterAPIエンドポイントURL
+            params (dict): TwitterAPI使用時に渡すパラメータ
+
+        Raises:
+            Exception: API利用に503で10回失敗した場合エラー
+            Exception: API利用結果が200でない場合エラー
+
+        Returns:
+            dict: TwitterAPIレスポンス
+        """
+
         unavailableCnt = 0
         while True:
             responce = self.oath.get(url, params=params)
@@ -233,9 +297,16 @@ class Crawler(metaclass=ABCMeta):
             res = json.loads(responce.text)
             return res
 
-    # tweet["extended_entities"]["media"]から保存対象のメディアURLを取得する
-    # 引数や辞書構造が不正だった場合空文字列を返す
-    def GetMediaUrl(self, media_dict):
+    def GetMediaUrl(self, media_dict: dict) -> str:
+        """tweet["extended_entities"]["media"]から保存対象のメディアURLを取得する
+
+        Args:
+            media_dict (dict): tweet["extended_entities"]["media"]
+
+        Returns:
+            str: 成功時メディアURL、引数や辞書構造が不正だった場合空文字列を返す
+        """
+
         media_type = "None"
         if "type" not in media_dict:
             logger.info("メディアタイプが不明です。")
@@ -269,7 +340,16 @@ class Crawler(metaclass=ABCMeta):
 
         return url
 
-    def ImageSaver(self, tweets):
+    def ImageSaver(self, tweets: dict) -> int:
+        """ツイートオブジェクトから画像を保存する
+
+        Args:
+            tweets (dict): 画像を含んでいる可能性があるツイートオブジェクト辞書
+
+        Returns:
+            int: 正常時0
+        """
+
         for tweet in tweets:
             if "extended_entities" not in tweet:
                 logger.debug("メディアを含んでいないツイートです。")
@@ -349,8 +429,13 @@ class Crawler(metaclass=ABCMeta):
                     self.add_cnt += 1
         return 0
 
-    # save_pathにあるファイル名一覧を取得する
-    def GetExistFilelist(self):
+    def GetExistFilelist(self) -> list:
+        """self.save_pathに存在するファイル名一覧を取得する
+
+        Returns:
+            list: self.save_pathに存在するファイル名一覧
+        """
+
         xs = []
         for root, dir, files in os.walk(self.save_path):
             for f in files:
@@ -363,7 +448,16 @@ class Crawler(metaclass=ABCMeta):
             filelist.append(path)
         return filelist
 
-    def ShrinkFolder(self, holding_file_num):
+    def ShrinkFolder(self, holding_file_num: int) -> int:
+        """フォルダ内ファイルの数を一定にする
+
+        Args:
+            holding_file_num (int): フォルダ内に残すファイルの数
+
+        Returns:
+            int: 成功時0
+        """
+
         filelist = self.GetExistFilelist()
 
         # フォルダに既に保存しているファイルにはURLの情報がない
@@ -394,18 +488,42 @@ class Crawler(metaclass=ABCMeta):
         return 0
 
     @abstractmethod
-    def UpdateDBExistMark(self, add_img_filename):
+    def UpdateDBExistMark(self, add_img_filename: list):
+        """存在マーキングを更新する
+
+        Args:
+            add_img_filename (list): 保存したメディアのアドレスリスト
+        """
+
         pass
 
     @abstractmethod
-    def GetVideoURL(self, file_name):
+    def GetVideoURL(self, file_name: str) -> str:
+        """動画ファイルのURLをDBに問い合わせる
+
+        Args:
+            file_name (str): 動画ファイル名
+
+        Returns:
+            str: 成功時動画ファイルURL、失敗時空文字列
+        """
+
         pass
 
     @abstractmethod
-    def MakeDoneMessage(self):
+    def MakeDoneMessage(self) -> str:
+        """実行後の結果文字列を生成する
+        """
+
         pass
 
-    def EndOfProcess(self):
+    def EndOfProcess(self) -> int:
+        """実行後の後処理
+
+        Returns:
+            int: 成功時0
+        """
+
         logger.info("")
 
         done_msg = self.MakeDoneMessage()
@@ -455,7 +573,16 @@ class Crawler(metaclass=ABCMeta):
 
         return 0
 
-    def PostTweet(self, str):
+    def PostTweet(self, str: str) -> int:
+        """実行完了ツイートをポストする
+
+        Args:
+            str (str): ポストする文字列
+
+        Returns:
+            int: 成功時0
+        """
+
         url = "https://api.twitter.com/1.1/users/show.json"
         reply_user_name = self.config["notification"]["reply_to_user_name"]
         random_pickup = False  # 自分がアップロードしたことになるのでメディア欄が侵食されるためオフに
@@ -518,7 +645,16 @@ class Crawler(metaclass=ABCMeta):
 
         return 0
 
-    def PostLineNotify(self, str):
+    def PostLineNotify(self, str: str) -> int:
+        """LINE通知ポスト
+
+        Args:
+            str (str): LINEに通知する文字列
+
+        Returns:
+            int: 成功時0
+        """
+
         url = "https://notify-api.line.me/api/notify"
         token = self.LN_TOKEN_KEY
 
@@ -533,7 +669,16 @@ class Crawler(metaclass=ABCMeta):
 
         return 0
 
-    def PostDiscordNotify(self, str):
+    def PostDiscordNotify(self, str: str) -> int:
+        """Discord通知ポスト
+
+        Args:
+            str (str): Discordに通知する文字列
+
+        Returns:
+            int: 成功時0
+        """
+
         url = self.DISCORD_WEBHOOK_URL
 
         headers = {
@@ -553,7 +698,16 @@ class Crawler(metaclass=ABCMeta):
 
         return 0
 
-    def PostSlackNotify(self, str):
+    def PostSlackNotify(self, str: str) -> int:
+        """Slack通知ポスト
+
+        Args:
+            str (str): Slackに通知する文字列
+
+        Returns:
+            int: 成功時0
+        """
+
         try:
             slack = slackweb.Slack(url=self.SLACK_WEBHOOK_URL)
             slack.notify(text="<!here> " + str)
@@ -564,8 +718,14 @@ class Crawler(metaclass=ABCMeta):
         return 0
 
     @abstractmethod
-    def Crawl(self):
-        pass
+    def Crawl(self) -> int:
+        """一連の実行メソッドをまとめる
+
+        Returns:
+            int: 成功時0
+        """
+
+        return 0
 
 
 if __name__ == "__main__":
