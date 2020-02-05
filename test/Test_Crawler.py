@@ -513,6 +513,58 @@ class TestCrawler(unittest.TestCase):
         }}'''
         self.assertEqual(video_url_s + "_2048", crawler.GetMediaUrl(json.loads(media_tweet_json)))
 
+    def test_ImageSaver(self):
+        # 画像保存をチェックする
+        use_file_list = []
+
+        # 前テストで使用したファイルが残っていた場合削除する
+        sample_img = ["sample.png_1", "sample.png_2"]
+        for file in sample_img:
+            if os.path.exists(file):
+                os.remove(file)
+
+        with ExitStack() as stack:
+            # with句にpatchを複数入れる
+            mocksql = stack.enter_context(patch('PictureGathering.DBController.DBController.DBFavUpsert'))
+            mockurllib = stack.enter_context(patch('PictureGathering.Crawler.urllib.request.urlretrieve'))
+            mocksystem = stack.enter_context(patch('PictureGathering.Crawler.os.system'))
+
+            # mock設定
+            mocksql.return_value = 0
+            mocksystem.return_value = 0
+            crawler = ConcreteCrawler()
+            crawler.save_path = os.getcwd()
+
+            def urlopen_sideeffect(url_orig, save_file_fullpath):
+                url = url_orig.replace(":orig", "")
+                save_file_path = os.path.join(crawler.save_path, os.path.basename(url))
+
+                with open(save_file_path, 'wb') as fout:
+                    fout.write("test".encode())
+
+                use_file_list.append(save_file_path)
+
+                return save_file_path
+
+            mockurllib.side_effect = urlopen_sideeffect
+
+            tweets = []
+            tweets.append(self.media_tweet_s)
+            expect_save_num = len(self.media_tweet_s["extended_entities"]["media"])
+            self.assertEqual(0, crawler.ImageSaver(tweets))
+
+            self.assertEqual(expect_save_num, crawler.add_cnt)
+            self.assertEqual(expect_save_num, mocksql.call_count)
+            self.assertEqual(expect_save_num, mockurllib.call_count)
+            self.assertEqual(expect_save_num, mocksystem.call_count)
+
+        for path in use_file_list:
+            self.assertTrue(os.path.exists(path))
+
+        # テストで使用したファイルを削除する（後始末）
+        for path in use_file_list:
+            os.remove(path)
+
     def test_GetExistFilelist(self):
         # save_pathにあるファイル名一覧取得処理をチェックする
         crawler = ConcreteCrawler()
@@ -572,58 +624,6 @@ class TestCrawler(unittest.TestCase):
             self.assertEqual(expect_del_cnt, crawler.del_cnt)
             self.assertEqual(expect_del_url_list, crawler.del_url_list)
             # self.assertEqual(expect_add_url_list, crawler.add_url_list)
-
-    def test_ImageSaver(self):
-        # 画像保存をチェックする
-        use_file_list = []
-
-        # 前テストで使用したファイルが残っていた場合削除する
-        sample_img = ["sample.png_1", "sample.png_2"]
-        for file in sample_img:
-            if os.path.exists(file):
-                os.remove(file)
-
-        with ExitStack() as stack:
-            # with句にpatchを複数入れる
-            mocksql = stack.enter_context(patch('PictureGathering.DBController.DBController.DBFavUpsert'))
-            mockurllib = stack.enter_context(patch('PictureGathering.Crawler.urllib.request.urlretrieve'))
-            mocksystem = stack.enter_context(patch('PictureGathering.Crawler.os.system'))
-
-            # mock設定
-            mocksql.return_value = 0
-            mocksystem.return_value = 0
-            crawler = ConcreteCrawler()
-            crawler.save_path = os.getcwd()
-
-            def urlopen_sideeffect(url_orig, save_file_fullpath):
-                url = url_orig.replace(":orig", "")
-                save_file_path = os.path.join(crawler.save_path, os.path.basename(url))
-
-                with open(save_file_path, 'wb') as fout:
-                    fout.write("test".encode())
-
-                use_file_list.append(save_file_path)
-
-                return save_file_path
-
-            mockurllib.side_effect = urlopen_sideeffect
-
-            tweets = []
-            tweets.append(self.media_tweet_s)
-            expect_save_num = len(self.media_tweet_s["extended_entities"]["media"])
-            self.assertEqual(0, crawler.ImageSaver(tweets))
-
-            self.assertEqual(expect_save_num, crawler.add_cnt)
-            self.assertEqual(expect_save_num, mocksql.call_count)
-            self.assertEqual(expect_save_num, mockurllib.call_count)
-            self.assertEqual(expect_save_num, mocksystem.call_count)
-
-        for path in use_file_list:
-            self.assertTrue(os.path.exists(path))
-
-        # テストで使用したファイルを削除する（後始末）
-        for path in use_file_list:
-            os.remove(path)
 
     def test_EndOfProcess(self):
         # 取得後処理をチェックする
