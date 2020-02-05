@@ -82,11 +82,11 @@ class Crawler(metaclass=ABCMeta):
             config = self.config["line_token_keys"]
             self.LN_TOKEN_KEY = config["token_key"]
 
-            config = self.config["discord_webhook_url"]
-            self.DISCORD_WEBHOOK_URL = config["webhook_url"]
-
             config = self.config["slack_webhook_url"]
             self.SLACK_WEBHOOK_URL = config["webhook_url"]
+
+            config = self.config["discord_webhook_url"]
+            self.DISCORD_WEBHOOK_URL = config["webhook_url"]
 
             self.user_name = self.config["tweet_timeline"]["user_name"]
             self.count = int(self.config["tweet_timeline"]["count"])
@@ -669,6 +669,25 @@ class Crawler(metaclass=ABCMeta):
 
         return 0
 
+    def PostSlackNotify(self, str: str) -> int:
+        """Slack通知ポスト
+
+        Args:
+            str (str): Slackに通知する文字列
+
+        Returns:
+            int: 成功時0
+        """
+
+        try:
+            slack = slackweb.Slack(url=self.SLACK_WEBHOOK_URL)
+            slack.notify(text="<!here> " + str)
+        except ValueError:
+            logger.error("Webhook URL error: {0} is invalid".format(self.SLACK_WEBHOOK_URL))
+            return None
+
+        return 0
+
     def PostDiscordNotify(self, str: str) -> int:
         """Discord通知ポスト
 
@@ -694,25 +713,6 @@ class Crawler(metaclass=ABCMeta):
 
         if responce.status_code != 204:  # 成功すると204 No Contentが返ってくる
             logger.error("Error code: {0}".format(responce.status_code))
-            return None
-
-        return 0
-
-    def PostSlackNotify(self, str: str) -> int:
-        """Slack通知ポスト
-
-        Args:
-            str (str): Slackに通知する文字列
-
-        Returns:
-            int: 成功時0
-        """
-
-        try:
-            slack = slackweb.Slack(url=self.SLACK_WEBHOOK_URL)
-            slack.notify(text="<!here> " + str)
-        except ValueError:
-            logger.error("Webhook URL error: {0} is invalid".format(self.SLACK_WEBHOOK_URL))
             return None
 
         return 0
