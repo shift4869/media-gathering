@@ -1,6 +1,13 @@
 # coding: utf-8
+"""クローラーのテスト
+
+Crawler.Crawler()の各種機能をテストする
+実際に使用する派生クラスのテストについてはそれぞれのファイルに記述する
+設定ファイルとして {CONFIG_FILE_NAME} にあるconfig.iniファイルを使用する
+各種トークン類もAPI利用のテストのために使用する
+"""
+
 import configparser
-import copy
 import json
 import os
 import random
@@ -22,6 +29,15 @@ logger.setLevel(WARNING)
 
 
 class ConcreteCrawler(Crawler.Crawler):
+    """テスト用の具体化クローラー
+
+    Crawler.Crawler()の抽象クラスメソッドを最低限実装したテスト用の派生クラス
+
+    Attributes:
+        save_path (str): 画像保存先パス
+        type (str): 継承先を表すタイプ識別
+    """
+
     def __init__(self):
         super().__init__()
         self.save_path = os.getcwd()
@@ -41,11 +57,22 @@ class ConcreteCrawler(Crawler.Crawler):
 
 
 class TestCrawler(unittest.TestCase):
+    """テストメインクラス
+    """
+
     def setUp(self):
         pass
 
     def __GetMediaTweetSample(self, img_url_s):
-        # ツイートオブジェクトのサンプルを生成する
+        """ツイートオブジェクトのサンプルを生成する
+
+        Args:
+            img_url_s (str): 画像URLサンプル
+
+        Returns:
+            dict: ツイートオブジェクト（サンプル）
+        """
+
         tweet_json = f'''{{
             "extended_entities": {{
                 "media": [{{
@@ -70,40 +97,28 @@ class TestCrawler(unittest.TestCase):
         tweet_s = json.loads(tweet_json)
         return tweet_s
 
-    def __GetTweetSample(self, img_url_s):
-        # ツイートオブジェクトのサンプルを生成する
-        tweet_json = f'''{{
-            "entities": {{
-                "media": {{
-                    "expanded_url": "{self.tweet_url_s}"
-                }}
-            }},
-            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
-            "id_str": "12345_id_str_sample",
-            "user": {{
-                "id_str": "12345_id_str_sample",
-                "name": "shift_name_sample",
-                "screen_name": "_shift4869_screen_name_sample"
-            }},
-            "text": "tweet_text_sample"
-        }}'''
-        tweet_s = json.loads(tweet_json)
-        return tweet_s
-
     def test_ConcreteCrawler(self):
-        # ConcreteCrawlerをテストする
+        """ConcreteCrawlerのテスト
+        """
+
         crawler = ConcreteCrawler()
 
-        # self.assertEqual("Test", crawler.type)
+        self.assertEqual("Fav", crawler.type)
+        self.assertEqual("DBExistMark updated", crawler.UpdateDBExistMark(""))
         self.assertEqual("video_sample.mp4", crawler.GetVideoURL(""))
         self.assertEqual("Crawler Test : done", crawler.MakeDoneMessage())
         self.assertEqual(0, crawler.Crawl())
 
     def test_CrawlerInit(self):
-        # Crawlerの初期状態をテストする
+        """Crawlerの初期状態のテスト
+
+        ConcreteCrawler()内で初期化されたconfigと、configparser.ConfigParser()で取得したconfigを比較する
+        どちらのconfigも設定元は"./config/config.ini"である
+        """
+
         crawler = ConcreteCrawler()
 
-        # config
+        # expect_config読み込みテスト
         CONFIG_FILE_NAME = "./config/config.ini"
         expect_config = configparser.ConfigParser()
         self.assertTrue(os.path.exists(CONFIG_FILE_NAME))
@@ -112,9 +127,11 @@ class TestCrawler(unittest.TestCase):
         )
         expect_config.read(CONFIG_FILE_NAME, encoding="utf8")
 
+        # 存在しないキーを指定するテスト
         with self.assertRaises(KeyError):
             print(expect_config["ERROR_KEY1"]["ERROR_KEY2"])
 
+        # 設定値比較
         self.assertEqual(expect_config["twitter_token_keys"]["consumer_key"],
                          crawler.TW_CONSUMER_KEY)
         self.assertEqual(expect_config["twitter_token_keys"]["consumer_secret"],
