@@ -112,8 +112,10 @@ class TestCrawler(unittest.TestCase):
     def test_CrawlerInit(self):
         """Crawlerの初期状態のテスト
 
-        ConcreteCrawler()内で初期化されたconfigと、configparser.ConfigParser()で取得したconfigを比較する
-        どちらのconfigも設定元は"./config/config.ini"である
+        Note:
+            ConcreteCrawler()内で初期化されたconfigと、configparser.ConfigParser()で取得したconfigを比較する
+            どちらのconfigも設定元は"./config/config.ini"である
+            派生クラスで利用する設定値については別ファイルでテストする
         """
 
         crawler = ConcreteCrawler()
@@ -144,6 +146,12 @@ class TestCrawler(unittest.TestCase):
         self.assertEqual(expect_config["line_token_keys"]["token_key"],
                          crawler.LN_TOKEN_KEY)
 
+        self.assertEqual(expect_config["slack_webhook_url"]["webhook_url"],
+                         crawler.SLACK_WEBHOOK_URL)
+
+        self.assertEqual(expect_config["discord_webhook_url"]["webhook_url"],
+                         crawler.DISCORD_WEBHOOK_URL)
+
         # self.assertEqual(os.path.abspath(expect_config["save_directory"]["save_fav_path"]),
         #                 crawler.save_path)
         # self.assertTrue(os.path.exists(crawler.save_path))
@@ -173,6 +181,10 @@ class TestCrawler(unittest.TestCase):
                          crawler.config["notification"]["reply_to_user_name"])
         self.assertEqual(expect_config["notification"]["is_post_line_notify"],
                          crawler.config["notification"]["is_post_line_notify"])
+        self.assertEqual(expect_config["notification"]["is_post_slack_notify"],
+                         crawler.config["notification"]["is_post_slack_notify"])
+        self.assertEqual(expect_config["notification"]["is_post_discord_notify"],
+                         crawler.config["notification"]["is_post_discord_notify"])
 
         self.assertEqual(expect_config["holding"]["holding_file_num"],
                          crawler.config["holding"]["holding_file_num"])
