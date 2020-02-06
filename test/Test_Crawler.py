@@ -202,37 +202,41 @@ class TestCrawler(unittest.TestCase):
         self.assertEqual([], crawler.del_url_list)
 
     def test_GetTwitterAPIResourceType(self):
-        # 使用するTwitterAPIのAPIリソースタイプ取得をチェックする
+        """使用するTwitterAPIのAPIリソースタイプ取得をチェックする
+        """
+
         crawler = ConcreteCrawler()
 
-        # ツイートをポストする
+        # リプライ先のユーザー情報を取得するAPI
         reply_user_name = crawler.config["notification"]["reply_to_user_name"]
         url = "https://api.twitter.com/1.1/users/show.json"
         params = {
-            "screen_name": reply_user_name,
+            "screen_name": reply_user_name
         }
         self.assertEqual("users", crawler.GetTwitterAPIResourceType(url))
 
-        # ふぁぼリスト取得
+        # ふぁぼリスト取得API
         page = 1
         url = "https://api.twitter.com/1.1/favorites/list.json"
         params = {
             "screen_name": crawler.user_name,
             "page": page,
             "count": crawler.count,
-            "include_entities": 1
+            "include_entities": 1,
+            "tweet_mode": "extended"
         }
         self.assertEqual("favorites", crawler.GetTwitterAPIResourceType(url))
 
-        # 自分のタイムラインを取得する（あまり使わない）
+        # 自分のタイムラインを取得するAPI（あまり使わない）
         url = "https://api.twitter.com/1.1/statuses/home_timeline.json"
         params = {
             "count": crawler.count,
-            "include_entities": 1
+            "include_entities": 1,
+            "tweet_mode": "extended"
         }
         self.assertEqual("statuses", crawler.GetTwitterAPIResourceType(url))
 
-        # 自分の最新ツイートを取得する（ここからRTを抜き出す）
+        # 自分の最新ツイートを取得するAPI（ここからRTを抜き出す）
         max_id = -1
         url = "https://api.twitter.com/1.1/statuses/user_timeline.json"
         params = {
@@ -240,18 +244,25 @@ class TestCrawler(unittest.TestCase):
             "count": crawler.count,
             "max_id": max_id,
             "contributor_details": True,
-            "include_rts": True
+            "include_rts": True,
+            "tweet_mode": "extended"
         }
         self.assertEqual("statuses", crawler.GetTwitterAPIResourceType(url))
 
-        # レートリミット取得
+        # ツイートを削除するAPI
+        url = "https://api.twitter.com/1.1/statuses/destroy/12345_id_str_sample.json"
+        self.assertEqual("statuses", crawler.GetTwitterAPIResourceType(url))
+
+        # レートリミットを取得するAPI
         # url = "https://api.twitter.com/1.1/application/rate_limit_status.json"
         # params = {
-        #    "resources": self.GetTwitterAPIResourceType(called_url)
+        #    "resources": self.GetTwitterAPIResourceType(url)
         # }
 
     def test_GetTwitterAPILimitContext(self):
-        # Limitを取得するAPIの返り値を解釈して残数と開放時間を取得する処理をチェックする
+        """Limitを取得するAPIの返り値を解釈して残数と開放時間を取得する処理をチェックする
+        """
+
         crawler = ConcreteCrawler()
 
         url = "https://api.twitter.com/1.1/application/rate_limit_status.json"
@@ -278,7 +289,9 @@ class TestCrawler(unittest.TestCase):
         self.assertEqual(1563195985, reset)
 
     def test_WaitUntilReset(self):
-        # 指定UNIX時間まで待機する処理の呼び出しをチェックする
+        """指定UNIX時間まで待機する処理の呼び出しをチェックする
+        """
+
         crawler = ConcreteCrawler()
 
         with ExitStack() as stack:
@@ -291,8 +304,12 @@ class TestCrawler(unittest.TestCase):
             self.assertEqual(0, res)
 
     def test_CheckTwitterAPILimit(self):
-        # TwitterAPI制限を取得する機能をチェックする
-        # mock置き換えによりTwitterAPIが503を返す状況もシミュレートする
+        """TwitterAPI制限を取得する機能をチェックする
+
+        Notes:
+            mock置き換えによりTwitterAPIが503を返す状況もシミュレートする
+        """
+
         with ExitStack() as stack:
             mockTWARType = stack.enter_context(patch('PictureGathering.Crawler.Crawler.GetTwitterAPIResourceType'))
             mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.get'))
@@ -348,7 +365,9 @@ class TestCrawler(unittest.TestCase):
                 crawler.CheckTwitterAPILimit(url)
 
     def test_WaitTwitterAPIUntilReset(self):
-        # TwitterAPIが利用できるまで待つ機能をチェックする
+        """TwitterAPIが利用できるまで待つ機能をチェックする
+        """
+
         with ExitStack() as stack:
             mockWaitUntilReset = stack.enter_context(patch('PictureGathering.Crawler.Crawler.WaitUntilReset'))
             mockTWALimit = stack.enter_context(patch('PictureGathering.Crawler.Crawler.CheckTwitterAPILimit'))
@@ -401,8 +420,12 @@ class TestCrawler(unittest.TestCase):
             self.assertEqual(2, mockTWALimit.call_count)
 
     def test_TwitterAPIRequestMocked(self):
-        # TwitterAPIが利用できない場合の挙動をチェックする
-        # mock置き換えによりTwitterAPIが503を返す状況をシミュレートする
+        """TwitterAPIが利用できない場合の挙動をチェックする
+
+        Notes:
+            mock置き換えによりTwitterAPIが503を返す状況をシミュレートする
+        """
+
         with ExitStack() as stack:
             mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.get'))
             mockTWAUntilReset = stack.enter_context(patch('PictureGathering.Crawler.Crawler.WaitTwitterAPIUntilReset'))
@@ -448,8 +471,12 @@ class TestCrawler(unittest.TestCase):
                 crawler.TwitterAPIRequest(url, params)
 
     def test_TwitterAPIRequestActual(self):
-        # TwitterAPIの応答をチェックする
-        # mock置き換えはせず、実際にTwitterAPIを使用して応答を確認する
+        """TwitterAPIの応答をチェックする
+
+        Notes:
+            mock置き換えはせず、実際にTwitterAPIを使用して応答を確認する（GETのみ）
+        """
+
         crawler = ConcreteCrawler()
         get_pages = int(crawler.config["tweet_timeline"]["get_pages"]) + 1
 
@@ -477,7 +504,9 @@ class TestCrawler(unittest.TestCase):
         self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
 
     def test_GetMediaUrl(self):
-        # メディアURL取得処理のテスト
+        """メディアURL取得処理をチェックする
+        """
+
         img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
         video_url_s = 'https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4'
         img_filename_s = os.path.basename(img_url_s)
@@ -534,17 +563,18 @@ class TestCrawler(unittest.TestCase):
         self.assertEqual(video_url_s + "_2048", crawler.GetMediaUrl(json.loads(media_tweet_json)))
 
     def test_ImageSaver(self):
-        # 画像保存をチェックする
+        """画像保存をチェックする
+        """
+
         use_file_list = []
 
-        # 前テストで使用したファイルが残っていた場合削除する
+        # 初期化：前テストで使用したファイルが残っていた場合削除する
         sample_img = ["sample.png_1", "sample.png_2"]
         for file in sample_img:
             if os.path.exists(file):
                 os.remove(file)
 
         with ExitStack() as stack:
-            # with句にpatchを複数入れる
             mocksql = stack.enter_context(patch('PictureGathering.DBController.DBController.DBFavUpsert'))
             mockurllib = stack.enter_context(patch('PictureGathering.Crawler.urllib.request.urlretrieve'))
             mocksystem = stack.enter_context(patch('PictureGathering.Crawler.os.system'))
@@ -580,15 +610,18 @@ class TestCrawler(unittest.TestCase):
             self.assertEqual(expect_save_num, mockurllib.call_count)
             # self.assertEqual(expect_save_num, mocksystem.call_count)
 
+        # 画像が保存できたかチェック
         for path in use_file_list:
             self.assertTrue(os.path.exists(path))
 
-        # テストで使用したファイルを削除する（後始末）
+        # 後始末：テストで使用したファイルを削除する
         for path in use_file_list:
             os.remove(path)
 
     def test_GetExistFilelist(self):
-        # save_pathにあるファイル名一覧取得処理をチェックする
+        """save_pathにあるファイル名一覧取得処理をチェックする
+        """
+
         crawler = ConcreteCrawler()
 
         xs = []
@@ -605,7 +638,9 @@ class TestCrawler(unittest.TestCase):
         self.assertAlmostEqual(expect_filelist, crawler.GetExistFilelist())
 
     def test_ShrinkFolder(self):
-        # フォルダ内ファイルの数を一定にする機能をチェックする
+        """フォルダ内ファイルの数を一定にする機能をチェックする
+        """
+
         with ExitStack() as stack:
             mockGetExistFilelist = stack.enter_context(patch('PictureGathering.Crawler.Crawler.GetExistFilelist'))
             mockGetVideoURL = stack.enter_context(patch('__main__.ConcreteCrawler.GetVideoURL'))

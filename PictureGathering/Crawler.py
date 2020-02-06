@@ -580,7 +580,7 @@ class Crawler(metaclass=ABCMeta):
             str (str): ポストする文字列
 
         Returns:
-            int: 成功時0
+            int: 成功時0、失敗時None
         """
 
         url = "https://api.twitter.com/1.1/users/show.json"
