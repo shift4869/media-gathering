@@ -652,6 +652,9 @@ class TestCrawler(unittest.TestCase):
             crawler = ConcreteCrawler()
             holding_file_num = 10
 
+            # フォルダ内に存在するファイルのサンプルを生成する
+            # 保持すべきholding_file_numを超えるファイルがあるものとする
+            # 画像と動画をそれぞれ作り、ランダムにピックアップする
             sample_num = holding_file_num * 2 // 3 * 2
             img_sample = ["sample_img_{}.png".format(i) for i in range(sample_num // 2 + 1)]
             video_sample = ["sample_video_{}.mp4".format(i) for i in range(sample_num // 2 + 1)]
@@ -683,14 +686,17 @@ class TestCrawler(unittest.TestCase):
             # self.assertEqual(expect_add_url_list, crawler.add_url_list)
 
     def test_EndOfProcess(self):
-        # 取得後処理をチェックする
+        """取得後処理をチェックする
+        """
+
         crawler = ConcreteCrawler()
+
         with ExitStack() as stack:
-            # with句にpatchを複数入れる
             mockwhtml = stack.enter_context(patch('PictureGathering.WriteHTML.WriteFavHTML'))
             mockcptweet = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostTweet'))
             mockcplnotify = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostLineNotify'))
-            mockcplnotify = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostSlackNotify'))
+            mockcpsnotify = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostSlackNotify'))
+            mockcpdnotify = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostDiscordNotify'))
             mocksql = stack.enter_context(patch('PictureGathering.DBController.DBController.DBDelSelect'))
             mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.post'))
 
@@ -698,6 +704,8 @@ class TestCrawler(unittest.TestCase):
             mockwhtml.return_value = 0
             mockcptweet.return_value = 0
             mockcplnotify.return_value = 0
+            mockcpsnotify.return_value = 0
+            mockcpdnotify.return_value = 0
             mocksql.return_value = []
             mockoauth.return_value = 0
 
@@ -713,10 +721,12 @@ class TestCrawler(unittest.TestCase):
             self.assertEqual(0, crawler.EndOfProcess())
 
     def test_PostTweet(self):
-        # ツイートポスト機能をチェックする
+        """ツイートポスト機能をチェックする
+        """
+
         crawler = ConcreteCrawler()
+
         with ExitStack() as stack:
-            # with句にpatchを複数入れる
             mockctapi = stack.enter_context(patch('PictureGathering.Crawler.Crawler.TwitterAPIRequest'))
             mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.post'))
             mocksql = stack.enter_context(patch('PictureGathering.DBController.DBController.DBDelInsert'))
@@ -739,10 +749,12 @@ class TestCrawler(unittest.TestCase):
             mocksql.assert_called_once()
 
     def test_PostLineNotify(self):
-        # LINE通知ポスト機能をチェックする
+        """LINE通知ポスト機能をチェックする
+        """
+
         crawler = ConcreteCrawler()
+
         with ExitStack() as stack:
-            # with句にpatchを複数入れる
             mockreq = stack.enter_context(patch('PictureGathering.Crawler.requests.post'))
 
             # mock設定
@@ -752,14 +764,17 @@ class TestCrawler(unittest.TestCase):
             type(responce).status_code = status_code
             mockreq.return_value = responce
 
-            self.assertEqual(0, crawler.PostLineNotify("test"))
+            str = "text"
+            self.assertEqual(0, crawler.PostLineNotify(str))
             mockreq.assert_called_once()
 
     def test_PostSlackNotify(self):
-        # Slack通知ポスト機能をチェックする
+        """Slack通知ポスト機能をチェックする
+        """
+
         crawler = ConcreteCrawler()
+
         with ExitStack() as stack:
-            # with句にpatchを複数入れる
             mockslack = stack.enter_context(patch('PictureGathering.Crawler.slackweb.Slack.notify'))
 
             # mock設定
@@ -768,6 +783,26 @@ class TestCrawler(unittest.TestCase):
             str = "text"
             self.assertEqual(0, crawler.PostSlackNotify(str))
             mockslack.assert_called_once_with(text="<!here> " + str)
+
+    def test_PostDiscordNotify(self):
+        """Discord通知ポスト機能をチェックする
+        """
+
+        crawler = ConcreteCrawler()
+
+        with ExitStack() as stack:
+            mockreq = stack.enter_context(patch('PictureGathering.Crawler.requests.post'))
+
+            # mock設定
+            responce = MagicMock()
+            status_code = PropertyMock()
+            status_code.return_value = 204  # 成功すると204 No Contentが返ってくる
+            type(responce).status_code = status_code
+            mockreq.return_value = responce
+
+            str = "text"
+            self.assertEqual(0, crawler.PostDiscordNotify(str))
+            mockreq.assert_called_once()
 
 
 if __name__ == "__main__":

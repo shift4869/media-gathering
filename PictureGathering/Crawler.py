@@ -556,13 +556,13 @@ class Crawler(metaclass=ABCMeta):
                 self.PostLineNotify(done_msg)
                 logger.info("Line Notify posted.")
 
-            if config.getboolean("is_post_discord_notify"):
-                self.PostDiscordNotify(done_msg)
-                logger.info("Discord Notify posted.")
-
             if config.getboolean("is_post_slack_notify"):
                 self.PostSlackNotify(done_msg)
                 logger.info("Slack Notify posted.")
+
+            if config.getboolean("is_post_discord_notify"):
+                self.PostDiscordNotify(done_msg)
+                logger.info("Discord Notify posted.")
 
         # 古い通知リプライを消す
         if config.getboolean("is_post_fav_done_reply") or config.getboolean("is_post_retweet_done_reply"):
