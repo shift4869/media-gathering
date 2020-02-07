@@ -5,6 +5,12 @@ Crawler.Crawler()の各種機能をテストする
 実際に使用する派生クラスのテストについてはそれぞれのファイルに記述する
 設定ファイルとして {CONFIG_FILE_NAME} にあるconfig.iniファイルを使用する
 各種トークン類もAPI利用のテストのために使用する
+
+Todo:
+    * FavCrawler, RetweetCrawlerのテスト分離
+    * DBControlのテストをリフレッシュ
+    * DBControl全般の捜査をsqlalchemy利用に置き換える
+    * PG_DB.dbのバックアップ機構
 """
 
 import configparser
