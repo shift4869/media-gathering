@@ -20,19 +20,15 @@ logger.setLevel(WARNING)
 
 class TestDBController(unittest.TestCase):
     def setUp(self):
-        self.img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
-        self.img_filename_s = os.path.basename(self.img_url_s)
-        self.tweet_url_s = 'http://www.tweet.sample.com'
-        self.save_file_fullpath_s = os.getcwd()
-        self.tweet_s = self.__GetTweetSample(self.img_url_s)
-        self.del_tweet_s = self.__GetDelTweetSample()
+        pass
 
     def __GetTweetSample(self, img_url_s):
         # ツイートオブジェクトのサンプルを生成する
+        tweet_url_s = 'http://www.tweet.sample.com'
         tweet_json = f'''{{
             "entities": {{
                 "media": [{{
-                    "expanded_url": "{self.tweet_url_s}"
+                    "expanded_url": "{tweet_url_s}"
                 }}]
             }},
             "created_at": "Sat Nov 18 17:12:58 +0000 2018",
@@ -102,26 +98,29 @@ class TestDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
         with freezegun.freeze_time('2018-11-18 17:12:58'):
-            url_orig_s = self.img_url_s + ":orig"
-            url_thumbnail_s = self.img_url_s + ":large"
+            img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
+            url_orig_s = img_url_s + ":orig"
+            url_thumbnail_s = img_url_s + ":large"
             file_name_s = os.path.basename(url_orig_s)
             td_format_s = '%a %b %d %H:%M:%S +0000 %Y'
             dts_format_s = '%Y-%m-%d %H:%M:%S'
-            tca = self.tweet_s["created_at"]
+            tweet_s = self.__GetTweetSample(img_url_s)
+            save_file_fullpath_s = os.getcwd()
+            tca = tweet_s["created_at"]
             dst = datetime.strptime(tca, td_format_s)
             expect = (file_name_s,
                       url_orig_s,
                       url_thumbnail_s,
-                      self.tweet_s["id_str"],
-                      self.tweet_s["entities"]["media"][0]["expanded_url"],
+                      tweet_s["id_str"],
+                      tweet_s["entities"]["media"][0]["expanded_url"],
                       dst.strftime(dts_format_s),
-                      self.tweet_s["user"]["id_str"],
-                      self.tweet_s["user"]["name"],
-                      self.tweet_s["user"]["screen_name"],
-                      self.tweet_s["text"],
-                      self.save_file_fullpath_s,
+                      tweet_s["user"]["id_str"],
+                      tweet_s["user"]["name"],
+                      tweet_s["user"]["screen_name"],
+                      tweet_s["text"],
+                      save_file_fullpath_s,
                       datetime.now().strftime(dts_format_s))
-            actual = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, self.tweet_s, self.save_file_fullpath_s)
+            actual = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
             self.assertEqual(expect, actual)
 
     def test_DBFavUpsert(self):
@@ -132,13 +131,16 @@ class TestDBController(unittest.TestCase):
             controlar = DBController.DBController()
 
             # DB操作を伴う操作を行う
-            url_orig_s = self.img_url_s + ":orig"
-            url_thumbnail_s = self.img_url_s + ":large"
+            img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
+            url_orig_s = img_url_s + ":orig"
+            url_thumbnail_s = img_url_s + ":large"
             file_name_s = os.path.basename(url_orig_s)
-            controlar.DBFavUpsert(file_name_s, url_orig_s, url_thumbnail_s, self.tweet_s, self.save_file_fullpath_s)
+            tweet_s = self.__GetTweetSample(img_url_s)
+            save_file_fullpath_s = os.getcwd()
+            controlar.DBFavUpsert(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
 
             # DB操作が規定の引数で呼び出されたことを確認する
-            param_s = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, self.tweet_s, self.save_file_fullpath_s)
+            param_s = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
             fav_sql_s = controlar._DBController__fav_sql
             mocksql.connect().cursor().execute.assert_called_once_with(fav_sql_s, param_s)
 
@@ -146,11 +148,16 @@ class TestDBController(unittest.TestCase):
         # DB操作をモックに置き換える
         with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
+
             controlar = DBController.DBController()
-            url_orig_s = self.img_url_s + ":orig"
-            url_thumbnail_s = self.img_url_s + ":large"
+            
+            img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
+            url_orig_s = img_url_s + ":orig"
+            url_thumbnail_s = img_url_s + ":large"
             file_name_s = os.path.basename(url_orig_s)
-            expect = ("rowid_sample",) + controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, self.tweet_s, self.save_file_fullpath_s)
+            tweet_s = self.__GetTweetSample(img_url_s)
+            save_file_fullpath_s = os.getcwd()
+            expect = ("rowid_sample",) + controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
             mocksql.connect().cursor().execute.return_value = [expect]
 
             # DB操作を伴う操作を行う
@@ -162,8 +169,9 @@ class TestDBController(unittest.TestCase):
             mocksql.connect().cursor().execute.assert_called_once_with(fav_select_sql_s)
 
             # 取得した値の確認
-            self.assertEqual(self.img_url_s + ":orig", actual[0][2])
-            self.assertEqual(self.tweet_url_s, actual[0][5])
+            tweet_url_s = 'http://www.tweet.sample.com'
+            self.assertEqual(img_url_s + ":orig", actual[0][2])
+            self.assertEqual(tweet_url_s, actual[0][5])
             self.assertEqual(expect, actual[0])
 
     def test_DBRetweetUpsert(self):
@@ -174,13 +182,17 @@ class TestDBController(unittest.TestCase):
             controlar = DBController.DBController()
 
             # DB操作を伴う操作を行う
-            url_orig_s = self.img_url_s + ":orig"
-            url_thumbnail_s = self.img_url_s + ":large"
+            img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
+            url_orig_s = img_url_s + ":orig"
+            url_thumbnail_s = img_url_s + ":large"
             file_name_s = os.path.basename(url_orig_s)
-            controlar.DBRetweetUpsert(file_name_s, url_orig_s, url_thumbnail_s, self.tweet_s, self.save_file_fullpath_s)
+            
+            tweet_s = self.__GetTweetSample(img_url_s)
+            save_file_fullpath_s = os.getcwd()
+            controlar.DBRetweetUpsert(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
 
             # DB操作が規定の引数で呼び出されたことを確認する
-            param_s = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, self.tweet_s, self.save_file_fullpath_s)
+            param_s = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
             retweet_sql_s = controlar._DBController__retweet_sql
             mocksql.connect().cursor().execute.assert_called_once_with(retweet_sql_s, param_s)
 
@@ -188,12 +200,18 @@ class TestDBController(unittest.TestCase):
         # DB操作をモックに置き換える
         with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
+            
             controlar = DBController.DBController()
-            url_orig_s = self.img_url_s + ":orig"
-            url_thumbnail_s = self.img_url_s + ":large"
+
+            img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
+            url_orig_s = img_url_s + ":orig"
+            url_thumbnail_s = img_url_s + ":large"
             file_name_s = os.path.basename(url_orig_s)
+            
+            tweet_s = self.__GetTweetSample(img_url_s)
+            save_file_fullpath_s = os.getcwd()
             expect = ("rowid_sample", "is_exist_save_file_flag_sample") + \
-                controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, self.tweet_s, self.save_file_fullpath_s)
+                controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
             mocksql.connect().cursor().execute.return_value = [expect]
 
             # DB操作を伴う操作を行う
@@ -205,8 +223,9 @@ class TestDBController(unittest.TestCase):
             mocksql.connect().cursor().execute.assert_called_once_with(retweet_select_sql_s)
 
             # 取得した値の確認
-            self.assertEqual(self.img_url_s + ":orig", actual[0][3])
-            self.assertEqual(self.tweet_url_s, actual[0][6])
+            tweet_url_s = 'http://www.tweet.sample.com'
+            self.assertEqual(img_url_s + ":orig", actual[0][3])
+            self.assertEqual(tweet_url_s, actual[0][6])
             self.assertEqual(expect, actual[0])
 
     def test_DBRetweetFlagUpdate(self):
@@ -248,10 +267,11 @@ class TestDBController(unittest.TestCase):
             controlar = DBController.DBController()
 
             # DB操作を伴う操作を行う
-            controlar.DBDelInsert(self.del_tweet_s)
+            del_tweet_s = self.__GetDelTweetSample()
+            controlar.DBDelInsert(del_tweet_s)
 
             # DB操作が規定の引数で呼び出されたことを確認する
-            param_s = controlar._DBController__GetDelUpdateParam(self.del_tweet_s)
+            param_s = controlar._DBController__GetDelUpdateParam(del_tweet_s)
             mocksql.connect().cursor().execute.assert_called_once_with(controlar._DBController__del_sql, param_s)
 
     def test_DBDelSelect(self):
@@ -261,7 +281,8 @@ class TestDBController(unittest.TestCase):
             mocksql.connect().commit.return_value = 'commit done'
             controlar = DBController.DBController()
 
-            expect = ("rowid_sample",) + controlar._DBController__GetDelUpdateParam(self.del_tweet_s)
+            del_tweet_s = self.__GetDelTweetSample()
+            expect = ("rowid_sample",) + controlar._DBController__GetDelUpdateParam(del_tweet_s)
             mocksql.connect().cursor().execute.return_value = [expect]
 
             t = date.today() - timedelta(1)
