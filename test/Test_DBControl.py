@@ -1,18 +1,16 @@
 # coding: utf-8
-from datetime import datetime
-from datetime import date
-from datetime import timedelta
 import json
-from logging import getLogger, WARNING
-from mock import patch
 import os
 import sys
 import unittest
+from contextlib import ExitStack
+from datetime import date, datetime, timedelta
+from logging import WARNING, getLogger
 
 import freezegun
+from mock import MagicMock, PropertyMock, patch
 
 from PictureGathering import DBController
-
 
 logger = getLogger("root")
 logger.setLevel(WARNING)
@@ -55,7 +53,7 @@ class TestDBController(unittest.TestCase):
 
     def test_SQLText(self):
         # 使用するSQL構文をチェックする
-        # 実際にDB操作はしないためモックは省略
+        # 実際にDB操作はしないためmockは省略
         controlar = DBController.DBController()
 
         p1 = 'img_filename,url,url_thumbnail,'
@@ -124,8 +122,11 @@ class TestDBController(unittest.TestCase):
             self.assertEqual(expect, actual)
 
     def test_DBFavUpsert(self):
-        # DB操作をモックに置き換える
-        with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+        # DB操作をmockに置き換える
+        with ExitStack() as stack:
+            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
+            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
+
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
             controlar = DBController.DBController()
@@ -145,7 +146,7 @@ class TestDBController(unittest.TestCase):
             mocksql.connect().cursor().execute.assert_called_once_with(fav_sql_s, param_s)
 
     def test_DBFavSelect(self):
-        # DB操作をモックに置き換える
+        # DB操作をmockに置き換える
         with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
 
@@ -175,7 +176,7 @@ class TestDBController(unittest.TestCase):
             self.assertEqual(expect, actual[0])
 
     def test_DBRetweetUpsert(self):
-        # DB操作をモックに置き換える
+        # DB操作をmockに置き換える
         with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
@@ -197,7 +198,7 @@ class TestDBController(unittest.TestCase):
             mocksql.connect().cursor().execute.assert_called_once_with(retweet_sql_s, param_s)
 
     def test_DBRetweetSelect(self):
-        # DB操作をモックに置き換える
+        # DB操作をmockに置き換える
         with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             
@@ -229,7 +230,7 @@ class TestDBController(unittest.TestCase):
             self.assertEqual(expect, actual[0])
 
     def test_DBRetweetFlagUpdate(self):
-        # DB操作をモックに置き換える
+        # DB操作をmockに置き換える
         with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
@@ -246,7 +247,7 @@ class TestDBController(unittest.TestCase):
             mocksql.connect().cursor().execute.assert_called_once_with(retweet_flag_update_sql_s)
 
     def test_DBRetweetFlagClear(self):
-        # DB操作をモックに置き換える
+        # DB操作をmockに置き換える
         with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
@@ -260,7 +261,7 @@ class TestDBController(unittest.TestCase):
             mocksql.connect().cursor().execute.assert_called_once_with(retweet_flag_clear_sql_s)
 
     def test_DBDelInsert(self):
-        # DB操作をモックに置き換える
+        # DB操作をmockに置き換える
         with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
@@ -275,7 +276,7 @@ class TestDBController(unittest.TestCase):
             mocksql.connect().cursor().execute.assert_called_once_with(controlar._DBController__del_sql, param_s)
 
     def test_DBDelSelect(self):
-        # DB操作をモックに置き換える
+        # DB操作をmockに置き換える
         with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
