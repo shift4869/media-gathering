@@ -190,5 +190,6 @@ class DBController:
             conn.commit()
         return res
 
+
 if __name__ == "__main__":
     db_cont = DBController()
