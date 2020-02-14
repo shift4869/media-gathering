@@ -1,6 +1,7 @@
 # coding: utf-8
 import json
 import os
+import re
 import sys
 import unittest
 from contextlib import ExitStack
@@ -95,15 +96,22 @@ class TestDBController(unittest.TestCase):
         actual = controlar._DBController__GetRetweetFlagUpdateSQL(filename, set_flag)
         self.assertEqual(expect, actual)
 
+        expect = 'update Retweet set is_exist_saved_file = 0'
+        actual = controlar._DBController__GetRetweetFlagClearSQL()
+        self.assertEqual(expect, actual)
+
         with freezegun.freeze_time('2018-11-18 17:12:58'):
             img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
             url_orig_s = img_url_s + ":orig"
             url_thumbnail_s = img_url_s + ":large"
             file_name_s = os.path.basename(url_orig_s)
+
             td_format_s = '%a %b %d %H:%M:%S +0000 %Y'
             dts_format_s = '%Y-%m-%d %H:%M:%S'
+
             tweet_s = self.__GetTweetSample(img_url_s)
             save_file_fullpath_s = os.getcwd()
+
             tca = tweet_s["created_at"]
             dst = datetime.strptime(tca, td_format_s)
             expect = (file_name_s,
@@ -119,6 +127,24 @@ class TestDBController(unittest.TestCase):
                       save_file_fullpath_s,
                       datetime.now().strftime(dts_format_s))
             actual = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
+            self.assertEqual(expect, actual)
+
+            del_tweet_s = self.__GetDelTweetSample()
+            pattern = ' +[0-9]* '
+            text = del_tweet_s["text"]
+            add_num = int(re.findall(pattern, text)[0])
+            del_num = int(re.findall(pattern, text)[1])
+
+            tca = del_tweet_s["created_at"]
+            dst = datetime.strptime(tca, td_format_s)
+            expect = (del_tweet_s["id_str"],
+                      False,
+                      dst.strftime(dts_format_s),
+                      None,
+                      del_tweet_s["text"],
+                      add_num,
+                      del_num)
+            actual = controlar._DBController__GetDelUpdateParam(del_tweet_s)
             self.assertEqual(expect, actual)
 
     def test_DBFavUpsert(self):
