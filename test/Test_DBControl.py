@@ -147,7 +147,10 @@ class TestDBController(unittest.TestCase):
 
     def test_DBFavSelect(self):
         # DB操作をmockに置き換える
-        with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+        with ExitStack() as stack:
+            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
+            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
+            
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
 
             controlar = DBController.DBController()
@@ -177,7 +180,10 @@ class TestDBController(unittest.TestCase):
 
     def test_DBRetweetUpsert(self):
         # DB操作をmockに置き換える
-        with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+        with ExitStack() as stack:
+            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
+            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
+
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
             controlar = DBController.DBController()
@@ -199,7 +205,10 @@ class TestDBController(unittest.TestCase):
 
     def test_DBRetweetSelect(self):
         # DB操作をmockに置き換える
-        with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+        with ExitStack() as stack:
+            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
+            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
+
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             
             controlar = DBController.DBController()
@@ -231,7 +240,10 @@ class TestDBController(unittest.TestCase):
 
     def test_DBRetweetFlagUpdate(self):
         # DB操作をmockに置き換える
-        with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+        with ExitStack() as stack:
+            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
+            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
+
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
             controlar = DBController.DBController()
@@ -248,7 +260,10 @@ class TestDBController(unittest.TestCase):
 
     def test_DBRetweetFlagClear(self):
         # DB操作をmockに置き換える
-        with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+        with ExitStack() as stack:
+            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
+            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
+
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
             controlar = DBController.DBController()
@@ -262,7 +277,10 @@ class TestDBController(unittest.TestCase):
 
     def test_DBDelInsert(self):
         # DB操作をmockに置き換える
-        with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+        with ExitStack() as stack:
+            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
+            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
+
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
             controlar = DBController.DBController()
@@ -277,7 +295,10 @@ class TestDBController(unittest.TestCase):
 
     def test_DBDelSelect(self):
         # DB操作をmockに置き換える
-        with patch('PictureGathering.DBController.sqlite3') as mocksql, freezegun.freeze_time('2018-11-18 17:12:58'):
+        with ExitStack() as stack:
+            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
+            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
+
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
             controlar = DBController.DBController()
