@@ -204,6 +204,12 @@ class TestDBController(unittest.TestCase):
             self.assertEqual(tweet_url_s, actual[0][5])
             self.assertEqual(expect, actual[0])
 
+    def test_DBFavVideoURLSelect(self):
+        # DB操作をmockに置き換える
+        with ExitStack() as stack:
+            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
+            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
+
     def test_DBRetweetUpsert(self):
         # DB操作をmockに置き換える
         with ExitStack() as stack:
