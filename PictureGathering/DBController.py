@@ -1,23 +1,21 @@
 # coding: utf-8
 import configparser
-from contextlib import closing
-from datetime import datetime
-from datetime import date
-from datetime import timedelta
 import os
 import re
 import sqlite3
+from contextlib import closing
+from datetime import date, datetime, timedelta
 
 
 class DBController:
     dbname = 'PG_DB.db'
 
     def __init__(self):
-        self.__fav_sql = self.__GetFavriteUpsertSQL()
+        self.__fav_sql = self.__GetFavoriteUpsertSQL()
         self.__retweet_sql = self.__GetRetweetUpsertSQL()
         self.__del_sql = self.__GetDeleteTargetUpsertSQL()
 
-    def __GetFavriteUpsertSQL(self):
+    def __GetFavoriteUpsertSQL(self):
         p1 = 'img_filename,url,url_thumbnail,'
         p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
         p3 = 'saved_localpath,saved_created_at'
@@ -87,7 +85,6 @@ class DBController:
         td_format = '%a %b %d %H:%M:%S +0000 %Y'
         dts_format = '%Y-%m-%d %H:%M:%S'
 
-        # DB操作
         tca = tweet["created_at"]
         dst = datetime.strptime(tca, td_format)
         param = (tweet["id_str"],
