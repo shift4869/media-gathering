@@ -37,7 +37,7 @@ class Favorite(Base):
     screan_name = Column(String(256), nullable=False)
     tweet_text = Column(String(512))
     saved_localpath = Column(String(256))
-    saved_created_at = Column(String(32)) 
+    saved_created_at = Column(String(32))
 
     '''
     [id] INTEGER,
@@ -64,8 +64,7 @@ class Favorite(Base):
 if __name__ == "__main__":
     Base.metadata.create_all(engine)
 
-    Session = sessionmaker(bind=engine)
-    session = Session()
+    session = Session(engine)
 
     result = session.query(Favorite).all()[:10]
     for f in result:
