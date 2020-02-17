@@ -38,14 +38,12 @@ class DBController:
         return 'select * from Favorite order by created_at desc limit {}'.format(limit)
 
     def __GetFavoriteVideoURLSelectSQL(self, filename):
-        # filenameはシングルクォート必要、カンマ区切りOK
         return 'select * from Favorite where img_filename = {}'.format(filename)
 
     def __GetRetweetSelectSQL(self, limit=300):
         return 'select * from Retweet where is_exist_saved_file = 1 order by created_at desc limit {}'.format(limit)
 
     def __GetRetweetVideoURLSelectSQL(self, filename):
-        # filenameはシングルクォート必要、カンマ区切りOK
         return 'select * from Retweet where img_filename = {}'.format(filename)
 
     def __GetRetweetFlagUpdateSQL(self, filename="", set_flag=0):
@@ -186,6 +184,7 @@ class DBController:
             c.execute(query)
             conn.commit()
         return res
+
 
 if __name__ == "__main__":
     db_cont = DBController()
