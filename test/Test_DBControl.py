@@ -27,9 +27,14 @@ class TestDBController(unittest.TestCase):
 
     def setUp(self):
         Model.Base.metadata.create_all(self.engine)
-        Favorite f(1, )
-        1	オフ	DG2_uYqVwAAfs5v.jpg	http://pbs.twimg.com/media/DG2_uYqVwAAfs5v.jpg:orig	http://pbs.twimg.com/media/DG2_uYqVwAAfs5v.jpg:large	895582874526654464	https://twitter.com/_uwaaaaaaaaa/status/895582874526654464/photo/1	2017-08-10 09:49:31	1605266270	数字	_uwaaaaaaaaa	サマーシーズン到来！！ https://t.co/hMlXWCM1so	D:\Users\shift\Pictures\Jointogether_画像結合ソフト\plugin\twitterFav\DG2_uYqVwAAfs5v.jpg	2017-08-11 00:35:02
-        self.session.add()
+        f = Model.Favorite(1, False, "DG2_uYqVwAAfs5v.jpg", "http://pbs.twimg.com/media/DG2_uYqVwAAfs5v.jpg:orig",
+                    "http://pbs.twimg.com/media/DG2_uYqVwAAfs5v.jpg:large", "895582874526654464", 
+                    "https://twitter.com/_uwaaaaaaaaa/status/895582874526654464/photo/1",
+                    "2017-08-10 09:49:31", "1605266270", "数字", "_uwaaaaaaaaa",
+                    "サマーシーズン到来！！", "https://t.co/hMlXWCM1so", "v/DG2_uYqVwAAfs5v.jpg",
+                    "2017-08-11 00:35:02")
+        self.session.add(f)
+        self.session.commit()
         pass
 
     def __GetTweetSample(self, img_url_s):
