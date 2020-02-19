@@ -6,11 +6,21 @@ import sqlite3
 from contextlib import closing
 from datetime import date, datetime, timedelta
 
+from sqlalchemy import *
+from sqlalchemy.orm import *
+
+from PictureGathering.Model import *
+
 
 class DBController:
     dbname = 'PG_DB.db'
 
     def __init__(self):
+        self.engine = create_engine(f"sqlite:///{self.dbname}", echo=False)
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
+        Base.metadata.create_all(self.engine)
+
         self.__fav_sql = self.__GetFavoriteUpsertSQL()
         self.__retweet_sql = self.__GetRetweetUpsertSQL()
         self.__del_sql = self.__GetDeleteTargetUpsertSQL()
