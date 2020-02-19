@@ -73,6 +73,9 @@ class Favorite(Base):
     def __repr__(self):
         return "<Favorite(id='%s', img_filename='%s', url='%s')>" % (self.id, self.img_filename, self.url)
 
+    def __eq__(self, other):
+        return isinstance(other, Favorite) and other.img_filename == self.img_filename
+
 
 class Retweet(Base):
     """リツイートツイートモデル

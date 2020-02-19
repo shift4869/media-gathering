@@ -39,6 +39,8 @@ class TestDBController(unittest.TestCase):
         self.session.commit()
 
     def tearDown(self):
+        self.session.commit()
+        self.session.close()
         Base.metadata.drop_all(self.engine)
 
     def test_QuerySample(self):
@@ -206,7 +208,7 @@ class TestDBController(unittest.TestCase):
             # SQLalchemy
             r = Favorite(False, param_s[0], param_s[1], param_s[2], param_s[3], param_s[4], param_s[5],
                         param_s[6], param_s[7], param_s[8], param_s[9], param_s[10], param_s[11])
-            s = Favorite(False, param_s[0] + "_2", param_s[1], param_s[2], param_s[3], param_s[4], param_s[5],
+            s = Favorite(False, param_s[0] + "", param_s[1], param_s[2], param_s[3], param_s[4], param_s[5],
                         param_s[6], param_s[7], param_s[8], param_s[9], param_s[10], param_s[11])
             for rr in [r, s]:
                 try:
@@ -218,6 +220,8 @@ class TestDBController(unittest.TestCase):
                     ex.img_filename = rr.img_filename
                 self.session.commit()
 
+            r = Favorite(False, param_s[0], param_s[1], param_s[2], param_s[3], param_s[4], param_s[5],
+                        param_s[6], param_s[7], param_s[8], param_s[9], param_s[10], param_s[11])
             actual = self.session.query(Favorite).all()
             self.assertEqual(actual[1], r)
 
