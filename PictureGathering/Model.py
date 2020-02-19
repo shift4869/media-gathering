@@ -11,7 +11,6 @@ from sqlalchemy.orm import *
 from sqlalchemy.ext.declarative import declarative_base
 
 
-engine = create_engine("sqlite:///PG_DB.db", echo=True)
 Base = declarative_base()
 
 
@@ -38,8 +37,8 @@ class Favorite(Base):
         super(Base, self).__init__(*args, **kwargs)
         self.is_exist_saved_file = True
 
-    def __init__(self, id, is_exist_saved_file, img_filename, url, url_thumbnail, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, saved_localpath, saved_created_at):
-        self.id = id
+    def __init__(self, is_exist_saved_file, img_filename, url, url_thumbnail, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, saved_localpath, saved_created_at):
+        # self.id = id
         self.is_exist_saved_file = is_exist_saved_file
         self.img_filename = img_filename
         self.url = url
@@ -56,7 +55,7 @@ class Favorite(Base):
 
     __tablename__ = "Favorite"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     is_exist_saved_file = Column(Boolean, server_default=text("True"))
     img_filename = Column(String(256), nullable=False, unique=True)
     url = Column(String(512), nullable=False, unique=True)
@@ -154,11 +153,12 @@ class DeleteTarget(Base):
 
 
 if __name__ == "__main__":
+    engine = create_engine("sqlite:///PG_DB.db", echo=True)
     Base.metadata.create_all(engine)
 
     session = Session(engine)
 
-    result = session.query(DeleteTarget).all()[:10]
+    result = session.query(Favorite).all()[:10]
     for f in result:
         print(f)
 

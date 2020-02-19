@@ -12,6 +12,7 @@ import freezegun
 from mock import MagicMock, PropertyMock, patch
 from sqlalchemy import *
 from sqlalchemy.orm import *
+from sqlalchemy.orm.exc import *
 
 from PictureGathering import DBController, Model
 from PictureGathering.Model import *
@@ -23,12 +24,12 @@ logger.setLevel(WARNING)
 class TestDBController(unittest.TestCase):
 
     def setUp(self):
-        self.engine = create_engine('sqlite:///:memory:')
+        self.engine = create_engine('sqlite:///:memory:', echo=False)
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
         
         Base.metadata.create_all(self.engine)
-        self.f = Favorite(1, False, "DG2_uYqVwAAfs5v.jpg", "http://pbs.twimg.com/media/DG2_uYqVwAAfs5v.jpg:orig",
+        self.f = Favorite(False, "DG2_uYqVwAAfs5v.jpg", "http://pbs.twimg.com/media/DG2_uYqVwAAfs5v.jpg:orig",
                           "http://pbs.twimg.com/media/DG2_uYqVwAAfs5v.jpg:large", "895582874526654464",
                           "https://twitter.com/_uwaaaaaaaaa/status/895582874526654464/photo/1",
                           "2017-08-10 09:49:31", "1605266270", "数字", "_uwaaaaaaaaa",
@@ -41,6 +42,7 @@ class TestDBController(unittest.TestCase):
         Base.metadata.drop_all(self.engine)
 
     def test_QuerySample(self):
+        # クエリテストサンプル
         expect = [self.f]
         actual = self.session.query(Favorite).all()
         self.assertEqual(actual, expect)
@@ -185,6 +187,7 @@ class TestDBController(unittest.TestCase):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
             controlar = DBController.DBController()
+            controlar.session = self.session
 
             # DB操作を伴う操作を行う
             img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
@@ -199,6 +202,24 @@ class TestDBController(unittest.TestCase):
             param_s = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
             fav_sql_s = controlar._DBController__fav_sql
             mocksql.connect().cursor().execute.assert_called_once_with(fav_sql_s, param_s)
+
+            # SQLalchemy
+            r = Favorite(False, param_s[0], param_s[1], param_s[2], param_s[3], param_s[4], param_s[5],
+                        param_s[6], param_s[7], param_s[8], param_s[9], param_s[10], param_s[11])
+            s = Favorite(False, param_s[0] + "_2", param_s[1], param_s[2], param_s[3], param_s[4], param_s[5],
+                        param_s[6], param_s[7], param_s[8], param_s[9], param_s[10], param_s[11])
+            for rr in [r, s]:
+                try:
+                    q = self.session.query(Favorite).filter_by(url=rr.url)
+                    ex = q.one()
+                except NoResultFound:
+                    self.session.add(rr)
+                else:
+                    ex.img_filename = rr.img_filename
+                self.session.commit()
+
+            actual = self.session.query(Favorite).all()
+            self.assertEqual(actual[1], r)
 
     def test_DBFavSelect(self):
         # DB操作をmockに置き換える
