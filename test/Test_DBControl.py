@@ -10,32 +10,40 @@ from logging import WARNING, getLogger
 
 import freezegun
 from mock import MagicMock, PropertyMock, patch
-
-from PictureGathering import DBController, Model
-
 from sqlalchemy import *
 from sqlalchemy.orm import *
+
+from PictureGathering import DBController, Model
+from PictureGathering.Model import *
 
 logger = getLogger("root")
 logger.setLevel(WARNING)
 
 
 class TestDBController(unittest.TestCase):
-    engine = create_engine('sqlite:///:memory:')
-    Session = sessionmaker(bind=engine)
-    session = Session()
 
     def setUp(self):
-        Model.Base.metadata.create_all(self.engine)
-        f = Model.Favorite(1, False, "DG2_uYqVwAAfs5v.jpg", "http://pbs.twimg.com/media/DG2_uYqVwAAfs5v.jpg:orig",
-                    "http://pbs.twimg.com/media/DG2_uYqVwAAfs5v.jpg:large", "895582874526654464", 
-                    "https://twitter.com/_uwaaaaaaaaa/status/895582874526654464/photo/1",
-                    "2017-08-10 09:49:31", "1605266270", "数字", "_uwaaaaaaaaa",
-                    "サマーシーズン到来！！", "https://t.co/hMlXWCM1so", "v/DG2_uYqVwAAfs5v.jpg",
-                    "2017-08-11 00:35:02")
-        self.session.add(f)
+        self.engine = create_engine('sqlite:///:memory:')
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
+        
+        Base.metadata.create_all(self.engine)
+        self.f = Favorite(1, False, "DG2_uYqVwAAfs5v.jpg", "http://pbs.twimg.com/media/DG2_uYqVwAAfs5v.jpg:orig",
+                          "http://pbs.twimg.com/media/DG2_uYqVwAAfs5v.jpg:large", "895582874526654464",
+                          "https://twitter.com/_uwaaaaaaaaa/status/895582874526654464/photo/1",
+                          "2017-08-10 09:49:31", "1605266270", "数字", "_uwaaaaaaaaa",
+                          "サマーシーズン到来！！ https://t.co/hMlXWCM1so", "v/DG2_uYqVwAAfs5v.jpg",
+                          "2017-08-11 00:35:02")
+        self.session.add(self.f)
         self.session.commit()
-        pass
+
+    def tearDown(self):
+        Base.metadata.drop_all(self.engine)
+
+    def test_QuerySample(self):
+        expect = [self.f]
+        actual = self.session.query(Favorite).all()
+        self.assertEqual(actual, expect)
 
     def __GetTweetSample(self, img_url_s):
         # ツイートオブジェクトのサンプルを生成する

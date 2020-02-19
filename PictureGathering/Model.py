@@ -16,7 +16,7 @@ Base = declarative_base()
 
 
 class Favorite(Base):
-    """ふぁぼツイートモデル
+    """お気に入りツイートモデル
 
         [id] INTEGER,
         [is_exist_saved_file] BOOLEAN DEFAULT 'True',
@@ -37,6 +37,22 @@ class Favorite(Base):
     def __init__(self, *args, **kwargs):
         super(Base, self).__init__(*args, **kwargs)
         self.is_exist_saved_file = True
+
+    def __init__(self, id, is_exist_saved_file, img_filename, url, url_thumbnail, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, saved_localpath, saved_created_at):
+        self.id = id
+        self.is_exist_saved_file = is_exist_saved_file
+        self.img_filename = img_filename
+        self.url = url
+        self.url_thumbnail = url_thumbnail
+        self.tweet_id = tweet_id
+        self.tweet_url = tweet_url
+        self.created_at = created_at
+        self.user_id = user_id
+        self.user_name = user_name
+        self.screan_name = screan_name
+        self.tweet_text = tweet_text
+        self.saved_localpath = saved_localpath
+        self.saved_created_at = saved_created_at
 
     __tablename__ = "Favorite"
 
