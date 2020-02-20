@@ -29,12 +29,28 @@ class TestDBController(unittest.TestCase):
         self.session = Session()
         
         Base.metadata.create_all(self.engine)
-        self.f = Favorite(False, "DG2_uYqVwAAfs5v.jpg", "http://pbs.twimg.com/media/DG2_uYqVwAAfs5v.jpg:orig",
-                          "http://pbs.twimg.com/media/DG2_uYqVwAAfs5v.jpg:large", "895582874526654464",
-                          "https://twitter.com/_uwaaaaaaaaa/status/895582874526654464/photo/1",
-                          "2017-08-10 09:49:31", "1605266270", "数字", "_uwaaaaaaaaa",
-                          "サマーシーズン到来！！ https://t.co/hMlXWCM1so", "v/DG2_uYqVwAAfs5v.jpg",
-                          "2017-08-11 00:35:02")
+
+        controlar = DBController.DBController()
+        controlar.engine = self.engine
+
+        img_url_s = "http://www.img.filename.sample.com/media/sample.png"
+        url_orig_s = img_url_s + ":orig"
+        url_thumbnail_s = img_url_s + ":large"
+        file_name_s = os.path.basename(url_orig_s)
+        tweet_s = self.__GetTweetSample(img_url_s)
+        save_file_fullpath_s = os.getcwd()
+
+        # サンプル生成
+        param_s = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
+        self.f = Favorite(False, param_s[0], param_s[1], param_s[2], param_s[3], param_s[4], param_s[5],
+                          param_s[6], param_s[7], param_s[8], param_s[9], param_s[10], param_s[11])
+
+        # self.f = Favorite(False, "DG2_uYqVwAAfs5v.jpg", "http://pbs.twimg.com/media/DG2_uYqVwAAfs5v.jpg:orig",
+        #                   "http://pbs.twimg.com/media/DG2_uYqVwAAfs5v.jpg:large", "895582874526654464",
+        #                   "https://twitter.com/_uwaaaaaaaaa/status/895582874526654464/photo/1",
+        #                   "2017-08-10 09:49:31", "1605266270", "数字", "_uwaaaaaaaaa",
+        #                   "サマーシーズン到来！！ https://t.co/hMlXWCM1so", "v/DG2_uYqVwAAfs5v.jpg",
+        #                   "2017-08-11 00:35:02")
         self.session.add(self.f)
         self.session.commit()
 
@@ -219,7 +235,7 @@ class TestDBController(unittest.TestCase):
         controlar.DBFavUpsert(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
 
         actual = self.session.query(Favorite).all()
-        self.assertEqual(actual, [self.f, r2, r3])
+        self.assertEqual([self.f, r2, r3], actual)
 
     def test_DBFavSelect(self):
         # DB操作をmockに置き換える
@@ -229,30 +245,15 @@ class TestDBController(unittest.TestCase):
             
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
 
+            # engineをテスト用インメモリテーブルに置き換える
             controlar = DBController.DBController()
-            
-            img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
-            url_orig_s = img_url_s + ":orig"
-            url_thumbnail_s = img_url_s + ":large"
-            file_name_s = os.path.basename(url_orig_s)
-            tweet_s = self.__GetTweetSample(img_url_s)
-            save_file_fullpath_s = os.getcwd()
-            expect = ("rowid_sample",) + controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
-            mocksql.connect().cursor().execute.return_value = [expect]
+            controlar.engine = self.engine
 
             # DB操作を伴う操作を行う
             limit_s = 300
             actual = controlar.DBFavSelect(limit_s)
 
-            # DB操作が規定の引数で呼び出されたことを確認する
-            fav_select_sql_s = controlar._DBController__GetFavoriteSelectSQL(limit_s)
-            mocksql.connect().cursor().execute.assert_called_once_with(fav_select_sql_s)
-
-            # 取得した値の確認
-            tweet_url_s = 'http://www.tweet.sample.com'
-            self.assertEqual(img_url_s + ":orig", actual[0][2])
-            self.assertEqual(tweet_url_s, actual[0][5])
-            self.assertEqual(expect, actual[0])
+            self.assertEqual([self.f], actual)
 
     def test_DBFavVideoURLSelect(self):
         # DB操作をmockに置き換える
