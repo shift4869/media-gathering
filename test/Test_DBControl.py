@@ -30,27 +30,10 @@ class TestDBController(unittest.TestCase):
         
         Base.metadata.create_all(self.engine)
 
-        controlar = DBController.DBController()
-        controlar.engine = self.engine
-
         img_url_s = "http://www.img.filename.sample.com/media/sample.png"
-        url_orig_s = img_url_s + ":orig"
-        url_thumbnail_s = img_url_s + ":large"
-        file_name_s = os.path.basename(url_orig_s)
-        tweet_s = self.__GetTweetSample(img_url_s)
-        save_file_fullpath_s = os.getcwd()
 
         # サンプル生成
-        param_s = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
-        self.f = Favorite(False, param_s[0], param_s[1], param_s[2], param_s[3], param_s[4], param_s[5],
-                          param_s[6], param_s[7], param_s[8], param_s[9], param_s[10], param_s[11])
-
-        # self.f = Favorite(False, "DG2_uYqVwAAfs5v.jpg", "http://pbs.twimg.com/media/DG2_uYqVwAAfs5v.jpg:orig",
-        #                   "http://pbs.twimg.com/media/DG2_uYqVwAAfs5v.jpg:large", "895582874526654464",
-        #                   "https://twitter.com/_uwaaaaaaaaa/status/895582874526654464/photo/1",
-        #                   "2017-08-10 09:49:31", "1605266270", "数字", "_uwaaaaaaaaa",
-        #                   "サマーシーズン到来！！ https://t.co/hMlXWCM1so", "v/DG2_uYqVwAAfs5v.jpg",
-        #                   "2017-08-11 00:35:02")
+        self.f = self.FavoriteSampleFactory(img_url_s)
         self.session.add(self.f)
         self.session.commit()
 
@@ -59,13 +42,38 @@ class TestDBController(unittest.TestCase):
         self.session.close()
         Base.metadata.drop_all(self.engine)
 
-    def test_QuerySample(self):
-        # クエリテストサンプル
-        expect = [self.f]
-        actual = self.session.query(Favorite).all()
-        self.assertEqual(actual, expect)
+    def FavoriteSampleFactory(self, img_url):
+        url_orig = img_url + ":orig"
+        url_thumbnail = img_url + ":large"
+        file_name = os.path.basename(url_orig)
+        tweet = self.GetTweetSample(img_url)
+        save_file_fullpath = os.getcwd()
 
-    def __GetTweetSample(self, img_url_s):
+        td_format = '%a %b %d %H:%M:%S +0000 %Y'
+        dts_format = '%Y-%m-%d %H:%M:%S'
+        tca = tweet["created_at"]
+        dst = datetime.strptime(tca, td_format)
+        text = tweet["text"] if "text" in tweet else tweet["full_text"]
+        param = (file_name,
+                 url_orig,
+                 url_thumbnail,
+                 tweet["id_str"],
+                 tweet["entities"]["media"][0]["expanded_url"],
+                 dst.strftime(dts_format),
+                 tweet["user"]["id_str"],
+                 tweet["user"]["name"],
+                 tweet["user"]["screen_name"],
+                 text,
+                 save_file_fullpath,
+                 datetime.now().strftime(dts_format))
+
+        # サンプル生成
+        f = Favorite(False, param[0], param[1], param[2], param[3], param[4], param[5],
+                     param[6], param[7], param[8], param[9], param[10], param[11])
+
+        return f
+
+    def GetTweetSample(self, img_url_s):
         # ツイートオブジェクトのサンプルを生成する
         tweet_url_s = 'http://www.tweet.sample.com'
         tweet_json = f'''{{
@@ -86,7 +94,7 @@ class TestDBController(unittest.TestCase):
         tweet_s = json.loads(tweet_json)
         return tweet_s
 
-    def __GetDelTweetSample(self):
+    def GetDelTweetSample(self):
         # ツイートオブジェクトのサンプルを生成する
         tweet_json = f'''{{
             "created_at": "Sat Nov 18 17:12:58 +0000 2018",
@@ -95,6 +103,12 @@ class TestDBController(unittest.TestCase):
         }}'''
         tweet_s = json.loads(tweet_json)
         return tweet_s
+
+    def test_QuerySample(self):
+        # クエリテストサンプル
+        expect = [self.f]
+        actual = self.session.query(Favorite).all()
+        self.assertEqual(actual, expect)
 
     def test_SQLText(self):
         # 使用するSQL構文をチェックする
@@ -158,7 +172,7 @@ class TestDBController(unittest.TestCase):
             td_format_s = '%a %b %d %H:%M:%S +0000 %Y'
             dts_format_s = '%Y-%m-%d %H:%M:%S'
 
-            tweet_s = self.__GetTweetSample(img_url_s)
+            tweet_s = self.GetTweetSample(img_url_s)
             save_file_fullpath_s = os.getcwd()
 
             tca = tweet_s["created_at"]
@@ -178,7 +192,7 @@ class TestDBController(unittest.TestCase):
             actual = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
             self.assertEqual(expect, actual)
 
-            del_tweet_s = self.__GetDelTweetSample()
+            del_tweet_s = self.GetDelTweetSample()
             pattern = ' +[0-9]* '
             text = del_tweet_s["text"]
             add_num = int(re.findall(pattern, text)[0])
@@ -205,7 +219,7 @@ class TestDBController(unittest.TestCase):
             url_orig_s = img_url_s + ":orig"
             url_thumbnail_s = img_url_s + ":large"
             file_name_s = os.path.basename(url_orig_s)
-            tweet_s = self.__GetTweetSample(img_url_s)
+            tweet_s = self.GetTweetSample(img_url_s)
             save_file_fullpath_s = os.getcwd()
             return url_orig_s, url_thumbnail_s, file_name_s, tweet_s, save_file_fullpath_s
 
@@ -301,7 +315,7 @@ class TestDBController(unittest.TestCase):
             url_thumbnail_s = img_url_s + ":large"
             file_name_s = os.path.basename(url_orig_s)
             
-            tweet_s = self.__GetTweetSample(img_url_s)
+            tweet_s = self.GetTweetSample(img_url_s)
             save_file_fullpath_s = os.getcwd()
             controlar.DBRetweetUpsert(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
 
@@ -325,7 +339,7 @@ class TestDBController(unittest.TestCase):
             url_thumbnail_s = img_url_s + ":large"
             file_name_s = os.path.basename(url_orig_s)
             
-            tweet_s = self.__GetTweetSample(img_url_s)
+            tweet_s = self.GetTweetSample(img_url_s)
             save_file_fullpath_s = os.getcwd()
             expect = ("rowid_sample", "is_exist_save_file_flag_sample") + \
                 controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
@@ -423,7 +437,7 @@ class TestDBController(unittest.TestCase):
             controlar = DBController.DBController()
 
             # DB操作を伴う操作を行う
-            del_tweet_s = self.__GetDelTweetSample()
+            del_tweet_s = self.GetDelTweetSample()
             controlar.DBDelInsert(del_tweet_s)
 
             # DB操作が規定の引数で呼び出されたことを確認する
@@ -440,7 +454,7 @@ class TestDBController(unittest.TestCase):
             mocksql.connect().commit.return_value = 'commit done'
             controlar = DBController.DBController()
 
-            del_tweet_s = self.__GetDelTweetSample()
+            del_tweet_s = self.GetDelTweetSample()
             expect = ("rowid_sample",) + controlar._DBController__GetDelUpdateParam(del_tweet_s)
             mocksql.connect().cursor().execute.return_value = [expect]
 
