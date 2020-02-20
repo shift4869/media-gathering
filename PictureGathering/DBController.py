@@ -155,11 +155,25 @@ class DBController:
         return res
 
     def DBFavSelect(self, limit=300):
-        with closing(sqlite3.connect(self.dbname)) as conn:
-            conn.row_factory = sqlite3.Row
-            c = conn.cursor()
-            query = self.__GetFavoriteSelectSQL(limit)
-            res = list(c.execute(query))
+        """FavoriteからSELECTする
+
+        Args:
+            limit (int): 取得レコード数上限
+
+        Returns:
+            Favorite[]: レコードのリスト
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+
+        res = session.query(Favorite).limit(limit).all()
+
+        session.close()
+        # with closing(sqlite3.connect(self.dbname)) as conn:
+        #     conn.row_factory = sqlite3.Row
+        #     c = conn.cursor()
+        #     query = self.__GetFavoriteSelectSQL(limit)
+        #     res = list(c.execute(query))
         return res
 
     def DBFavVideoURLSelect(self, filename):
