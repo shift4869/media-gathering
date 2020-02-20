@@ -153,11 +153,6 @@ class DBController:
         session.close()
 
         return res
-        # with closing(sqlite3.connect(self.dbname)) as conn:
-        #     c = conn.cursor()
-        #     param = self.__GetUpdateParam(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
-        #     c.execute(self.__fav_sql, param)
-        #     conn.commit()
 
     def DBFavSelect(self, limit=300):
         with closing(sqlite3.connect(self.dbname)) as conn:
