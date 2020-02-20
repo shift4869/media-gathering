@@ -225,7 +225,7 @@ class TestDBController(unittest.TestCase):
             controlar.DBFavUpsert(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
 
             actual = self.session.query(Favorite).all()
-            self.assertEqual(actual, [self.f, r3, r2])
+            self.assertEqual(actual, [self.f, r2, r3])
 
     def test_DBFavSelect(self):
         # DB操作をmockに置き換える
