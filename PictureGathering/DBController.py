@@ -107,6 +107,12 @@ class DBController:
     def DBFavUpsert(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath):
         """FavoriteにUPSERTする
 
+        Notes:
+            追加しようとしているレコードが既存テーブルに存在しなければINSERT
+            存在しているならばUPDATE(DELETE->INSERT)
+            一致しているかの判定は
+            img_filename, url, url_thumbnailのどれか一つでも完全一致している場合、とする
+
         Args:
             file_name (str): ファイル名
             url_orig (str): メディアURL
@@ -133,10 +139,14 @@ class DBController:
                     Favorite.url_thumbnail == r.url_thumbnail))
             ex = q.one()
         except NoResultFound:
+            # INSERT
             session.add(r)
             res = 0
         else:
-            ex.copy(r)
+            # UPDATEは実質DELETE->INSERTと同じとする
+            session.delete(ex)
+            session.commit()
+            session.add(r)
             res = 1
 
         session.commit()
