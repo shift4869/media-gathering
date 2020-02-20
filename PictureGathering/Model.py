@@ -75,6 +75,27 @@ class Favorite(Base):
 
     def __eq__(self, other):
         return isinstance(other, Favorite) and other.img_filename == self.img_filename
+    
+    def copy(self, other):
+        if not isinstance(other, Favorite):
+            return None
+        
+        # self.id = other.id
+        self.is_exist_saved_file = other.is_exist_saved_file
+        self.img_filename = other.img_filename
+        self.url = other.url
+        self.url_thumbnail = other.url_thumbnail
+        self.tweet_id = other.tweet_id
+        self.tweet_url = other.tweet_url
+        self.created_at = other.created_at
+        self.user_id = other.user_id
+        self.user_name = other.user_name
+        self.screan_name = other.screan_name
+        self.tweet_text = other.tweet_text
+        self.saved_localpath = other.saved_localpath
+        self.saved_created_at = other.saved_created_at
+
+        return self
 
 
 class Retweet(Base):

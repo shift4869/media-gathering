@@ -136,7 +136,7 @@ class DBController:
             session.add(r)
             res = 0
         else:
-            ex.img_filename = r.img_filename
+            ex.copy(r)
             res = 1
 
         session.commit()
