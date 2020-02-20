@@ -1,5 +1,6 @@
 # coding: utf-8
 import configparser
+import copy
 import os
 import re
 import sqlite3
@@ -8,6 +9,7 @@ from datetime import date, datetime, timedelta
 
 from sqlalchemy import *
 from sqlalchemy.orm import *
+from sqlalchemy.orm.exc import *
 
 from PictureGathering.Model import *
 
@@ -17,8 +19,6 @@ class DBController:
 
     def __init__(self):
         self.engine = create_engine(f"sqlite:///{self.dbname}", echo=False)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
         Base.metadata.create_all(self.engine)
 
         self.__fav_sql = self.__GetFavoriteUpsertSQL()
@@ -105,11 +105,49 @@ class DBController:
         return param
 
     def DBFavUpsert(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath):
-        with closing(sqlite3.connect(self.dbname)) as conn:
-            c = conn.cursor()
-            param = self.__GetUpdateParam(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
-            c.execute(self.__fav_sql, param)
-            conn.commit()
+        """FavoriteにUPSERTする
+
+        Args:
+            file_name (str): ファイル名
+            url_orig (str): メディアURL
+            url_thumbnail (str): サムネイルメディアURL
+            tweet(str): ツイート本文
+            save_file_fullpath(str): メディア保存パス（ローカル）
+
+        Returns:
+            int: 0(成功,新規追加), 1(成功,更新), other(失敗)
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+        res = -1
+            
+        param = self.__GetUpdateParam(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
+        r = Favorite(False, param[0], param[1], param[2], param[3], param[4], param[5],
+                     param[6], param[7], param[8], param[9], param[10], param[11])
+
+        try:
+            q = session.query(Favorite).filter(
+                or_(
+                    Favorite.img_filename == r.img_filename,
+                    Favorite.url == r.url,
+                    Favorite.url_thumbnail == r.url_thumbnail))
+            ex = q.one()
+        except NoResultFound:
+            session.add(r)
+            res = 0
+        else:
+            ex.img_filename = r.img_filename
+            res = 1
+
+        session.commit()
+        session.close()
+
+        return res
+        # with closing(sqlite3.connect(self.dbname)) as conn:
+        #     c = conn.cursor()
+        #     param = self.__GetUpdateParam(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
+        #     c.execute(self.__fav_sql, param)
+        #     conn.commit()
 
     def DBFavSelect(self, limit=300):
         with closing(sqlite3.connect(self.dbname)) as conn:

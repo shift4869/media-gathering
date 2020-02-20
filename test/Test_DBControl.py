@@ -189,41 +189,43 @@ class TestDBController(unittest.TestCase):
             mocksql.connect().cursor().execute.return_value = 'execute sql done'
             mocksql.connect().commit.return_value = 'commit done'
             controlar = DBController.DBController()
-            controlar.session = self.session
+            controlar.engine = self.engine
 
-            # DB操作を伴う操作を行う
-            img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
-            url_orig_s = img_url_s + ":orig"
-            url_thumbnail_s = img_url_s + ":large"
-            file_name_s = os.path.basename(url_orig_s)
-            tweet_s = self.__GetTweetSample(img_url_s)
-            save_file_fullpath_s = os.getcwd()
+            def make_sample_param(img_url_s):
+                url_orig_s = img_url_s + ":orig"
+                url_thumbnail_s = img_url_s + ":large"
+                file_name_s = os.path.basename(url_orig_s)
+                tweet_s = self.__GetTweetSample(img_url_s)
+                save_file_fullpath_s = os.getcwd()
+                return url_orig_s, url_thumbnail_s, file_name_s, tweet_s, save_file_fullpath_s
+
+            # 1回目（INSERT）
+            img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
+            url_orig_s, url_thumbnail_s, file_name_s, tweet_s, save_file_fullpath_s = make_sample_param(img_url_s)
+            param_s = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
+            r1 = Favorite(False, param_s[0], param_s[1], param_s[2], param_s[3], param_s[4], param_s[5],
+                          param_s[6], param_s[7], param_s[8], param_s[9], param_s[10], param_s[11])
             controlar.DBFavUpsert(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
 
-            # DB操作が規定の引数で呼び出されたことを確認する
+            # 2回目（INSERT）
+            img_url_s = "http://www.img.filename.sample.com/media/sample_2.png"
+            url_orig_s, url_thumbnail_s, file_name_s, tweet_s, save_file_fullpath_s = make_sample_param(img_url_s)
             param_s = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
-            fav_sql_s = controlar._DBController__fav_sql
-            mocksql.connect().cursor().execute.assert_called_once_with(fav_sql_s, param_s)
+            r2 = Favorite(False, param_s[0], param_s[1], param_s[2], param_s[3], param_s[4], param_s[5],
+                          param_s[6], param_s[7], param_s[8], param_s[9], param_s[10], param_s[11])
+            controlar.DBFavUpsert(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
 
-            # SQLalchemy
-            r = Favorite(False, param_s[0], param_s[1], param_s[2], param_s[3], param_s[4], param_s[5],
-                        param_s[6], param_s[7], param_s[8], param_s[9], param_s[10], param_s[11])
-            s = Favorite(False, param_s[0] + "", param_s[1], param_s[2], param_s[3], param_s[4], param_s[5],
-                        param_s[6], param_s[7], param_s[8], param_s[9], param_s[10], param_s[11])
-            for rr in [r, s]:
-                try:
-                    q = self.session.query(Favorite).filter_by(url=rr.url)
-                    ex = q.one()
-                except NoResultFound:
-                    self.session.add(rr)
-                else:
-                    ex.img_filename = rr.img_filename
-                self.session.commit()
+            # 3回目（UPDATE）
+            img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
+            url_orig_s, url_thumbnail_s, file_name_s, tweet_s, save_file_fullpath_s = make_sample_param(img_url_s)
+            file_name_s = "sample_3.png"
+            param_s = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
+            r3 = Favorite(False, param_s[0], param_s[1], param_s[2], param_s[3], param_s[4], param_s[5],
+                          param_s[6], param_s[7], param_s[8], param_s[9], param_s[10], param_s[11])
+            controlar.DBFavUpsert(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
 
-            r = Favorite(False, param_s[0], param_s[1], param_s[2], param_s[3], param_s[4], param_s[5],
-                        param_s[6], param_s[7], param_s[8], param_s[9], param_s[10], param_s[11])
             actual = self.session.query(Favorite).all()
-            self.assertEqual(actual[1], r)
+            self.assertEqual(actual, [self.f, r3, r2])
 
     def test_DBFavSelect(self):
         # DB操作をmockに置き換える
