@@ -25,16 +25,16 @@ class TestDBController(unittest.TestCase):
 
     def setUp(self):
         self.engine = create_engine('sqlite:///:memory:', echo=False)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
-        
         Base.metadata.create_all(self.engine)
 
-        img_url_s = "http://www.img.filename.sample.com/media/sample.png"
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
 
         # サンプル生成
+        img_url_s = "http://www.img.filename.sample.com/media/sample.png"
         self.f = self.FavoriteSampleFactory(img_url_s)
         self.session.add(self.f)
+
         self.session.commit()
 
     def tearDown(self):
