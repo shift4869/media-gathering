@@ -157,6 +157,9 @@ class DBController:
     def DBFavSelect(self, limit=300):
         """FavoriteからSELECTする
 
+        Note:
+            select * from Favorite order by created_at desc limit {}'.format(limit)
+
         Args:
             limit (int): 取得レコード数上限
 
@@ -166,7 +169,7 @@ class DBController:
         Session = sessionmaker(bind=self.engine)
         session = Session()
 
-        res = session.query(Favorite).limit(limit).all()
+        res = session.query(Favorite).order_by(desc(Favorite.created_at)).limit(limit).all()
 
         session.close()
         # with closing(sqlite3.connect(self.dbname)) as conn:
