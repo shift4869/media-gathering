@@ -235,8 +235,9 @@ class TestDBController(unittest.TestCase):
         controlar.DBFavUpsert(r3.img_filename, r3.url, r3.url_thumbnail,
                               self.GetTweetSample(img_url_s), r3.saved_localpath)
 
+        expect = [self.f, r2, r3]
         actual = self.session.query(Favorite).all()
-        self.assertEqual([self.f, r2, r3], actual)
+        self.assertEqual(expect, actual)
 
     def test_DBFavSelect(self):
         # engineをテスト用インメモリテーブルに置き換える
@@ -247,37 +248,25 @@ class TestDBController(unittest.TestCase):
         limit_s = 300
         actual = controlar.DBFavSelect(limit_s)
 
-        self.assertEqual([self.f], actual)
+        expect = [self.f]
+        self.assertEqual(expect, actual)
 
     def test_DBFavVideoURLSelect(self):
-        # DB操作をmockに置き換える
-        with ExitStack() as stack:
-            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
-            mockgfv = stack.enter_context(patch('PictureGathering.DBController.DBController._DBController__GetFavoriteVideoURLSelectSQL'))
-            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
+        # engineをテスト用インメモリテーブルに置き換える
+        controlar = DBController.DBController()
+        controlar.engine = self.engine
 
-            def GetFavoriteVideoURLSelectSQL_side_effect(filename: str) -> str:
-                return "select * from Favorite where img_filename = {}".format(filename)
+        # サンプル生成
+        video_url_s = 'https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4'
+        file_name_s = os.path.basename(video_url_s)
+        record = self.FavoriteSampleFactory(video_url_s)
+        record.img_filename = file_name_s
+        self.session.add(record)
+        self.session.commit()
 
-            def str_side_effect(args: str) -> str:
-                return args
-
-            mocksql.connect().cursor().execute.side_effect = str_side_effect
-            mockgfv.side_effect = GetFavoriteVideoURLSelectSQL_side_effect
-
-            controlar = DBController.DBController()
-
-            video_url_s = 'https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4'
-            file_name_s = os.path.basename(video_url_s)
-            expect = 'select * from Favorite where img_filename = {}'.format(file_name_s)
-
-            res = controlar.DBFavVideoURLSelect(file_name_s)
-            actual = "".join(res)
-            self.assertEqual(expect, actual)
-
-            # 規定の引数で呼び出されたことを確認する
-            mockgfv.assert_called_once_with(file_name_s)
-            mocksql.connect().cursor().execute.assert_called_once_with(actual)
+        expect = [record]
+        actual = controlar.DBFavVideoURLSelect(file_name_s)
+        self.assertEqual(expect, actual)
 
     def test_DBRetweetUpsert(self):
         # DB操作をmockに置き換える
