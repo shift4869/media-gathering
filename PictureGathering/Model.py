@@ -77,6 +77,24 @@ class Favorite(Base):
     def __eq__(self, other):
         return isinstance(other, Favorite) and other.img_filename == self.img_filename
 
+    def toDict(self):
+        return {
+            "id": self.id,
+            "is_exist_saved_file": self.is_exist_saved_file,
+            "img_filename": self.img_filename,
+            "url": self.url,
+            "url_thumbnail": self.url_thumbnail,
+            "tweet_id": self.tweet_id,
+            "tweet_url": self.tweet_url,
+            "created_at": self.created_at,
+            "user_id": self.user_id,
+            "user_name": self.user_name,
+            "screan_name": self.screan_name,
+            "tweet_text": self.tweet_text,
+            "saved_localpath": self.saved_localpath,
+            "saved_created_at": self.saved_created_at,
+        }
+
 
 class Retweet(Base):
     """リツイートツイートモデル
@@ -141,6 +159,24 @@ class Retweet(Base):
     def __eq__(self, other):
         return isinstance(other, Retweet) and other.img_filename == self.img_filename
 
+    def toDict(self):
+        return {
+            "id": self.id,
+            "is_exist_saved_file": self.is_exist_saved_file,
+            "img_filename": self.img_filename,
+            "url": self.url,
+            "url_thumbnail": self.url_thumbnail,
+            "tweet_id": self.tweet_id,
+            "tweet_url": self.tweet_url,
+            "created_at": self.created_at,
+            "user_id": self.user_id,
+            "user_name": self.user_name,
+            "screan_name": self.screan_name,
+            "tweet_text": self.tweet_text,
+            "saved_localpath": self.saved_localpath,
+            "saved_created_at": self.saved_created_at,
+        }
+
 
 class DeleteTarget(Base):
     """削除対象ツイート保持テーブルモデル
@@ -187,6 +223,18 @@ class DeleteTarget(Base):
 
     def __eq__(self, other):
         return isinstance(other, DeleteTarget) and other.tweet_id == self.tweet_id
+
+    def toDict(self):
+        return {
+            "id": self.id,
+            "tweet_id": self.tweet_id,
+            "delete_done": self.delete_done,
+            "created_at": self.created_at,
+            "deleted_at": self.deleted_at,
+            "tweet_text": self.tweet_text,
+            "add_num": self.add_num,
+            "del_num": self.del_num,
+        }
 
 
 if __name__ == "__main__":
