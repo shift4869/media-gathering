@@ -170,6 +170,7 @@ class DBController:
         session = Session()
 
         res = session.query(Favorite).order_by(desc(Favorite.created_at)).limit(limit).all()
+        res_dict = [r.toDict() for r in res]  # 辞書配列に変換
 
         session.close()
         # with closing(sqlite3.connect(self.dbname)) as conn:
@@ -177,7 +178,7 @@ class DBController:
         #     c = conn.cursor()
         #     query = self.__GetFavoriteSelectSQL(limit)
         #     res = list(c.execute(query))
-        return res
+        return res_dict
 
     def DBFavVideoURLSelect(self, filename):
         """Favoriteからfilenameを条件としてSELECTする
@@ -195,9 +196,10 @@ class DBController:
         session = Session()
 
         res = session.query(Favorite).filter_by(img_filename=filename).all()
+        res_dict = [r.toDict() for r in res]  # 辞書配列に変換
 
         session.close()
-        return res
+        return res_dict
         # with closing(sqlite3.connect(self.dbname)) as conn:
         #     conn.row_factory = sqlite3.Row
         #     c = conn.cursor()

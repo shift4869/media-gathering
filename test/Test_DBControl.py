@@ -248,7 +248,7 @@ class TestDBController(unittest.TestCase):
         limit_s = 300
         actual = controlar.DBFavSelect(limit_s)
 
-        expect = [self.f]
+        expect = [self.f.toDict()]
         self.assertEqual(expect, actual)
 
     def test_DBFavVideoURLSelect(self):
@@ -264,7 +264,7 @@ class TestDBController(unittest.TestCase):
         self.session.add(record)
         self.session.commit()
 
-        expect = [record]
+        expect = [record.toDict()]
         actual = controlar.DBFavVideoURLSelect(file_name_s)
         self.assertEqual(expect, actual)
 
