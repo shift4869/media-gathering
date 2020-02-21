@@ -164,13 +164,13 @@ class DBController:
             limit (int): 取得レコード数上限
 
         Returns:
-            Favorite[]: レコードのリスト
+            dict: SELECTしたレコードの辞書リスト
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
 
         res = session.query(Favorite).order_by(desc(Favorite.created_at)).limit(limit).all()
-        res_dict = [r.toDict() for r in res]  # 辞書配列に変換
+        res_dict = [r.toDict() for r in res]  # 辞書リストに変換
 
         session.close()
         # with closing(sqlite3.connect(self.dbname)) as conn:
@@ -190,13 +190,13 @@ class DBController:
             filename (str): 取得対象のファイル名
 
         Returns:
-            Favorite[]: レコードのリスト
+            dict: SELECTしたレコードの辞書リスト
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
 
         res = session.query(Favorite).filter_by(img_filename=filename).all()
-        res_dict = [r.toDict() for r in res]  # 辞書配列に変換
+        res_dict = [r.toDict() for r in res]  # 辞書リストに変換
 
         session.close()
         return res_dict
@@ -209,7 +209,7 @@ class DBController:
 
     def DBFavFlagUpdate(self, file_list=[], set_flag=0):
         """Favorite中のfile_listに含まれるファイル名を持つレコードについて
-        　 is_exist_saved_fileにフラグをセットする
+        　 is_exist_saved_fileフラグを更新する
 
         Note:
             'update Favorite set is_exist_saved_file = {} where img_filename in ({})'.format(set_flag, filename)
@@ -219,7 +219,7 @@ class DBController:
             set_flag (int): セットするフラグ
 
         Returns:
-            Favorite[]: フラグが更新された結果レコードのリスト
+            dict: フラグが更新された結果レコードの辞書リスト
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
@@ -229,7 +229,7 @@ class DBController:
         for record in records:
             record.is_exist_saved_file = flag
 
-        res_dict = [r.toDict() for r in records]  # 辞書配列に変換
+        res_dict = [r.toDict() for r in records]  # 辞書リストに変換
 
         session.close()
         return res_dict
