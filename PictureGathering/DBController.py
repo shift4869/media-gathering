@@ -158,7 +158,7 @@ class DBController:
         """FavoriteからSELECTする
 
         Note:
-            select * from Favorite order by created_at desc limit {}'.format(limit)
+            'select * from Favorite order by created_at desc limit {}'.format(limit)
 
         Args:
             limit (int): 取得レコード数上限
@@ -180,12 +180,30 @@ class DBController:
         return res
 
     def DBFavVideoURLSelect(self, filename):
-        with closing(sqlite3.connect(self.dbname)) as conn:
-            conn.row_factory = sqlite3.Row
-            c = conn.cursor()
-            query = self.__GetFavoriteVideoURLSelectSQL(filename)
-            res = list(c.execute(query))
+        """Favoriteからfilenameを条件としてSELECTする
+
+        Note:
+            'select * from Favorite where img_filename = {}'.format(file_name_s)
+
+        Args:
+            filename (str): 取得対象のファイル名
+
+        Returns:
+            Favorite[]: レコードのリスト
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+
+        res = session.query(Favorite).filter_by(img_filename=filename).all()
+
+        session.close()
         return res
+        # with closing(sqlite3.connect(self.dbname)) as conn:
+        #     conn.row_factory = sqlite3.Row
+        #     c = conn.cursor()
+        #     query = self.__GetFavoriteVideoURLSelectSQL(filename)
+        #     res = list(c.execute(query))
+        # return res
 
     # id	img_filename	url	url_thumbnail
     # tweet_id	tweet_url	created_at	user_id	user_name	screan_name	tweet_text
