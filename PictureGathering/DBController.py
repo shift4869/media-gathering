@@ -207,6 +207,40 @@ class DBController:
         #     res = list(c.execute(query))
         # return res
 
+    def DBFavFlagUpdate(self, file_list=[], set_flag=0):
+        """Favorite中のfile_listに含まれるファイル名を持つレコードについて
+        　 is_exist_saved_fileにフラグをセットする
+
+        Note:
+            'update Favorite set is_exist_saved_file = {} where img_filename in ({})'.format(set_flag, filename)
+
+        Args:
+            file_list (list): 取得対象のファイル名リスト　シングルクォート必要、カンマ区切り
+            set_flag (int): セットするフラグ
+
+        Returns:
+            Favorite[]: フラグが更新された結果レコードのリスト
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+
+        set_flag = 0 if set_flag == 0 else 1
+        records = session.query(Favorite).filter(Favorite.img_filename.in_(file_list)).all()
+        for record in records:
+            record.is_exist_saved_file = set_flag
+
+        res_dict = [r.toDict() for r in records]  # 辞書配列に変換
+
+        session.close()
+        return res_dict
+
+    def DBFavFlagClear(self):
+        with closing(sqlite3.connect(self.dbname)) as conn:
+            c = conn.cursor()
+            query = self.__GetRetweetFlagClearSQL()
+            c.execute(query)
+            conn.commit()
+
     # id	img_filename	url	url_thumbnail
     # tweet_id	tweet_url	created_at	user_id	user_name	screan_name	tweet_text
     # saved_localpath	saved_created_at
