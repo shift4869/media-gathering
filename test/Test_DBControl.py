@@ -215,59 +215,39 @@ class TestDBController(unittest.TestCase):
         controlar = DBController.DBController()
         controlar.engine = self.engine
 
-        def make_sample_param(img_url_s):
-            url_orig_s = img_url_s + ":orig"
-            url_thumbnail_s = img_url_s + ":large"
-            file_name_s = os.path.basename(url_orig_s)
-            tweet_s = self.GetTweetSample(img_url_s)
-            save_file_fullpath_s = os.getcwd()
-            return url_orig_s, url_thumbnail_s, file_name_s, tweet_s, save_file_fullpath_s
-
         # 1回目（INSERT）
         img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
-        url_orig_s, url_thumbnail_s, file_name_s, tweet_s, save_file_fullpath_s = make_sample_param(img_url_s)
-        param_s = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
-        r1 = Favorite(False, param_s[0], param_s[1], param_s[2], param_s[3], param_s[4], param_s[5],
-                      param_s[6], param_s[7], param_s[8], param_s[9], param_s[10], param_s[11])
-        controlar.DBFavUpsert(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
+        r1 = self.FavoriteSampleFactory(img_url_s)
+        controlar.DBFavUpsert(r1.img_filename, r1.url, r1.url_thumbnail,
+                              self.GetTweetSample(img_url_s), r1.saved_localpath)
 
         # 2回目（INSERT）
         img_url_s = "http://www.img.filename.sample.com/media/sample_2.png"
-        url_orig_s, url_thumbnail_s, file_name_s, tweet_s, save_file_fullpath_s = make_sample_param(img_url_s)
-        param_s = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
-        r2 = Favorite(False, param_s[0], param_s[1], param_s[2], param_s[3], param_s[4], param_s[5],
-                      param_s[6], param_s[7], param_s[8], param_s[9], param_s[10], param_s[11])
-        controlar.DBFavUpsert(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
+        r2 = self.FavoriteSampleFactory(img_url_s)
+        controlar.DBFavUpsert(r2.img_filename, r2.url, r2.url_thumbnail,
+                              self.GetTweetSample(img_url_s), r2.saved_localpath)
 
         # 3回目（UPDATE）
         img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
-        url_orig_s, url_thumbnail_s, file_name_s, tweet_s, save_file_fullpath_s = make_sample_param(img_url_s)
         file_name_s = "sample_3.png"
-        param_s = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
-        r3 = Favorite(False, param_s[0], param_s[1], param_s[2], param_s[3], param_s[4], param_s[5],
-                      param_s[6], param_s[7], param_s[8], param_s[9], param_s[10], param_s[11])
-        controlar.DBFavUpsert(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
+        r3 = self.FavoriteSampleFactory(img_url_s)
+        r3.img_filename = file_name_s
+        controlar.DBFavUpsert(r3.img_filename, r3.url, r3.url_thumbnail,
+                              self.GetTweetSample(img_url_s), r3.saved_localpath)
 
         actual = self.session.query(Favorite).all()
         self.assertEqual([self.f, r2, r3], actual)
 
     def test_DBFavSelect(self):
-        # DB操作をmockに置き換える
-        with ExitStack() as stack:
-            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
-            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
-            
-            mocksql.connect().cursor().execute.return_value = 'execute sql done'
+        # engineをテスト用インメモリテーブルに置き換える
+        controlar = DBController.DBController()
+        controlar.engine = self.engine
 
-            # engineをテスト用インメモリテーブルに置き換える
-            controlar = DBController.DBController()
-            controlar.engine = self.engine
+        # SELECT
+        limit_s = 300
+        actual = controlar.DBFavSelect(limit_s)
 
-            # DB操作を伴う操作を行う
-            limit_s = 300
-            actual = controlar.DBFavSelect(limit_s)
-
-            self.assertEqual([self.f], actual)
+        self.assertEqual([self.f], actual)
 
     def test_DBFavVideoURLSelect(self):
         # DB操作をmockに置き換える
