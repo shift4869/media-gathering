@@ -33,6 +33,24 @@ class Favorite(Base):
         [saved_created_at] TEXT,
         PRIMARY KEY([id])
     """
+
+    __tablename__ = "Favorite"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    is_exist_saved_file = Column(Boolean, server_default=text("True"))
+    img_filename = Column(String(256), nullable=False, unique=True)
+    url = Column(String(512), nullable=False, unique=True)
+    url_thumbnail = Column(String(512), nullable=False, unique=True)
+    tweet_id = Column(String(256), nullable=False)
+    tweet_url = Column(String(512), nullable=False)
+    created_at = Column(String(32))
+    user_id = Column(String(256), nullable=False)
+    user_name = Column(String(256), nullable=False)
+    screan_name = Column(String(256), nullable=False)
+    tweet_text = Column(String(512))
+    saved_localpath = Column(String(256))
+    saved_created_at = Column(String(32))
+
     def __init__(self, *args, **kwargs):
         super(Base, self).__init__(*args, **kwargs)
         self.is_exist_saved_file = True
@@ -53,49 +71,11 @@ class Favorite(Base):
         self.saved_localpath = saved_localpath
         self.saved_created_at = saved_created_at
 
-    __tablename__ = "Favorite"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    is_exist_saved_file = Column(Boolean, server_default=text("True"))
-    img_filename = Column(String(256), nullable=False, unique=True)
-    url = Column(String(512), nullable=False, unique=True)
-    url_thumbnail = Column(String(512), nullable=False, unique=True)
-    tweet_id = Column(String(256), nullable=False)
-    tweet_url = Column(String(512), nullable=False)
-    created_at = Column(String(32))
-    user_id = Column(String(256), nullable=False)
-    user_name = Column(String(256), nullable=False)
-    screan_name = Column(String(256), nullable=False)
-    tweet_text = Column(String(512))
-    saved_localpath = Column(String(256))
-    saved_created_at = Column(String(32))
-
     def __repr__(self):
         return "<Favorite(id='%s', img_filename='%s', url='%s')>" % (self.id, self.img_filename, self.url)
 
     def __eq__(self, other):
         return isinstance(other, Favorite) and other.img_filename == self.img_filename
-    
-    def copy(self, other):
-        if not isinstance(other, Favorite):
-            return None
-        
-        # self.id = other.id
-        self.is_exist_saved_file = other.is_exist_saved_file
-        self.img_filename = other.img_filename
-        self.url = other.url
-        self.url_thumbnail = other.url_thumbnail
-        self.tweet_id = other.tweet_id
-        self.tweet_url = other.tweet_url
-        self.created_at = other.created_at
-        self.user_id = other.user_id
-        self.user_name = other.user_name
-        self.screan_name = other.screan_name
-        self.tweet_text = other.tweet_text
-        self.saved_localpath = other.saved_localpath
-        self.saved_created_at = other.saved_created_at
-
-        return self
 
 
 class Retweet(Base):
@@ -117,9 +97,6 @@ class Retweet(Base):
         [saved_created_at] TEXT,
         PRIMARY KEY([id])
     """
-    def __init__(self, *args, **kwargs):
-        super(Base, self).__init__(*args, **kwargs)
-        self.is_exist_saved_file = True
 
     __tablename__ = "Retweet"
 
@@ -138,8 +115,31 @@ class Retweet(Base):
     saved_localpath = Column(String(256))
     saved_created_at = Column(String(32))
 
+    def __init__(self, *args, **kwargs):
+        super(Base, self).__init__(*args, **kwargs)
+        self.is_exist_saved_file = True
+
+    def __init__(self, is_exist_saved_file, img_filename, url, url_thumbnail, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, saved_localpath, saved_created_at):
+        # self.id = id
+        self.is_exist_saved_file = is_exist_saved_file
+        self.img_filename = img_filename
+        self.url = url
+        self.url_thumbnail = url_thumbnail
+        self.tweet_id = tweet_id
+        self.tweet_url = tweet_url
+        self.created_at = created_at
+        self.user_id = user_id
+        self.user_name = user_name
+        self.screan_name = screan_name
+        self.tweet_text = tweet_text
+        self.saved_localpath = saved_localpath
+        self.saved_created_at = saved_created_at
+
     def __repr__(self):
         return "<Retweet(id='%s', img_filename='%s', url='%s')>" % (self.id, self.img_filename, self.url)
+
+    def __eq__(self, other):
+        return isinstance(other, Retweet) and other.img_filename == self.img_filename
 
 
 class DeleteTarget(Base):
@@ -157,10 +157,6 @@ class DeleteTarget(Base):
         PRIMARY KEY(id)
         );
     """
-    def __init__(self, *args, **kwargs):
-        super(Base, self).__init__(*args, **kwargs)
-        self.delete_done = False
-
     __tablename__ = "DeleteTarget"
 
     id = Column(Integer, primary_key=True)
@@ -172,8 +168,25 @@ class DeleteTarget(Base):
     add_num = Column(Integer, nullable=False)
     del_num = Column(Integer, nullable=False)
 
+    def __init__(self, *args, **kwargs):
+        super(Base, self).__init__(*args, **kwargs)
+        self.delete_done = False
+
+    def __init__(self, tweet_id, delete_done, created_at, deleted_at, tweet_text, add_num, del_num):
+        # self.id = id
+        self.tweet_id = tweet_id
+        self.delete_done = delete_done
+        self.created_at = created_at
+        self.deleted_at = deleted_at
+        self.tweet_text = tweet_text
+        self.add_num = add_num
+        self.del_num = del_num
+
     def __repr__(self):
         return "<DeleteTarget(id='%s', tweet_id='%s', delete_done='%s')>" % (self.id, self.tweet_id, self.delete_done)
+
+    def __eq__(self, other):
+        return isinstance(other, DeleteTarget) and other.tweet_id == self.tweet_id
 
 
 if __name__ == "__main__":
