@@ -273,6 +273,7 @@ class TestDBController(unittest.TestCase):
         controlar = DBController.DBController()
         controlar.engine = self.engine
 
+        # 1回目（r1,r2を追加して両方ともTrueに更新）
         img_url_1 = "http://www.img.filename.sample.com/media/sample_1.png"
         r1 = self.FavoriteSampleFactory(img_url_1)
         img_url_2 = "http://www.img.filename.sample.com/media/sample_2.png"
@@ -281,10 +282,25 @@ class TestDBController(unittest.TestCase):
         self.session.add(r2)
         self.session.commit()
 
-        # r1.is_exist_saved_file = 1
-        # r2.is_exist_saved_file = 1
+        r1.is_exist_saved_file = True
+        r2.is_exist_saved_file = True
         expect = [r1.toDict(), r2.toDict()]
         actual = controlar.DBFavFlagUpdate([r1.img_filename, r2.img_filename], 1)
+        self.assertEqual(expect[0]["is_exist_saved_file"], actual[0]["is_exist_saved_file"])
+        self.assertEqual(expect, actual)
+
+        # 2回目（r3を追加してr1とr3のみFalseに更新）
+        img_url_3 = "http://www.img.filename.sample.com/media/sample_3.png"
+        r3 = self.FavoriteSampleFactory(img_url_3)
+        r3.is_exist_saved_file = True
+        self.session.add(r3)
+        self.session.commit()
+
+        r1.is_exist_saved_file = False
+        r3.is_exist_saved_file = False
+        expect = [r1.toDict(), r3.toDict()]
+        actual = controlar.DBFavFlagUpdate([r1.img_filename, r3.img_filename], 0)
+        self.assertEqual(expect[0]["is_exist_saved_file"], actual[0]["is_exist_saved_file"])
         self.assertEqual(expect, actual)
 
     def test_DBFavFlagClear(self):

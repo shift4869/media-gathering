@@ -224,10 +224,10 @@ class DBController:
         Session = sessionmaker(bind=self.engine)
         session = Session()
 
-        set_flag = 0 if set_flag == 0 else 1
+        flag = False if set_flag == 0 else True
         records = session.query(Favorite).filter(Favorite.img_filename.in_(file_list)).all()
         for record in records:
-            record.is_exist_saved_file = set_flag
+            record.is_exist_saved_file = flag
 
         res_dict = [r.toDict() for r in records]  # 辞書配列に変換
 
