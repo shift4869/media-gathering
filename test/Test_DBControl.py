@@ -268,6 +268,30 @@ class TestDBController(unittest.TestCase):
         actual = controlar.DBFavVideoURLSelect(file_name_s)
         self.assertEqual(expect, actual)
 
+    def test_DBFavFlagUpdate(self):
+        # engineをテスト用インメモリテーブルに置き換える
+        controlar = DBController.DBController()
+        controlar.engine = self.engine
+
+        img_url_1 = "http://www.img.filename.sample.com/media/sample_1.png"
+        r1 = self.FavoriteSampleFactory(img_url_1)
+        img_url_2 = "http://www.img.filename.sample.com/media/sample_2.png"
+        r2 = self.FavoriteSampleFactory(img_url_2)
+        self.session.add(r1)
+        self.session.add(r2)
+        self.session.commit()
+
+        # r1.is_exist_saved_file = 1
+        # r2.is_exist_saved_file = 1
+        expect = [r1.toDict(), r2.toDict()]
+        actual = controlar.DBFavFlagUpdate([r1.img_filename, r2.img_filename], 1)
+        self.assertEqual(expect, actual)
+
+    def test_DBFavFlagClear(self):
+        # engineをテスト用インメモリテーブルに置き換える
+        controlar = DBController.DBController()
+        controlar.engine = self.engine
+
     def test_DBRetweetUpsert(self):
         # DB操作をmockに置き換える
         with ExitStack() as stack:
