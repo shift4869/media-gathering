@@ -235,11 +235,29 @@ class DBController:
         return res_dict
 
     def DBFavFlagClear(self):
-        with closing(sqlite3.connect(self.dbname)) as conn:
-            c = conn.cursor()
-            query = self.__GetRetweetFlagClearSQL()
-            c.execute(query)
-            conn.commit()
+        """Favorite中のis_exist_saved_fileフラグをすべて0に更新する
+
+        Note:
+            'update Favorite set is_exist_saved_file = 0'
+
+        Returns:
+             int: 0(成功)
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+
+        records = session.query(Favorite).filter(Favorite.is_exist_saved_file).all()
+        for record in records:
+            record.is_exist_saved_file = False
+
+        session.close()
+
+        return 0
+        # with closing(sqlite3.connect(self.dbname)) as conn:
+        #     c = conn.cursor()
+        #     query = self.__GetRetweetFlagClearSQL()
+        #     c.execute(query)
+        #     conn.commit()
 
     # id	img_filename	url	url_thumbnail
     # tweet_id	tweet_url	created_at	user_id	user_name	screan_name	tweet_text
