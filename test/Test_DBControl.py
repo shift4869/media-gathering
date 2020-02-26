@@ -308,6 +308,32 @@ class TestDBController(unittest.TestCase):
         controlar = DBController.DBController()
         controlar.engine = self.engine
 
+        # サンプル生成
+        r = []
+        for i, f in enumerate([True, False, True]):
+            img_url = f"http://www.img.filename.sample.com/media/sample_{i}.png"
+            t = self.FavoriteSampleFactory(img_url)
+            t.is_exist_saved_file = f
+            r.append(t)
+            self.session.add(t)
+        self.session.commit()
+
+        # フラグクリア前チェック
+        expect = [self.f] + r
+        actual = self.session.query(Favorite).all()
+        self.assertEqual(expect, actual)
+
+        # フラグクリア
+        controlar.DBFavFlagClear()
+
+        # フラグクリア後チェック
+        self.f.is_exist_saved_file = False
+        for t in r:
+            t.is_exist_saved_file = False
+        expect = [self.f] + r
+        actual = self.session.query(Favorite).all()
+        self.assertEqual(expect, actual)
+
     def test_DBRetweetUpsert(self):
         # DB操作をmockに置き換える
         with ExitStack() as stack:
