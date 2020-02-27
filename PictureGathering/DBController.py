@@ -243,46 +243,144 @@ class DBController:
 
         return 0
 
-    # id	img_filename	url	url_thumbnail
-    # tweet_id	tweet_url	created_at	user_id	user_name	screan_name	tweet_text
-    # saved_localpath	saved_created_at
     def DBRetweetUpsert(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath):
-        with closing(sqlite3.connect(self.dbname)) as conn:
-            c = conn.cursor()
-            param = self.__GetUpdateParam(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
-            c.execute(self.__retweet_sql, param)
-            conn.commit()
+        """RetweetにUPSERTする
+
+        Notes:
+            追加しようとしているレコードが既存テーブルに存在しなければINSERT
+            存在しているならばUPDATE(DELETE->INSERT)
+            一致しているかの判定は
+            img_filename, url, url_thumbnailのどれか一つでも完全一致している場合、とする
+
+        Args:
+            file_name (str): ファイル名
+            url_orig (str): メディアURL
+            url_thumbnail (str): サムネイルメディアURL
+            tweet(str): ツイート本文
+            save_file_fullpath(str): メディア保存パス（ローカル）
+
+        Returns:
+            int: 0(成功,新規追加), 1(成功,更新), other(失敗)
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+        res = -1
+            
+        param = self.__GetUpdateParam(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
+        r = Retweet(False, param[0], param[1], param[2], param[3], param[4], param[5],
+                    param[6], param[7], param[8], param[9], param[10], param[11])
+
+        try:
+            q = session.query(Retweet).filter(
+                or_(
+                    Retweet.img_filename == r.img_filename,
+                    Retweet.url == r.url,
+                    Retweet.url_thumbnail == r.url_thumbnail))
+            ex = q.one()
+        except NoResultFound:
+            # INSERT
+            session.add(r)
+            res = 0
+        else:
+            # UPDATEは実質DELETE->INSERTと同じとする
+            session.delete(ex)
+            session.commit()
+            session.add(r)
+            res = 1
+
+        session.commit()
+        session.close()
+
+        return res
 
     def DBRetweetSelect(self, limit=300):
-        with closing(sqlite3.connect(self.dbname)) as conn:
-            conn.row_factory = sqlite3.Row
-            c = conn.cursor()
-            query = self.__GetRetweetSelectSQL(limit)
-            res = list(c.execute(query))
-        return res
+        """RetweetからSELECTする
+
+        Note:
+            'select * from Retweet order by created_at desc limit {}'.format(limit)
+
+        Args:
+            limit (int): 取得レコード数上限
+
+        Returns:
+            dict: SELECTしたレコードの辞書リスト
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+
+        res = session.query(Retweet).order_by(desc(Retweet.created_at)).limit(limit).all()
+        res_dict = [r.toDict() for r in res]  # 辞書リストに変換
+
+        session.close()
+        return res_dict
 
     def DBRetweetVideoURLSelect(self, filename):
-        with closing(sqlite3.connect(self.dbname)) as conn:
-            conn.row_factory = sqlite3.Row
-            c = conn.cursor()
-            query = self.__GetRetweetVideoURLSelectSQL(filename)
-            res = list(c.execute(query))
-        return res
+        """Retweetからfilenameを条件としてSELECTする
+
+        Note:
+            'select * from Retweet where img_filename = {}'.format(file_name_s)
+
+        Args:
+            filename (str): 取得対象のファイル名
+
+        Returns:
+            dict: SELECTしたレコードの辞書リスト
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+
+        res = session.query(Retweet).filter_by(img_filename=filename).all()
+        res_dict = [r.toDict() for r in res]  # 辞書リストに変換
+
+        session.close()
+        return res_dict
 
     def DBRetweetFlagUpdate(self, file_list=[], set_flag=0):
-        filename = "'" + "','".join(file_list) + "'"
-        with closing(sqlite3.connect(self.dbname)) as conn:
-            c = conn.cursor()
-            query = self.__GetRetweetFlagUpdateSQL(filename, set_flag)
-            c.execute(query)
-            conn.commit()
+        """Retweet中のfile_listに含まれるファイル名を持つレコードについて
+        　 is_exist_saved_fileフラグを更新する
+
+        Note:
+            'update Retweet set is_exist_saved_file = {} where img_filename in ({})'.format(set_flag, filename)
+
+        Args:
+            file_list (list): 取得対象のファイル名リスト　シングルクォート必要、カンマ区切り
+            set_flag (int): セットするフラグ
+
+        Returns:
+            dict: フラグが更新された結果レコードの辞書リスト
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+
+        flag = False if set_flag == 0 else True
+        records = session.query(Retweet).filter(Retweet.img_filename.in_(file_list)).all()
+        for record in records:
+            record.is_exist_saved_file = flag
+
+        res_dict = [r.toDict() for r in records]  # 辞書リストに変換
+
+        session.close()
+        return res_dict
 
     def DBRetweetFlagClear(self):
-        with closing(sqlite3.connect(self.dbname)) as conn:
-            c = conn.cursor()
-            query = self.__GetRetweetFlagClearSQL()
-            c.execute(query)
-            conn.commit()
+        """Retweet中のis_exist_saved_fileフラグをすべて0に更新する
+
+        Note:
+            'update Retweet set is_exist_saved_file = 0'
+
+        Returns:
+             int: 0(成功)
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+
+        records = session.query(Retweet).filter(Retweet.is_exist_saved_file).all()
+        for record in records:
+            record.is_exist_saved_file = False
+
+        session.close()
+
+        return 0
 
     def DBDelInsert(self, tweet):
         with closing(sqlite3.connect(self.dbname)) as conn:
