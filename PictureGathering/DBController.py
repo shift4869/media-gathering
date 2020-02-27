@@ -173,11 +173,6 @@ class DBController:
         res_dict = [r.toDict() for r in res]  # 辞書リストに変換
 
         session.close()
-        # with closing(sqlite3.connect(self.dbname)) as conn:
-        #     conn.row_factory = sqlite3.Row
-        #     c = conn.cursor()
-        #     query = self.__GetFavoriteSelectSQL(limit)
-        #     res = list(c.execute(query))
         return res_dict
 
     def DBFavVideoURLSelect(self, filename):
@@ -200,12 +195,6 @@ class DBController:
 
         session.close()
         return res_dict
-        # with closing(sqlite3.connect(self.dbname)) as conn:
-        #     conn.row_factory = sqlite3.Row
-        #     c = conn.cursor()
-        #     query = self.__GetFavoriteVideoURLSelectSQL(filename)
-        #     res = list(c.execute(query))
-        # return res
 
     def DBFavFlagUpdate(self, file_list=[], set_flag=0):
         """Favorite中のfile_listに含まれるファイル名を持つレコードについて
@@ -253,11 +242,6 @@ class DBController:
         session.close()
 
         return 0
-        # with closing(sqlite3.connect(self.dbname)) as conn:
-        #     c = conn.cursor()
-        #     query = self.__GetRetweetFlagClearSQL()
-        #     c.execute(query)
-        #     conn.commit()
 
     # id	img_filename	url	url_thumbnail
     # tweet_id	tweet_url	created_at	user_id	user_name	screan_name	tweet_text
