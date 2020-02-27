@@ -35,6 +35,11 @@ class TestDBController(unittest.TestCase):
         self.f = self.FavoriteSampleFactory(img_url_s)
         self.session.add(self.f)
 
+        # サンプル生成
+        img_url_s = "http://www.img.filename.sample.com/media/sample.png"
+        self.rt = self.RetweetSampleFactory(img_url_s)
+        self.session.add(self.rt)
+
         self.session.commit()
 
     def tearDown(self):
@@ -70,6 +75,37 @@ class TestDBController(unittest.TestCase):
         # サンプル生成
         f = Favorite(False, param[0], param[1], param[2], param[3], param[4], param[5],
                      param[6], param[7], param[8], param[9], param[10], param[11])
+
+        return f
+
+    def RetweetSampleFactory(self, img_url):
+        url_orig = img_url + ":orig"
+        url_thumbnail = img_url + ":large"
+        file_name = os.path.basename(url_orig)
+        tweet = self.GetTweetSample(img_url)
+        save_file_fullpath = os.getcwd()
+
+        td_format = '%a %b %d %H:%M:%S +0000 %Y'
+        dts_format = '%Y-%m-%d %H:%M:%S'
+        tca = tweet["created_at"]
+        dst = datetime.strptime(tca, td_format)
+        text = tweet["text"] if "text" in tweet else tweet["full_text"]
+        param = (file_name,
+                 url_orig,
+                 url_thumbnail,
+                 tweet["id_str"],
+                 tweet["entities"]["media"][0]["expanded_url"],
+                 dst.strftime(dts_format),
+                 tweet["user"]["id_str"],
+                 tweet["user"]["name"],
+                 tweet["user"]["screen_name"],
+                 text,
+                 save_file_fullpath,
+                 datetime.now().strftime(dts_format))
+
+        # サンプル生成
+        f = Retweet(False, param[0], param[1], param[2], param[3], param[4], param[5],
+                    param[6], param[7], param[8], param[9], param[10], param[11])
 
         return f
 
@@ -334,132 +370,228 @@ class TestDBController(unittest.TestCase):
         actual = self.session.query(Favorite).all()
         self.assertEqual(expect, actual)
 
-    def test_DBRetweetUpsert(self):
-        # DB操作をmockに置き換える
-        with ExitStack() as stack:
-            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
-            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
+        # 使用するSQL構文をチェックする
+        # 実際にDB操作はしないためmockは省略
+        controlar = DBController.DBController()
 
-            mocksql.connect().cursor().execute.return_value = 'execute sql done'
-            mocksql.connect().commit.return_value = 'commit done'
-            controlar = DBController.DBController()
+        p1 = 'img_filename,url,url_thumbnail,'
+        p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
+        p3 = 'saved_localpath,saved_created_at'
+        pn = '?,?,?,?,?,?,?,?,?,?,?,?'
+        expect = 'replace into Favorite (' + p1 + p2 + p3 + ') values (' + pn + ')'
+        actual = controlar._DBController__fav_sql
+        self.assertEqual(expect, actual)
 
-            # DB操作を伴う操作を行う
+        p1 = 'img_filename,url,url_thumbnail,'
+        p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
+        p3 = 'saved_localpath,saved_created_at'
+        pn = '?,?,?,?,?,?,?,?,?,?,?,?'
+        expect = 'replace into Retweet (' + p1 + p2 + p3 + ') values (' + pn + ')'
+        actual = controlar._DBController__retweet_sql
+        self.assertEqual(expect, actual)
+
+        p1 = 'tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num'
+        pn = '?,?,?,?,?,?,?'
+        expect = 'replace into DeleteTarget (' + p1 + ') values (' + pn + ')'
+        actual = controlar._DBController__del_sql
+        self.assertEqual(expect, actual)
+
+        limit_s = 300
+        expect = 'select * from Favorite order by created_at desc limit {}'.format(limit_s)
+        actual = controlar._DBController__GetFavoriteSelectSQL(limit_s)
+        self.assertEqual(expect, actual)
+
+        filename = "sample.mp4"
+        expect = 'select * from Favorite where img_filename = {}'.format(filename)
+        actual = controlar._DBController__GetFavoriteVideoURLSelectSQL(filename)
+        self.assertEqual(expect, actual)
+
+        limit_s = 300
+        expect = 'select * from Retweet where is_exist_saved_file = 1 order by created_at desc limit {}'.format(limit_s)
+        actual = controlar._DBController__GetRetweetSelectSQL(limit_s)
+        self.assertEqual(expect, actual)
+
+        set_flag = 0
+        file_list = ["sample_1.png", "sample_2.png"]
+        filename = "'" + "','".join(file_list) + "'"
+        expect = 'update Retweet set is_exist_saved_file = {} where img_filename in ({})'.format(set_flag, filename)
+        actual = controlar._DBController__GetRetweetFlagUpdateSQL(filename, set_flag)
+        self.assertEqual(expect, actual)
+
+        expect = 'update Retweet set is_exist_saved_file = 0'
+        actual = controlar._DBController__GetRetweetFlagClearSQL()
+        self.assertEqual(expect, actual)
+
+        with freezegun.freeze_time('2018-11-18 17:12:58'):
             img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
             url_orig_s = img_url_s + ":orig"
             url_thumbnail_s = img_url_s + ":large"
             file_name_s = os.path.basename(url_orig_s)
-            
+
+            td_format_s = '%a %b %d %H:%M:%S +0000 %Y'
+            dts_format_s = '%Y-%m-%d %H:%M:%S'
+
             tweet_s = self.GetTweetSample(img_url_s)
             save_file_fullpath_s = os.getcwd()
-            controlar.DBRetweetUpsert(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
 
-            # DB操作が規定の引数で呼び出されたことを確認する
-            param_s = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
-            retweet_sql_s = controlar._DBController__retweet_sql
-            mocksql.connect().cursor().execute.assert_called_once_with(retweet_sql_s, param_s)
-
-    def test_DBRetweetSelect(self):
-        # DB操作をmockに置き換える
-        with ExitStack() as stack:
-            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
-            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
-
-            mocksql.connect().cursor().execute.return_value = 'execute sql done'
-            
-            controlar = DBController.DBController()
-
-            img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
-            url_orig_s = img_url_s + ":orig"
-            url_thumbnail_s = img_url_s + ":large"
-            file_name_s = os.path.basename(url_orig_s)
-            
-            tweet_s = self.GetTweetSample(img_url_s)
-            save_file_fullpath_s = os.getcwd()
-            expect = ("rowid_sample", "is_exist_save_file_flag_sample") + \
-                controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
-            mocksql.connect().cursor().execute.return_value = [expect]
-
-            # DB操作を伴う操作を行う
-            limit_s = 300
-            actual = controlar.DBRetweetSelect(limit_s)
-
-            # DB操作が規定の引数で呼び出されたことを確認する
-            retweet_select_sql_s = controlar._DBController__GetRetweetSelectSQL(limit_s)
-            mocksql.connect().cursor().execute.assert_called_once_with(retweet_select_sql_s)
-
-            # 取得した値の確認
-            tweet_url_s = 'http://www.tweet.sample.com'
-            self.assertEqual(img_url_s + ":orig", actual[0][3])
-            self.assertEqual(tweet_url_s, actual[0][6])
-            self.assertEqual(expect, actual[0])
-
-    def test_DBRetweetVideoURLSelect(self):
-        # DB操作をmockに置き換える
-        with ExitStack() as stack:
-            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
-            mockgfv = stack.enter_context(patch('PictureGathering.DBController.DBController._DBController__GetRetweetVideoURLSelectSQL'))
-            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
-
-            def DBRetweetVideoURLSelectSQL_side_effect(filename: str) -> str:
-                return "select * from Favorite where img_filename = {}".format(filename)
-
-            def str_side_effect(args: str) -> str:
-                return args
-
-            mocksql.connect().cursor().execute.side_effect = str_side_effect
-            mockgfv.side_effect = DBRetweetVideoURLSelectSQL_side_effect
-
-            controlar = DBController.DBController()
-
-            video_url_s = 'https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4'
-            file_name_s = os.path.basename(video_url_s)
-            expect = 'select * from Favorite where img_filename = {}'.format(file_name_s)
-
-            res = controlar.DBRetweetVideoURLSelect(file_name_s)
-            actual = "".join(res)
+            tca = tweet_s["created_at"]
+            dst = datetime.strptime(tca, td_format_s)
+            expect = (file_name_s,
+                      url_orig_s,
+                      url_thumbnail_s,
+                      tweet_s["id_str"],
+                      tweet_s["entities"]["media"][0]["expanded_url"],
+                      dst.strftime(dts_format_s),
+                      tweet_s["user"]["id_str"],
+                      tweet_s["user"]["name"],
+                      tweet_s["user"]["screen_name"],
+                      tweet_s["text"],
+                      save_file_fullpath_s,
+                      datetime.now().strftime(dts_format_s))
+            actual = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
             self.assertEqual(expect, actual)
 
-            # 規定の引数で呼び出されたことを確認する
-            mockgfv.assert_called_once_with(file_name_s)
-            mocksql.connect().cursor().execute.assert_called_once_with(actual)
+            del_tweet_s = self.GetDelTweetSample()
+            pattern = ' +[0-9]* '
+            text = del_tweet_s["text"]
+            add_num = int(re.findall(pattern, text)[0])
+            del_num = int(re.findall(pattern, text)[1])
+
+            tca = del_tweet_s["created_at"]
+            dst = datetime.strptime(tca, td_format_s)
+            expect = (del_tweet_s["id_str"],
+                      False,
+                      dst.strftime(dts_format_s),
+                      None,
+                      del_tweet_s["text"],
+                      add_num,
+                      del_num)
+            actual = controlar._DBController__GetDelUpdateParam(del_tweet_s)
+            self.assertEqual(expect, actual)
+
+    def test_DBRetweetUpsert(self):
+        # engineをテスト用インメモリテーブルに置き換える
+        controlar = DBController.DBController()
+        controlar.engine = self.engine
+
+        # 1回目（INSERT）
+        img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
+        r1 = self.RetweetSampleFactory(img_url_s)
+        controlar.DBRetweetUpsert(r1.img_filename, r1.url, r1.url_thumbnail,
+                                  self.GetTweetSample(img_url_s), r1.saved_localpath)
+
+        # 2回目（INSERT）
+        img_url_s = "http://www.img.filename.sample.com/media/sample_2.png"
+        r2 = self.RetweetSampleFactory(img_url_s)
+        controlar.DBRetweetUpsert(r2.img_filename, r2.url, r2.url_thumbnail,
+                                  self.GetTweetSample(img_url_s), r2.saved_localpath)
+
+        # 3回目（UPDATE）
+        img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
+        file_name_s = "sample_3.png"
+        r3 = self.RetweetSampleFactory(img_url_s)
+        r3.img_filename = file_name_s
+        controlar.DBRetweetUpsert(r3.img_filename, r3.url, r3.url_thumbnail,
+                                  self.GetTweetSample(img_url_s), r3.saved_localpath)
+
+        expect = [self.rt, r2, r3]
+        actual = self.session.query(Retweet).all()
+        self.assertEqual(expect, actual)
+
+    def test_DBRetweetSelect(self):
+        # engineをテスト用インメモリテーブルに置き換える
+        controlar = DBController.DBController()
+        controlar.engine = self.engine
+
+        # SELECT
+        limit_s = 300
+        actual = controlar.DBRetweetSelect(limit_s)
+
+        expect = [self.rt.toDict()]
+        self.assertEqual(expect, actual)
+
+    def test_DBRetweetVideoURLSelect(self):
+        # engineをテスト用インメモリテーブルに置き換える
+        controlar = DBController.DBController()
+        controlar.engine = self.engine
+
+        # サンプル生成
+        video_url_s = 'https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4'
+        file_name_s = os.path.basename(video_url_s)
+        record = self.RetweetSampleFactory(video_url_s)
+        record.img_filename = file_name_s
+        self.session.add(record)
+        self.session.commit()
+
+        expect = [record.toDict()]
+        actual = controlar.DBRetweetVideoURLSelect(file_name_s)
+        self.assertEqual(expect, actual)
 
     def test_DBRetweetFlagUpdate(self):
-        # DB操作をmockに置き換える
-        with ExitStack() as stack:
-            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
-            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
+        # engineをテスト用インメモリテーブルに置き換える
+        controlar = DBController.DBController()
+        controlar.engine = self.engine
 
-            mocksql.connect().cursor().execute.return_value = 'execute sql done'
-            mocksql.connect().commit.return_value = 'commit done'
-            controlar = DBController.DBController()
+        # 1回目（r1,r2を追加して両方ともTrueに更新）
+        img_url_1 = "http://www.img.filename.sample.com/media/sample_1.png"
+        r1 = self.RetweetSampleFactory(img_url_1)
+        img_url_2 = "http://www.img.filename.sample.com/media/sample_2.png"
+        r2 = self.RetweetSampleFactory(img_url_2)
+        self.session.add(r1)
+        self.session.add(r2)
+        self.session.commit()
 
-            # DB操作を伴う操作を行う
-            set_flag = 0
-            file_list = ["sample_1.png", "sample_2.png"]
-            filename = "'" + "','".join(file_list) + "'"
-            controlar.DBRetweetFlagUpdate(file_list, set_flag)
+        r1.is_exist_saved_file = True
+        r2.is_exist_saved_file = True
+        expect = [r1.toDict(), r2.toDict()]
+        actual = controlar.DBRetweetFlagUpdate([r1.img_filename, r2.img_filename], 1)
+        self.assertEqual(expect[0]["is_exist_saved_file"], actual[0]["is_exist_saved_file"])
+        self.assertEqual(expect, actual)
 
-            # DB操作が規定の引数で呼び出されたことを確認する
-            retweet_flag_update_sql_s = controlar._DBController__GetRetweetFlagUpdateSQL(filename, set_flag)
-            mocksql.connect().cursor().execute.assert_called_once_with(retweet_flag_update_sql_s)
+        # 2回目（r3を追加してr1とr3のみFalseに更新）
+        img_url_3 = "http://www.img.filename.sample.com/media/sample_3.png"
+        r3 = self.RetweetSampleFactory(img_url_3)
+        r3.is_exist_saved_file = True
+        self.session.add(r3)
+        self.session.commit()
+
+        r1.is_exist_saved_file = False
+        r3.is_exist_saved_file = False
+        expect = [r1.toDict(), r3.toDict()]
+        actual = controlar.DBRetweetFlagUpdate([r1.img_filename, r3.img_filename], 0)
+        self.assertEqual(expect[0]["is_exist_saved_file"], actual[0]["is_exist_saved_file"])
+        self.assertEqual(expect, actual)
 
     def test_DBRetweetFlagClear(self):
-        # DB操作をmockに置き換える
-        with ExitStack() as stack:
-            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
-            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
+        # engineをテスト用インメモリテーブルに置き換える
+        controlar = DBController.DBController()
+        controlar.engine = self.engine
 
-            mocksql.connect().cursor().execute.return_value = 'execute sql done'
-            mocksql.connect().commit.return_value = 'commit done'
-            controlar = DBController.DBController()
+        # サンプル生成
+        r = []
+        for i, f in enumerate([True, False, True]):
+            img_url = f"http://www.img.filename.sample.com/media/sample_{i}.png"
+            t = self.RetweetSampleFactory(img_url)
+            t.is_exist_saved_file = f
+            r.append(t)
+            self.session.add(t)
+        self.session.commit()
 
-            # DB操作を伴う操作を行う
-            controlar.DBRetweetFlagClear()
+        # フラグクリア前チェック
+        expect = [self.rt] + r
+        actual = self.session.query(Retweet).all()
+        self.assertEqual(expect, actual)
 
-            # DB操作が規定の引数で呼び出されたことを確認する
-            retweet_flag_clear_sql_s = controlar._DBController__GetRetweetFlagClearSQL()
-            mocksql.connect().cursor().execute.assert_called_once_with(retweet_flag_clear_sql_s)
+        # フラグクリア
+        controlar.DBRetweetFlagClear()
+
+        # フラグクリア後チェック
+        self.rt.is_exist_saved_file = False
+        for t in r:
+            t.is_exist_saved_file = False
+        expect = [self.rt] + r
+        actual = self.session.query(Retweet).all()
+        self.assertEqual(expect, actual)
 
     def test_DBDelInsert(self):
         # DB操作をmockに置き換える
