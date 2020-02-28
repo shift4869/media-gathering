@@ -166,7 +166,7 @@ class DBController:
             limit (int): 取得レコード数上限
 
         Returns:
-            dict: SELECTしたレコードの辞書リスト
+            dict[]: SELECTしたレコードの辞書リスト
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
@@ -187,7 +187,7 @@ class DBController:
             filename (str): 取得対象のファイル名
 
         Returns:
-            dict: SELECTしたレコードの辞書リスト
+            dict[]: SELECTしたレコードの辞書リスト
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
@@ -210,7 +210,7 @@ class DBController:
             set_flag (int): セットするフラグ
 
         Returns:
-            dict: フラグが更新された結果レコードの辞書リスト
+            dict[]: フラグが更新された結果レコードの辞書リスト
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
@@ -305,7 +305,7 @@ class DBController:
             limit (int): 取得レコード数上限
 
         Returns:
-            dict: SELECTしたレコードの辞書リスト
+            dict[]: SELECTしたレコードの辞書リスト
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
@@ -326,7 +326,7 @@ class DBController:
             filename (str): 取得対象のファイル名
 
         Returns:
-            dict: SELECTしたレコードの辞書リスト
+            dict[]: SELECTしたレコードの辞書リスト
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
@@ -349,7 +349,7 @@ class DBController:
             set_flag (int): セットするフラグ
 
         Returns:
-            dict: フラグが更新された結果レコードの辞書リスト
+            dict[]: フラグが更新された結果レコードの辞書リスト
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
@@ -411,24 +411,34 @@ class DBController:
         return 0
 
     def DBDelSelect(self):
-        with closing(sqlite3.connect(self.dbname)) as conn:
-            conn.row_factory = sqlite3.Row
-            c = conn.cursor()
-            # 2日前の通知ツイートを削除する(1日前の日付より前)
-            t = date.today() - timedelta(1)
+        """DeleteTargetからSELECTしてフラグをUPDATEする
 
-            # 今日未満 = 昨日以前の通知ツイートをDBから取得
-            w = "delete_done = 0 and created_at < '{}'".format(t.strftime('%Y-%m-%d'))
-            query = "select * from DeleteTarget where " + w
-            res = list(c.execute(query))
-            conn.commit()
+        Note:
+            2日前の通知ツイートを削除対象とする
 
-            # 消去フラグを立てる
-            u = "delete_done = 1, deleted_at = '{}'".format(t.strftime('%Y-%m-%d'))
-            query = "update DeleteTarget set {} where {}".format(u, w)
-            c.execute(query)
-            conn.commit()
-        return res
+        Returns:
+             dict[]: 削除対象となる通知ツイートの辞書リスト
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+
+        # 2日前の通知ツイートを削除する(1日前の日付より前)
+        t = date.today() - timedelta(1)
+        # 今日未満 = 昨日以前の通知ツイートをDBから取得
+        records = session.query(DeleteTarget).filter(not DeleteTarget.delete_done,
+                                                     DeleteTarget.created_at < t.strftime('%Y-%m-%d %H:%M:%S')).all()
+        # records = session.query(DeleteTarget).all()
+
+        res_dict = [r.toDict() for r in records]  # 辞書リストに変換
+
+        # 消去フラグを立てる
+        for record in records:
+            record.delete_done = True
+            record.deleted_at = t.strftime('%Y-%m-%d %H:%M:%S')
+        session.commit()
+
+        session.close()
+        return res_dict
 
 
 if __name__ == "__main__":
