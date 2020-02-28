@@ -236,13 +236,15 @@ class TestDBController(unittest.TestCase):
 
             tca = del_tweet_s["created_at"]
             dst = datetime.strptime(tca, td_format_s)
-            expect = (del_tweet_s["id_str"],
-                      False,
-                      dst.strftime(dts_format_s),
-                      None,
-                      del_tweet_s["text"],
-                      add_num,
-                      del_num)
+            expect = {
+                "tweet_id": del_tweet_s["id_str"],
+                "delete_done": False,
+                "created_at": dst.strftime(dts_format_s),
+                "deleted_at": None,
+                "tweet_text": del_tweet_s["text"],
+                "add_num": add_num,
+                "del_num": del_num
+            }
             actual = controlar._DBController__GetDelUpdateParam(del_tweet_s)
             self.assertEqual(expect, actual)
 
@@ -370,105 +372,6 @@ class TestDBController(unittest.TestCase):
         actual = self.session.query(Favorite).all()
         self.assertEqual(expect, actual)
 
-        # 使用するSQL構文をチェックする
-        # 実際にDB操作はしないためmockは省略
-        controlar = DBController.DBController()
-
-        p1 = 'img_filename,url,url_thumbnail,'
-        p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
-        p3 = 'saved_localpath,saved_created_at'
-        pn = '?,?,?,?,?,?,?,?,?,?,?,?'
-        expect = 'replace into Favorite (' + p1 + p2 + p3 + ') values (' + pn + ')'
-        actual = controlar._DBController__fav_sql
-        self.assertEqual(expect, actual)
-
-        p1 = 'img_filename,url,url_thumbnail,'
-        p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
-        p3 = 'saved_localpath,saved_created_at'
-        pn = '?,?,?,?,?,?,?,?,?,?,?,?'
-        expect = 'replace into Retweet (' + p1 + p2 + p3 + ') values (' + pn + ')'
-        actual = controlar._DBController__retweet_sql
-        self.assertEqual(expect, actual)
-
-        p1 = 'tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num'
-        pn = '?,?,?,?,?,?,?'
-        expect = 'replace into DeleteTarget (' + p1 + ') values (' + pn + ')'
-        actual = controlar._DBController__del_sql
-        self.assertEqual(expect, actual)
-
-        limit_s = 300
-        expect = 'select * from Favorite order by created_at desc limit {}'.format(limit_s)
-        actual = controlar._DBController__GetFavoriteSelectSQL(limit_s)
-        self.assertEqual(expect, actual)
-
-        filename = "sample.mp4"
-        expect = 'select * from Favorite where img_filename = {}'.format(filename)
-        actual = controlar._DBController__GetFavoriteVideoURLSelectSQL(filename)
-        self.assertEqual(expect, actual)
-
-        limit_s = 300
-        expect = 'select * from Retweet where is_exist_saved_file = 1 order by created_at desc limit {}'.format(limit_s)
-        actual = controlar._DBController__GetRetweetSelectSQL(limit_s)
-        self.assertEqual(expect, actual)
-
-        set_flag = 0
-        file_list = ["sample_1.png", "sample_2.png"]
-        filename = "'" + "','".join(file_list) + "'"
-        expect = 'update Retweet set is_exist_saved_file = {} where img_filename in ({})'.format(set_flag, filename)
-        actual = controlar._DBController__GetRetweetFlagUpdateSQL(filename, set_flag)
-        self.assertEqual(expect, actual)
-
-        expect = 'update Retweet set is_exist_saved_file = 0'
-        actual = controlar._DBController__GetRetweetFlagClearSQL()
-        self.assertEqual(expect, actual)
-
-        with freezegun.freeze_time('2018-11-18 17:12:58'):
-            img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
-            url_orig_s = img_url_s + ":orig"
-            url_thumbnail_s = img_url_s + ":large"
-            file_name_s = os.path.basename(url_orig_s)
-
-            td_format_s = '%a %b %d %H:%M:%S +0000 %Y'
-            dts_format_s = '%Y-%m-%d %H:%M:%S'
-
-            tweet_s = self.GetTweetSample(img_url_s)
-            save_file_fullpath_s = os.getcwd()
-
-            tca = tweet_s["created_at"]
-            dst = datetime.strptime(tca, td_format_s)
-            expect = (file_name_s,
-                      url_orig_s,
-                      url_thumbnail_s,
-                      tweet_s["id_str"],
-                      tweet_s["entities"]["media"][0]["expanded_url"],
-                      dst.strftime(dts_format_s),
-                      tweet_s["user"]["id_str"],
-                      tweet_s["user"]["name"],
-                      tweet_s["user"]["screen_name"],
-                      tweet_s["text"],
-                      save_file_fullpath_s,
-                      datetime.now().strftime(dts_format_s))
-            actual = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
-            self.assertEqual(expect, actual)
-
-            del_tweet_s = self.GetDelTweetSample()
-            pattern = ' +[0-9]* '
-            text = del_tweet_s["text"]
-            add_num = int(re.findall(pattern, text)[0])
-            del_num = int(re.findall(pattern, text)[1])
-
-            tca = del_tweet_s["created_at"]
-            dst = datetime.strptime(tca, td_format_s)
-            expect = (del_tweet_s["id_str"],
-                      False,
-                      dst.strftime(dts_format_s),
-                      None,
-                      del_tweet_s["text"],
-                      add_num,
-                      del_num)
-            actual = controlar._DBController__GetDelUpdateParam(del_tweet_s)
-            self.assertEqual(expect, actual)
-
     def test_DBRetweetUpsert(self):
         # engineをテスト用インメモリテーブルに置き換える
         controlar = DBController.DBController()
@@ -594,52 +497,45 @@ class TestDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_DBDelInsert(self):
-        # DB操作をmockに置き換える
-        with ExitStack() as stack:
-            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
-            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
+        # engineをテスト用インメモリテーブルに置き換える
+        controlar = DBController.DBController()
+        controlar.engine = self.engine
 
-            mocksql.connect().cursor().execute.return_value = 'execute sql done'
-            mocksql.connect().commit.return_value = 'commit done'
-            controlar = DBController.DBController()
+        del_tweet_s = self.GetDelTweetSample()
+        res = controlar.DBDelInsert(del_tweet_s)
+        self.assertEqual(res, 0)
 
-            # DB操作を伴う操作を行う
-            del_tweet_s = self.GetDelTweetSample()
-            controlar.DBDelInsert(del_tweet_s)
-
-            # DB操作が規定の引数で呼び出されたことを確認する
-            param_s = controlar._DBController__GetDelUpdateParam(del_tweet_s)
-            mocksql.connect().cursor().execute.assert_called_once_with(controlar._DBController__del_sql, param_s)
+        param = controlar._DBController__GetDelUpdateParam(del_tweet_s)
+        expect = DeleteTarget(param["tweet_id"], param["delete_done"], param["created_at"],
+                              param["deleted_at"], param["tweet_text"], param["add_num"], param["del_num"])
+        actual = self.session.query(DeleteTarget).all()
+        self.assertEqual([expect], actual)
 
     def test_DBDelSelect(self):
-        # DB操作をmockに置き換える
-        with ExitStack() as stack:
-            mocksql = stack.enter_context(patch('PictureGathering.DBController.sqlite3'))
-            fg = stack.enter_context(freezegun.freeze_time('2018-11-18 17:12:58'))
+        # engineをテスト用インメモリテーブルに置き換える
+        controlar = DBController.DBController()
+        controlar.engine = self.engine
 
-            mocksql.connect().cursor().execute.return_value = 'execute sql done'
-            mocksql.connect().commit.return_value = 'commit done'
-            controlar = DBController.DBController()
-
-            del_tweet_s = self.GetDelTweetSample()
-            expect = ("rowid_sample",) + controlar._DBController__GetDelUpdateParam(del_tweet_s)
-            mocksql.connect().cursor().execute.return_value = [expect]
-
-            t = date.today() - timedelta(1)
-            w = "delete_done = 0 and created_at < '{}'".format(t.strftime('%Y-%m-%d'))
-            expect_select_sql_s = "select * from DeleteTarget where " + w
-            u = "delete_done = 1, deleted_at = '{}'".format(t.strftime('%Y-%m-%d'))
-            expect_update_sql_s = "update DeleteTarget set {} where {}".format(u, w)
-
-            # DB操作を伴う操作を行う
-            actual = controlar.DBDelSelect()
-
-            # DB操作が規定の引数で呼び出されたことを確認する
-            mocksql.connect().cursor().execute.assert_any_call(expect_select_sql_s)
-            mocksql.connect().cursor().execute.assert_any_call(expect_update_sql_s)
-
-            # 取得した値の確認
-            self.assertEqual(expect, actual[0])
+        # テーブルの用意
+        td_format = '%a %b %d %H:%M:%S +0000 %Y'
+        t = []
+        s = []
+        t.append(date.today())
+        for i in range(1, 3):
+            t.append(t[i - 1] - timedelta(1))
+        for tn in t:
+            s.append(tn.strftime(td_format))
+        for i, sn in enumerate(s):
+            del_tweet_s = {
+                "created_at": sn,
+                "id_str": f"12345_id_str_sample_{i + 1}",
+                "text": "@s_shift4869 PictureGathering run.\\n2018/03/09 11:59:38 Process Done !!\\nadd 1 new images. delete 0 old images."
+            }
+            param = controlar._DBController__GetDelUpdateParam(del_tweet_s)
+            record = DeleteTarget(param["tweet_id"], param["delete_done"], param["created_at"],
+                                  param["deleted_at"], param["tweet_text"], param["add_num"], param["del_num"])
+            self.session.add(record)
+        self.session.commit()
 
 
 if __name__ == "__main__":
