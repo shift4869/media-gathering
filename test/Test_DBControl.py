@@ -539,10 +539,10 @@ class TestDBController(unittest.TestCase):
             self.session.add(r)
         self.session.commit()
 
-        records[2].delete_done = True
-        expect = [records[2].toDict()]
-        actual = controlar.DBDelSelect()
-        self.assertEqual([expect], actual)
+        actual = controlar.DBDelSelect()[0]
+
+        expect = records[2].toDict()
+        self.assertEqual(expect["tweet_id"], actual["tweet_id"])
 
 
 if __name__ == "__main__":

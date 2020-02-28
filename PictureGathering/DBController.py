@@ -425,9 +425,8 @@ class DBController:
         # 2日前の通知ツイートを削除する(1日前の日付より前)
         t = date.today() - timedelta(1)
         # 今日未満 = 昨日以前の通知ツイートをDBから取得
-        records = session.query(DeleteTarget).filter(not DeleteTarget.delete_done,
-                                                     DeleteTarget.created_at < t.strftime('%Y-%m-%d %H:%M:%S')).all()
-        # records = session.query(DeleteTarget).all()
+        records = session.query(DeleteTarget).filter(~DeleteTarget.delete_done).\
+            filter(DeleteTarget.created_at < t.strftime('%Y-%m-%d %H:%M:%S')).all()
 
         res_dict = [r.toDict() for r in records]  # 辞書リストに変換
 
