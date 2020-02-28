@@ -95,14 +95,16 @@ class DBController:
 
         tca = tweet["created_at"]
         dst = datetime.strptime(tca, td_format)
-        param = (tweet["id_str"],
-                 False,
-                 dst.strftime(dts_format),
-                 None,
-                 tweet["text"],
-                 add_num,
-                 del_num)
-        return param
+        # tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num
+        return {
+            "tweet_id": tweet["id_str"],
+            "delete_done": False,
+            "created_at": dst.strftime(dts_format),
+            "deleted_at": None,
+            "tweet_text": tweet["text"],
+            "add_num": add_num,
+            "del_num": del_num
+        }
 
     def DBFavUpsert(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath):
         """FavoriteにUPSERTする
@@ -383,11 +385,30 @@ class DBController:
         return 0
 
     def DBDelInsert(self, tweet):
-        with closing(sqlite3.connect(self.dbname)) as conn:
-            c = conn.cursor()
-            param = self.__GetDelUpdateParam(tweet)
-            c.execute(self.__del_sql, param)
-            conn.commit()
+        """DeleteTargetにInsertする
+
+        Note:
+            insert into DeleteTarget (tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num) values (*)
+
+        Args:
+            tweet (dict): Insert対象ツイートオブジェクト
+
+        Returns:
+             int: 0(成功)
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+
+        # tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num
+        param = self.__GetDelUpdateParam(tweet)
+        record = DeleteTarget(param["tweet_id"], param["delete_done"], param["created_at"],
+                              param["deleted_at"], param["tweet_text"], param["add_num"], param["del_num"])
+        # INSERT
+        session.add(record)
+        session.commit()
+
+        session.close()
+        return 0
 
     def DBDelSelect(self):
         with closing(sqlite3.connect(self.dbname)) as conn:
