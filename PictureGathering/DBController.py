@@ -206,7 +206,7 @@ class DBController:
             'update Favorite set is_exist_saved_file = {} where img_filename in ({})'.format(set_flag, filename)
 
         Args:
-            file_list (list): 取得対象のファイル名リスト　シングルクォート必要、カンマ区切り
+            file_list (list): 取得対象のファイル名リスト
             set_flag (int): セットするフラグ
 
         Returns:
@@ -345,7 +345,7 @@ class DBController:
             'update Retweet set is_exist_saved_file = {} where img_filename in ({})'.format(set_flag, filename)
 
         Args:
-            file_list (list): 取得対象のファイル名リスト　シングルクォート必要、カンマ区切り
+            file_list (list): 取得対象のファイル名リスト
             set_flag (int): セットするフラグ
 
         Returns:
