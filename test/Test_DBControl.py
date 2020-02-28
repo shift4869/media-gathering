@@ -517,6 +517,7 @@ class TestDBController(unittest.TestCase):
         controlar.engine = self.engine
 
         # テーブルの用意
+        records = []
         td_format = '%a %b %d %H:%M:%S +0000 %Y'
         t = []
         s = []
@@ -532,10 +533,16 @@ class TestDBController(unittest.TestCase):
                 "text": "@s_shift4869 PictureGathering run.\\n2018/03/09 11:59:38 Process Done !!\\nadd 1 new images. delete 0 old images."
             }
             param = controlar._DBController__GetDelUpdateParam(del_tweet_s)
-            record = DeleteTarget(param["tweet_id"], param["delete_done"], param["created_at"],
-                                  param["deleted_at"], param["tweet_text"], param["add_num"], param["del_num"])
-            self.session.add(record)
+            r = DeleteTarget(param["tweet_id"], param["delete_done"], param["created_at"],
+                             param["deleted_at"], param["tweet_text"], param["add_num"], param["del_num"])
+            records.append(r)
+            self.session.add(r)
         self.session.commit()
+
+        records[2].delete_done = True
+        expect = [records[2].toDict()]
+        actual = controlar.DBDelSelect()
+        self.assertEqual([expect], actual)
 
 
 if __name__ == "__main__":
