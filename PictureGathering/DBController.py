@@ -1,23 +1,21 @@
 # coding: utf-8
 import configparser
-from contextlib import closing
-from datetime import datetime
-from datetime import date
-from datetime import timedelta
 import os
 import re
 import sqlite3
+from contextlib import closing
+from datetime import date, datetime, timedelta
 
 
 class DBController:
     dbname = 'PG_DB.db'
 
     def __init__(self):
-        self.__fav_sql = self.__GetFavriteUpsertSQL()
+        self.__fav_sql = self.__GetFavoriteUpsertSQL()
         self.__retweet_sql = self.__GetRetweetUpsertSQL()
         self.__del_sql = self.__GetDeleteTargetUpsertSQL()
 
-    def __GetFavriteUpsertSQL(self):
+    def __GetFavoriteUpsertSQL(self):
         p1 = 'img_filename,url,url_thumbnail,'
         p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
         p3 = 'saved_localpath,saved_created_at'
@@ -40,14 +38,12 @@ class DBController:
         return 'select * from Favorite order by created_at desc limit {}'.format(limit)
 
     def __GetFavoriteVideoURLSelectSQL(self, filename):
-        # filenameはシングルクォート必要、カンマ区切りOK
         return 'select * from Favorite where img_filename = {}'.format(filename)
 
     def __GetRetweetSelectSQL(self, limit=300):
         return 'select * from Retweet where is_exist_saved_file = 1 order by created_at desc limit {}'.format(limit)
 
     def __GetRetweetVideoURLSelectSQL(self, filename):
-        # filenameはシングルクォート必要、カンマ区切りOK
         return 'select * from Retweet where img_filename = {}'.format(filename)
 
     def __GetRetweetFlagUpdateSQL(self, filename="", set_flag=0):
@@ -87,7 +83,6 @@ class DBController:
         td_format = '%a %b %d %H:%M:%S +0000 %Y'
         dts_format = '%Y-%m-%d %H:%M:%S'
 
-        # DB操作
         tca = tweet["created_at"]
         dst = datetime.strptime(tca, td_format)
         param = (tweet["id_str"],
@@ -189,6 +184,7 @@ class DBController:
             c.execute(query)
             conn.commit()
         return res
+
 
 if __name__ == "__main__":
     db_cont = DBController()

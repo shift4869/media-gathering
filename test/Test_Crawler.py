@@ -492,14 +492,16 @@ class TestCrawler(unittest.TestCase):
                 "screen_name": crawler.user_name,
                 "page": i,
                 "count": crawler.count,
-                "include_entities": 1  # ツイートのメタデータ取得。複数枚の画像取得用。
+                "include_entities": 1,  # ツイートのメタデータ取得。これしないと複数枚の画像に対応できない。
+                "tweet_mode": "extended"
             }
             self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
 
         url = "https://api.twitter.com/1.1/statuses/home_timeline.json"
         params = {
             "count": crawler.count,
-            "include_entities": 1
+            "include_entities": 1,
+            "tweet_mode": "extended"
         }
         self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
 
