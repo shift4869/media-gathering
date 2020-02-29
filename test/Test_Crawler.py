@@ -21,14 +21,14 @@ import sys
 import time
 import unittest
 from contextlib import ExitStack
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from logging import WARNING, getLogger
 
 import requests
 from mock import MagicMock, PropertyMock, patch
 from requests_oauthlib import OAuth1Session
 
-from PictureGathering import Crawler, DBController, WriteHTML
+from PictureGathering import Crawler
 
 logger = getLogger("root")
 logger.setLevel(WARNING)
