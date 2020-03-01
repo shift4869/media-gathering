@@ -5,6 +5,9 @@ import PictureGathering.FavCrawler as FavCrawler
 import PictureGathering.RetweetCrawler as RetweetCrawler
 
 
+# python PictureGathering.py --type="Fav"
+# python PictureGathering.py --type="RT"
+
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(description="Twitter Crawler")
     arg_parser.add_argument("--type", choices=["Fav", "RT"], default="Fav",
