@@ -76,6 +76,7 @@ class FavCrawler(Crawler):
         return done_msg
 
     def Crawl(self):
+        logger.info("Fav Crawler run.")
         # count * get_pages だけツイートをさかのぼる。
         self.get_pages = int(self.config["tweet_timeline"]["get_pages"]) + 1
         for i in range(1, self.get_pages):
@@ -87,7 +88,6 @@ class FavCrawler(Crawler):
 
 
 if __name__ == "__main__":
-    logger.info("Fav Crawler run.")
     c = FavCrawler()
 
     # クロール前に保存場所から指定枚数削除しておく

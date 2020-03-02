@@ -513,7 +513,7 @@ class Crawler(metaclass=ABCMeta):
 
         done_msg = self.MakeDoneMessage()
 
-        logger.info(done_msg)
+        logger.info("\t".join(done_msg.splitlines()))
 
         config = self.config["notification"]
 
@@ -556,6 +556,7 @@ class Crawler(metaclass=ABCMeta):
             for target in targets:
                 responce = self.oath.post(url.format(target["tweet_id"]))  # tweet_id
 
+        logger.info("End Of " + self.type + " Crawl Process.")
         return 0
 
     def PostTweet(self, str: str) -> int:
