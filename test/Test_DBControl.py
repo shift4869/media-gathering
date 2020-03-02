@@ -45,7 +45,8 @@ class TestDBController(unittest.TestCase):
     def tearDown(self):
         self.session.commit()
         self.session.close()
-        Base.metadata.drop_all(self.engine)
+        if self.engine.url.database == ":memory:":
+            Base.metadata.drop_all(self.engine)
 
     def FavoriteSampleFactory(self, img_url):
         url_orig = img_url + ":orig"
