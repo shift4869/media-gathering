@@ -71,18 +71,20 @@ class DBController:
         tca = tweet["created_at"]
         dst = datetime.strptime(tca, td_format)
         text = tweet["text"] if "text" in tweet else tweet["full_text"]
-        param = (file_name,
-                 url_orig,
-                 url_thumbnail,
-                 tweet["id_str"],
-                 tweet["entities"]["media"][0]["expanded_url"],
-                 dst.strftime(dts_format),
-                 tweet["user"]["id_str"],
-                 tweet["user"]["name"],
-                 tweet["user"]["screen_name"],
-                 text,
-                 save_file_fullpath,
-                 datetime.now().strftime(dts_format))
+        param = {
+            "img_filename": file_name,
+            "url": url_orig,
+            "url_thumbnail": url_thumbnail,
+            "tweet_id": tweet["id_str"],
+            "tweet_url": tweet["entities"]["media"][0]["expanded_url"],
+            "created_at": dst.strftime(dts_format),
+            "user_id": tweet["user"]["id_str"],
+            "user_name": tweet["user"]["name"],
+            "screan_name": tweet["user"]["screen_name"],
+            "tweet_text": text,
+            "saved_localpath": save_file_fullpath,
+            "saved_created_at": datetime.now().strftime(dts_format)
+        }
         return param
 
     def __GetDelUpdateParam(self, tweet):
@@ -130,13 +132,14 @@ class DBController:
         res = -1
             
         param = self.__GetUpdateParam(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
-        r = Favorite(False, param[0], param[1], param[2], param[3], param[4], param[5],
-                     param[6], param[7], param[8], param[9], param[10], param[11])
+        r = Favorite(False, param["img_filename"], param["url"], param["url_thumbnail"],
+                     param["tweet_id"], param["tweet_url"], param["created_at"],
+                     param["user_id"], param["user_name"], param["screan_name"],
+                     param["tweet_text"], param["saved_localpath"], param["saved_created_at"])
 
         try:
             q = session.query(Favorite).filter(
-                or_(
-                    Favorite.img_filename == r.img_filename,
+                or_(Favorite.img_filename == r.img_filename,
                     Favorite.url == r.url,
                     Favorite.url_thumbnail == r.url_thumbnail))
             ex = q.one()
@@ -269,13 +272,14 @@ class DBController:
         res = -1
             
         param = self.__GetUpdateParam(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
-        r = Retweet(False, param[0], param[1], param[2], param[3], param[4], param[5],
-                    param[6], param[7], param[8], param[9], param[10], param[11])
+        r = Retweet(False, param["img_filename"], param["url"], param["url_thumbnail"],
+                    param["tweet_id"], param["tweet_url"], param["created_at"],
+                    param["user_id"], param["user_name"], param["screan_name"],
+                    param["tweet_text"], param["saved_localpath"], param["saved_created_at"])
 
         try:
             q = session.query(Retweet).filter(
-                or_(
-                    Retweet.img_filename == r.img_filename,
+                or_(Retweet.img_filename == r.img_filename,
                     Retweet.url == r.url,
                     Retweet.url_thumbnail == r.url_thumbnail))
             ex = q.one()

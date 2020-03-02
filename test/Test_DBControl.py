@@ -213,18 +213,20 @@ class TestDBController(unittest.TestCase):
 
             tca = tweet_s["created_at"]
             dst = datetime.strptime(tca, td_format_s)
-            expect = (file_name_s,
-                      url_orig_s,
-                      url_thumbnail_s,
-                      tweet_s["id_str"],
-                      tweet_s["entities"]["media"][0]["expanded_url"],
-                      dst.strftime(dts_format_s),
-                      tweet_s["user"]["id_str"],
-                      tweet_s["user"]["name"],
-                      tweet_s["user"]["screen_name"],
-                      tweet_s["text"],
-                      save_file_fullpath_s,
-                      datetime.now().strftime(dts_format_s))
+            expect = {
+                "img_filename": file_name_s,
+                "url": url_orig_s,
+                "url_thumbnail": url_thumbnail_s,
+                "tweet_id": tweet_s["id_str"],
+                "tweet_url": tweet_s["entities"]["media"][0]["expanded_url"],
+                "created_at": dst.strftime(dts_format_s),
+                "user_id": tweet_s["user"]["id_str"],
+                "user_name": tweet_s["user"]["name"],
+                "screan_name": tweet_s["user"]["screen_name"],
+                "tweet_text": tweet_s["text"],
+                "saved_localpath": save_file_fullpath_s,
+                "saved_created_at": datetime.now().strftime(dts_format_s)
+            }
             actual = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
             self.assertEqual(expect, actual)
 
