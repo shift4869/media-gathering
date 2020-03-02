@@ -1,12 +1,11 @@
 # coding: utf-8
-from datetime import datetime
-from logging import getLogger, DEBUG, INFO
 import os
 import random
 import sys
+from datetime import datetime
+from logging import DEBUG, INFO, getLogger
 
 from PictureGathering.Crawler import Crawler
-
 
 logger = getLogger("root")
 logger.setLevel(INFO)

@@ -225,6 +225,7 @@ class DBController:
 
         res_dict = [r.toDict() for r in records]  # 辞書リストに変換
 
+        session.commit()
         session.close()
         return res_dict
 
@@ -240,12 +241,12 @@ class DBController:
         Session = sessionmaker(bind=self.engine)
         session = Session()
 
-        records = session.query(Favorite).filter(Favorite.is_exist_saved_file).all()
+        records = session.query(Favorite).filter(Favorite.is_exist_saved_file == "True").all()
         for record in records:
             record.is_exist_saved_file = False
 
+        session.commit()
         session.close()
-
         return 0
 
     def DBRetweetUpsert(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath):
@@ -296,7 +297,6 @@ class DBController:
 
         session.commit()
         session.close()
-
         return res
 
     def DBRetweetSelect(self, limit=300):
@@ -365,6 +365,7 @@ class DBController:
 
         res_dict = [r.toDict() for r in records]  # 辞書リストに変換
 
+        session.commit()
         session.close()
         return res_dict
 
@@ -384,8 +385,8 @@ class DBController:
         for record in records:
             record.is_exist_saved_file = False
 
+        session.commit()
         session.close()
-
         return 0
 
     def DBDelInsert(self, tweet):
