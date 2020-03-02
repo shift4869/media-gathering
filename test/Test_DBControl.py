@@ -75,7 +75,6 @@ class TestDBController(unittest.TestCase):
         # サンプル生成
         f = Favorite(False, param[0], param[1], param[2], param[3], param[4], param[5],
                      param[6], param[7], param[8], param[9], param[10], param[11])
-
         return f
 
     def RetweetSampleFactory(self, img_url):
@@ -104,10 +103,9 @@ class TestDBController(unittest.TestCase):
                  datetime.now().strftime(dts_format))
 
         # サンプル生成
-        f = Retweet(False, param[0], param[1], param[2], param[3], param[4], param[5],
+        rt = Retweet(False, param[0], param[1], param[2], param[3], param[4], param[5],
                     param[6], param[7], param[8], param[9], param[10], param[11])
-
-        return f
+        return rt
 
     def GetTweetSample(self, img_url_s):
         # ツイートオブジェクトのサンプルを生成する
@@ -146,58 +144,9 @@ class TestDBController(unittest.TestCase):
         actual = self.session.query(Favorite).all()
         self.assertEqual(actual, expect)
 
-    def test_SQLText(self):
-        # 使用するSQL構文をチェックする
-        # 実際にDB操作はしないためmockは省略
+    def test_SQLParam(self):
+        # パラメータ生成関数をチェックする
         controlar = DBController.DBController()
-
-        p1 = 'img_filename,url,url_thumbnail,'
-        p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
-        p3 = 'saved_localpath,saved_created_at'
-        pn = '?,?,?,?,?,?,?,?,?,?,?,?'
-        expect = 'replace into Favorite (' + p1 + p2 + p3 + ') values (' + pn + ')'
-        actual = controlar._DBController__fav_sql
-        self.assertEqual(expect, actual)
-
-        p1 = 'img_filename,url,url_thumbnail,'
-        p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
-        p3 = 'saved_localpath,saved_created_at'
-        pn = '?,?,?,?,?,?,?,?,?,?,?,?'
-        expect = 'replace into Retweet (' + p1 + p2 + p3 + ') values (' + pn + ')'
-        actual = controlar._DBController__retweet_sql
-        self.assertEqual(expect, actual)
-
-        p1 = 'tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num'
-        pn = '?,?,?,?,?,?,?'
-        expect = 'replace into DeleteTarget (' + p1 + ') values (' + pn + ')'
-        actual = controlar._DBController__del_sql
-        self.assertEqual(expect, actual)
-
-        limit_s = 300
-        expect = 'select * from Favorite order by created_at desc limit {}'.format(limit_s)
-        actual = controlar._DBController__GetFavoriteSelectSQL(limit_s)
-        self.assertEqual(expect, actual)
-
-        filename = "sample.mp4"
-        expect = 'select * from Favorite where img_filename = {}'.format(filename)
-        actual = controlar._DBController__GetFavoriteVideoURLSelectSQL(filename)
-        self.assertEqual(expect, actual)
-
-        limit_s = 300
-        expect = 'select * from Retweet where is_exist_saved_file = 1 order by created_at desc limit {}'.format(limit_s)
-        actual = controlar._DBController__GetRetweetSelectSQL(limit_s)
-        self.assertEqual(expect, actual)
-
-        set_flag = 0
-        file_list = ["sample_1.png", "sample_2.png"]
-        filename = "'" + "','".join(file_list) + "'"
-        expect = 'update Retweet set is_exist_saved_file = {} where img_filename in ({})'.format(set_flag, filename)
-        actual = controlar._DBController__GetRetweetFlagUpdateSQL(filename, set_flag)
-        self.assertEqual(expect, actual)
-
-        expect = 'update Retweet set is_exist_saved_file = 0'
-        actual = controlar._DBController__GetRetweetFlagClearSQL()
-        self.assertEqual(expect, actual)
 
         with freezegun.freeze_time('2018-11-18 17:12:58'):
             img_url_s = 'http://www.img.filename.sample.com/media/sample.png'

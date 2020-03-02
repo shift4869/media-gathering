@@ -21,48 +21,6 @@ class DBController:
         self.engine = create_engine(f"sqlite:///{self.dbname}", echo=False)
         Base.metadata.create_all(self.engine)
 
-        self.__fav_sql = self.__GetFavoriteUpsertSQL()
-        self.__retweet_sql = self.__GetRetweetUpsertSQL()
-        self.__del_sql = self.__GetDeleteTargetUpsertSQL()
-
-    def __GetFavoriteUpsertSQL(self):
-        p1 = 'img_filename,url,url_thumbnail,'
-        p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
-        p3 = 'saved_localpath,saved_created_at'
-        pn = '?,?,?,?,?,?,?,?,?,?,?,?'
-        return 'replace into Favorite (' + p1 + p2 + p3 + ') values (' + pn + ')'
-
-    def __GetRetweetUpsertSQL(self):
-        p1 = 'img_filename,url,url_thumbnail,'
-        p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
-        p3 = 'saved_localpath,saved_created_at'
-        pn = '?,?,?,?,?,?,?,?,?,?,?,?'
-        return 'replace into Retweet (' + p1 + p2 + p3 + ') values (' + pn + ')'
-
-    def __GetDeleteTargetUpsertSQL(self):
-        p1 = 'tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num'
-        pn = '?,?,?,?,?,?,?'
-        return 'replace into DeleteTarget (' + p1 + ') values (' + pn + ')'
-
-    def __GetFavoriteSelectSQL(self, limit=300):
-        return 'select * from Favorite order by created_at desc limit {}'.format(limit)
-
-    def __GetFavoriteVideoURLSelectSQL(self, filename):
-        return 'select * from Favorite where img_filename = {}'.format(filename)
-
-    def __GetRetweetSelectSQL(self, limit=300):
-        return 'select * from Retweet where is_exist_saved_file = 1 order by created_at desc limit {}'.format(limit)
-
-    def __GetRetweetVideoURLSelectSQL(self, filename):
-        return 'select * from Retweet where img_filename = {}'.format(filename)
-
-    def __GetRetweetFlagUpdateSQL(self, filename="", set_flag=0):
-        # filenameはシングルクォート必要、カンマ区切りOK
-        return 'update Retweet set is_exist_saved_file = {} where img_filename in ({})'.format(set_flag, filename)
-
-    def __GetRetweetFlagClearSQL(self):
-        return 'update Retweet set is_exist_saved_file = 0'
-
     def __GetUpdateParam(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath):
         # img_filename,url,url_thumbnail,tweet_id,tweet_url,created_at,
         # user_id,user_name,screan_name,tweet_text,saved_localpath,saved_created_at
