@@ -8,8 +8,6 @@ Crawler.Crawler()の各種機能をテストする
 
 Todo:
     * FavCrawler, RetweetCrawlerのテスト分離
-    * DBControlのテストをリフレッシュ
-    * DBControl全般の捜査をsqlalchemy利用に置き換える
     * PG_DB.dbのバックアップ機構
 """
 
