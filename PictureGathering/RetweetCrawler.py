@@ -134,4 +134,8 @@ class RetweetCrawler(Crawler):
 if __name__ == "__main__":
     logger.info("Retweet Crawler run.")
     c = RetweetCrawler()
+
+    # クロール前に保存場所から指定枚数削除しておく
+    c.ShrinkFolder(int(c.config["holding"]["holding_file_num"]) - 1)
+
     c.Crawl()
