@@ -28,7 +28,6 @@ th_template = '''<th>
 POINTER_PATH = './pointer.png'
 FAV_HTML_PATH = './html/FavPictureGathering.html'
 RETWEET_HTML_PATH = './html/RetweetPictureGathering.html'
-db_cont = DBController.DBController()
 
 
 def MakeTHTag(url, url_thumbnail, tweet_url):
@@ -40,41 +39,19 @@ def MakeTHTag(url, url_thumbnail, tweet_url):
                               pointer_path=POINTER_PATH)
 
 
-def WriteResultHTML(op_type, del_url_list):
+def WriteResultHTML(op_type, db_controller):
+    save_path = ""
+    db = []
     if op_type == "Fav":
-        WriteFavHTML(del_url_list)
+        db = db_controller.DBFavSelect()
+        save_path = FAV_HTML_PATH
     elif op_type == "RT":
-        WriteRetweetHTML(del_url_list)
+        db = db_controller.DBRetweetSelect()
+        save_path = RETWEET_HTML_PATH
+    else:
+        return -1
 
-
-def WriteFavHTML(del_url_list):
-    db = db_cont.DBFavSelect()
-    res = ''
-
-    COLUMN_NUM = 5
-    cnt = 0
-
-    for row in db:
-        if cnt == 0:
-            res += "<tr>\n"
-        res += MakeTHTag(url=row["url"], url_thumbnail=row["url_thumbnail"], tweet_url=row["tweet_url"])
-        if cnt == COLUMN_NUM - 1:
-            res += "</tr>\n"
-        cnt = (cnt + 1) % COLUMN_NUM
-    if cnt != 0:
-        for k in range((COLUMN_NUM) - (cnt)):
-            res += "<th></th>\n"
-        res += "</tr>\n"
-
-    html = template.format(table_content=res)
-
-    with open(FAV_HTML_PATH, "w") as fout:
-        fout.write(html)
-
-
-def WriteRetweetHTML(del_url_list):
-    db = db_cont.DBRetweetSelect()
-    res = ''
+    res = ""
 
     COLUMN_NUM = 5
     cnt = 0
@@ -93,12 +70,12 @@ def WriteRetweetHTML(del_url_list):
 
     html = template.format(table_content=res)
 
-    with open(RETWEET_HTML_PATH, "w") as fout:
+    with open(save_path, "w") as fout:
         fout.write(html)
+    
+    return 0
 
 
 if __name__ == "__main__":
-    del_url_list = [
-        # "http://pbs.twimg.com/media/example_xxxxxxxxxxx.png:orig",
-    ]
-    WriteResultHTML("Fav", del_url_list)
+    db_controller = DBController.DBController()
+    WriteResultHTML("Fav", db_controller)
