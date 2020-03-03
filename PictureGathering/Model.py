@@ -180,7 +180,6 @@ class Retweet(Base):
 class DeleteTarget(Base):
     """削除対象ツイート保持テーブルモデル
 
-        CREATE TABLE [DeleteTarget] (
         [id] INTEGER,
         [tweet_id] TEXT NOT NULL UNIQUE,
         [delete_done] BOOLEAN DEFAULT '0',
@@ -190,7 +189,6 @@ class DeleteTarget(Base):
         [add_num] INTEGER NOT NULL,
         [del_num] INTEGER NOT NULL,
         PRIMARY KEY(id)
-        );
     """
     __tablename__ = "DeleteTarget"
 
