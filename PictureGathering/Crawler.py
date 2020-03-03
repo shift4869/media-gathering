@@ -520,7 +520,7 @@ class Crawler(metaclass=ABCMeta):
 
         config = self.config["notification"]
 
-        WriteHTML.WriteResultHTML(self.type, self.del_url_list)
+        WriteHTML.WriteResultHTML(self.type, self.db_cont)
         if self.add_cnt != 0 or self.del_cnt != 0:
             if self.add_cnt != 0:
                 logger.info("add url:")
