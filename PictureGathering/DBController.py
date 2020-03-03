@@ -15,8 +15,8 @@ from PictureGathering.Model import *
 
 
 class DBController:
-    def __init__(self, dbname='./PG_DB.db'):
-        self.dbname = dbname
+    def __init__(self, db_fullpath='./PG_DB.db'):
+        self.dbname = os.path.basename(db_fullpath)
         self.engine = create_engine(f"sqlite:///{self.dbname}", echo=False)
         Base.metadata.create_all(self.engine)
 
