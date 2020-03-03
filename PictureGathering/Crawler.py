@@ -68,9 +68,12 @@ class Crawler(metaclass=ABCMeta):
     def __init__(self):
         self.config = configparser.ConfigParser()
         try:
-            self.db_cont = DBController.DBController()
             if not self.config.read(self.CONFIG_FILE_NAME, encoding="utf8"):
                 raise IOError
+
+            config = self.config["db"]
+            db_fullpath = os.path.join(config["save_path"], config["save_file_name"])
+            self.db_cont = DBController.DBController(db_fullpath)
 
             config = self.config["twitter_token_keys"]
             self.TW_CONSUMER_KEY = config["consumer_key"]
