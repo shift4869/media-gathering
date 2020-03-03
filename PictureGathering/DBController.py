@@ -15,9 +15,8 @@ from PictureGathering.Model import *
 
 
 class DBController:
-    dbname = 'PG_DB.db'
-
-    def __init__(self):
+    def __init__(self, dbname='./PG_DB.db'):
+        self.dbname = dbname
         self.engine = create_engine(f"sqlite:///{self.dbname}", echo=False)
         Base.metadata.create_all(self.engine)
 
@@ -88,7 +87,7 @@ class DBController:
         Session = sessionmaker(bind=self.engine)
         session = Session()
         res = -1
-            
+
         param = self.__GetUpdateParam(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
         r = Favorite(False, param["img_filename"], param["url"], param["url_thumbnail"],
                      param["tweet_id"], param["tweet_url"], param["created_at"],
