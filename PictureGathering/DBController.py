@@ -20,7 +20,25 @@ class DBController:
         self.engine = create_engine(f"sqlite:///{self.dbname}", echo=False)
         Base.metadata.create_all(self.engine)
 
-    def __GetUpdateParam(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath):
+    def __GetUpdateParam(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob):
+        """DBにUPSERTする際のパラメータを作成する
+
+        Notes:
+            include_blobがTrueのとき、save_file_fullpathを読み込み、blobとしてDBに格納する
+            そのためinclude_blobをTrueで呼び出す場合は、その前にsave_file_fullpathに
+            メディアファイルが保存されていなければならない
+
+        Args:
+            file_name (str): ファイル名
+            url_orig (str): メディアURL
+            url_thumbnail (str): サムネイルメディアURL
+            tweet(str): ツイート本文
+            save_file_fullpath(str): メディア保存パス（ローカル）
+            include_blob(boolean): メディアをblobとして格納するかどうかのフラグ(Trueで格納する)
+
+        Returns:
+            dict: DBにUPSERTする際のパラメータをまとめた辞書
+        """
         # img_filename,url,url_thumbnail,tweet_id,tweet_url,created_at,
         # user_id,user_name,screan_name,tweet_text,saved_localpath,saved_created_at
         td_format = '%a %b %d %H:%M:%S +0000 %Y'
@@ -42,6 +60,20 @@ class DBController:
             "saved_localpath": save_file_fullpath,
             "saved_created_at": datetime.now().strftime(dts_format)
         }
+
+        # media_size,media_blob
+        if include_blob:
+            try:
+                with open(save_file_fullpath, "rb") as fout:
+                    param["media_blob"] = fout.read()
+                    param["media_size"] = len(param["media_blob"])
+            except Exception:
+                param["media_blob"] = None
+                param["media_size"] = -1
+        else:
+            param["media_blob"] = None
+            param["media_size"] = 0
+
         return param
 
     def __GetDelUpdateParam(self, tweet):
@@ -65,7 +97,7 @@ class DBController:
             "del_num": del_num
         }
 
-    def DBFavUpsert(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath):
+    def DBFavUpsert(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob):
         """FavoriteにUPSERTする
 
         Notes:
@@ -88,11 +120,12 @@ class DBController:
         session = Session()
         res = -1
 
-        param = self.__GetUpdateParam(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
+        param = self.__GetUpdateParam(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob)
         r = Favorite(False, param["img_filename"], param["url"], param["url_thumbnail"],
                      param["tweet_id"], param["tweet_url"], param["created_at"],
                      param["user_id"], param["user_name"], param["screan_name"],
-                     param["tweet_text"], param["saved_localpath"], param["saved_created_at"])
+                     param["tweet_text"], param["saved_localpath"], param["saved_created_at"],
+                     param["media_size"], param["media_blob"])
 
         try:
             q = session.query(Favorite).filter(
@@ -206,7 +239,7 @@ class DBController:
         session.close()
         return 0
 
-    def DBRetweetUpsert(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath):
+    def DBRetweetUpsert(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob):
         """RetweetにUPSERTする
 
         Notes:
@@ -229,7 +262,7 @@ class DBController:
         session = Session()
         res = -1
             
-        param = self.__GetUpdateParam(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
+        param = self.__GetUpdateParam(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob)
         r = Retweet(False, param["img_filename"], param["url"], param["url_thumbnail"],
                     param["tweet_id"], param["tweet_url"], param["created_at"],
                     param["user_id"], param["user_name"], param["screan_name"],
