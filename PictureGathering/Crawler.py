@@ -63,15 +63,17 @@ class Crawler(metaclass=ABCMeta):
         add_url_list (list): 新規追加した画像のURLリスト
         del_url_list (list): 削除した画像のURLリスト
     """
-
     CONFIG_FILE_NAME = "./config/config.ini"
 
     def __init__(self):
         self.config = configparser.ConfigParser()
         try:
-            self.db_cont = DBController.DBController()
             if not self.config.read(self.CONFIG_FILE_NAME, encoding="utf8"):
                 raise IOError
+
+            config = self.config["db"]
+            db_fullpath = os.path.join(config["save_path"], config["save_file_name"])
+            self.db_cont = DBController.DBController(db_fullpath)
 
             config = self.config["twitter_token_keys"]
             self.TW_CONSUMER_KEY = config["consumer_key"]
@@ -125,7 +127,6 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             str: APIリソースタイプ
         """
-
         called_url = urllib.parse.urlparse(url).path
         url = urllib.parse.urljoin(url, os.path.basename(called_url))
         resources = []
@@ -151,7 +152,6 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             int, int: 残り使用回数, 制限リセット時間(UNIXエポック秒)
         """
-
         if "resources" not in params:
             return -1, -1  # 引数エラー
         r = params["resources"]
@@ -177,7 +177,6 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             int: 成功時0
         """
-
         seconds = dt_unix - time.mktime(datetime.now().timetuple())
         seconds = max(seconds, 0)
         logger.debug('=======================')
@@ -200,7 +199,6 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             int: 成功時0、このメソッド実行後はcalled_urlのエンドポイントが利用可能であることが保証される
         """
-
         unavailableCnt = 0
         while True:
             url = "https://api.twitter.com/1.1/application/rate_limit_status.json"
@@ -240,7 +238,6 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             int: 成功時0、このメソッド実行後はresponceに対応するエンドポイントが利用可能であることが保証される
         """
-
         # X-Rate-Limit-Remaining が入ってないことが稀にあるのでチェック
         if 'X-Rate-Limit-Remaining' in responce.headers and 'X-Rate-Limit-Reset' in responce.headers:
             # 回数制限（ヘッダ参照）
@@ -275,7 +272,6 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             dict: TwitterAPIレスポンス
         """
-
         unavailableCnt = 0
         while True:
             responce = self.oath.get(url, params=params)
@@ -306,7 +302,6 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             str: 成功時メディアURL、引数や辞書構造が不正だった場合空文字列を返す
         """
-
         media_type = "None"
         if "type" not in media_dict:
             logger.info("メディアタイプが不明です。")
@@ -347,9 +342,8 @@ class Crawler(metaclass=ABCMeta):
             tweets (dict): 画像を含んでいる可能性があるツイートオブジェクト辞書
 
         Returns:
-            int: 正常時0
+            int: 0(成功)
         """
-
         for tweet in tweets:
             if "extended_entities" not in tweet:
                 logger.debug("メディアを含んでいないツイートです。")
@@ -366,12 +360,12 @@ class Crawler(metaclass=ABCMeta):
             created_time = time.strptime(tweet["created_at"], td_format)
             atime = mtime = time.mktime(
                 (created_time.tm_year,
-                    created_time.tm_mon,
-                    created_time.tm_mday,
-                    created_time.tm_hour,
-                    created_time.tm_min,
-                    created_time.tm_sec,
-                    0, 0, -1)
+                 created_time.tm_mon,
+                 created_time.tm_mday,
+                 created_time.tm_hour,
+                 created_time.tm_min,
+                 created_time.tm_sec,
+                 0, 0, -1)
             )
 
             for media_dict in media_list:
@@ -407,10 +401,11 @@ class Crawler(metaclass=ABCMeta):
                     self.add_url_list.append(url_orig)
 
                     # DB操作
+                    include_blob = self.config["db"].getboolean("save_blob")
                     if self.type == "Fav":
-                        self.db_cont.DBFavUpsert(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
+                        self.db_cont.DBFavUpsert(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob)
                     elif self.type == "RT":
-                        self.db_cont.DBRetweetUpsert(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
+                        self.db_cont.DBRetweetUpsert(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob)
 
                     # image magickで画像変換
                     if media_type == "photo":
@@ -435,7 +430,6 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             list: self.save_pathに存在するファイル名一覧
         """
-
         xs = []
         for root, dir, files in os.walk(self.save_path):
             for f in files:
@@ -455,9 +449,8 @@ class Crawler(metaclass=ABCMeta):
             holding_file_num (int): フォルダ内に残すファイルの数
 
         Returns:
-            int: 成功時0
+            int: 0(成功)
         """
-
         filelist = self.GetExistFilelist()
 
         # フォルダに既に保存しているファイルにはURLの情報がない
@@ -494,7 +487,6 @@ class Crawler(metaclass=ABCMeta):
         Args:
             add_img_filename (list): 保存したメディアのアドレスリスト
         """
-
         pass
 
     @abstractmethod
@@ -507,14 +499,12 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             str: 成功時動画ファイルURL、失敗時空文字列
         """
-
         pass
 
     @abstractmethod
     def MakeDoneMessage(self) -> str:
         """実行後の結果文字列を生成する
         """
-
         pass
 
     def EndOfProcess(self) -> int:
@@ -523,16 +513,15 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             int: 成功時0
         """
-
         logger.info("")
 
         done_msg = self.MakeDoneMessage()
 
-        logger.info(done_msg)
+        logger.info("\t".join(done_msg.splitlines()))
 
         config = self.config["notification"]
 
-        WriteHTML.WriteResultHTML(self.type, self.del_url_list)
+        WriteHTML.WriteResultHTML(self.type, self.db_cont)
         if self.add_cnt != 0 or self.del_cnt != 0:
             if self.add_cnt != 0:
                 logger.info("add url:")
@@ -571,6 +560,7 @@ class Crawler(metaclass=ABCMeta):
             for target in targets:
                 responce = self.oath.post(url.format(target["tweet_id"]))  # tweet_id
 
+        logger.info("End Of " + self.type + " Crawl Process.")
         return 0
 
     def PostTweet(self, str: str) -> int:
@@ -582,7 +572,6 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             int: 成功時0、失敗時None
         """
-
         url = "https://api.twitter.com/1.1/users/show.json"
         reply_user_name = self.config["notification"]["reply_to_user_name"]
         random_pickup = False  # 自分がアップロードしたことになるのでメディア欄が侵食されるためオフに
@@ -652,9 +641,8 @@ class Crawler(metaclass=ABCMeta):
             str (str): LINEに通知する文字列
 
         Returns:
-            int: 成功時0
+            int: 0(成功)
         """
-
         url = "https://notify-api.line.me/api/notify"
         token = self.LN_TOKEN_KEY
 
@@ -676,9 +664,8 @@ class Crawler(metaclass=ABCMeta):
             str (str): Slackに通知する文字列
 
         Returns:
-            int: 成功時0
+            int: 0(成功)
         """
-
         try:
             slack = slackweb.Slack(url=self.SLACK_WEBHOOK_URL)
             slack.notify(text="<!here> " + str)
@@ -695,9 +682,8 @@ class Crawler(metaclass=ABCMeta):
             str (str): Discordに通知する文字列
 
         Returns:
-            int: 成功時0
+            int: 0(成功)
         """
-
         url = self.DISCORD_WEBHOOK_URL
 
         headers = {
@@ -722,9 +708,8 @@ class Crawler(metaclass=ABCMeta):
         """一連の実行メソッドをまとめる
 
         Returns:
-            int: 成功時0
+            int: 0(成功)
         """
-
         return 0
 
 

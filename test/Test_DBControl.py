@@ -44,15 +44,24 @@ class TestDBController(unittest.TestCase):
 
     def tearDown(self):
         self.session.commit()
+    
+        records = self.session.query(Favorite).all()
+        for r in records:
+            os.remove(r.saved_localpath)
+
         self.session.close()
-        Base.metadata.drop_all(self.engine)
+        if self.engine.url.database == ":memory:":
+            Base.metadata.drop_all(self.engine)
 
     def FavoriteSampleFactory(self, img_url):
         url_orig = img_url + ":orig"
         url_thumbnail = img_url + ":large"
-        file_name = os.path.basename(url_orig)
+        file_name = os.path.basename(img_url)
         tweet = self.GetTweetSample(img_url)
-        save_file_fullpath = os.getcwd()
+        save_file_fullpath = os.path.join(os.getcwd(), file_name)
+
+        with open(save_file_fullpath, "wb") as fout:
+            fout.write(file_name.encode())
 
         td_format = '%a %b %d %H:%M:%S +0000 %Y'
         dts_format = '%Y-%m-%d %H:%M:%S'
@@ -70,20 +79,24 @@ class TestDBController(unittest.TestCase):
                  tweet["user"]["screen_name"],
                  text,
                  save_file_fullpath,
-                 datetime.now().strftime(dts_format))
+                 datetime.now().strftime(dts_format),
+                 len(file_name.encode()),
+                 file_name.encode())
 
         # サンプル生成
         f = Favorite(False, param[0], param[1], param[2], param[3], param[4], param[5],
-                     param[6], param[7], param[8], param[9], param[10], param[11])
-
+                     param[6], param[7], param[8], param[9], param[10], param[11], param[12], param[13])
         return f
 
     def RetweetSampleFactory(self, img_url):
         url_orig = img_url + ":orig"
         url_thumbnail = img_url + ":large"
-        file_name = os.path.basename(url_orig)
+        file_name = os.path.basename(img_url)
         tweet = self.GetTweetSample(img_url)
-        save_file_fullpath = os.getcwd()
+        save_file_fullpath = os.path.join(os.getcwd(), file_name)
+
+        with open(save_file_fullpath, "wb") as fout:
+            fout.write(file_name.encode())
 
         td_format = '%a %b %d %H:%M:%S +0000 %Y'
         dts_format = '%Y-%m-%d %H:%M:%S'
@@ -101,13 +114,14 @@ class TestDBController(unittest.TestCase):
                  tweet["user"]["screen_name"],
                  text,
                  save_file_fullpath,
-                 datetime.now().strftime(dts_format))
+                 datetime.now().strftime(dts_format),
+                 len(file_name.encode()),
+                 file_name.encode())
 
         # サンプル生成
-        f = Retweet(False, param[0], param[1], param[2], param[3], param[4], param[5],
-                    param[6], param[7], param[8], param[9], param[10], param[11])
-
-        return f
+        rt = Retweet(False, param[0], param[1], param[2], param[3], param[4], param[5],
+                     param[6], param[7], param[8], param[9], param[10], param[11], param[12], param[13])
+        return rt
 
     def GetTweetSample(self, img_url_s):
         # ツイートオブジェクトのサンプルを生成する
@@ -146,86 +160,44 @@ class TestDBController(unittest.TestCase):
         actual = self.session.query(Favorite).all()
         self.assertEqual(actual, expect)
 
-    def test_SQLText(self):
-        # 使用するSQL構文をチェックする
-        # 実際にDB操作はしないためmockは省略
+    def test_SQLParam(self):
+        # パラメータ生成関数をチェックする
         controlar = DBController.DBController()
-
-        p1 = 'img_filename,url,url_thumbnail,'
-        p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
-        p3 = 'saved_localpath,saved_created_at'
-        pn = '?,?,?,?,?,?,?,?,?,?,?,?'
-        expect = 'replace into Favorite (' + p1 + p2 + p3 + ') values (' + pn + ')'
-        actual = controlar._DBController__fav_sql
-        self.assertEqual(expect, actual)
-
-        p1 = 'img_filename,url,url_thumbnail,'
-        p2 = 'tweet_id,tweet_url,created_at,user_id,user_name,screan_name,tweet_text,'
-        p3 = 'saved_localpath,saved_created_at'
-        pn = '?,?,?,?,?,?,?,?,?,?,?,?'
-        expect = 'replace into Retweet (' + p1 + p2 + p3 + ') values (' + pn + ')'
-        actual = controlar._DBController__retweet_sql
-        self.assertEqual(expect, actual)
-
-        p1 = 'tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num'
-        pn = '?,?,?,?,?,?,?'
-        expect = 'replace into DeleteTarget (' + p1 + ') values (' + pn + ')'
-        actual = controlar._DBController__del_sql
-        self.assertEqual(expect, actual)
-
-        limit_s = 300
-        expect = 'select * from Favorite order by created_at desc limit {}'.format(limit_s)
-        actual = controlar._DBController__GetFavoriteSelectSQL(limit_s)
-        self.assertEqual(expect, actual)
-
-        filename = "sample.mp4"
-        expect = 'select * from Favorite where img_filename = {}'.format(filename)
-        actual = controlar._DBController__GetFavoriteVideoURLSelectSQL(filename)
-        self.assertEqual(expect, actual)
-
-        limit_s = 300
-        expect = 'select * from Retweet where is_exist_saved_file = 1 order by created_at desc limit {}'.format(limit_s)
-        actual = controlar._DBController__GetRetweetSelectSQL(limit_s)
-        self.assertEqual(expect, actual)
-
-        set_flag = 0
-        file_list = ["sample_1.png", "sample_2.png"]
-        filename = "'" + "','".join(file_list) + "'"
-        expect = 'update Retweet set is_exist_saved_file = {} where img_filename in ({})'.format(set_flag, filename)
-        actual = controlar._DBController__GetRetweetFlagUpdateSQL(filename, set_flag)
-        self.assertEqual(expect, actual)
-
-        expect = 'update Retweet set is_exist_saved_file = 0'
-        actual = controlar._DBController__GetRetweetFlagClearSQL()
-        self.assertEqual(expect, actual)
 
         with freezegun.freeze_time('2018-11-18 17:12:58'):
             img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
             url_orig_s = img_url_s + ":orig"
             url_thumbnail_s = img_url_s + ":large"
-            file_name_s = os.path.basename(url_orig_s)
+            file_name_s = os.path.basename(img_url_s)
 
             td_format_s = '%a %b %d %H:%M:%S +0000 %Y'
             dts_format_s = '%Y-%m-%d %H:%M:%S'
 
             tweet_s = self.GetTweetSample(img_url_s)
-            save_file_fullpath_s = os.getcwd()
+            save_file_fullpath_s = os.path.join(os.getcwd(), file_name_s)
+
+            with open(save_file_fullpath_s, "wb") as fout:
+                fout.write(b"abcde")
 
             tca = tweet_s["created_at"]
             dst = datetime.strptime(tca, td_format_s)
-            expect = (file_name_s,
-                      url_orig_s,
-                      url_thumbnail_s,
-                      tweet_s["id_str"],
-                      tweet_s["entities"]["media"][0]["expanded_url"],
-                      dst.strftime(dts_format_s),
-                      tweet_s["user"]["id_str"],
-                      tweet_s["user"]["name"],
-                      tweet_s["user"]["screen_name"],
-                      tweet_s["text"],
-                      save_file_fullpath_s,
-                      datetime.now().strftime(dts_format_s))
-            actual = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s)
+            expect = {
+                "img_filename": file_name_s,
+                "url": url_orig_s,
+                "url_thumbnail": url_thumbnail_s,
+                "tweet_id": tweet_s["id_str"],
+                "tweet_url": tweet_s["entities"]["media"][0]["expanded_url"],
+                "created_at": dst.strftime(dts_format_s),
+                "user_id": tweet_s["user"]["id_str"],
+                "user_name": tweet_s["user"]["name"],
+                "screan_name": tweet_s["user"]["screen_name"],
+                "tweet_text": tweet_s["text"],
+                "saved_localpath": save_file_fullpath_s,
+                "saved_created_at": datetime.now().strftime(dts_format_s),
+                "media_size": 5,
+                "media_blob": b"abcde"
+            }
+            actual = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s, True)
             self.assertEqual(expect, actual)
 
             del_tweet_s = self.GetDelTweetSample()
@@ -257,13 +229,13 @@ class TestDBController(unittest.TestCase):
         img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
         r1 = self.FavoriteSampleFactory(img_url_s)
         controlar.DBFavUpsert(r1.img_filename, r1.url, r1.url_thumbnail,
-                              self.GetTweetSample(img_url_s), r1.saved_localpath)
+                              self.GetTweetSample(img_url_s), r1.saved_localpath, True)
 
         # 2回目（INSERT）
         img_url_s = "http://www.img.filename.sample.com/media/sample_2.png"
         r2 = self.FavoriteSampleFactory(img_url_s)
         controlar.DBFavUpsert(r2.img_filename, r2.url, r2.url_thumbnail,
-                              self.GetTweetSample(img_url_s), r2.saved_localpath)
+                              self.GetTweetSample(img_url_s), r2.saved_localpath, False)
 
         # 3回目（UPDATE）
         img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
@@ -271,7 +243,7 @@ class TestDBController(unittest.TestCase):
         r3 = self.FavoriteSampleFactory(img_url_s)
         r3.img_filename = file_name_s
         controlar.DBFavUpsert(r3.img_filename, r3.url, r3.url_thumbnail,
-                              self.GetTweetSample(img_url_s), r3.saved_localpath)
+                              self.GetTweetSample(img_url_s), r3.saved_localpath, True)
 
         expect = [self.f, r2, r3]
         actual = self.session.query(Favorite).all()
@@ -381,13 +353,13 @@ class TestDBController(unittest.TestCase):
         img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
         r1 = self.RetweetSampleFactory(img_url_s)
         controlar.DBRetweetUpsert(r1.img_filename, r1.url, r1.url_thumbnail,
-                                  self.GetTweetSample(img_url_s), r1.saved_localpath)
+                                  self.GetTweetSample(img_url_s), r1.saved_localpath, True)
 
         # 2回目（INSERT）
         img_url_s = "http://www.img.filename.sample.com/media/sample_2.png"
         r2 = self.RetweetSampleFactory(img_url_s)
         controlar.DBRetweetUpsert(r2.img_filename, r2.url, r2.url_thumbnail,
-                                  self.GetTweetSample(img_url_s), r2.saved_localpath)
+                                  self.GetTweetSample(img_url_s), r2.saved_localpath, False)
 
         # 3回目（UPDATE）
         img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
@@ -395,7 +367,7 @@ class TestDBController(unittest.TestCase):
         r3 = self.RetweetSampleFactory(img_url_s)
         r3.img_filename = file_name_s
         controlar.DBRetweetUpsert(r3.img_filename, r3.url, r3.url_thumbnail,
-                                  self.GetTweetSample(img_url_s), r3.saved_localpath)
+                                  self.GetTweetSample(img_url_s), r3.saved_localpath, True)
 
         expect = [self.rt, r2, r3]
         actual = self.session.query(Retweet).all()

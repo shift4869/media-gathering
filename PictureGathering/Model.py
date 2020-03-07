@@ -7,9 +7,8 @@ from contextlib import closing
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import *
-from sqlalchemy.orm import *
 from sqlalchemy.ext.declarative import declarative_base
-
+from sqlalchemy.orm import *
 
 Base = declarative_base()
 
@@ -31,6 +30,8 @@ class Favorite(Base):
         [tweet_text] TEXT,
         [saved_localpath] TEXT,
         [saved_created_at] TEXT,
+        [media_size] INTEGER,
+        [media_blob] BLOB,
         PRIMARY KEY([id])
     """
 
@@ -50,12 +51,14 @@ class Favorite(Base):
     tweet_text = Column(String(512))
     saved_localpath = Column(String(256))
     saved_created_at = Column(String(32))
+    media_size = Column(INTEGER())
+    media_blob = deferred(Column(BLOB()))
 
     def __init__(self, *args, **kwargs):
         super(Base, self).__init__(*args, **kwargs)
         self.is_exist_saved_file = True
 
-    def __init__(self, is_exist_saved_file, img_filename, url, url_thumbnail, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, saved_localpath, saved_created_at):
+    def __init__(self, is_exist_saved_file, img_filename, url, url_thumbnail, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, saved_localpath, saved_created_at, media_size, media_blob):
         # self.id = id
         self.is_exist_saved_file = is_exist_saved_file
         self.img_filename = img_filename
@@ -70,6 +73,8 @@ class Favorite(Base):
         self.tweet_text = tweet_text
         self.saved_localpath = saved_localpath
         self.saved_created_at = saved_created_at
+        self.media_size = media_size
+        self.media_blob = media_blob
 
     def __repr__(self):
         return "<Favorite(id='%s', img_filename='%s', url='%s')>" % (self.id, self.img_filename, self.url)
@@ -93,6 +98,8 @@ class Favorite(Base):
             "tweet_text": self.tweet_text,
             "saved_localpath": self.saved_localpath,
             "saved_created_at": self.saved_created_at,
+            "media_size": self.media_size,
+            "media_blob": None,
         }
 
 
@@ -132,12 +139,14 @@ class Retweet(Base):
     tweet_text = Column(String(512))
     saved_localpath = Column(String(256))
     saved_created_at = Column(String(32))
+    media_size = Column(INTEGER())
+    media_blob = deferred(Column(BLOB()))
 
     def __init__(self, *args, **kwargs):
         super(Base, self).__init__(*args, **kwargs)
         self.is_exist_saved_file = True
 
-    def __init__(self, is_exist_saved_file, img_filename, url, url_thumbnail, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, saved_localpath, saved_created_at):
+    def __init__(self, is_exist_saved_file, img_filename, url, url_thumbnail, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, saved_localpath, saved_created_at, media_size, media_blob):
         # self.id = id
         self.is_exist_saved_file = is_exist_saved_file
         self.img_filename = img_filename
@@ -152,6 +161,8 @@ class Retweet(Base):
         self.tweet_text = tweet_text
         self.saved_localpath = saved_localpath
         self.saved_created_at = saved_created_at
+        self.media_size = media_size
+        self.media_blob = media_blob
 
     def __repr__(self):
         return "<Retweet(id='%s', img_filename='%s', url='%s')>" % (self.id, self.img_filename, self.url)
@@ -175,13 +186,14 @@ class Retweet(Base):
             "tweet_text": self.tweet_text,
             "saved_localpath": self.saved_localpath,
             "saved_created_at": self.saved_created_at,
+            "media_size": self.media_size,
+            "media_blob": None,
         }
 
 
 class DeleteTarget(Base):
     """削除対象ツイート保持テーブルモデル
 
-        CREATE TABLE [DeleteTarget] (
         [id] INTEGER,
         [tweet_id] TEXT NOT NULL UNIQUE,
         [delete_done] BOOLEAN DEFAULT '0',
@@ -191,7 +203,6 @@ class DeleteTarget(Base):
         [add_num] INTEGER NOT NULL,
         [del_num] INTEGER NOT NULL,
         PRIMARY KEY(id)
-        );
     """
     __tablename__ = "DeleteTarget"
 

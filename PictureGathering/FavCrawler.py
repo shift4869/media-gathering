@@ -1,12 +1,11 @@
 # coding: utf-8
-from datetime import datetime
-from logging import getLogger, DEBUG, INFO
 import os
 import random
 import sys
+from datetime import datetime
+from logging import DEBUG, INFO, getLogger
 
 from PictureGathering.Crawler import Crawler
-
 
 logger = getLogger("root")
 logger.setLevel(INFO)
@@ -47,8 +46,9 @@ class FavCrawler(Crawler):
         return self.TwitterAPIRequest(url, params)
 
     def UpdateDBExistMark(self, add_img_filename):
-        # TODO:存在マーキングを更新する
-        pass
+        # 存在マーキングを更新する
+        self.db_cont.DBFavFlagClear()
+        self.db_cont.DBFavFlagUpdate(add_img_filename, 1)
 
     def GetVideoURL(self, filename):
         # 'https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/b0ZDq8zG_HppFWb6.mp4?tag=10'
@@ -76,6 +76,7 @@ class FavCrawler(Crawler):
         return done_msg
 
     def Crawl(self):
+        logger.info("Fav Crawler run.")
         # count * get_pages だけツイートをさかのぼる。
         self.get_pages = int(self.config["tweet_timeline"]["get_pages"]) + 1
         for i in range(1, self.get_pages):
@@ -87,6 +88,11 @@ class FavCrawler(Crawler):
 
 
 if __name__ == "__main__":
-    logger.info("Fav Crawler run.")
     c = FavCrawler()
+
+    # クロール前に保存場所から指定枚数削除しておく
+    # c.ShrinkFolder(int(c.config["holding"]["holding_file_num"]) - 10)
+    # c.del_cnt = 0
+    # c.del_url_list = []
+
     c.Crawl()
