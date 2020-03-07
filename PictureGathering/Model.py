@@ -98,6 +98,8 @@ class Favorite(Base):
             "tweet_text": self.tweet_text,
             "saved_localpath": self.saved_localpath,
             "saved_created_at": self.saved_created_at,
+            "media_size": self.media_size,
+            "media_blob": None,
         }
 
 
@@ -137,12 +139,14 @@ class Retweet(Base):
     tweet_text = Column(String(512))
     saved_localpath = Column(String(256))
     saved_created_at = Column(String(32))
+    media_size = Column(INTEGER())
+    media_blob = deferred(Column(BLOB()))
 
     def __init__(self, *args, **kwargs):
         super(Base, self).__init__(*args, **kwargs)
         self.is_exist_saved_file = True
 
-    def __init__(self, is_exist_saved_file, img_filename, url, url_thumbnail, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, saved_localpath, saved_created_at):
+    def __init__(self, is_exist_saved_file, img_filename, url, url_thumbnail, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, saved_localpath, saved_created_at, media_size, media_blob):
         # self.id = id
         self.is_exist_saved_file = is_exist_saved_file
         self.img_filename = img_filename
@@ -157,6 +161,8 @@ class Retweet(Base):
         self.tweet_text = tweet_text
         self.saved_localpath = saved_localpath
         self.saved_created_at = saved_created_at
+        self.media_size = media_size
+        self.media_blob = media_blob
 
     def __repr__(self):
         return "<Retweet(id='%s', img_filename='%s', url='%s')>" % (self.id, self.img_filename, self.url)
@@ -180,6 +186,8 @@ class Retweet(Base):
             "tweet_text": self.tweet_text,
             "saved_localpath": self.saved_localpath,
             "saved_created_at": self.saved_created_at,
+            "media_size": self.media_size,
+            "media_blob": None,
         }
 
 
