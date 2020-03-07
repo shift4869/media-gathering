@@ -698,7 +698,7 @@ class TestCrawler(unittest.TestCase):
         crawler = ConcreteCrawler()
 
         with ExitStack() as stack:
-            mockwhtml = stack.enter_context(patch('PictureGathering.WriteHTML.WriteFavHTML'))
+            mockwhtml = stack.enter_context(patch('PictureGathering.WriteHTML.WriteResultHTML'))
             mockcptweet = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostTweet'))
             mockcplnotify = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostLineNotify'))
             mockcpsnotify = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostSlackNotify'))
