@@ -44,7 +44,7 @@ class TestDBController(unittest.TestCase):
 
     def tearDown(self):
         self.session.commit()
-        
+    
         records = self.session.query(Favorite).all()
         for r in records:
             os.remove(r.saved_localpath)
@@ -91,9 +91,12 @@ class TestDBController(unittest.TestCase):
     def RetweetSampleFactory(self, img_url):
         url_orig = img_url + ":orig"
         url_thumbnail = img_url + ":large"
-        file_name = os.path.basename(url_orig)
+        file_name = os.path.basename(img_url)
         tweet = self.GetTweetSample(img_url)
-        save_file_fullpath = os.getcwd()
+        save_file_fullpath = os.path.join(os.getcwd(), file_name)
+
+        with open(save_file_fullpath, "wb") as fout:
+            fout.write(file_name.encode())
 
         td_format = '%a %b %d %H:%M:%S +0000 %Y'
         dts_format = '%Y-%m-%d %H:%M:%S'
@@ -111,11 +114,13 @@ class TestDBController(unittest.TestCase):
                  tweet["user"]["screen_name"],
                  text,
                  save_file_fullpath,
-                 datetime.now().strftime(dts_format))
+                 datetime.now().strftime(dts_format),
+                 len(file_name.encode()),
+                 file_name.encode())
 
         # サンプル生成
         rt = Retweet(False, param[0], param[1], param[2], param[3], param[4], param[5],
-                     param[6], param[7], param[8], param[9], param[10], param[11])
+                     param[6], param[7], param[8], param[9], param[10], param[11], param[12], param[13])
         return rt
 
     def GetTweetSample(self, img_url_s):
