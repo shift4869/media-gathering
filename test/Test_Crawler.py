@@ -8,8 +8,6 @@ Crawler.Crawler()の各種機能をテストする
 
 Todo:
     * FavCrawler, RetweetCrawlerのテスト分離
-    * DBControlのテストをリフレッシュ
-    * DBControl全般の捜査をsqlalchemy利用に置き換える
     * PG_DB.dbのバックアップ機構
 """
 
@@ -700,7 +698,7 @@ class TestCrawler(unittest.TestCase):
         crawler = ConcreteCrawler()
 
         with ExitStack() as stack:
-            mockwhtml = stack.enter_context(patch('PictureGathering.WriteHTML.WriteFavHTML'))
+            mockwhtml = stack.enter_context(patch('PictureGathering.WriteHTML.WriteResultHTML'))
             mockcptweet = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostTweet'))
             mockcplnotify = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostLineNotify'))
             mockcpsnotify = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostSlackNotify'))

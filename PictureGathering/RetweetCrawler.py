@@ -1,12 +1,11 @@
 # coding: utf-8
-from datetime import datetime
-from logging import getLogger, DEBUG, INFO
 import os
 import random
 import sys
+from datetime import datetime
+from logging import DEBUG, INFO, getLogger
 
 from PictureGathering.Crawler import Crawler
-
 
 logger = getLogger("root")
 logger.setLevel(INFO)
@@ -126,6 +125,7 @@ class RetweetCrawler(Crawler):
         return done_msg
 
     def Crawl(self):
+        logger.info("Retweet Crawler run.")
         tweets = self.RetweetsGet()
         self.ImageSaver(tweets)
         self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
@@ -133,6 +133,11 @@ class RetweetCrawler(Crawler):
 
 
 if __name__ == "__main__":
-    logger.info("Retweet Crawler run.")
     c = RetweetCrawler()
+
+    # クロール前に保存場所から指定枚数削除しておく
+    # c.ShrinkFolder(int(c.config["holding"]["holding_file_num"]) - 10)
+    # c.del_cnt = 0
+    # c.del_url_list = []
+
     c.Crawl()
