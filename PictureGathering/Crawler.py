@@ -401,10 +401,11 @@ class Crawler(metaclass=ABCMeta):
                     self.add_url_list.append(url_orig)
 
                     # DB操作
+                    include_blob = self.config["db"].getboolean("save_blob")
                     if self.type == "Fav":
-                        self.db_cont.DBFavUpsert(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
+                        self.db_cont.DBFavUpsert(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob)
                     elif self.type == "RT":
-                        self.db_cont.DBRetweetUpsert(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath)
+                        self.db_cont.DBRetweetUpsert(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob)
 
                     # image magickで画像変換
                     if media_type == "photo":

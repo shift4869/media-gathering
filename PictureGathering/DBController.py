@@ -15,8 +15,9 @@ from PictureGathering.Model import *
 
 
 class DBController:
-    def __init__(self, db_fullpath='./PG_DB.db'):
-        self.dbname = os.path.basename(db_fullpath)
+    def __init__(self, db_fullpath='PG_DB.db'):
+        self.dbname = db_fullpath
+        # self.dbname = os.path.basename(db_fullpath)
         self.engine = create_engine(f"sqlite:///{self.dbname}", echo=False)
         Base.metadata.create_all(self.engine)
 
@@ -266,7 +267,8 @@ class DBController:
         r = Retweet(False, param["img_filename"], param["url"], param["url_thumbnail"],
                     param["tweet_id"], param["tweet_url"], param["created_at"],
                     param["user_id"], param["user_name"], param["screan_name"],
-                    param["tweet_text"], param["saved_localpath"], param["saved_created_at"])
+                    param["tweet_text"], param["saved_localpath"], param["saved_created_at"],
+                    param["media_size"], param["media_blob"])
 
         try:
             q = session.query(Retweet).filter(
