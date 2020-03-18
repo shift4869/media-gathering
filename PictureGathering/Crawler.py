@@ -411,9 +411,7 @@ class Crawler(metaclass=ABCMeta):
                     if media_type == "photo":
                         img_magick_path = self.config["processes"]["image_magick"]
                         if img_magick_path:
-                            os.system('"' + img_magick_path + '" -quality 60 ' +
-                                      save_file_fullpath + " " +
-                                      save_file_fullpath)
+                            os.system('"' + img_magick_path + '" -quality 60 ' +　save_file_fullpath + " " +　save_file_fullpath)
 
                     # 更新日時を上書き
                     config = self.config["timestamp"]
