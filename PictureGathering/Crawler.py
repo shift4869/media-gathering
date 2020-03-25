@@ -73,8 +73,15 @@ class Crawler(metaclass=ABCMeta):
                 raise IOError
 
             config = self.config["db"]
+            os.makedirs(config["save_path"], exist_ok=True)
             db_fullpath = os.path.join(config["save_path"], config["save_file_name"])
             self.db_cont = DBController.DBController(db_fullpath)
+            if config.getboolean("save_permanent_image_flag"):
+                os.makedirs(config["save_permanent_image_path"], exist_ok=True)
+                
+            config = self.config["save_directory"]
+            os.makedirs(config["save_fav_path"], exist_ok=True)
+            os.makedirs(config["save_retweet_path"], exist_ok=True)
 
             config = self.config["twitter_token_keys"]
             self.TW_CONSUMER_KEY = config["consumer_key"]
