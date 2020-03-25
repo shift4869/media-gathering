@@ -11,6 +11,7 @@ import json
 import logging.config
 import os
 import random
+import shutil
 import sys
 import time
 import traceback
@@ -420,6 +421,12 @@ class Crawler(metaclass=ABCMeta):
 
                     logger.info(os.path.basename(save_file_fullpath) + " -> done!")
                     self.add_cnt += 1
+
+                    # 画像を常に保存する設定の場合はコピーする
+                    config = self.config["db"]
+                    if config.getboolean("save_permanent_image_flag"):
+                        shutil.copy2(save_file_fullpath, config["save_permanent_image_path"])
+
         return 0
 
     def GetExistFilelist(self) -> list:
