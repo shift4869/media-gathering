@@ -28,6 +28,7 @@ th_template = '''<th>
 POINTER_PATH = './pointer.png'
 FAV_HTML_PATH = './html/FavPictureGathering.html'
 RETWEET_HTML_PATH = './html/RetweetPictureGathering.html'
+COLUMN_NUM = 6
 
 
 def MakeTHTag(url, url_thumbnail, tweet_url):
@@ -52,8 +53,6 @@ def WriteResultHTML(op_type, db_controller):
         return -1
 
     res = ""
-
-    COLUMN_NUM = 5
     cnt = 0
 
     for row in db:
