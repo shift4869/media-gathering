@@ -11,6 +11,7 @@ import json
 import logging.config
 import os
 import random
+import shutil
 import sys
 import time
 import traceback
@@ -72,8 +73,15 @@ class Crawler(metaclass=ABCMeta):
                 raise IOError
 
             config = self.config["db"]
+            os.makedirs(config["save_path"], exist_ok=True)
             db_fullpath = os.path.join(config["save_path"], config["save_file_name"])
             self.db_cont = DBController.DBController(db_fullpath)
+            if config.getboolean("save_permanent_image_flag"):
+                os.makedirs(config["save_permanent_image_path"], exist_ok=True)
+                
+            config = self.config["save_directory"]
+            os.makedirs(config["save_fav_path"], exist_ok=True)
+            os.makedirs(config["save_retweet_path"], exist_ok=True)
 
             config = self.config["twitter_token_keys"]
             self.TW_CONSUMER_KEY = config["consumer_key"]
@@ -411,9 +419,7 @@ class Crawler(metaclass=ABCMeta):
                     if media_type == "photo":
                         img_magick_path = self.config["processes"]["image_magick"]
                         if img_magick_path:
-                            os.system('"' + img_magick_path + '" -quality 60 ' +
-                                      save_file_fullpath + " " +
-                                      save_file_fullpath)
+                            os.system('"' + img_magick_path + '" -quality 60 ' + save_file_fullpath + ' ' + save_file_fullpath)
 
                     # 更新日時を上書き
                     config = self.config["timestamp"]
@@ -422,6 +428,12 @@ class Crawler(metaclass=ABCMeta):
 
                     logger.info(os.path.basename(save_file_fullpath) + " -> done!")
                     self.add_cnt += 1
+
+                    # 画像を常に保存する設定の場合はコピーする
+                    config = self.config["db"]
+                    if config.getboolean("save_permanent_image_flag"):
+                        shutil.copy2(save_file_fullpath, config["save_permanent_image_path"])
+
         return 0
 
     def GetExistFilelist(self) -> list:

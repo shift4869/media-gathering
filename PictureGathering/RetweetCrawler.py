@@ -90,7 +90,8 @@ class RetweetCrawler(Crawler):
                 break
 
         # 古い順にする
-        rt_tweets = reversed(rt_tweets)
+        # rt_tweets = reversed(rt_tweets)
+        rt_tweets.reverse()
 
         return rt_tweets
 
