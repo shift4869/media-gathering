@@ -167,8 +167,8 @@ class TestCrawler(unittest.TestCase):
                          crawler.user_name)
         # self.assertEqual(int(expect_config["tweet_timeline"]["retweet_get_max_loop"]),
         #                  crawler.retweet_get_max_loop)
-        # self.assertEqual(int(expect_config["tweet_timeline"]["get_pages"]) + 1,
-        #                  crawler.get_pages)
+        # self.assertEqual(int(expect_config["tweet_timeline"]["fav_get_max_loop"]) + 1,
+        #                  crawler.fav_get_max_loop)
         self.assertEqual(int(expect_config["tweet_timeline"]["count"]),
                          crawler.count)
         self.assertIn(crawler.config["tweet_timeline"]["kind_of_timeline"],
@@ -482,9 +482,9 @@ class TestCrawler(unittest.TestCase):
         """
 
         crawler = ConcreteCrawler()
-        get_pages = int(crawler.config["tweet_timeline"]["get_pages"]) + 1
+        fav_get_max_loop = int(crawler.config["tweet_timeline"]["fav_get_max_loop"]) + 1
 
-        for i in range(1, get_pages):
+        for i in range(1, fav_get_max_loop):
             url = "https://api.twitter.com/1.1/favorites/list.json"
             params = {
                 "screen_name": crawler.user_name,

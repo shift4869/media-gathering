@@ -47,7 +47,13 @@ class TestDBController(unittest.TestCase):
     
         records = self.session.query(Favorite).all()
         for r in records:
-            os.remove(r.saved_localpath)
+            if os.path.exists(r.saved_localpath):
+                os.remove(r.saved_localpath)
+
+        records = self.session.query(Retweet).all()
+        for r in records:
+            if os.path.exists(r.saved_localpath):
+                os.remove(r.saved_localpath)
 
         self.session.close()
         if self.engine.url.database == ":memory:":

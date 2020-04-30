@@ -77,9 +77,9 @@ class FavCrawler(Crawler):
 
     def Crawl(self):
         logger.info("Fav Crawler run.")
-        # count * get_pages だけツイートをさかのぼる。
-        self.get_pages = int(self.config["tweet_timeline"]["get_pages"]) + 1
-        for i in range(1, self.get_pages):
+        # count * fav_get_max_loop だけツイートをさかのぼる。
+        fav_get_max_loop = int(self.config["tweet_timeline"]["fav_get_max_loop"]) + 1
+        for i in range(1, fav_get_max_loop):
             tweets = self.FavTweetsGet(i)
             self.ImageSaver(tweets)
         self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
