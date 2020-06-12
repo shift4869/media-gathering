@@ -54,10 +54,7 @@
 1. ローカルの保存先パスにメディアが保存されたことを確認する。
 
 
-## Licence
-[MIT](https://github.com/tcnksm/tool/blob/master/LICENCE)
-
-
-## Author
-[shift](https://twitter.com/_shift4869)
+## License/Author
+[MIT License](https://github.com/shift4869/PictureGathering/blob/master/LICENSE)  
+Copyright (c) 2018 [shift](https://twitter.com/_shift4869)
 
