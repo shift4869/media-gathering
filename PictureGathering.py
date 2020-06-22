@@ -2,6 +2,7 @@
 import argparse
 
 import PictureGathering.FavCrawler as FavCrawler
+import PictureGathering.GoogleDrive as GoogleDrive
 import PictureGathering.RetweetCrawler as RetweetCrawler
 
 
@@ -13,6 +14,9 @@ if __name__ == "__main__":
     arg_parser.add_argument("--type", choices=["Fav", "RT"], default="Fav",
                             help='Crawl target: Fav or RT')
     args = arg_parser.parse_args()
+
+    GoogleDrive.GoogleDriveApiTest()
+    exit(0)
 
     c = None
     if args.type == "Fav":

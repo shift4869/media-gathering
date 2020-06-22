@@ -111,3 +111,6 @@ log*.txt*
 *.stackdump
 *.db-journal
 *.vbs
+/drawio
+credentials.json
+*.jpg
