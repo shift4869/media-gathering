@@ -15,6 +15,9 @@ from sqlalchemy.orm.exc import *
 from PictureGathering.Model import *
 
 
+DEBUG = False
+
+
 class DBController:
     def __init__(self, db_fullpath='PG_DB.db', save_operation=True):
         self.dbname = db_fullpath
@@ -22,11 +25,11 @@ class DBController:
         self.engine = create_engine(f"sqlite:///{self.dbname}", echo=False)
         Base.metadata.create_all(self.engine)
 
-        if save_operation:
+        self.operatefile = None
+        if save_operation and not DEBUG:
             self.operatefile = os.path.join(os.path.abspath("./archive"), "operatefile.txt")  # 操作履歴保存ファイル
-            with open(self.operatefile, "w") as fout:
+            with open(self.operatefile, "w", encoding="utf_8") as fout:
                 fout.write("")
-        pass
 
     def __GetUpdateParam(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob):
         """DBにUPSERTする際のパラメータを作成する
@@ -155,11 +158,13 @@ class DBController:
         session.commit()
         session.close()
 
-        # 操作履歴保存ファイル
+        # 操作履歴保存
         if self.operatefile:
-            pt = pickle.dumps(tweet)
-            with open(self.operatefile, "a") as fout:
-                fout.write("DBFavUpsert,{},{},{},{},{},{}\n".format(file_name, url_orig, url_thumbnail, save_file_fullpath, include_blob, str(pt)))
+            bname = file_name.split(".")[0] + ".bin"
+            with open(os.path.join(os.path.dirname(self.operatefile), bname), "wb") as fout:
+                pickle.dump(tweet, fout)
+            with open(self.operatefile, "a", encoding="utf_8") as fout:
+                fout.write("DBFavUpsert,{},{},{},{},{}\n".format(file_name, url_orig, url_thumbnail, save_file_fullpath, include_blob))
 
         return res
 
@@ -449,6 +454,32 @@ class DBController:
         session.close()
         return res_dict
 
+    def DBReflectFromFile(self, operate_file_path):
+        """操作履歴ファイルから操作を反映する
+
+        Returns:
+             int: 0(成功)
+        """
+        file_list = []
+        with open(operate_file_path, "r", encoding="utf_8") as fin:
+            lines = fin.readlines()
+            for line_str in lines:
+                token = re.split("[,\n]", line_str)
+                params = token[:-1]
+                bin_file = params[1].split(".")[0] + ".bin"
+                with open(os.path.join(os.path.dirname(operate_file_path), bin_file), "rb") as bin:
+                    tweet = pickle.load(bin)
+                
+                self.DBFavUpsert(params[1], params[2], params[3], tweet, params[4], params[5] == "True")
+                file_list.append(params[1])
+        
+        self.DBFavFlagUpdate(file_list, 1)
+
+        return 0
+
 
 if __name__ == "__main__":
-    db_cont = DBController()
+    DEBUG = True
+    db_fullpath = os.path.join("J:\\twitter", "PG_DB.db")
+    db_cont = DBController(db_fullpath=db_fullpath, save_operation=True)
+    db_cont.DBReflectFromFile("./archive/operatefile.txt")
