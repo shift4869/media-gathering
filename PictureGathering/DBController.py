@@ -2,6 +2,7 @@
 import configparser
 import copy
 import os
+import pickle
 import re
 import sqlite3
 from contextlib import closing
@@ -15,11 +16,17 @@ from PictureGathering.Model import *
 
 
 class DBController:
-    def __init__(self, db_fullpath='PG_DB.db'):
+    def __init__(self, db_fullpath='PG_DB.db', save_operation=True):
         self.dbname = db_fullpath
         # self.dbname = os.path.basename(db_fullpath)
         self.engine = create_engine(f"sqlite:///{self.dbname}", echo=False)
         Base.metadata.create_all(self.engine)
+
+        if save_operation:
+            self.operatefile = os.path.join(os.path.abspath("./archive"), "operatefile.txt")  # 操作履歴保存ファイル
+            with open(self.operatefile, "w") as fout:
+                fout.write("")
+        pass
 
     def __GetUpdateParam(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob):
         """DBにUPSERTする際のパラメータを作成する
@@ -147,6 +154,12 @@ class DBController:
 
         session.commit()
         session.close()
+
+        # 操作履歴保存ファイル
+        if self.operatefile:
+            pt = pickle.dumps(tweet)
+            with open(self.operatefile, "a") as fout:
+                fout.write("DBFavUpsert,{},{},{},{},{},{}\n".format(file_name, url_orig, url_thumbnail, save_file_fullpath, include_blob, str(pt)))
 
         return res
 

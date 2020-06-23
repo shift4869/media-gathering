@@ -25,7 +25,7 @@ import requests
 import slackweb
 from requests_oauthlib import OAuth1Session
 
-from PictureGathering import DBController, WriteHTML
+from PictureGathering import DBController, WriteHTML, Archiver
 
 logging.config.fileConfig("./log/logging.ini")
 logger = getLogger("root")
@@ -434,6 +434,11 @@ class Crawler(metaclass=ABCMeta):
                     if config.getboolean("save_permanent_image_flag"):
                         shutil.copy2(save_file_fullpath, config["save_permanent_image_path"])
 
+                    # 画像をアーカイブする設定の場合
+                    config = self.config["archive"]
+                    if config.getboolean("is_archive"):
+                        shutil.copy2(save_file_fullpath, config["archive_temp_path"])
+
         return 0
 
     def GetExistFilelist(self) -> list:
@@ -564,6 +569,11 @@ class Crawler(metaclass=ABCMeta):
             if config.getboolean("is_post_discord_notify"):
                 self.PostDiscordNotify(done_msg)
                 logger.info("Discord Notify posted.")
+
+        # アーカイブする設定の場合
+        config = self.config["archive"]
+        if config.getboolean("is_archive"):
+            Archiver.MakeZipFile(config.get("archive_temp_path"), self.type)
 
         # 古い通知リプライを消す
         if config.getboolean("is_post_fav_done_reply") or config.getboolean("is_post_retweet_done_reply"):
