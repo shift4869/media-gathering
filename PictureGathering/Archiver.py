@@ -20,15 +20,21 @@ def MakeZipFile(target_directory, type_str):
     achive_name = "{}_{}.zip".format(type_str, date_str)
     target_path = os.path.join(target_directory, achive_name)
 
+    # 既にあるzipファイルは削除する
+    zipfile_list = [p for p in glob.glob(os.path.join(target_directory, "*.*")) if re.search("^(.*zip).*$", p)]
+    for f in zipfile_list:
+        os.remove(f)
+
     # 対象ファイルリストを設定
     # zipファイル以外を対象とする
     target_list = [p for p in glob.glob(os.path.join(target_directory, "*.*")) if re.search("^(?!.*zip).*$", p)]
 
     # zip圧縮する
-    with zipfile.ZipFile(target_path, "w", compression=zipfile.ZIP_DEFLATED) as zfout:
-        for f in target_list:
-            zfout.write(f, os.path.basename(f))
-            os.remove(f)  # アーカイブしたファイルは削除する
+    if target_list:
+        with zipfile.ZipFile(target_path, "w", compression=zipfile.ZIP_DEFLATED) as zfout:
+            for f in target_list:
+                zfout.write(f, os.path.basename(f))
+                os.remove(f)  # アーカイブしたファイルは削除する
 
     return target_path
 
