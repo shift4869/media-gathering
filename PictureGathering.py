@@ -15,9 +15,6 @@ if __name__ == "__main__":
                             help='Crawl target: Fav or RT')
     args = arg_parser.parse_args()
 
-    GoogleDrive.GoogleDriveApiTest()
-    exit(0)
-
     c = None
     if args.type == "Fav":
         c = FavCrawler.FavCrawler()
