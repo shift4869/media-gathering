@@ -570,12 +570,12 @@ class Crawler(metaclass=ABCMeta):
                 self.PostDiscordNotify(done_msg)
                 logger.info("Discord Notify posted.")
 
-        # アーカイブする設定の場合
-        config = self.config["archive"]
-        if config.getboolean("is_archive"):
-            zipfile_path = Archiver.MakeZipFile(config.get("archive_temp_path"), self.type)
-            if config.getboolean("is_send_google_drive") and zipfile_path != "":
-                GoogleDrive.UploadToGoogleDrive(zipfile_path, config.get("google_service_account_credentials"))
+            # アーカイブする設定の場合
+            config = self.config["archive"]
+            if config.getboolean("is_archive"):
+                zipfile_path = Archiver.MakeZipFile(config.get("archive_temp_path"), self.type)
+                if config.getboolean("is_send_google_drive") and zipfile_path != "":
+                    GoogleDrive.UploadToGoogleDrive(zipfile_path, config.get("google_service_account_credentials"))
 
         # 古い通知リプライを消す
         if config.getboolean("is_post_fav_done_reply") or config.getboolean("is_post_retweet_done_reply"):
