@@ -648,7 +648,7 @@ class Crawler(metaclass=ABCMeta):
 
         responce = self.oath.post(url, params=params)
         logger.debug(responce.text)
-        self.db_cont.DBDelInsert(json.loads(responce.text))
+        self.db_cont.DBDelUpsert(json.loads(responce.text))
 
         if responce.status_code != 200:
             logger.error("Error code: {0}".format(responce.status_code))

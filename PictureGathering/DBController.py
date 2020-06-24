@@ -160,8 +160,9 @@ class DBController:
 
         # 操作履歴保存
         if self.operatefile:
-            bname = file_name.split(".")[0] + ".bin"
-            with open(os.path.join(os.path.dirname(self.operatefile), bname), "wb") as fout:
+            bname = "DBFavUpsert_" + file_name.split(".")[0] + ".bin"
+            bin_file_path = os.path.join(os.path.dirname(self.operatefile), bname)
+            with open(bin_file_path, "wb") as fout:
                 pickle.dump(tweet, fout)
             with open(self.operatefile, "a", encoding="utf_8") as fout:
                 fout.write("DBFavUpsert,{},{},{},{},{}\n".format(file_name, url_orig, url_thumbnail, save_file_fullpath, include_blob))
@@ -236,6 +237,7 @@ class DBController:
 
         session.commit()
         session.close()
+
         return res_dict
 
     def DBFavFlagClear(self):
@@ -256,6 +258,7 @@ class DBController:
 
         session.commit()
         session.close()
+
         return 0
 
     def DBRetweetUpsert(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob):
@@ -307,6 +310,16 @@ class DBController:
 
         session.commit()
         session.close()
+
+        # 操作履歴保存
+        if self.operatefile:
+            bname = "DBRetweetUpsert_" + file_name.split(".")[0] + ".bin"
+            bin_file_path = os.path.join(os.path.dirname(self.operatefile), bname)
+            with open(bin_file_path, "wb") as fout:
+                pickle.dump(tweet, fout)
+            with open(self.operatefile, "a", encoding="utf_8") as fout:
+                fout.write("DBRetweetUpsert,{},{},{},{},{}\n".format(file_name, url_orig, url_thumbnail, save_file_fullpath, include_blob))
+
         return res
 
     def DBRetweetSelect(self, limit=300):
@@ -399,7 +412,7 @@ class DBController:
         session.close()
         return 0
 
-    def DBDelInsert(self, tweet):
+    def DBDelUpsert(self, tweet):
         """DeleteTargetにInsertする
 
         Note:
@@ -413,17 +426,42 @@ class DBController:
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
+        res = -1
 
         # tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num
         param = self.__GetDelUpdateParam(tweet)
-        record = DeleteTarget(param["tweet_id"], param["delete_done"], param["created_at"],
-                              param["deleted_at"], param["tweet_text"], param["add_num"], param["del_num"])
-        # INSERT
-        session.add(record)
-        session.commit()
+        r = DeleteTarget(param["tweet_id"], param["delete_done"], param["created_at"],
+                         param["deleted_at"], param["tweet_text"], param["add_num"], param["del_num"])
 
+        try:
+            q = session.query(DeleteTarget).filter(
+                or_(DeleteTarget.tweet_id == r.tweet_id))
+            ex = q.one()
+        except NoResultFound:
+            # INSERT
+            session.add(r)
+            res = 0
+        else:
+            # UPDATEは実質DELETE->INSERTと同じとする
+            session.delete(ex)
+            session.commit()
+            session.add(r)
+            res = 1
+        
+        # INSERT
+        session.commit()
         session.close()
-        return 0
+
+        # 操作履歴保存
+        if self.operatefile:
+            bname = "DBDelUpsert" + ".bin"
+            bin_file_path = os.path.join(os.path.dirname(self.operatefile), bname)
+            with open(bin_file_path, "wb") as fout:
+                pickle.dump(tweet, fout)
+            with open(self.operatefile, "a", encoding="utf_8") as fout:
+                fout.write("DBDelUpsert\n")
+
+        return res
 
     def DBDelSelect(self):
         """DeleteTargetからSELECTしてフラグをUPDATEする
@@ -460,20 +498,35 @@ class DBController:
         Returns:
              int: 0(成功)
         """
-        file_list = []
+        fav_upsert_file_list = []
+        rt_upsert_file_list = []
         with open(operate_file_path, "r", encoding="utf_8") as fin:
             lines = fin.readlines()
             for line_str in lines:
                 token = re.split("[,\n]", line_str)
                 params = token[:-1]
-                bin_file = params[1].split(".")[0] + ".bin"
-                with open(os.path.join(os.path.dirname(operate_file_path), bin_file), "rb") as bin:
-                    tweet = pickle.load(bin)
-                
-                self.DBFavUpsert(params[1], params[2], params[3], tweet, params[4], params[5] == "True")
-                file_list.append(params[1])
-        
-        self.DBFavFlagUpdate(file_list, 1)
+                if params[0] == "DBFavUpsert":
+                    bin_file = "DBFavUpsert_" + params[1].split(".")[0] + ".bin"
+                    with open(os.path.join(os.path.dirname(operate_file_path), bin_file), "rb") as bin:
+                        tweet = pickle.load(bin)
+                    self.DBFavUpsert(params[1], params[2], params[3], tweet, params[4], params[5] == "True")
+                    fav_upsert_file_list.append(params[1])
+                elif params[0] == "DBRetweetUpsert":
+                    bin_file = "DBRetweetUpsert_" + params[1].split(".")[0] + ".bin"
+                    with open(os.path.join(os.path.dirname(operate_file_path), bin_file), "rb") as bin:
+                        tweet = pickle.load(bin)
+                    self.DBRetweetUpsert(params[1], params[2], params[3], tweet, params[4], params[5] == "True")
+                    rt_upsert_file_list.append(params[1])
+                elif params[0] == "DBDelUpsert":
+                    bin_file = "DBDelUpsert" + ".bin"
+                    with open(os.path.join(os.path.dirname(operate_file_path), bin_file), "rb") as bin:
+                        tweet = pickle.load(bin)
+                    self.DBDelUpsert(tweet)
+
+        if fav_upsert_file_list:
+            self.DBFavFlagUpdate(fav_upsert_file_list, 1)
+        if rt_upsert_file_list:
+            self.DBRetweetFlagUpdate(rt_upsert_file_list, 1)
 
         return 0
 
