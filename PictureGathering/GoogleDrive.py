@@ -12,7 +12,7 @@ from apiclient.http import MediaFileUpload
 def UploadToGoogleDrive(file_path, credentials_path):
     warnings.filterwarnings("ignore")
     creds = Credentials.from_service_account_file(credentials_path)
-    service = build("drive", "v3", credentials=creds)
+    service = build("drive", "v3", credentials=creds, cache_discovery=False)
 
     # フォルダID取得
     GOOGLEDRIVE_FOLDER_NAME = "PictureGathering"
