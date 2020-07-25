@@ -110,9 +110,6 @@ def GoogleDriveAllDelete():
 
 
 def GoogleDriveApiTest():
-    """Shows basic usage of the Drive v3 API.
-    Prints the names and ids of the first 10 files the user has access to.
-    """
     creds = Credentials.from_service_account_file('./config/credentials.json')
 
     service = build('drive', 'v3', credentials=creds)
@@ -120,7 +117,7 @@ def GoogleDriveApiTest():
     # Call the Drive v3 API
 
     # 作成（アップロード）
-    folder_id = "1AnmJlnOw2tyO3NuGECUTyzzpY9-_56y3"
+    folder_id = ""
     file_metadata = {
         'name': "fw2g.jpg",
         'mimeType': "image/jpeg",
