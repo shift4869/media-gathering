@@ -25,7 +25,7 @@ import requests
 import slackweb
 from requests_oauthlib import OAuth1Session
 
-from PictureGathering import DBController, WriteHTML
+from PictureGathering import DBController, WriteHTML, Archiver, GoogleDrive
 
 logging.config.fileConfig("./log/logging.ini")
 logger = getLogger("root")
@@ -434,6 +434,11 @@ class Crawler(metaclass=ABCMeta):
                     if config.getboolean("save_permanent_image_flag"):
                         shutil.copy2(save_file_fullpath, config["save_permanent_image_path"])
 
+                    # 画像をアーカイブする設定の場合
+                    config = self.config["archive"]
+                    if config.getboolean("is_archive"):
+                        shutil.copy2(save_file_fullpath, config["archive_temp_path"])
+
         return 0
 
     def GetExistFilelist(self) -> list:
@@ -565,6 +570,15 @@ class Crawler(metaclass=ABCMeta):
                 self.PostDiscordNotify(done_msg)
                 logger.info("Discord Notify posted.")
 
+            # アーカイブする設定の場合
+            config = self.config["archive"]
+            if config.getboolean("is_archive"):
+                zipfile_path = Archiver.MakeZipFile(config.get("archive_temp_path"), self.type)
+                logger.info("Archive File Created.")
+                if config.getboolean("is_send_google_drive") and zipfile_path != "":
+                    GoogleDrive.UploadToGoogleDrive(zipfile_path, config.get("google_service_account_credentials"))
+                    logger.info("Google Drive Send.")
+
         # 古い通知リプライを消す
         if config.getboolean("is_post_fav_done_reply") or config.getboolean("is_post_retweet_done_reply"):
             targets = self.db_cont.DBDelSelect()
@@ -638,7 +652,7 @@ class Crawler(metaclass=ABCMeta):
 
         responce = self.oath.post(url, params=params)
         logger.debug(responce.text)
-        self.db_cont.DBDelInsert(json.loads(responce.text))
+        self.db_cont.DBDelUpsert(json.loads(responce.text))
 
         if responce.status_code != 200:
             logger.error("Error code: {0}".format(responce.status_code))

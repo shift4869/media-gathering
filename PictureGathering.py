@@ -2,6 +2,7 @@
 import argparse
 
 import PictureGathering.FavCrawler as FavCrawler
+import PictureGathering.GoogleDrive as GoogleDrive
 import PictureGathering.RetweetCrawler as RetweetCrawler
 
 
