@@ -27,7 +27,7 @@ from requests_oauthlib import OAuth1Session
 
 from PictureGathering import DBController, WriteHTML, Archiver, GoogleDrive
 
-logging.config.fileConfig("./log/logging.ini")
+logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 logger = getLogger("root")
 logger.setLevel(INFO)
 
