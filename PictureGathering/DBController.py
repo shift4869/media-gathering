@@ -43,20 +43,22 @@ class DBController:
             file_name (str): ファイル名
             url_orig (str): メディアURL
             url_thumbnail (str): サムネイルメディアURL
-            tweet(str): ツイート本文
-            save_file_fullpath(str): メディア保存パス（ローカル）
-            include_blob(boolean): メディアをblobとして格納するかどうかのフラグ(Trueで格納する)
+            tweet (dict): ツイート
+            save_file_fullpath (str): メディア保存パス（ローカル）
+            include_blob (boolean): メディアをblobとして格納するかどうかのフラグ(Trueで格納する)
 
         Returns:
             dict: DBにUPSERTする際のパラメータをまとめた辞書
         """
         # img_filename,url,url_thumbnail,tweet_id,tweet_url,created_at,
-        # user_id,user_name,screan_name,tweet_text,saved_localpath,saved_created_at
+        # user_id,user_name,screan_name,tweet_text,tweet_via,saved_localpath,saved_created_at
         td_format = '%a %b %d %H:%M:%S +0000 %Y'
         dts_format = '%Y-%m-%d %H:%M:%S'
         tca = tweet["created_at"]
         dst = datetime.strptime(tca, td_format)
         text = tweet["text"] if "text" in tweet else tweet["full_text"]
+        regex = re.compile(r"<[^>]*?>")
+        via = regex.sub("", tweet["source"])
         param = {
             "img_filename": file_name,
             "url": url_orig,
@@ -68,6 +70,7 @@ class DBController:
             "user_name": tweet["user"]["name"],
             "screan_name": tweet["user"]["screen_name"],
             "tweet_text": text,
+            "tweet_via": via,
             "saved_localpath": save_file_fullpath,
             "saved_created_at": datetime.now().strftime(dts_format)
         }
@@ -135,7 +138,7 @@ class DBController:
         r = Favorite(False, param["img_filename"], param["url"], param["url_thumbnail"],
                      param["tweet_id"], param["tweet_url"], param["created_at"],
                      param["user_id"], param["user_name"], param["screan_name"],
-                     param["tweet_text"], param["saved_localpath"], param["saved_created_at"],
+                     param["tweet_text"], param["tweet_via"], param["saved_localpath"], param["saved_created_at"],
                      param["media_size"], param["media_blob"])
 
         try:
@@ -535,4 +538,4 @@ if __name__ == "__main__":
     DEBUG = True
     db_fullpath = os.path.join("J:\\twitter", "PG_DB.db")
     db_cont = DBController(db_fullpath=db_fullpath, save_operation=True)
-    db_cont.DBReflectFromFile("./archive/operatefile.txt")
+    # db_cont.DBReflectFromFile("./archive/operatefile.txt")
