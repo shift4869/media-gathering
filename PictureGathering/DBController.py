@@ -291,7 +291,7 @@ class DBController:
         r = Retweet(False, param["img_filename"], param["url"], param["url_thumbnail"],
                     param["tweet_id"], param["tweet_url"], param["created_at"],
                     param["user_id"], param["user_name"], param["screan_name"],
-                    param["tweet_text"], param["saved_localpath"], param["saved_created_at"],
+                    param["tweet_text"], param["tweet_via"], param["saved_localpath"], param["saved_created_at"],
                     param["media_size"], param["media_blob"])
 
         try:

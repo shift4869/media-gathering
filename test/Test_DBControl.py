@@ -112,6 +112,8 @@ class TestDBController(unittest.TestCase):
         tca = tweet["created_at"]
         dst = datetime.strptime(tca, td_format)
         text = tweet["text"] if "text" in tweet else tweet["full_text"]
+        regex = re.compile(r"<[^>]*?>")
+        via = regex.sub("", tweet["source"])
         param = (file_name,
                  url_orig,
                  url_thumbnail,
@@ -122,14 +124,15 @@ class TestDBController(unittest.TestCase):
                  tweet["user"]["name"],
                  tweet["user"]["screen_name"],
                  text,
+                 via,
                  save_file_fullpath,
                  datetime.now().strftime(dts_format),
                  len(file_name.encode()),
                  file_name.encode())
 
         # サンプル生成
-        rt = Retweet(False, param[0], param[1], param[2], param[3], param[4], param[5],
-                     param[6], param[7], param[8], param[9], param[10], param[11], param[12], param[13])
+        rt = Retweet(False, param[0], param[1], param[2], param[3], param[4], param[5], param[6],
+                     param[7], param[8], param[9], param[10], param[11], param[12], param[13], param[14])
         return rt
 
     def GetTweetSample(self, img_url_s):
