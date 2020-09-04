@@ -28,6 +28,7 @@ class Favorite(Base):
         [user_name] TEXT NOT NULL,
         [screan_name] TEXT NOT NULL,
         [tweet_text] TEXT,
+        [tweet_via] TEXT,
         [saved_localpath] TEXT,
         [saved_created_at] TEXT,
         [media_size] INTEGER,
@@ -49,6 +50,7 @@ class Favorite(Base):
     user_name = Column(String(256), nullable=False)
     screan_name = Column(String(256), nullable=False)
     tweet_text = Column(String(512))
+    tweet_via = Column(String(512))
     saved_localpath = Column(String(256))
     saved_created_at = Column(String(32))
     media_size = Column(INTEGER())
@@ -58,7 +60,7 @@ class Favorite(Base):
         super(Base, self).__init__(*args, **kwargs)
         self.is_exist_saved_file = True
 
-    def __init__(self, is_exist_saved_file, img_filename, url, url_thumbnail, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, saved_localpath, saved_created_at, media_size, media_blob):
+    def __init__(self, is_exist_saved_file, img_filename, url, url_thumbnail, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, tweet_via, saved_localpath, saved_created_at, media_size, media_blob):
         # self.id = id
         self.is_exist_saved_file = is_exist_saved_file
         self.img_filename = img_filename
@@ -71,6 +73,7 @@ class Favorite(Base):
         self.user_name = user_name
         self.screan_name = screan_name
         self.tweet_text = tweet_text
+        self.tweet_via = tweet_via
         self.saved_localpath = saved_localpath
         self.saved_created_at = saved_created_at
         self.media_size = media_size
@@ -96,6 +99,7 @@ class Favorite(Base):
             "user_name": self.user_name,
             "screan_name": self.screan_name,
             "tweet_text": self.tweet_text,
+            "tweet_via": self.tweet_via,
             "saved_localpath": self.saved_localpath,
             "saved_created_at": self.saved_created_at,
             "media_size": self.media_size,
@@ -118,6 +122,7 @@ class Retweet(Base):
         [user_name] TEXT NOT NULL,
         [screan_name] TEXT NOT NULL,
         [tweet_text] TEXT,
+        [tweet_via] TEXT,
         [saved_localpath] TEXT,
         [saved_created_at] TEXT,
         PRIMARY KEY([id])
@@ -137,6 +142,7 @@ class Retweet(Base):
     user_name = Column(String(256), nullable=False)
     screan_name = Column(String(256), nullable=False)
     tweet_text = Column(String(512))
+    tweet_via = Column(String(512))
     saved_localpath = Column(String(256))
     saved_created_at = Column(String(32))
     media_size = Column(INTEGER())
@@ -146,7 +152,7 @@ class Retweet(Base):
         super(Base, self).__init__(*args, **kwargs)
         self.is_exist_saved_file = True
 
-    def __init__(self, is_exist_saved_file, img_filename, url, url_thumbnail, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, saved_localpath, saved_created_at, media_size, media_blob):
+    def __init__(self, is_exist_saved_file, img_filename, url, url_thumbnail, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, tweet_via, saved_localpath, saved_created_at, media_size, media_blob):
         # self.id = id
         self.is_exist_saved_file = is_exist_saved_file
         self.img_filename = img_filename
@@ -159,6 +165,7 @@ class Retweet(Base):
         self.user_name = user_name
         self.screan_name = screan_name
         self.tweet_text = tweet_text
+        self.tweet_via = tweet_via
         self.saved_localpath = saved_localpath
         self.saved_created_at = saved_created_at
         self.media_size = media_size
@@ -184,6 +191,7 @@ class Retweet(Base):
             "user_name": self.user_name,
             "screan_name": self.screan_name,
             "tweet_text": self.tweet_text,
+            "tweet_via": self.tweet_via,
             "saved_localpath": self.saved_localpath,
             "saved_created_at": self.saved_created_at,
             "media_size": self.media_size,

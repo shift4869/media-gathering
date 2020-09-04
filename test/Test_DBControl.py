@@ -74,6 +74,8 @@ class TestDBController(unittest.TestCase):
         tca = tweet["created_at"]
         dst = datetime.strptime(tca, td_format)
         text = tweet["text"] if "text" in tweet else tweet["full_text"]
+        regex = re.compile(r"<[^>]*?>")
+        via = regex.sub("", tweet["source"])
         param = (file_name,
                  url_orig,
                  url_thumbnail,
@@ -84,14 +86,15 @@ class TestDBController(unittest.TestCase):
                  tweet["user"]["name"],
                  tweet["user"]["screen_name"],
                  text,
+                 via,
                  save_file_fullpath,
                  datetime.now().strftime(dts_format),
                  len(file_name.encode()),
                  file_name.encode())
 
         # サンプル生成
-        f = Favorite(False, param[0], param[1], param[2], param[3], param[4], param[5],
-                     param[6], param[7], param[8], param[9], param[10], param[11], param[12], param[13])
+        f = Favorite(False, param[0], param[1], param[2], param[3], param[4], param[5], param[6],
+                     param[7], param[8], param[9], param[10], param[11], param[12], param[13], param[14])
         return f
 
     def RetweetSampleFactory(self, img_url):
@@ -109,6 +112,8 @@ class TestDBController(unittest.TestCase):
         tca = tweet["created_at"]
         dst = datetime.strptime(tca, td_format)
         text = tweet["text"] if "text" in tweet else tweet["full_text"]
+        regex = re.compile(r"<[^>]*?>")
+        via = regex.sub("", tweet["source"])
         param = (file_name,
                  url_orig,
                  url_thumbnail,
@@ -119,19 +124,21 @@ class TestDBController(unittest.TestCase):
                  tweet["user"]["name"],
                  tweet["user"]["screen_name"],
                  text,
+                 via,
                  save_file_fullpath,
                  datetime.now().strftime(dts_format),
                  len(file_name.encode()),
                  file_name.encode())
 
         # サンプル生成
-        rt = Retweet(False, param[0], param[1], param[2], param[3], param[4], param[5],
-                     param[6], param[7], param[8], param[9], param[10], param[11], param[12], param[13])
+        rt = Retweet(False, param[0], param[1], param[2], param[3], param[4], param[5], param[6],
+                     param[7], param[8], param[9], param[10], param[11], param[12], param[13], param[14])
         return rt
 
     def GetTweetSample(self, img_url_s):
         # ツイートオブジェクトのサンプルを生成する
         tweet_url_s = 'http://www.tweet.sample.com'
+        tag_p_s = '<a href=https://mobile.twitter.com rel=nofollow>Twitter Web App</a>'
         tweet_json = f'''{{
             "entities": {{
                 "media": [{{
@@ -145,7 +152,8 @@ class TestDBController(unittest.TestCase):
                 "name": "shift_name_sample",
                 "screen_name": "_shift4869_screen_name_sample"
             }},
-            "text": "tweet_text_sample"
+            "text": "tweet_text_sample",
+            "source": "{tag_p_s}"
         }}'''
         tweet_s = json.loads(tweet_json)
         return tweet_s
@@ -187,6 +195,8 @@ class TestDBController(unittest.TestCase):
 
             tca = tweet_s["created_at"]
             dst = datetime.strptime(tca, td_format_s)
+            regex = re.compile(r"<[^>]*?>")
+            via = regex.sub("", tweet_s["source"])
             expect = {
                 "img_filename": file_name_s,
                 "url": url_orig_s,
@@ -198,6 +208,7 @@ class TestDBController(unittest.TestCase):
                 "user_name": tweet_s["user"]["name"],
                 "screan_name": tweet_s["user"]["screen_name"],
                 "tweet_text": tweet_s["text"],
+                "tweet_via": via,
                 "saved_localpath": save_file_fullpath_s,
                 "saved_created_at": datetime.now().strftime(dts_format_s),
                 "media_size": 5,
@@ -474,13 +485,13 @@ class TestDBController(unittest.TestCase):
         actual = self.session.query(Retweet).all()
         self.assertEqual(expect, actual)
 
-    def test_DBDelInsert(self):
+    def test_DBDelUpsert(self):
         # engineをテスト用インメモリテーブルに置き換える
         controlar = DBController.DBController()
         controlar.engine = self.engine
 
         del_tweet_s = self.GetDelTweetSample()
-        res = controlar.DBDelInsert(del_tweet_s)
+        res = controlar.DBDelUpsert(del_tweet_s)
         self.assertEqual(res, 0)
 
         param = controlar._DBController__GetDelUpdateParam(del_tweet_s)
