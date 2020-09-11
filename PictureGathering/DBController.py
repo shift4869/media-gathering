@@ -76,17 +76,17 @@ class DBController:
         }
 
         # media_size,media_blob
-        if include_blob:
-            try:
+        try:
+            if include_blob:
                 with open(save_file_fullpath, "rb") as fout:
                     param["media_blob"] = fout.read()
                     param["media_size"] = len(param["media_blob"])
-            except Exception:
+            else:
                 param["media_blob"] = None
-                param["media_size"] = -1
-        else:
+                param["media_size"] = os.path.getsize(save_file_fullpath)
+        except Exception:
             param["media_blob"] = None
-            param["media_size"] = 0
+            param["media_size"] = -1
 
         return param
 
