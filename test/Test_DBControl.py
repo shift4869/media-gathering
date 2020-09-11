@@ -60,6 +60,14 @@ class TestDBController(unittest.TestCase):
             Base.metadata.drop_all(self.engine)
 
     def FavoriteSampleFactory(self, img_url):
+        """Favoriteオブジェクトを生成する
+
+        Args:
+            img_url (str): サンプルメディアURL
+
+        Returns:
+            Favorite: Favoriteオブジェクト
+        """
         url_orig = img_url + ":orig"
         url_thumbnail = img_url + ":large"
         file_name = os.path.basename(img_url)
@@ -67,8 +75,9 @@ class TestDBController(unittest.TestCase):
         save_file_fullpath = os.path.join(os.getcwd(), file_name)
 
         with open(save_file_fullpath, "wb") as fout:
-            fout.write(file_name.encode())
+            fout.write(file_name.encode())  # ファイル名をテキトーに書き込んでおく
 
+        # パラメータ設定
         td_format = '%a %b %d %H:%M:%S +0000 %Y'
         dts_format = '%Y-%m-%d %H:%M:%S'
         tca = tweet["created_at"]
@@ -98,6 +107,14 @@ class TestDBController(unittest.TestCase):
         return f
 
     def RetweetSampleFactory(self, img_url):
+        """Retweetオブジェクトを生成する
+
+        Args:
+            img_url (str): サンプルメディアURL
+
+        Returns:
+            Retweet: Retweetオブジェクト
+        """
         url_orig = img_url + ":orig"
         url_thumbnail = img_url + ":large"
         file_name = os.path.basename(img_url)
@@ -105,8 +122,9 @@ class TestDBController(unittest.TestCase):
         save_file_fullpath = os.path.join(os.getcwd(), file_name)
 
         with open(save_file_fullpath, "wb") as fout:
-            fout.write(file_name.encode())
+            fout.write(file_name.encode())  # ファイル名をテキトーに書き込んでおく
 
+        # パラメータ設定
         td_format = '%a %b %d %H:%M:%S +0000 %Y'
         dts_format = '%Y-%m-%d %H:%M:%S'
         tca = tweet["created_at"]
@@ -136,7 +154,19 @@ class TestDBController(unittest.TestCase):
         return rt
 
     def GetTweetSample(self, img_url_s):
-        # ツイートオブジェクトのサンプルを生成する
+        """ツイートオブジェクトのサンプルを生成する
+
+        Notes:
+            メディアを含むツイートのサンプル
+            辞書構造やキーについては下記tweet_json参照
+
+        Args:
+            img_url_s (str): サンプルメディアURL
+
+        Returns:
+            dict: ツイートオブジェクト（辞書）
+        """
+        # ネストした引用符つきの文字列はjsonで処理できないのであくまで仮の文字列
         tweet_url_s = 'http://www.tweet.sample.com'
         tag_p_s = '<a href=https://mobile.twitter.com rel=nofollow>Twitter Web App</a>'
         tweet_json = f'''{{
@@ -159,7 +189,15 @@ class TestDBController(unittest.TestCase):
         return tweet_s
 
     def GetDelTweetSample(self):
-        # ツイートオブジェクトのサンプルを生成する
+        """ツイートオブジェクトのサンプルを生成する
+
+        Notes:
+            DeleteTargetに挿入するツイートのサンプル
+            辞書構造やキーについては下記tweet_json参照
+
+        Returns:
+            dict: ツイートオブジェクト（辞書）
+        """
         tweet_json = f'''{{
             "created_at": "Sat Nov 18 17:12:58 +0000 2018",
             "id_str": "12345_id_str_sample",
@@ -169,14 +207,22 @@ class TestDBController(unittest.TestCase):
         return tweet_s
 
     def test_QuerySample(self):
-        # クエリテストサンプル
+        """クエリテストサンプル
+        """
         expect = [self.f]
         actual = self.session.query(Favorite).all()
         self.assertEqual(actual, expect)
 
+        expect = [self.rt]
+        actual = self.session.query(Retweet).all()
+        self.assertEqual(actual, expect)
+
     def test_SQLParam(self):
-        # パラメータ生成関数をチェックする
+        """パラメータ生成関数をチェックする
+        """
+        # engineをテスト用インメモリテーブルに置き換える
         controlar = DBController.DBController()
+        controlar.engine = self.engine
 
         with freezegun.freeze_time('2018-11-18 17:12:58'):
             img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
@@ -238,6 +284,8 @@ class TestDBController(unittest.TestCase):
             self.assertEqual(expect, actual)
 
     def test_DBFavUpsert(self):
+        """FavoriteへのUPSERTをチェックする
+        """
         # engineをテスト用インメモリテーブルに置き換える
         controlar = DBController.DBController()
         controlar.engine = self.engine
@@ -267,6 +315,8 @@ class TestDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_DBFavSelect(self):
+        """FavoriteからのSELECTをチェックする
+        """
         # engineをテスト用インメモリテーブルに置き換える
         controlar = DBController.DBController()
         controlar.engine = self.engine
@@ -279,6 +329,8 @@ class TestDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_DBFavVideoURLSelect(self):
+        """Favoriteからfilenameを条件としてのSELECTをチェックする
+        """
         # engineをテスト用インメモリテーブルに置き換える
         controlar = DBController.DBController()
         controlar.engine = self.engine
@@ -296,6 +348,8 @@ class TestDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_DBFavFlagUpdate(self):
+        """Favoriteのis_exist_saved_fileフラグ更新をチェックする
+        """
         # engineをテスト用インメモリテーブルに置き換える
         controlar = DBController.DBController()
         controlar.engine = self.engine
@@ -331,6 +385,8 @@ class TestDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_DBFavFlagClear(self):
+        """Favoriteのis_exist_saved_fileフラグクリア機能をチェックする
+        """
         # engineをテスト用インメモリテーブルに置き換える
         controlar = DBController.DBController()
         controlar.engine = self.engine
@@ -362,6 +418,8 @@ class TestDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_DBRetweetUpsert(self):
+        """RetweetへのUPSERTをチェックする
+        """
         # engineをテスト用インメモリテーブルに置き換える
         controlar = DBController.DBController()
         controlar.engine = self.engine
@@ -391,6 +449,8 @@ class TestDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_DBRetweetSelect(self):
+        """RetweetからのSELECTをチェックする
+        """
         # engineをテスト用インメモリテーブルに置き換える
         controlar = DBController.DBController()
         controlar.engine = self.engine
@@ -403,6 +463,8 @@ class TestDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_DBRetweetVideoURLSelect(self):
+        """Retweetからfilenameを条件としてのSELECTをチェックする
+        """
         # engineをテスト用インメモリテーブルに置き換える
         controlar = DBController.DBController()
         controlar.engine = self.engine
@@ -420,6 +482,8 @@ class TestDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_DBRetweetFlagUpdate(self):
+        """Retweetのis_exist_saved_fileフラグ更新をチェックする
+        """
         # engineをテスト用インメモリテーブルに置き換える
         controlar = DBController.DBController()
         controlar.engine = self.engine
@@ -455,6 +519,8 @@ class TestDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_DBRetweetFlagClear(self):
+        """Retweetのis_exist_saved_fileフラグクリア機能をチェックする
+        """
         # engineをテスト用インメモリテーブルに置き換える
         controlar = DBController.DBController()
         controlar.engine = self.engine
@@ -486,6 +552,8 @@ class TestDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_DBDelUpsert(self):
+        """DeleteTargetへのUPSERTをチェックする
+        """
         # engineをテスト用インメモリテーブルに置き換える
         controlar = DBController.DBController()
         controlar.engine = self.engine
@@ -501,6 +569,8 @@ class TestDBController(unittest.TestCase):
         self.assertEqual([expect], actual)
 
     def test_DBDelSelect(self):
+        """DeleteTargetからのSELECTをチェックする
+        """
         # engineをテスト用インメモリテーブルに置き換える
         controlar = DBController.DBController()
         controlar.engine = self.engine
@@ -532,6 +602,55 @@ class TestDBController(unittest.TestCase):
 
         expect = records[2].toDict()
         self.assertEqual(expect["tweet_id"], actual["tweet_id"])
+
+    def test_DBReflectFromFile(self):
+        """操作履歴ファイルから操作を反映する機能をチェックする
+        """
+        # engineをテスト用インメモリテーブルに置き換える
+        controlar = DBController.DBController()
+        controlar.engine = self.engine
+
+        # テスト用操作履歴ファイルを反映する
+        operate_file = "./test/operate_file_example/operatefile.txt"
+        operate_file_path = os.path.join(os.getcwd(), operate_file)
+
+        res = controlar.DBReflectFromFile(operate_file_path)
+        self.assertEqual(res, 0)
+
+        # テスト用操作履歴ファイル反映後の想定状況と比較する
+        # DBFavUpsert
+        img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
+        r1 = self.FavoriteSampleFactory(img_url_s)
+        img_url_s = "http://www.img.filename.sample.com/media/sample_2.png"
+        r2 = self.FavoriteSampleFactory(img_url_s)
+        img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
+        file_name_s = "sample_3.png"
+        r3 = self.FavoriteSampleFactory(img_url_s)
+        r3.img_filename = file_name_s
+        expect = [self.f, r2, r3]
+        actual = self.session.query(Favorite).all()
+        self.assertEqual(expect, actual)
+
+        # DBRetweetUpsert
+        img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
+        r1 = self.RetweetSampleFactory(img_url_s)
+        img_url_s = "http://www.img.filename.sample.com/media/sample_2.png"
+        r2 = self.RetweetSampleFactory(img_url_s)
+        img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
+        file_name_s = "sample_3.png"
+        r3 = self.RetweetSampleFactory(img_url_s)
+        r3.img_filename = file_name_s
+        expect = [self.rt, r2, r3]
+        actual = self.session.query(Retweet).all()
+        self.assertEqual(expect, actual)
+
+        # DBDelUpsert
+        del_tweet_s = self.GetDelTweetSample()
+        param = controlar._DBController__GetDelUpdateParam(del_tweet_s)
+        expect = DeleteTarget(param["tweet_id"], param["delete_done"], param["created_at"],
+                              param["deleted_at"], param["tweet_text"], param["add_num"], param["del_num"])
+        actual = self.session.query(DeleteTarget).all()
+        self.assertEqual([expect], actual)
 
 
 if __name__ == "__main__":
