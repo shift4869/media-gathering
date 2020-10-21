@@ -735,7 +735,7 @@ class TestCrawler(unittest.TestCase):
         with ExitStack() as stack:
             mockctapi = stack.enter_context(patch('PictureGathering.Crawler.Crawler.TwitterAPIRequest'))
             mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.post'))
-            mocksql = stack.enter_context(patch('PictureGathering.DBController.DBController.DBDelInsert'))
+            mocksql = stack.enter_context(patch('PictureGathering.DBController.DBController.DBDelUpsert'))
 
             # mock設定
             mockctapi.return_value = {"id_str": "12345_id_str_sample"}
