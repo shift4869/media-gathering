@@ -41,9 +41,34 @@ class RetweetCrawler(Crawler):
         # 存在マーキングを更新する
         self.db_cont.DBRetweetFlagUpdate(exist_filenames, 1)
 
+        # ツイートオブジェクトからメディアを保持しているツイート部分の辞書を切り抜く
+        # 引用RTはRTできるがRTは引用RTできないので無限ループにはならない（最大深さ2）
+        def GetMediaTweet(tweet: dict) -> dict:
+            result = {}
+            # ツイートオブジェクトにRTフラグが立っている場合
+            if tweet["retweeted"] and ("retweeted_status" in tweet):
+                if "extended_entities" in tweet["retweeted_status"]:
+                    result = tweet["retweeted_status"]
+                # ツイートオブジェクトに引用RTフラグも立っている場合
+                if tweet["retweeted_status"]["is_quote_status"] and ("quoted_status" in tweet["retweeted_status"]):
+                    if "extended_entities" in tweet["retweeted_status"]["quoted_status"]:
+                        return GetMediaTweet(tweet["retweeted_status"])
+
+            # ツイートオブジェクトに引用RTフラグが立っている場合
+            elif tweet["is_quote_status"] and ("quoted_status" in tweet):
+                if "extended_entities" in tweet["quoted_status"]:
+                    result = tweet["quoted_status"]
+                # ツイートオブジェクトにRTフラグも立っている場合（仕様上、本来はここはいらない）
+                if tweet["quoted_status"]["retweeted"] and ("retweeted_status" in tweet["quoted_status"]):
+                    if "extended_entities" in tweet["quoted_status"]["retweeted_status"]:
+                        return GetMediaTweet(tweet["quoted_status"])
+
+            return result
+
         get_cnt = 0
         end_flag = False
         for i in range(1, self.retweet_get_max_loop):
+            # タイムラインツイート取得
             params = {
                 "screen_name": self.user_name,
                 "count": self.count,
@@ -55,32 +80,35 @@ class RetweetCrawler(Crawler):
             timeline_tweeets = self.TwitterAPIRequest(url, params)
 
             for t in timeline_tweeets:
-                if t['retweeted'] and ("retweeted_status" in t):
-                    if "extended_entities" in t['retweeted_status']:
-                        entities = t['retweeted_status']["extended_entities"]
-                        include_new_flag = False
-                        # 一つでも保存していない画像を含んでいるか判定
-                        for entity in entities["media"]:
-                            media_url = self.GetMediaUrl(entity)
-                            filename = os.path.basename(media_url)
+                # メディアを保持しているツイート部分を取得
+                media_tweet = GetMediaTweet(t)
+                if not media_tweet:
+                    continue
+                entities = media_tweet["extended_entities"]
 
-                            # 既存ファイルの最後のファイル名と一致したら探索を途中で打ち切る
-                            if filename == exist_oldest_filename:
-                                end_flag = True
+                include_new_flag = False
+                # 一つでも保存していない画像を含んでいるか判定
+                for entity in entities["media"]:
+                    media_url = self.GetMediaUrl(entity)
+                    filename = os.path.basename(media_url)
 
-                            # 存在しないならそのツイートを収集対象とする
-                            if filename not in exist_filenames:
-                                include_new_flag = True
-                                break
+                    # 既存ファイルの最後のファイル名と一致したら探索を途中で打ち切る
+                    if filename == exist_oldest_filename:
+                        end_flag = True
 
-                        # 一つでも保存していない画像を含んでいたらツイートを収集する
-                        if include_new_flag:
-                            rt_tweets.append(t['retweeted_status'])
-                            get_cnt = get_cnt + 1
+                    # 存在しないならそのツイートを収集対象とする
+                    if filename not in exist_filenames:
+                        include_new_flag = True
+                        break
 
-                        # 探索を途中で打ち切る
-                        if end_flag:
-                            break
+                # 一つでも保存していない画像を含んでいたらツイートを収集する
+                if include_new_flag:
+                    rt_tweets.append(media_tweet)
+                    get_cnt = get_cnt + 1
+
+                # 探索を途中で打ち切る
+                if end_flag:
+                    break
 
             # 次のRTから取得する
             self.max_id = timeline_tweeets[-1]['id'] - 1
