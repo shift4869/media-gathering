@@ -50,9 +50,6 @@ class TestWriteHTML(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def FavoriteSampleFactory(self, img_url):
-        pass
-
     def test_MakeTHTag(self):
         """thタグ作成チェック
         """
@@ -115,7 +112,6 @@ class TestWriteHTML(unittest.TestCase):
             # print(mockfout.mock_calls)
             actual = mockfout().write.call_args[0][0]
             actual = re.sub("\n *", "\n", actual)
-            # print(actual)
             self.assertEqual(0, res)
             self.assertEqual(expect, actual)
 
@@ -130,7 +126,6 @@ class TestWriteHTML(unittest.TestCase):
             # print(mockfout.mock_calls)
             actual = mockfout().write.call_args[0][0]
             actual = re.sub("\n *", "\n", actual)
-            # print(actual)
             self.assertEqual(0, res)
             self.assertEqual(expect, actual)
 
