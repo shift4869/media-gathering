@@ -4,6 +4,9 @@
 FavCrawler.FavCrawler()の各種機能をテストする
 """
 
+import configparser
+import freezegun
+import json
 import os
 import random
 import sys
@@ -63,14 +66,206 @@ class TestCrawler(unittest.TestCase):
 
     def test_FavCrawlerInit(self):
         """FavCrawlerの初期状態のテスト
+        
+        Note:
+            FavCrawler()内で初期化されたconfigと、configparser.ConfigParser()で取得したconfigを比較する
+            どちらのconfigも設定元は"./config/config.ini"である
+            FavCrawlerで利用する設定値のみテストする（基底クラスのテストは別ファイル）
         """
-        pass
-        # self.assertEqual([], crawler.del_url_list)
+
+        fc = FavCrawler.FavCrawler()
+
+        # expect_config読み込みテスト
+        CONFIG_FILE_NAME = "./config/config.ini"
+        expect_config = configparser.ConfigParser()
+        self.assertTrue(os.path.exists(CONFIG_FILE_NAME))
+        self.assertFalse(expect_config.read("ERROR_PATH" + CONFIG_FILE_NAME, encoding="utf8"))
+        expect_config.read(CONFIG_FILE_NAME, encoding="utf8")
+
+        # 存在しないキーを指定するテスト
+        with self.assertRaises(KeyError):
+            print(expect_config["ERROR_KEY1"]["ERROR_KEY2"])
+
+        # 設定値比較
+        expect = os.path.abspath(expect_config["save_directory"]["save_fav_path"])
+        actual = fc.save_path
+        self.assertEqual(expect, actual)
+
+        self.assertEqual("Fav", fc.type)
 
     def test_FavTweetsGet(self):
         """Favリスト取得機能をチェックする
         """
-        pass
+
+        fc = FavCrawler.FavCrawler()
+
+        with ExitStack() as stack:
+            mockapireq = stack.enter_context(patch("PictureGathering.Crawler.Crawler.TwitterAPIRequest"))
+            mocklogger = stack.enter_context(patch.object(logger, "error"))
+
+            # favorite
+            page = 1
+            fc.config["tweet_timeline"]["kind_of_timeline"] = "favorite"
+            s_url = "https://api.twitter.com/1.1/favorites/list.json"
+            s_params = {
+                "screen_name": fc.user_name,
+                "page": page,
+                "count": fc.count,
+                "include_entities": 1,
+                "tweet_mode": "extended"
+            }
+            mockapireq.reset_mock()
+            fc.FavTweetsGet(page)
+            mockapireq.assert_called_once_with(s_url, s_params)
+            
+            # home
+            page = 1
+            fc.config["tweet_timeline"]["kind_of_timeline"] = "home"
+            s_url = "https://api.twitter.com/1.1/statuses/home_timeline.json"
+            s_params = {
+                "count": fc.count,
+                "include_entities": 1,
+                "tweet_mode": "extended"
+            }
+            mockapireq.reset_mock()
+            fc.FavTweetsGet(page)
+            mockapireq.assert_called_once_with(s_url, s_params)
+
+            # error
+            fc.config["tweet_timeline"]["kind_of_timeline"] = "error_status"
+            mockapireq.reset_mock()
+            res = fc.FavTweetsGet(page)
+            self.assertIsNone(res)
+            mockapireq.assert_not_called()
+
+    def test_UpdateDBExistMark(self):
+        """存在マーキング更新機能呼び出しをチェックする
+        """
+
+        fc = FavCrawler.FavCrawler()
+
+        with ExitStack() as stack:
+            mockdbcc = stack.enter_context(patch("PictureGathering.DBController.DBController.DBFavFlagClear"))
+            mockdbcu = stack.enter_context(patch("PictureGathering.DBController.DBController.DBFavFlagUpdate"))
+
+            s_add_img_filename = ["sample1.jpg", "sample2.jpg", "sample3.jpg"]
+            fc.UpdateDBExistMark(s_add_img_filename)
+
+            mockdbcc.assert_called_once_with()
+            mockdbcu.assert_called_once_with(s_add_img_filename, 1)
+
+    def test_GetVideoURL(self):
+        """動画URL取得機能をチェックする
+        """
+
+        fc = FavCrawler.FavCrawler()
+
+        def MakeVideoURL(filename):
+            dic = {"url": "https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/{0}?tag=10".format(filename)}
+            return [dic]
+
+        with ExitStack() as stack:
+            mockdbcv = stack.enter_context(patch("PictureGathering.DBController.DBController.DBFavVideoURLSelect"))
+            s_filename = "sample.mp4"
+
+            # 正常系
+            mockdbcv.side_effect = MakeVideoURL
+            expect = MakeVideoURL(s_filename)[0]["url"]
+            actual = fc.GetVideoURL(s_filename)
+            self.assertEqual(expect, actual)
+
+            # エラーケース
+            mockdbcv.side_effect = None
+            expect = ""
+            actual = fc.GetVideoURL(s_filename)
+            self.assertEqual(expect, actual)
+
+    def test_MakeDoneMessage(self):
+        """終了メッセージ作成機能をチェックする
+        """
+
+        fc = FavCrawler.FavCrawler()
+
+        with freezegun.freeze_time("2020-10-28 15:32:58"):
+            with ExitStack() as stack:
+                s_add_url_list = ["http://pbs.twimg.com/media/add_sample{0}.jpg:orig".format(i) for i in range(5)]
+                s_del_url_list = ["http://pbs.twimg.com/media/del_sample{0}.jpg:orig".format(i) for i in range(5)]
+                s_pickup_url_list = random.sample(s_add_url_list, min(4, len(s_add_url_list)))
+                mockrd = stack.enter_context(patch.object(FavCrawler.random, "sample", return_value=s_pickup_url_list))
+                
+                s_now_str = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+                s_done_msg = "Fav PictureGathering run.\n"
+                s_done_msg += s_now_str
+                s_done_msg += " Process Done !!\n"
+                s_done_msg += "add {0} new images. ".format(len(s_add_url_list))
+                s_done_msg += "delete {0} old images.".format(len(s_del_url_list))
+                s_done_msg += "\n"
+
+                random_pickup = True
+                if random_pickup:
+                    # pickup_url_list = random.sample(self.add_url_list, min(4, len(self.add_url_list)))
+                    for pickup_url in s_pickup_url_list:
+                        pickup_url = str(pickup_url).replace(":orig", "")
+                        s_done_msg += pickup_url + "\n"
+                expect = s_done_msg
+
+                fc.add_url_list = s_add_url_list
+                fc.add_cnt = len(s_add_url_list)
+                fc.del_url_list = s_del_url_list
+                fc.del_cnt = len(s_del_url_list)
+                actual = fc.MakeDoneMessage()
+
+                self.assertEqual(expect, actual)
+
+    def test_Crawl(self):
+        """全体クロールの呼び出しをチェックする
+        """
+
+        fc = FavCrawler.FavCrawler()
+
+        with ExitStack() as stack:
+            mocklogger = stack.enter_context(patch.object(logger, "info"))
+            mockftg = stack.enter_context(patch("PictureGathering.FavCrawler.FavCrawler.FavTweetsGet"))
+            mockimgsv = stack.enter_context(patch("PictureGathering.Crawler.Crawler.ImageSaver"))
+            mockshfol = stack.enter_context(patch("PictureGathering.Crawler.Crawler.ShrinkFolder"))
+            mockeop = stack.enter_context(patch("PictureGathering.Crawler.Crawler.EndOfProcess"))
+
+            s_fav_get_max_loop = 3
+            s_holding_file_num = 300
+            s_media_url_list = ["http://pbs.twimg.com/media/sample{0}.jpg:orig".format(i) for i in range(6)]
+            s_fav_tweet_list = [self.__GetMediaTweetSample(s_media_url_list[i]) for i in range(6)]
+
+            # page = [1, 2, 3]に対して、return_value = [ツイート1コ, ツイート2コ, ツイート3コ]とする
+            s_side_effect = [[s_fav_tweet_list[0]],
+                             [s_fav_tweet_list[1], s_fav_tweet_list[2]],
+                             [s_fav_tweet_list[3], s_fav_tweet_list[4], s_fav_tweet_list[5]]]
+            mockftg.side_effect = s_side_effect
+
+            fc.config["tweet_timeline"]["fav_get_max_loop"] = str(s_fav_get_max_loop)
+            fc.config["holding"]["holding_file_num"] = str(s_holding_file_num)
+            res = fc.Crawl()
+
+            self.assertEqual(0, res)
+            # print(mockftg.call_args_list)
+            # print(mockimgsv.call_args_list)
+            for i in range(1, s_fav_get_max_loop + 1):
+                expect = i
+                actual = mockftg.call_args_list[i - 1][0][0]
+                self.assertEqual(expect, actual)
+
+                expect = s_side_effect[i - 1]
+                actual = mockimgsv.call_args_list[i - 1][0][0]
+                self.assertEqual(expect, actual)
+
+            # print(mockshfol.call_args_list)
+            expect = s_holding_file_num
+            actual = mockshfol.call_args_list[0][0][0]
+            self.assertEqual(expect, actual)
+
+            # print(mockeop.call_args_list)
+            expect = ()
+            actual = mockeop.call_args_list[0][0]
+            self.assertEqual(expect, actual)
 
 
 if __name__ == "__main__":
