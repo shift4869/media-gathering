@@ -245,7 +245,10 @@ class TestCrawler(unittest.TestCase):
             fc.config["holding"]["holding_file_num"] = str(s_holding_file_num)
             res = fc.Crawl()
 
+            # 返り値チェック
             self.assertEqual(0, res)
+
+            # 各関数が想定通りの引数で呼び出されたことを確認する
             # print(mockftg.call_args_list)
             # print(mockimgsv.call_args_list)
             for i in range(1, s_fav_get_max_loop + 1):
