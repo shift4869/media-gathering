@@ -23,8 +23,8 @@ logger = getLogger("root")
 logger.setLevel(WARNING)
 
 
-class TestCrawler(unittest.TestCase):
-    """テストメインクラス
+class TestFavCrawler(unittest.TestCase):
+    """FavCrawlerテストメインクラス
     """
 
     def setUp(self):
