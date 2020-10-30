@@ -46,21 +46,21 @@ class RetweetCrawler(Crawler):
         def GetMediaTweet(tweet: dict) -> dict:
             result = {}
             # ツイートオブジェクトにRTフラグが立っている場合
-            if tweet["retweeted"] and ("retweeted_status" in tweet):
-                if "extended_entities" in tweet["retweeted_status"]:
+            if tweet.get("retweeted") and tweet.get("retweeted_status"):
+                if tweet["retweeted_status"].get("extended_entities"):
                     result = tweet["retweeted_status"]
                 # ツイートオブジェクトに引用RTフラグも立っている場合
-                if tweet["retweeted_status"]["is_quote_status"] and ("quoted_status" in tweet["retweeted_status"]):
-                    if "extended_entities" in tweet["retweeted_status"]["quoted_status"]:
+                if tweet["retweeted_status"].get("is_quote_status") and tweet["retweeted_status"].get("quoted_status"):
+                    if tweet["retweeted_status"]["quoted_status"].get("extended_entities"):
                         return GetMediaTweet(tweet["retweeted_status"])
 
             # ツイートオブジェクトに引用RTフラグが立っている場合
-            elif tweet["is_quote_status"] and ("quoted_status" in tweet):
-                if "extended_entities" in tweet["quoted_status"]:
+            elif tweet.get("is_quote_status") and tweet.get("quoted_status"):
+                if tweet["quoted_status"].get("extended_entities"):
                     result = tweet["quoted_status"]
                 # ツイートオブジェクトにRTフラグも立っている場合（仕様上、本来はここはいらない）
-                if tweet["quoted_status"]["retweeted"] and ("retweeted_status" in tweet["quoted_status"]):
-                    if "extended_entities" in tweet["quoted_status"]["retweeted_status"]:
+                if tweet["quoted_status"].get("retweeted") and tweet["quoted_status"].get("retweeted_status"):
+                    if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
                         return GetMediaTweet(tweet["quoted_status"])
 
             return result
@@ -77,9 +77,9 @@ class RetweetCrawler(Crawler):
                 "include_rts": True,
                 "tweet_mode": "extended"
             }
-            timeline_tweeets = self.TwitterAPIRequest(url, params)
+            timeline_tweets = self.TwitterAPIRequest(url, params)
 
-            for t in timeline_tweeets:
+            for t in timeline_tweets:
                 # メディアを保持しているツイート部分を取得
                 media_tweet = GetMediaTweet(t)
                 if not media_tweet:
@@ -111,7 +111,7 @@ class RetweetCrawler(Crawler):
                     break
 
             # 次のRTから取得する
-            self.max_id = timeline_tweeets[-1]['id'] - 1
+            self.max_id = timeline_tweets[-1]['id'] - 1
 
             # 収集したツイートが保持数を超えたor既存ファイルの最後まで探索した場合break
             if get_cnt > holding_num or end_flag:

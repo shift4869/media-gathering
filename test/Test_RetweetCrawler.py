@@ -30,7 +30,53 @@ class TestRetweetCrawler(unittest.TestCase):
     def setUp(self):
         pass
 
-    def __GetMediaTweetSample(self, img_url_s):
+    def __GetNoRetweetedTweetSample(self) -> dict:
+        """ツイートオブジェクトのサンプルを生成する（RTフラグなし）
+
+        Returns:
+            dict: ツイートオブジェクト（サンプル）
+        """
+
+        # 一意にするための乱数
+        r = "{:0>5}".format(random.randint(0, 99999))
+        tweet_json = f'''{{
+            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id": 12345,
+            "user": {{
+                "id_str": "12345_id_str_sample",
+                "name": "shift_name_sample",
+                "screen_name": "_shift4869_screen_name_sample"
+            }},
+            "text": "no-retweeted_tweet_text_sample_{r}",
+            "retweeted": false
+        }}'''
+        tweet_s = json.loads(tweet_json)
+        return tweet_s
+
+    def __GetNoMediaTweetSample(self) -> dict:
+        """ツイートオブジェクトのサンプルを生成する（メディアなし）
+
+        Returns:
+            dict: ツイートオブジェクト（サンプル）
+        """
+
+        # 一意にするための乱数
+        r = "{:0>5}".format(random.randint(0, 99999))
+        tweet_json = f'''{{
+            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id": 12345,
+            "user": {{
+                "id_str": "12345_id_str_sample",
+                "name": "shift_name_sample",
+                "screen_name": "_shift4869_screen_name_sample"
+            }},
+            "text": "no-media_tweet_text_sample_{r}",
+            "retweeted": true
+        }}'''
+        tweet_s = json.loads(tweet_json)
+        return tweet_s
+
+    def __GetMediaTweetSample(self, img_url_s: str) -> dict:
         """ツイートオブジェクトのサンプルを生成する
 
         Args:
@@ -40,28 +86,102 @@ class TestRetweetCrawler(unittest.TestCase):
             dict: ツイートオブジェクト（サンプル）
         """
 
+        # 一意にするための乱数
+        r1 = "{:0>5}".format(random.randint(0, 99999))
+        r2 = "{:0>5}".format(random.randint(0, 99999))
+        r = "{:0>5}".format(random.randint(0, 99999))
         tweet_json = f'''{{
             "extended_entities": {{
                 "media": [{{
                     "type": "photo",
-                    "media_url": "{img_url_s}_1"
+                    "media_url": "{img_url_s}_{r1}"
                 }},
                 {{
                     "type": "photo",
-                    "media_url": "{img_url_s}_2"
+                    "media_url": "{img_url_s}_{r2}"
                 }}
                 ]
             }},
             "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id": 12345,
+            "user": {{
+                "id_str": "12345_id_str_sample",
+                "name": "shift_name_sample",
+                "screen_name": "_shift4869_screen_name_sample"
+            }},
+            "text": "media_tweet_text_sample_{r}",
+            "retweeted": true
+        }}'''
+        tweet_s = json.loads(tweet_json)
+        return tweet_s
+
+    def __GetRetweetTweetSample(self, img_url_s: str) -> dict:
+        """RTツイートオブジェクトのサンプルを生成する
+
+        Args:
+            img_url_s (str): 画像URLサンプル
+
+        Returns:
+            dict: ツイートオブジェクト（サンプル）
+        """
+
+        tweet_json = f'''{{
+            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id": 12345,
             "id_str": "12345_id_str_sample",
             "user": {{
                 "id_str": "12345_id_str_sample",
                 "name": "shift_name_sample",
                 "screen_name": "_shift4869_screen_name_sample"
             }},
-            "text": "tweet_text_sample"
+            "full_text": "retweet_tweet_text_sample",
+            "retweeted": true
         }}'''
         tweet_s = json.loads(tweet_json)
+        tweet_s["retweeted_status"] = self.__GetMediaTweetSample(img_url_s)
+        tweet_s["retweeted_status"]["retweeted"] = True
+        return tweet_s
+
+    def __GetQuoteTweetSample(self, img_url_s: str) -> dict:
+        """引用RTツイートオブジェクトのサンプルを生成する
+
+        Args:
+            img_url_s (str): 画像URLサンプル
+
+        Returns:
+            dict: ツイートオブジェクト（サンプル）
+        """
+
+        tweet_json = f'''{{
+            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id": 12345,
+            "id_str": "12345_id_str_sample",
+            "user": {{
+                "id_str": "12345_id_str_sample",
+                "name": "shift_name_sample",
+                "screen_name": "_shift4869_screen_name_sample"
+            }},
+            "full_text": "quoted_tweet_text_sample",
+            "retweeted": true,
+            "is_quote_status": true
+        }}'''
+        tweet_s = json.loads(tweet_json)
+        tweet_s["quoted_status"] = self.__GetMediaTweetSample(img_url_s)
+        return tweet_s
+
+    def __GetRetweetQuoteTweetSample(self, img_url_s: str) -> dict:
+        """引用RTツイートをRTしたオブジェクトのサンプルを生成する
+
+        Args:
+            img_url_s (str): 画像URLサンプル
+
+        Returns:
+            dict: ツイートオブジェクト（サンプル）
+        """
+
+        tweet_s = self.__GetRetweetTweetSample(img_url_s)
+        tweet_s["retweeted_status"] = self.__GetQuoteTweetSample(img_url_s)
+        tweet_s["full_text"] = "retweet_quoted_tweet_text_sample"
         return tweet_s
 
     def test_RetweetCrawlerInit(self):
@@ -87,10 +207,15 @@ class TestRetweetCrawler(unittest.TestCase):
             print(expect_config["ERROR_KEY1"]["ERROR_KEY2"])
 
         # 設定値比較
+        expect = int(expect_config["tweet_timeline"]["retweet_get_max_loop"])
+        actual = rc.retweet_get_max_loop
+        self.assertEqual(expect, actual)
+
         expect = os.path.abspath(expect_config["save_directory"]["save_retweet_path"])
         actual = rc.save_path
         self.assertEqual(expect, actual)
 
+        self.assertIsNone(rc.max_id)
         self.assertEqual("RT", rc.type)
 
     def test_RetweetsGet(self):
@@ -98,7 +223,50 @@ class TestRetweetCrawler(unittest.TestCase):
         """
 
         rc = RetweetCrawler.RetweetCrawler()
-        pass
+
+        with ExitStack() as stack:
+            mockdbrfc = stack.enter_context(patch("PictureGathering.DBController.DBController.DBRetweetFlagClear"))
+            mockdbrfu = stack.enter_context(patch("PictureGathering.DBController.DBController.DBRetweetFlagUpdate"))
+            mockapireq = stack.enter_context(patch("PictureGathering.Crawler.Crawler.TwitterAPIRequest"))
+            
+            # GetExistFilelistはrc本来のものを使うが結果を保持して比較するためにモックにしておく
+            s_exist_filepaths = rc.GetExistFilelist()
+            mockdgefl = stack.enter_context(patch("PictureGathering.Crawler.Crawler.GetExistFilelist"))
+            mockdgefl.return_value = s_exist_filepaths
+
+            # 既存ファイル一覧を取得する
+            s_exist_filenames = []
+            for s_exist_filepath in s_exist_filepaths:
+                s_exist_filenames.append(os.path.basename(s_exist_filepath))
+            exist_oldest_filename = s_exist_filenames[-1]
+
+            # 取得ツイートモック作成
+            s_media_url = "http://pbs.twimg.com/media/add_sample{}.jpg:orig"
+            s_nrt_t = [self.__GetNoRetweetedTweetSample() for i in range(3)]
+            s_nm_t = [self.__GetNoMediaTweetSample() for i in range(3)]
+            s_rt_t = [self.__GetRetweetTweetSample(s_media_url.format(i)) for i in range(3)]
+            s_quote_t = [self.__GetQuoteTweetSample(s_media_url.format(i)) for i in range(3)]
+            s_rt_quote_t = [self.__GetRetweetQuoteTweetSample(s_media_url.format(i)) for i in range(3)]
+            s_t = s_nrt_t + s_nm_t + s_rt_t + s_quote_t + s_rt_quote_t
+            random.shuffle(s_t)
+            s_se = [[s_t[0]],
+                    [s_t[1], s_t[2]],
+                    [s_t[3], s_t[4], s_t[5]],
+                    [s_t[6], s_t[7], s_t[8]],
+                    [s_t[9], s_t[10], s_t[11]],
+                    [s_t[12], s_t[13], s_t[14]]]
+            mockapireq.side_effect = s_se
+
+            # 変数設定
+            s_holding_file_num = 300
+            s_retweet_get_max_loop = len(s_se) + 1
+            rc.config["holding"]["holding_file_num"] = str(s_holding_file_num)
+            rc.retweet_get_max_loop = s_retweet_get_max_loop
+
+            # 実行
+            actual = rc.RetweetsGet()
+
+            pass
 
     def test_UpdateDBExistMark(self):
         """存在マーキング更新機能呼び出しをチェックする
