@@ -106,6 +106,137 @@ class TestCrawler(unittest.TestCase):
         tweet_s = json.loads(tweet_json)
         return tweet_s
 
+    def __GetNoMediaTweetSample(self) -> dict:
+        """ツイートオブジェクトのサンプルを生成する（メディアなし、RTフラグあり）
+
+        Returns:
+            dict: ツイートオブジェクト（サンプル）
+        """
+
+        # 一意にするための乱数
+        r = "{:0>5}".format(random.randint(0, 99999))
+        tweet_json = f'''{{
+            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id": 12345,
+            "user": {{
+                "id_str": "12345_id_str_sample",
+                "name": "shift_name_sample",
+                "screen_name": "_shift4869_screen_name_sample"
+            }},
+            "text": "no-media_tweet_text_sample_{r}",
+            "retweeted": true
+        }}'''
+        tweet_s = json.loads(tweet_json)
+        return tweet_s
+
+    def __GetMediaTweetSample(self, img_url_s: str) -> dict:
+        """ツイートオブジェクトのサンプルを生成する
+
+        Args:
+            img_url_s (str): 画像URLサンプル
+
+        Returns:
+            dict: ツイートオブジェクト（サンプル）
+        """
+
+        # 一意にするための乱数
+        r1 = "{:0>5}".format(random.randint(0, 99999))
+        r2 = "{:0>5}".format(random.randint(0, 99999))
+        r = "{:0>5}".format(random.randint(0, 99999))
+        tweet_json = f'''{{
+            "extended_entities": {{
+                "media": [{{
+                    "type": "photo",
+                    "media_url": "{img_url_s}_{r1}"
+                }},
+                {{
+                    "type": "photo",
+                    "media_url": "{img_url_s}_{r2}"
+                }}
+                ]
+            }},
+            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id": 12345,
+            "user": {{
+                "id_str": "12345_id_str_sample",
+                "name": "shift_name_sample",
+                "screen_name": "_shift4869_screen_name_sample"
+            }},
+            "text": "media_tweet_text_sample_{r}",
+            "retweeted": true
+        }}'''
+        tweet_s = json.loads(tweet_json)
+        return tweet_s
+
+    def __GetRetweetTweetSample(self, img_url_s: str) -> dict:
+        """RTツイートオブジェクトのサンプルを生成する
+
+        Args:
+            img_url_s (str): 画像URLサンプル
+
+        Returns:
+            dict: ツイートオブジェクト（サンプル）
+        """
+
+        tweet_json = f'''{{
+            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id": 12345,
+            "id_str": "12345_id_str_sample",
+            "user": {{
+                "id_str": "12345_id_str_sample",
+                "name": "shift_name_sample",
+                "screen_name": "_shift4869_screen_name_sample"
+            }},
+            "full_text": "retweet_tweet_text_sample",
+            "retweeted": true
+        }}'''
+        tweet_s = json.loads(tweet_json)
+        tweet_s["retweeted_status"] = self.__GetMediaTweetSample(img_url_s)
+        tweet_s["retweeted_status"]["retweeted"] = True
+        return tweet_s
+
+    def __GetQuoteTweetSample(self, img_url_s: str) -> dict:
+        """引用RTツイートオブジェクトのサンプルを生成する
+
+        Args:
+            img_url_s (str): 画像URLサンプル
+
+        Returns:
+            dict: ツイートオブジェクト（サンプル）
+        """
+
+        tweet_json = f'''{{
+            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id": 12345,
+            "id_str": "12345_id_str_sample",
+            "user": {{
+                "id_str": "12345_id_str_sample",
+                "name": "shift_name_sample",
+                "screen_name": "_shift4869_screen_name_sample"
+            }},
+            "full_text": "quoted_tweet_text_sample",
+            "retweeted": true,
+            "is_quote_status": true
+        }}'''
+        tweet_s = json.loads(tweet_json)
+        tweet_s["quoted_status"] = self.__GetMediaTweetSample(img_url_s)
+        return tweet_s
+
+    def __GetRetweetQuoteTweetSample(self, img_url_s: str) -> dict:
+        """引用RTツイートをRTしたオブジェクトのサンプルを生成する
+
+        Args:
+            img_url_s (str): 画像URLサンプル
+
+        Returns:
+            dict: ツイートオブジェクト（サンプル）
+        """
+
+        tweet_s = self.__GetRetweetTweetSample(img_url_s)
+        tweet_s["retweeted_status"] = self.__GetQuoteTweetSample(img_url_s)
+        tweet_s["full_text"] = "retweet_quoted_tweet_text_sample"
+        return tweet_s
+
     def test_ConcreteCrawler(self):
         """ConcreteCrawlerのテスト
         """
@@ -572,6 +703,49 @@ class TestCrawler(unittest.TestCase):
             }}
         }}"""
         self.assertEqual(video_url_s + "_2048", crawler.GetMediaUrl(json.loads(media_tweet_json)))
+
+    def test_GetMediaTweet(self):
+        """ツイートオブジェクトの階層解釈処理をチェックする
+        """
+
+        crawler = ConcreteCrawler()
+
+        # ツイートサンプル作成
+        s_media_url = "http://pbs.twimg.com/media/add_sample{}.jpg:orig"
+        s_nrt_t = [self.__GetNoRetweetedTweetSample(s_media_url.format(i)) for i in range(3)]
+        s_nm_t = [self.__GetNoMediaTweetSample() for i in range(3)]
+        s_rt_t = [self.__GetRetweetTweetSample(s_media_url.format(i)) for i in range(3)]
+        s_quote_t = [self.__GetQuoteTweetSample(s_media_url.format(i)) for i in range(3)]
+        s_rt_quote_t = [self.__GetRetweetQuoteTweetSample(s_media_url.format(i)) for i in range(3)]
+        s_tweet_list = s_nrt_t + s_nm_t + s_rt_t + s_quote_t + s_rt_quote_t
+        random.shuffle(s_tweet_list)
+
+        # 予想値取得用
+        def GetMediaTweet(tweet: dict) -> dict:
+            result = tweet
+            # ツイートオブジェクトにRTフラグが立っている場合
+            if tweet.get("retweeted") and tweet.get("retweeted_status"):
+                if tweet["retweeted_status"].get("extended_entities"):
+                    result = tweet["retweeted_status"]
+                # ツイートオブジェクトに引用RTフラグも立っている場合
+                if tweet["retweeted_status"].get("is_quote_status") and tweet["retweeted_status"].get("quoted_status"):
+                    if tweet["retweeted_status"]["quoted_status"].get("extended_entities"):
+                        return GetMediaTweet(tweet["retweeted_status"])
+            # ツイートオブジェクトに引用RTフラグが立っている場合
+            elif tweet.get("is_quote_status") and tweet.get("quoted_status"):
+                if tweet["quoted_status"].get("extended_entities"):
+                    result = tweet["quoted_status"]
+                # ツイートオブジェクトにRTフラグも立っている場合（仕様上、本来はここはいらない）
+                if tweet["quoted_status"].get("retweeted") and tweet["quoted_status"].get("retweeted_status"):
+                    if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
+                        return GetMediaTweet(tweet["quoted_status"])
+            return result
+
+        # 実行
+        for s_tweet in s_tweet_list:
+            expect = GetMediaTweet(s_tweet)
+            actual = crawler.GetMediaTweet(s_tweet)
+            self.assertEqual(expect, actual)
 
     def test_ImageSaver(self):
         """画像保存をチェックする

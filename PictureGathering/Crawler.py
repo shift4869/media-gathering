@@ -301,6 +301,42 @@ class Crawler(metaclass=ABCMeta):
             res = json.loads(responce.text)
             return res
 
+    def GetMediaTweet(self, tweet: dict) -> dict:
+        """ツイートオブジェクトの階層（RT、引用RTの親子関係）をたどり、末端のツイート部分の辞書を切り抜く
+
+        Note:
+           ツイートオブジェクトのルートを引数として受け取り、以下のように判定して返す
+           (1)RTも引用RTもされていないツイートの場合、入力と同じ辞書を返す
+           (2)RTされているツイートの場合、tweet["retweeted_status"]を返す
+           (3)引用RTされているツイートの場合、tweet["quoted_status"]を返す
+           (4)引用RTがRTされているツイートの場合、tweet["retweeted_status"]["quoted_status"]を返す
+           引用RTはRTできるがRTは引用RTできないので無限ループにはならない（最大深さ2）
+        
+        Args:
+            media_dict (dict): tweet
+
+        Returns:
+            str: 成功時メディアURL、引数や辞書構造が不正だった場合空文字列を返す
+        """
+        result = tweet
+        # ツイートオブジェクトにRTフラグが立っている場合
+        if tweet.get("retweeted") and tweet.get("retweeted_status"):
+            if tweet["retweeted_status"].get("extended_entities"):
+                result = tweet["retweeted_status"]  # (2)
+            # ツイートオブジェクトに引用RTフラグも立っている場合
+            if tweet["retweeted_status"].get("is_quote_status") and tweet["retweeted_status"].get("quoted_status"):
+                if tweet["retweeted_status"]["quoted_status"].get("extended_entities"):
+                    return self.GetMediaTweet(tweet["retweeted_status"])  # (4)
+        # ツイートオブジェクトに引用RTフラグが立っている場合
+        elif tweet.get("is_quote_status") and tweet.get("quoted_status"):
+            if tweet["quoted_status"].get("extended_entities"):
+                result = tweet["quoted_status"]  # (3)
+            # ツイートオブジェクトにRTフラグも立っている場合（仕様上、本来はここはいらない）
+            if tweet["quoted_status"].get("retweeted") and tweet["quoted_status"].get("retweeted_status"):
+                if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
+                    return self.GetMediaTweet(tweet["quoted_status"])
+        return result  # (1)
+
     def GetMediaUrl(self, media_dict: dict) -> str:
         """tweet["extended_entities"]["media"]から保存対象のメディアURLを取得する
 
@@ -353,6 +389,9 @@ class Crawler(metaclass=ABCMeta):
             int: 0(成功)
         """
         for tweet in tweets:
+            # 末端ツイートを取得
+            tweet = self.GetMediaTweet(tweet)
+
             if "extended_entities" not in tweet:
                 logger.debug("メディアを含んでいないツイートです。")
                 continue
@@ -580,6 +619,7 @@ class Crawler(metaclass=ABCMeta):
                     logger.info("Google Drive Send.")
 
         # 古い通知リプライを消す
+        config = self.config["notification"]
         if config.getboolean("is_post_fav_done_reply") or config.getboolean("is_post_retweet_done_reply"):
             targets = self.db_cont.DBDelSelect()
             url = "https://api.twitter.com/1.1/statuses/destroy/{}.json"
