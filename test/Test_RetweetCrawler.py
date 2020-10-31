@@ -265,8 +265,43 @@ class TestRetweetCrawler(unittest.TestCase):
 
             # 実行
             actual = rc.RetweetsGet()
+            mockdbrfc.assert_called_once_with()
+            mockdbrfu.assert_called_once_with(s_exist_filenames, 1)
+            mockdgefl.assert_called_once_with()
+            mockapireq.assert_called()
 
-            pass
+            # 予想値取得用
+            def GetMediaTweet(tweet: dict) -> dict:
+                result = {}
+                # ツイートオブジェクトにRTフラグが立っている場合
+                if tweet.get("retweeted") and tweet.get("retweeted_status"):
+                    if tweet["retweeted_status"].get("extended_entities"):
+                        result = tweet["retweeted_status"]
+                    # ツイートオブジェクトに引用RTフラグも立っている場合
+                    if tweet["retweeted_status"].get("is_quote_status") and tweet["retweeted_status"].get("quoted_status"):
+                        if tweet["retweeted_status"]["quoted_status"].get("extended_entities"):
+                            return GetMediaTweet(tweet["retweeted_status"])
+
+                # ツイートオブジェクトに引用RTフラグが立っている場合
+                elif tweet.get("is_quote_status") and tweet.get("quoted_status"):
+                    if tweet["quoted_status"].get("extended_entities"):
+                        result = tweet["quoted_status"]
+                    # ツイートオブジェクトにRTフラグも立っている場合（仕様上、本来はここはいらない）
+                    if tweet["quoted_status"].get("retweeted") and tweet["quoted_status"].get("retweeted_status"):
+                        if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
+                            return GetMediaTweet(tweet["quoted_status"])
+
+                return result
+
+            expect = []
+            for s_ti in s_t:
+                r = GetMediaTweet(s_ti)
+                if r:
+                    expect.append(r)
+            expect.reverse()
+
+            self.assertEqual(len(expect), len(actual))
+            self.assertEqual(expect, actual)
 
     def test_UpdateDBExistMark(self):
         """存在マーキング更新機能呼び出しをチェックする
@@ -353,13 +388,45 @@ class TestRetweetCrawler(unittest.TestCase):
 
         rc = RetweetCrawler.RetweetCrawler()
 
-        # with ExitStack() as stack:
-        #   mocklogger = stack.enter_context(patch.object(logger, "info"))
-        #   mockftg = stack.enter_context(patch("PictureGathering.RetweetCrawler.RetweetCrawler.FavTweetsGet"))
-        #    mockimgsv = stack.enter_context(patch("PictureGathering.Crawler.Crawler.ImageSaver"))
-        #    mockshfol = stack.enter_context(patch("PictureGathering.Crawler.Crawler.ShrinkFolder"))
-        #   mockeop = stack.enter_context(patch("PictureGathering.Crawler.Crawler.EndOfProcess"))
-        pass
+        with ExitStack() as stack:
+            mocklogger = stack.enter_context(patch.object(logger, "info"))
+            mockrtg = stack.enter_context(patch("PictureGathering.RetweetCrawler.RetweetCrawler.RetweetsGet"))
+            mockimgsv = stack.enter_context(patch("PictureGathering.Crawler.Crawler.ImageSaver"))
+            mockshfol = stack.enter_context(patch("PictureGathering.Crawler.Crawler.ShrinkFolder"))
+            mockeop = stack.enter_context(patch("PictureGathering.Crawler.Crawler.EndOfProcess"))
+        
+            s_holding_file_num = 300
+            s_media_url_list = ["http://pbs.twimg.com/media/sample{0}.jpg:orig".format(i) for i in range(6)]
+            s_retweet_tweet_list = [self.__GetMediaTweetSample(s_media_url_list[i]) for i in range(6)]
+
+            mockrtg.return_value = s_retweet_tweet_list
+
+            rc.config["holding"]["holding_file_num"] = str(s_holding_file_num)
+            res = rc.Crawl()
+
+            # 返り値チェック
+            self.assertEqual(0, res)
+
+            # 各関数が想定通りの引数で呼び出されたことを確認する
+            # print(mockrtg.call_args_list)
+            # print(mockimgsv.call_args_list)
+            expect = ()
+            actual = mockrtg.call_args_list[0][0]
+            self.assertEqual(expect, actual)
+
+            expect = s_retweet_tweet_list
+            actual = mockimgsv.call_args_list[0][0][0]
+            self.assertEqual(expect, actual)
+
+            # print(mockshfol.call_args_list)
+            expect = s_holding_file_num
+            actual = mockshfol.call_args_list[0][0][0]
+            self.assertEqual(expect, actual)
+
+            # print(mockeop.call_args_list)
+            expect = ()
+            actual = mockeop.call_args_list[0][0]
+            self.assertEqual(expect, actual)
 
 
 if __name__ == "__main__":

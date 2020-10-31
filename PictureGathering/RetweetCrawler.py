@@ -159,6 +159,7 @@ class RetweetCrawler(Crawler):
         self.ImageSaver(tweets)
         self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
         self.EndOfProcess()
+        return 0
 
 
 if __name__ == "__main__":
