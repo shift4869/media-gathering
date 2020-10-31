@@ -67,8 +67,8 @@ class TestCrawler(unittest.TestCase):
     def setUp(self):
         pass
 
-    def __GetMediaTweetSample(self, img_url_s: str) -> dict:
-        """ツイートオブジェクトのサンプルを生成する
+    def __GetNoRetweetedTweetSample(self, img_url_s: str) -> dict:
+        """ツイートオブジェクトのサンプルを生成する（RTフラグなし）
 
         Args:
             img_url_s (str): 画像URLサンプル
@@ -611,7 +611,7 @@ class TestCrawler(unittest.TestCase):
 
             tweets = []
             img_url_s = "http://www.img.filename.sample.com/media/sample.png"
-            media_tweet_s = self.__GetMediaTweetSample(img_url_s)
+            media_tweet_s = self.__GetNoRetweetedTweetSample(img_url_s)
             tweets.append(media_tweet_s)
             expect_save_num = len(media_tweet_s["extended_entities"]["media"])
             self.assertEqual(0, crawler.ImageSaver(tweets))
@@ -718,7 +718,7 @@ class TestCrawler(unittest.TestCase):
             mocksql.return_value = []
 
             img_url_s = "http://www.img.filename.sample.com/media/sample.png"
-            media_tweet_s = self.__GetMediaTweetSample(img_url_s)
+            media_tweet_s = self.__GetNoRetweetedTweetSample(img_url_s)
             media_url_list = media_tweet_s["extended_entities"]["media"]
             for media_url in media_url_list:
                 crawler.add_url_list.append(media_url["media_url"])
