@@ -44,7 +44,7 @@ class RetweetCrawler(Crawler):
         # ツイートオブジェクトからメディアを保持しているツイート部分の辞書を切り抜く
         # 引用RTはRTできるがRTは引用RTできないので無限ループにはならない（最大深さ2）
         def GetMediaTweet(tweet: dict) -> dict:
-            result = {}
+            result = tweet
             # ツイートオブジェクトにRTフラグが立っている場合
             if tweet.get("retweeted") and tweet.get("retweeted_status"):
                 if tweet["retweeted_status"].get("extended_entities"):
@@ -82,7 +82,7 @@ class RetweetCrawler(Crawler):
             for t in timeline_tweets:
                 # メディアを保持しているツイート部分を取得
                 media_tweet = GetMediaTweet(t)
-                if not media_tweet:
+                if "extended_entities" not in media_tweet:
                     continue
                 entities = media_tweet["extended_entities"]
 
