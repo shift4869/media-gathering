@@ -41,30 +41,6 @@ class RetweetCrawler(Crawler):
         # 存在マーキングを更新する
         self.db_cont.DBRetweetFlagUpdate(exist_filenames, 1)
 
-        # ツイートオブジェクトからメディアを保持しているツイート部分の辞書を切り抜く
-        # 引用RTはRTできるがRTは引用RTできないので無限ループにはならない（最大深さ2）
-        def GetMediaTweet(tweet: dict) -> dict:
-            result = tweet
-            # ツイートオブジェクトにRTフラグが立っている場合
-            if tweet.get("retweeted") and tweet.get("retweeted_status"):
-                if tweet["retweeted_status"].get("extended_entities"):
-                    result = tweet["retweeted_status"]
-                # ツイートオブジェクトに引用RTフラグも立っている場合
-                if tweet["retweeted_status"].get("is_quote_status") and tweet["retweeted_status"].get("quoted_status"):
-                    if tweet["retweeted_status"]["quoted_status"].get("extended_entities"):
-                        return GetMediaTweet(tweet["retweeted_status"])
-
-            # ツイートオブジェクトに引用RTフラグが立っている場合
-            elif tweet.get("is_quote_status") and tweet.get("quoted_status"):
-                if tweet["quoted_status"].get("extended_entities"):
-                    result = tweet["quoted_status"]
-                # ツイートオブジェクトにRTフラグも立っている場合（仕様上、本来はここはいらない）
-                if tweet["quoted_status"].get("retweeted") and tweet["quoted_status"].get("retweeted_status"):
-                    if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
-                        return GetMediaTweet(tweet["quoted_status"])
-
-            return result
-
         get_cnt = 0
         end_flag = False
         for i in range(1, self.retweet_get_max_loop):
@@ -81,7 +57,7 @@ class RetweetCrawler(Crawler):
 
             for t in timeline_tweets:
                 # メディアを保持しているツイート部分を取得
-                media_tweet = GetMediaTweet(t)
+                media_tweet = self.GetMediaTweet(t)
                 if "extended_entities" not in media_tweet:
                     continue
                 entities = media_tweet["extended_entities"]

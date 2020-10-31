@@ -269,34 +269,13 @@ class TestRetweetCrawler(unittest.TestCase):
             mockdbrfu.assert_called_once_with(s_exist_filenames, 1)
             mockdgefl.assert_called_once_with()
             mockapireq.assert_called()
+            self.assertEqual(len(s_se), mockapireq.call_count)
 
-            # 予想値取得用
-            def GetMediaTweet(tweet: dict) -> dict:
-                result = {}
-                # ツイートオブジェクトにRTフラグが立っている場合
-                if tweet.get("retweeted") and tweet.get("retweeted_status"):
-                    if tweet["retweeted_status"].get("extended_entities"):
-                        result = tweet["retweeted_status"]
-                    # ツイートオブジェクトに引用RTフラグも立っている場合
-                    if tweet["retweeted_status"].get("is_quote_status") and tweet["retweeted_status"].get("quoted_status"):
-                        if tweet["retweeted_status"]["quoted_status"].get("extended_entities"):
-                            return GetMediaTweet(tweet["retweeted_status"])
-
-                # ツイートオブジェクトに引用RTフラグが立っている場合
-                elif tweet.get("is_quote_status") and tweet.get("quoted_status"):
-                    if tweet["quoted_status"].get("extended_entities"):
-                        result = tweet["quoted_status"]
-                    # ツイートオブジェクトにRTフラグも立っている場合（仕様上、本来はここはいらない）
-                    if tweet["quoted_status"].get("retweeted") and tweet["quoted_status"].get("retweeted_status"):
-                        if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
-                            return GetMediaTweet(tweet["quoted_status"])
-
-                return result
-
+            # 予想値取得
             expect = []
             for s_ti in s_t:
-                r = GetMediaTweet(s_ti)
-                if r:
+                r = rc.GetMediaTweet(s_ti)
+                if r.get("extended_entities"):
                     expect.append(r)
             expect.reverse()
 
