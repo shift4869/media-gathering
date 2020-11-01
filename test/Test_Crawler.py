@@ -51,7 +51,8 @@ class ConcreteCrawler(Crawler.Crawler):
         return "DBExistMark updated"
 
     def GetVideoURL(self, file_name):
-        return "video_sample.mp4"
+        video_base_url = "https://video.twimg.com/ext_tw_video/1144527536388337664/pu/vid/626x882/{}"
+        return video_base_url.format(file_name)
 
     def MakeDoneMessage(self):
         return "Crawler Test : done"
@@ -245,7 +246,10 @@ class TestCrawler(unittest.TestCase):
 
         self.assertEqual("Fav", crawler.type)
         self.assertEqual("DBExistMark updated", crawler.UpdateDBExistMark(""))
-        self.assertEqual("video_sample.mp4", crawler.GetVideoURL(""))
+
+        filename = "video_sample.mp4"
+        video_base_url = "https://video.twimg.com/ext_tw_video/1144527536388337664/pu/vid/626x882/{}"
+        self.assertEqual(video_base_url.format(filename), crawler.GetVideoURL(filename))
         self.assertEqual("Crawler Test : done", crawler.MakeDoneMessage())
         self.assertEqual(0, crawler.Crawl())
 
@@ -828,7 +832,7 @@ class TestCrawler(unittest.TestCase):
 
         with ExitStack() as stack:
             mockGetExistFilelist = stack.enter_context(patch("PictureGathering.Crawler.Crawler.GetExistFilelist"))
-            mockGetVideoURL = stack.enter_context(patch("__main__.ConcreteCrawler.GetVideoURL"))
+            # mockGetVideoURL = stack.enter_context(patch("test.Test_Crawler.ConcreteCrawler.GetVideoURL"))
             mockUpdateDBExistMark = stack.enter_context(patch("PictureGathering.Crawler.Crawler.UpdateDBExistMark"))
             mockos = stack.enter_context(patch("PictureGathering.Crawler.os.remove"))
             image_base_url = "http://pbs.twimg.com/media/{}:orig"
@@ -846,10 +850,10 @@ class TestCrawler(unittest.TestCase):
             file_sample = random.sample(img_sample + video_sample, sample_num)  # 結合してシャッフル
             mockGetExistFilelist.return_value = file_sample
 
-            def GetVideoURLsideeffect(filename):
-                return video_base_url.format(filename)
+            # def GetVideoURLsideeffect(filename):
+            #     return video_base_url.format(filename)
 
-            mockGetVideoURL.side_effect = GetVideoURLsideeffect
+            # mockGetVideoURL.side_effect = GetVideoURLsideeffect
             mockUpdateDBExistMark = None
 
             self.assertEqual(0, crawler.ShrinkFolder(holding_file_num - 1))
