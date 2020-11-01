@@ -18,6 +18,7 @@ import random
 import sys
 import time
 import unittest
+import warnings
 from contextlib import ExitStack
 from datetime import datetime
 from logging import WARNING, getLogger
@@ -66,7 +67,8 @@ class TestCrawler(unittest.TestCase):
     """
 
     def setUp(self):
-        pass
+        # requestsのResourceWarning抑制
+        warnings.simplefilter("ignore", ResourceWarning)
 
     def __GetNoRetweetedTweetSample(self, img_url_s: str) -> dict:
         """ツイートオブジェクトのサンプルを生成する（RTフラグなし）
