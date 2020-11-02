@@ -18,6 +18,7 @@ import random
 import sys
 import time
 import unittest
+import warnings
 from contextlib import ExitStack
 from datetime import datetime
 from logging import WARNING, getLogger
@@ -51,7 +52,8 @@ class ConcreteCrawler(Crawler.Crawler):
         return "DBExistMark updated"
 
     def GetVideoURL(self, file_name):
-        return "video_sample.mp4"
+        video_base_url = "https://video.twimg.com/ext_tw_video/1144527536388337664/pu/vid/626x882/{}"
+        return video_base_url.format(file_name)
 
     def MakeDoneMessage(self):
         return "Crawler Test : done"
@@ -65,9 +67,72 @@ class TestCrawler(unittest.TestCase):
     """
 
     def setUp(self):
-        pass
+        # requestsのResourceWarning抑制
+        warnings.simplefilter("ignore", ResourceWarning)
 
-    def __GetMediaTweetSample(self, img_url_s):
+    def __GetNoRetweetedTweetSample(self, img_url_s: str) -> dict:
+        """ツイートオブジェクトのサンプルを生成する（RTフラグなし）
+
+        Args:
+            img_url_s (str): 画像URLサンプル
+
+        Returns:
+            dict: ツイートオブジェクト（サンプル）
+        """
+
+        # 一意にするための乱数
+        r1 = "{:0>5}".format(random.randint(0, 99999))
+        r2 = "{:0>5}".format(random.randint(0, 99999))
+        r = "{:0>5}".format(random.randint(0, 99999))
+        tweet_json = f"""{{
+            "extended_entities": {{
+                "media": [{{
+                    "type": "photo",
+                    "media_url": "{img_url_s}_{r1}"
+                }},
+                {{
+                    "type": "photo",
+                    "media_url": "{img_url_s}_{r2}"
+                }}
+                ]
+            }},
+            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id": 12345,
+            "user": {{
+                "id_str": "12345_id_str_sample",
+                "name": "shift_name_sample",
+                "screen_name": "_shift4869_screen_name_sample"
+            }},
+            "text": "media_tweet_text_sample_{r}",
+            "retweeted": false
+        }}"""
+        tweet_s = json.loads(tweet_json)
+        return tweet_s
+
+    def __GetNoMediaTweetSample(self) -> dict:
+        """ツイートオブジェクトのサンプルを生成する（メディアなし、RTフラグあり）
+
+        Returns:
+            dict: ツイートオブジェクト（サンプル）
+        """
+
+        # 一意にするための乱数
+        r = "{:0>5}".format(random.randint(0, 99999))
+        tweet_json = f'''{{
+            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id": 12345,
+            "user": {{
+                "id_str": "12345_id_str_sample",
+                "name": "shift_name_sample",
+                "screen_name": "_shift4869_screen_name_sample"
+            }},
+            "text": "no-media_tweet_text_sample_{r}",
+            "retweeted": true
+        }}'''
+        tweet_s = json.loads(tweet_json)
+        return tweet_s
+
+    def __GetMediaTweetSample(self, img_url_s: str) -> dict:
         """ツイートオブジェクトのサンプルを生成する
 
         Args:
@@ -77,28 +142,102 @@ class TestCrawler(unittest.TestCase):
             dict: ツイートオブジェクト（サンプル）
         """
 
+        # 一意にするための乱数
+        r1 = "{:0>5}".format(random.randint(0, 99999))
+        r2 = "{:0>5}".format(random.randint(0, 99999))
+        r = "{:0>5}".format(random.randint(0, 99999))
         tweet_json = f'''{{
             "extended_entities": {{
                 "media": [{{
                     "type": "photo",
-                    "media_url": "{img_url_s}_1"
+                    "media_url": "{img_url_s}_{r1}"
                 }},
                 {{
                     "type": "photo",
-                    "media_url": "{img_url_s}_2"
+                    "media_url": "{img_url_s}_{r2}"
                 }}
                 ]
             }},
             "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id": 12345,
+            "user": {{
+                "id_str": "12345_id_str_sample",
+                "name": "shift_name_sample",
+                "screen_name": "_shift4869_screen_name_sample"
+            }},
+            "text": "media_tweet_text_sample_{r}",
+            "retweeted": true
+        }}'''
+        tweet_s = json.loads(tweet_json)
+        return tweet_s
+
+    def __GetRetweetTweetSample(self, img_url_s: str) -> dict:
+        """RTツイートオブジェクトのサンプルを生成する
+
+        Args:
+            img_url_s (str): 画像URLサンプル
+
+        Returns:
+            dict: ツイートオブジェクト（サンプル）
+        """
+
+        tweet_json = f'''{{
+            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id": 12345,
             "id_str": "12345_id_str_sample",
             "user": {{
                 "id_str": "12345_id_str_sample",
                 "name": "shift_name_sample",
                 "screen_name": "_shift4869_screen_name_sample"
             }},
-            "text": "tweet_text_sample"
+            "full_text": "retweet_tweet_text_sample",
+            "retweeted": true
         }}'''
         tweet_s = json.loads(tweet_json)
+        tweet_s["retweeted_status"] = self.__GetMediaTweetSample(img_url_s)
+        tweet_s["retweeted_status"]["retweeted"] = True
+        return tweet_s
+
+    def __GetQuoteTweetSample(self, img_url_s: str) -> dict:
+        """引用RTツイートオブジェクトのサンプルを生成する
+
+        Args:
+            img_url_s (str): 画像URLサンプル
+
+        Returns:
+            dict: ツイートオブジェクト（サンプル）
+        """
+
+        tweet_json = f'''{{
+            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
+            "id": 12345,
+            "id_str": "12345_id_str_sample",
+            "user": {{
+                "id_str": "12345_id_str_sample",
+                "name": "shift_name_sample",
+                "screen_name": "_shift4869_screen_name_sample"
+            }},
+            "full_text": "quoted_tweet_text_sample",
+            "retweeted": true,
+            "is_quote_status": true
+        }}'''
+        tweet_s = json.loads(tweet_json)
+        tweet_s["quoted_status"] = self.__GetMediaTweetSample(img_url_s)
+        return tweet_s
+
+    def __GetRetweetQuoteTweetSample(self, img_url_s: str) -> dict:
+        """引用RTツイートをRTしたオブジェクトのサンプルを生成する
+
+        Args:
+            img_url_s (str): 画像URLサンプル
+
+        Returns:
+            dict: ツイートオブジェクト（サンプル）
+        """
+
+        tweet_s = self.__GetRetweetTweetSample(img_url_s)
+        tweet_s["retweeted_status"] = self.__GetQuoteTweetSample(img_url_s)
+        tweet_s["full_text"] = "retweet_quoted_tweet_text_sample"
         return tweet_s
 
     def test_ConcreteCrawler(self):
@@ -109,7 +248,10 @@ class TestCrawler(unittest.TestCase):
 
         self.assertEqual("Fav", crawler.type)
         self.assertEqual("DBExistMark updated", crawler.UpdateDBExistMark(""))
-        self.assertEqual("video_sample.mp4", crawler.GetVideoURL(""))
+
+        filename = "video_sample.mp4"
+        video_base_url = "https://video.twimg.com/ext_tw_video/1144527536388337664/pu/vid/626x882/{}"
+        self.assertEqual(video_base_url.format(filename), crawler.GetVideoURL(filename))
         self.assertEqual("Crawler Test : done", crawler.MakeDoneMessage())
         self.assertEqual(0, crawler.Crawl())
 
@@ -276,7 +418,7 @@ class TestCrawler(unittest.TestCase):
 
         # responce = crawler.oath.get(url, params=params)
         # favorites_limit_text_sample = responce.text
-        favorites_limit_text_sample = f'''{{
+        favorites_limit_text_sample = f"""{{
             "resources": {{
                 "favorites": {{
                     "\/favorites\/list": {{
@@ -286,7 +428,7 @@ class TestCrawler(unittest.TestCase):
                     }}
                 }}
             }}
-        }}'''
+        }}"""
 
         remaining, reset = crawler.GetTwitterAPILimitContext(json.loads(favorites_limit_text_sample), params)
         self.assertEqual(70, remaining)
@@ -299,7 +441,7 @@ class TestCrawler(unittest.TestCase):
         crawler = ConcreteCrawler()
 
         with ExitStack() as stack:
-            mocktime = stack.enter_context(patch('time.sleep'))
+            mocktime = stack.enter_context(patch("time.sleep"))
 
             dt_unix = time.mktime(datetime.now().timetuple()) + 1
 
@@ -315,10 +457,10 @@ class TestCrawler(unittest.TestCase):
         """
 
         with ExitStack() as stack:
-            mockTWARType = stack.enter_context(patch('PictureGathering.Crawler.Crawler.GetTwitterAPIResourceType'))
-            mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.get'))
-            mockWaitUntilReset = stack.enter_context(patch('PictureGathering.Crawler.Crawler.WaitUntilReset'))
-            mockTWALimitContext = stack.enter_context(patch('PictureGathering.Crawler.Crawler.GetTwitterAPILimitContext'))
+            mockTWARType = stack.enter_context(patch("PictureGathering.Crawler.Crawler.GetTwitterAPIResourceType"))
+            mockoauth = stack.enter_context(patch("requests_oauthlib.OAuth1Session.get"))
+            mockWaitUntilReset = stack.enter_context(patch("PictureGathering.Crawler.Crawler.WaitUntilReset"))
+            mockTWALimitContext = stack.enter_context(patch("PictureGathering.Crawler.Crawler.GetTwitterAPILimitContext"))
 
             crawler = ConcreteCrawler()
             url = "https://api.twitter.com/1.1/favorites/list.json"
@@ -338,7 +480,7 @@ class TestCrawler(unittest.TestCase):
 
                 return responce
 
-            text = f'''{{"text": "api_responce_text_sample"}}'''
+            text = f"""{{"text": "api_responce_text_sample"}}"""
 
             responce1 = responce_factory(503, text)
             responce2 = responce_factory(200, text)
@@ -373,8 +515,8 @@ class TestCrawler(unittest.TestCase):
         """
 
         with ExitStack() as stack:
-            mockWaitUntilReset = stack.enter_context(patch('PictureGathering.Crawler.Crawler.WaitUntilReset'))
-            mockTWALimit = stack.enter_context(patch('PictureGathering.Crawler.Crawler.CheckTwitterAPILimit'))
+            mockWaitUntilReset = stack.enter_context(patch("PictureGathering.Crawler.Crawler.WaitUntilReset"))
+            mockTWALimit = stack.enter_context(patch("PictureGathering.Crawler.Crawler.CheckTwitterAPILimit"))
 
             crawler = ConcreteCrawler()
 
@@ -431,8 +573,8 @@ class TestCrawler(unittest.TestCase):
         """
 
         with ExitStack() as stack:
-            mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.get'))
-            mockTWAUntilReset = stack.enter_context(patch('PictureGathering.Crawler.Crawler.WaitTwitterAPIUntilReset'))
+            mockoauth = stack.enter_context(patch("requests_oauthlib.OAuth1Session.get"))
+            mockTWAUntilReset = stack.enter_context(patch("PictureGathering.Crawler.Crawler.WaitTwitterAPIUntilReset"))
 
             crawler = ConcreteCrawler()
 
@@ -449,7 +591,7 @@ class TestCrawler(unittest.TestCase):
 
                 return responce
 
-            text = f'''{{"text": "api_responce_text_sample"}}'''
+            text = f"""{{"text": "api_responce_text_sample"}}"""
 
             url = "https://api.twitter.com/1.1/favorites/list.json"
             responce1 = responce_factory(503, text)
@@ -513,39 +655,39 @@ class TestCrawler(unittest.TestCase):
         """メディアURL取得処理をチェックする
         """
 
-        img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
-        video_url_s = 'https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4'
+        img_url_s = "http://www.img.filename.sample.com/media/sample.png"
+        video_url_s = "https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4"
         img_filename_s = os.path.basename(img_url_s)
 
         crawler = ConcreteCrawler()
 
         # typeなし
-        media_tweet_json = f'''{{
+        media_tweet_json = f"""{{
             "media_url": "{img_url_s}"
-        }}'''
+        }}"""
         self.assertEqual("", crawler.GetMediaUrl(json.loads(media_tweet_json)))
 
         # media_urlなし(photo)
-        media_tweet_json = f'''{{
+        media_tweet_json = f"""{{
             "type": "photo"
-        }}'''
+        }}"""
         self.assertEqual("", crawler.GetMediaUrl(json.loads(media_tweet_json)))
 
         # photo
-        media_tweet_json = f'''{{
+        media_tweet_json = f"""{{
             "type": "photo",
             "media_url": "{img_url_s}"
-        }}'''
+        }}"""
         self.assertEqual(img_url_s, crawler.GetMediaUrl(json.loads(media_tweet_json)))
 
         # media_urlなし(video)
-        media_tweet_json = f'''{{
+        media_tweet_json = f"""{{
             "type": "video"
-        }}'''
+        }}"""
         self.assertEqual("", crawler.GetMediaUrl(json.loads(media_tweet_json)))
 
         # video
-        media_tweet_json = f'''{{
+        media_tweet_json = f"""{{
             "type": "video",
             "video_info": {{
                 "variants":[{{
@@ -565,8 +707,51 @@ class TestCrawler(unittest.TestCase):
                 }}
                 ]
             }}
-        }}'''
+        }}"""
         self.assertEqual(video_url_s + "_2048", crawler.GetMediaUrl(json.loads(media_tweet_json)))
+
+    def test_GetMediaTweet(self):
+        """ツイートオブジェクトの階層解釈処理をチェックする
+        """
+
+        crawler = ConcreteCrawler()
+
+        # ツイートサンプル作成
+        s_media_url = "http://pbs.twimg.com/media/add_sample{}.jpg:orig"
+        s_nrt_t = [self.__GetNoRetweetedTweetSample(s_media_url.format(i)) for i in range(3)]
+        s_nm_t = [self.__GetNoMediaTweetSample() for i in range(3)]
+        s_rt_t = [self.__GetRetweetTweetSample(s_media_url.format(i)) for i in range(3)]
+        s_quote_t = [self.__GetQuoteTweetSample(s_media_url.format(i)) for i in range(3)]
+        s_rt_quote_t = [self.__GetRetweetQuoteTweetSample(s_media_url.format(i)) for i in range(3)]
+        s_tweet_list = s_nrt_t + s_nm_t + s_rt_t + s_quote_t + s_rt_quote_t
+        random.shuffle(s_tweet_list)
+
+        # 予想値取得用
+        def GetMediaTweet(tweet: dict) -> dict:
+            result = tweet
+            # ツイートオブジェクトにRTフラグが立っている場合
+            if tweet.get("retweeted") and tweet.get("retweeted_status"):
+                if tweet["retweeted_status"].get("extended_entities"):
+                    result = tweet["retweeted_status"]
+                # ツイートオブジェクトに引用RTフラグも立っている場合
+                if tweet["retweeted_status"].get("is_quote_status") and tweet["retweeted_status"].get("quoted_status"):
+                    if tweet["retweeted_status"]["quoted_status"].get("extended_entities"):
+                        return GetMediaTweet(tweet["retweeted_status"])
+            # ツイートオブジェクトに引用RTフラグが立っている場合
+            elif tweet.get("is_quote_status") and tweet.get("quoted_status"):
+                if tweet["quoted_status"].get("extended_entities"):
+                    result = tweet["quoted_status"]
+                # ツイートオブジェクトにRTフラグも立っている場合（仕様上、本来はここはいらない）
+                if tweet["quoted_status"].get("retweeted") and tweet["quoted_status"].get("retweeted_status"):
+                    if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
+                        return GetMediaTweet(tweet["quoted_status"])
+            return result
+
+        # 実行
+        for s_tweet in s_tweet_list:
+            expect = GetMediaTweet(s_tweet)
+            actual = crawler.GetMediaTweet(s_tweet)
+            self.assertEqual(expect, actual)
 
     def test_ImageSaver(self):
         """画像保存をチェックする
@@ -581,9 +766,9 @@ class TestCrawler(unittest.TestCase):
                 os.remove(file)
 
         with ExitStack() as stack:
-            mocksql = stack.enter_context(patch('PictureGathering.DBController.DBController.DBFavUpsert'))
-            mockurllib = stack.enter_context(patch('PictureGathering.Crawler.urllib.request.urlretrieve'))
-            mocksystem = stack.enter_context(patch('PictureGathering.Crawler.os.system'))
+            mocksql = stack.enter_context(patch("PictureGathering.DBController.DBController.DBFavUpsert"))
+            mockurllib = stack.enter_context(patch("PictureGathering.Crawler.urllib.request.urlretrieve"))
+            mocksystem = stack.enter_context(patch("PictureGathering.Crawler.os.system"))
 
             # mock設定
             mocksql.return_value = 0
@@ -595,7 +780,7 @@ class TestCrawler(unittest.TestCase):
                 url = url_orig.replace(":orig", "")
                 save_file_path = os.path.join(crawler.save_path, os.path.basename(url))
 
-                with open(save_file_path, 'wb') as fout:
+                with open(save_file_path, "wb") as fout:
                     fout.write("test".encode())
 
                 use_file_list.append(save_file_path)
@@ -605,8 +790,8 @@ class TestCrawler(unittest.TestCase):
             mockurllib.side_effect = urlopen_sideeffect
 
             tweets = []
-            img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
-            media_tweet_s = self.__GetMediaTweetSample(img_url_s)
+            img_url_s = "http://www.img.filename.sample.com/media/sample.png"
+            media_tweet_s = self.__GetNoRetweetedTweetSample(img_url_s)
             tweets.append(media_tweet_s)
             expect_save_num = len(media_tweet_s["extended_entities"]["media"])
             self.assertEqual(0, crawler.ImageSaver(tweets))
@@ -648,12 +833,12 @@ class TestCrawler(unittest.TestCase):
         """
 
         with ExitStack() as stack:
-            mockGetExistFilelist = stack.enter_context(patch('PictureGathering.Crawler.Crawler.GetExistFilelist'))
-            mockGetVideoURL = stack.enter_context(patch('__main__.ConcreteCrawler.GetVideoURL'))
-            mockUpdateDBExistMark = stack.enter_context(patch('PictureGathering.Crawler.Crawler.UpdateDBExistMark'))
-            mockos = stack.enter_context(patch('PictureGathering.Crawler.os.remove'))
-            image_base_url = 'http://pbs.twimg.com/media/{}:orig'
-            video_base_url = 'https://video.twimg.com/ext_tw_video/1144527536388337664/pu/vid/626x882/{}'
+            mockGetExistFilelist = stack.enter_context(patch("PictureGathering.Crawler.Crawler.GetExistFilelist"))
+            # mockGetVideoURL = stack.enter_context(patch("test.Test_Crawler.ConcreteCrawler.GetVideoURL"))
+            mockUpdateDBExistMark = stack.enter_context(patch("PictureGathering.Crawler.Crawler.UpdateDBExistMark"))
+            mockos = stack.enter_context(patch("PictureGathering.Crawler.os.remove"))
+            image_base_url = "http://pbs.twimg.com/media/{}:orig"
+            video_base_url = "https://video.twimg.com/ext_tw_video/1144527536388337664/pu/vid/626x882/{}"
 
             crawler = ConcreteCrawler()
             holding_file_num = 10
@@ -667,10 +852,10 @@ class TestCrawler(unittest.TestCase):
             file_sample = random.sample(img_sample + video_sample, sample_num)  # 結合してシャッフル
             mockGetExistFilelist.return_value = file_sample
 
-            def GetVideoURLsideeffect(filename):
-                return video_base_url.format(filename)
+            # def GetVideoURLsideeffect(filename):
+            #     return video_base_url.format(filename)
 
-            mockGetVideoURL.side_effect = GetVideoURLsideeffect
+            # mockGetVideoURL.side_effect = GetVideoURLsideeffect
             mockUpdateDBExistMark = None
 
             self.assertEqual(0, crawler.ShrinkFolder(holding_file_num - 1))
@@ -698,31 +883,30 @@ class TestCrawler(unittest.TestCase):
         crawler = ConcreteCrawler()
 
         with ExitStack() as stack:
-            mockwhtml = stack.enter_context(patch('PictureGathering.WriteHTML.WriteResultHTML'))
-            mockcptweet = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostTweet'))
-            mockcplnotify = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostLineNotify'))
-            mockcpsnotify = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostSlackNotify'))
-            mockcpdnotify = stack.enter_context(patch('PictureGathering.Crawler.Crawler.PostDiscordNotify'))
-            mocksql = stack.enter_context(patch('PictureGathering.DBController.DBController.DBDelSelect'))
-            mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.post'))
+            mocklogger = stack.enter_context(patch.object(logger, "info"))
+            mockwhtml = stack.enter_context(patch("PictureGathering.WriteHTML.WriteResultHTML"))
+            mockcptweet = stack.enter_context(patch("PictureGathering.Crawler.Crawler.PostTweet"))
+            mockcplnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.PostLineNotify"))
+            mockcpsnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.PostSlackNotify"))
+            mockcpdnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.PostDiscordNotify"))
+            mockamzf = stack.enter_context(patch("PictureGathering.Archiver.MakeZipFile"))
+            mockamzf = stack.enter_context(patch("PictureGathering.GoogleDrive.UploadToGoogleDrive"))
+            mocksql = stack.enter_context(patch("PictureGathering.DBController.DBController.DBDelSelect"))
+            mockoauth = stack.enter_context(patch("requests_oauthlib.OAuth1Session.post"))
 
             # mock設定
-            mockwhtml.return_value = 0
-            mockcptweet.return_value = 0
-            mockcplnotify.return_value = 0
-            mockcpsnotify.return_value = 0
-            mockcpdnotify.return_value = 0
             mocksql.return_value = []
-            mockoauth.return_value = 0
 
-            img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
-            media_tweet_s = self.__GetMediaTweetSample(img_url_s)
+            img_url_s = "http://www.img.filename.sample.com/media/sample.png"
+            media_tweet_s = self.__GetNoRetweetedTweetSample(img_url_s)
             media_url_list = media_tweet_s["extended_entities"]["media"]
             for media_url in media_url_list:
                 crawler.add_url_list.append(media_url["media_url"])
                 crawler.del_url_list.append(media_url["media_url"])
             crawler.add_cnt = len(crawler.add_url_list)
             crawler.del_cnt = len(crawler.del_url_list)
+
+            # TODO::
 
             self.assertEqual(0, crawler.EndOfProcess())
 
@@ -733,9 +917,9 @@ class TestCrawler(unittest.TestCase):
         crawler = ConcreteCrawler()
 
         with ExitStack() as stack:
-            mockctapi = stack.enter_context(patch('PictureGathering.Crawler.Crawler.TwitterAPIRequest'))
-            mockoauth = stack.enter_context(patch('requests_oauthlib.OAuth1Session.post'))
-            mocksql = stack.enter_context(patch('PictureGathering.DBController.DBController.DBDelUpsert'))
+            mockctapi = stack.enter_context(patch("PictureGathering.Crawler.Crawler.TwitterAPIRequest"))
+            mockoauth = stack.enter_context(patch("requests_oauthlib.OAuth1Session.post"))
+            mocksql = stack.enter_context(patch("PictureGathering.DBController.DBController.DBDelUpsert"))
 
             # mock設定
             mockctapi.return_value = {"id_str": "12345_id_str_sample"}
@@ -761,7 +945,7 @@ class TestCrawler(unittest.TestCase):
         crawler = ConcreteCrawler()
 
         with ExitStack() as stack:
-            mockreq = stack.enter_context(patch('PictureGathering.Crawler.requests.post'))
+            mockreq = stack.enter_context(patch("PictureGathering.Crawler.requests.post"))
 
             # mock設定
             responce = MagicMock()
@@ -781,7 +965,7 @@ class TestCrawler(unittest.TestCase):
         crawler = ConcreteCrawler()
 
         with ExitStack() as stack:
-            mockslack = stack.enter_context(patch('PictureGathering.Crawler.slackweb.Slack.notify'))
+            mockslack = stack.enter_context(patch("PictureGathering.Crawler.slackweb.Slack.notify"))
 
             # mock設定
             mockslack.return_value = 0
@@ -797,7 +981,7 @@ class TestCrawler(unittest.TestCase):
         crawler = ConcreteCrawler()
 
         with ExitStack() as stack:
-            mockreq = stack.enter_context(patch('PictureGathering.Crawler.requests.post'))
+            mockreq = stack.enter_context(patch("PictureGathering.Crawler.requests.post"))
 
             # mock設定
             responce = MagicMock()
@@ -814,4 +998,4 @@ class TestCrawler(unittest.TestCase):
 if __name__ == "__main__":
     if sys.argv:
         del sys.argv[1:]
-    unittest.main(warnings='ignore')
+    unittest.main(warnings="ignore")
