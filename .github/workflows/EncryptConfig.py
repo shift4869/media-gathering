@@ -22,6 +22,8 @@ def Encrypt(path):
             fout.write(token)
     with open(new_key_path, "wb") as fout:
         fout.write(key)
+    
+    print("Encrypt success")
     return 0
 
 
@@ -37,10 +39,13 @@ def Decrypt(path, key):
         with open(new_path, "wb") as fout:
             token = f.decrypt(fin.read())
             fout.write(token)
+
+    print("Decrypt success")
     return 0
 
 
 if __name__ == "__main__":
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     arg_parser = argparse.ArgumentParser(description="Encrypt Config")
     arg_parser.add_argument("--path", help="target file")
     arg_parser.add_argument("--key", help="encrypt/decrypt key", default="")

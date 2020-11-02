@@ -28,10 +28,13 @@ jobs:
     - name: Make config file
       run: |
         python EncryptConfig.py --path="./encrypt.ini" --key="${{ secrets.SECRET_KEY }}"
+        dir
       working-directory: ./.github\workflows
     - name: Move config file
       run: |
         copy decrypt.ini ../../config/config.ini
+        cd ../../config/
+        dir
       working-directory: ./.github\workflows
     - name: Test with unittest
       run: |
