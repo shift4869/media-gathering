@@ -1,4 +1,5 @@
 # coding: utf-8
+import configparser
 from contextlib import ExitStack
 from mock import MagicMock, PropertyMock, patch
 import os
@@ -82,7 +83,12 @@ class TestWriteHTML(unittest.TestCase):
             WriteHTML.RETWEET_HTML_PATH = self.RETWEET_HTML_PATH
 
             # DBコントローラー（SELECTだけなので本番のDBを使う）
-            db_cont = DBController.DBController("J:/twitter/PG_DB.db", False)
+            CONFIG_FILE_NAME = "./config/config.ini"
+            config = configparser.ConfigParser()
+            self.assertTrue(os.path.exists(CONFIG_FILE_NAME))
+            config.read(CONFIG_FILE_NAME, encoding="utf8")
+            db_path = os.path.join(config["db"]["save_path"], config["db"]["save_file_name"])
+            db_cont = DBController.DBController(db_path, False)
 
             # テスト用html生成関数
             def MakeResultHTML(db):
