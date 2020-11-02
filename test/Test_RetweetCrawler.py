@@ -238,7 +238,10 @@ class TestRetweetCrawler(unittest.TestCase):
             s_exist_filenames = []
             for s_exist_filepath in s_exist_filepaths:
                 s_exist_filenames.append(os.path.basename(s_exist_filepath))
-            exist_oldest_filename = s_exist_filenames[-1]
+            if s_exist_filenames:
+                exist_oldest_filename = s_exist_filenames[-1]
+            else:
+                exist_oldest_filename = ""
 
             # 取得ツイートモック作成
             s_media_url = "http://pbs.twimg.com/media/add_sample{}.jpg:orig"

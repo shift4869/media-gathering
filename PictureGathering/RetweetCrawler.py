@@ -36,7 +36,10 @@ class RetweetCrawler(Crawler):
         exist_filenames = []
         for exist_filepath in exist_filepaths:
             exist_filenames.append(os.path.basename(exist_filepath))
-        exist_oldest_filename = exist_filenames[-1]
+        if exist_filenames:
+            exist_oldest_filename = exist_filenames[-1]
+        else:
+            exist_oldest_filename = ""
 
         # 存在マーキングを更新する
         self.db_cont.DBRetweetFlagUpdate(exist_filenames, 1)
