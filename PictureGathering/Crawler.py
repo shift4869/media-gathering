@@ -302,40 +302,48 @@ class Crawler(metaclass=ABCMeta):
             res = json.loads(responce.text)
             return res
 
-    def GetMediaTweet(self, tweet: dict) -> dict:
+    def GetMediaTweet(self, tweet: dict) -> List[dict]:
         """ツイートオブジェクトの階層（RT、引用RTの親子関係）をたどり、末端のツイート部分の辞書を切り抜く
 
         Note:
            ツイートオブジェクトのルートを引数として受け取り、以下のように判定して返す
-           (1)RTも引用RTもされていないツイートの場合、入力と同じ辞書を返す
-           (2)RTされているツイートの場合、tweet["retweeted_status"]を返す
-           (3)引用RTされているツイートの場合、tweet["quoted_status"]を返す
-           (4)引用RTがRTされているツイートの場合、tweet["retweeted_status"]["quoted_status"]を返す
+           (1)メディアが添付されているツイートの場合、resultにtweetそのものを追加
+           (2)RTされているツイートの場合、resultにtweet["retweeted_status"]を追加
+           (3)引用RTされているツイートの場合、resultにtweet["quoted_status"]を追加
+           (4)引用RTがRTされているツイートの場合、resultにtweet["retweeted_status"]["quoted_status"]を追加
            引用RTはRTできるがRTは引用RTできないので無限ループにはならない（最大深さ2）
+           ツイートそのものにメディアが添付され、かつ引用RT先にもメディアがある場合、出力リストサイズは2になる。
+            （それ以外のケースは基本的に出力リストサイズは1）
         
         Args:
             media_dict (dict): tweet
 
         Returns:
-            str: 成功時メディアURL、引数や辞書構造が不正だった場合空文字列を返す
+            list[dict]: 上記分岐にて出力された辞書リスト
         """
-        result = tweet
+        result = []
         # ツイートオブジェクトにRTフラグが立っている場合
         if tweet.get("retweeted") and tweet.get("retweeted_status"):
             if tweet["retweeted_status"].get("extended_entities"):
-                result = tweet["retweeted_status"]  # (2)
+                result.append(tweet["retweeted_status"])  # (2)
             # ツイートオブジェクトに引用RTフラグも立っている場合
             if tweet["retweeted_status"].get("is_quote_status") and tweet["retweeted_status"].get("quoted_status"):
                 if tweet["retweeted_status"]["quoted_status"].get("extended_entities"):
-                    return self.GetMediaTweet(tweet["retweeted_status"])  # (4)
+                    result = result + self.GetMediaTweet(tweet["retweeted_status"])  # (4)
         # ツイートオブジェクトに引用RTフラグが立っている場合
         elif tweet.get("is_quote_status") and tweet.get("quoted_status"):
             if tweet["quoted_status"].get("extended_entities"):
-                result = tweet["quoted_status"]  # (3)
+                result.append(tweet["quoted_status"])  # (3)
             # ツイートオブジェクトにRTフラグも立っている場合（仕様上、本来はここはいらない）
             if tweet["quoted_status"].get("retweeted") and tweet["quoted_status"].get("retweeted_status"):
                 if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
-                    return self.GetMediaTweet(tweet["quoted_status"])
+                    result = result + self.GetMediaTweet(tweet["quoted_status"])
+        
+        # ツイートオブジェクトにメディアがある場合
+        if tweet.get("extended_entities"):
+            if tweet["extended_entities"].get("media"):
+                if tweet not in result:
+                    result.append(tweet)
         return result  # (1)
 
     def GetMediaUrl(self, media_dict: dict) -> str:
@@ -377,24 +385,92 @@ class Crawler(metaclass=ABCMeta):
         else:
             logger.info("メディアタイプが不明です。")
             return ""
-
         return url
 
-    def ImageSaver(self, url_orig: str, save_file_fullpath: str) -> int:
+    def MediaSaver(self, tweet: dict, media_dict: dict, atime: float, mtime: float) -> int:
         """指定URLの画像を保存する
 
         Args:
+            tweet (dict): メディア含むツイート（全体）
+            media_dict (dict): tweet["extended_entities"]["media"]
+            atime (float): 指定更新日時
+            mtime (float): 指定更新日時
 
         Returns:
-            int: 0(成功)
+            int: 成功時0、None: 失敗時（メディア辞書構造がエラー、urlが取得できない、既に存在しているメディア）None
         """
+        media_type = "None"
+        if "type" not in media_dict:
+            logger.debug("メディアタイプが不明です。")
+            return None
+        media_type = media_dict["type"]
+
+        url = self.GetMediaUrl(media_dict)
+        if url == "":
+            logger.debug("urlが不正です。")
+            return None
+
+        if media_type == "photo":
+            url_orig = url + ":orig"
+            url_thumbnail = url + ":large"
+            file_name = os.path.basename(url)
+            save_file_path = os.path.join(self.save_path, os.path.basename(url))
+            save_file_fullpath = os.path.abspath(save_file_path)
+        elif media_type == "video":
+            url_orig = url
+            url_thumbnail = media_dict["media_url"] + ":orig"  # サムネ
+            file_name = os.path.basename(url_orig)
+            save_file_path = os.path.join(self.save_path, os.path.basename(url_orig))
+            save_file_fullpath = os.path.abspath(save_file_path)
+        else:
+            logger.debug("メディアタイプが不明です。")
+            return None
+
+        if not os.path.isfile(save_file_fullpath):
+            # URLから画像を取得してローカルに保存
+            urllib.request.urlretrieve(url_orig, save_file_fullpath)
+            self.add_url_list.append(url_orig)
+
+            # DB操作 TODO::typeで判別しないで派生先クラスでそれぞれ担当させる
+            include_blob = self.config["db"].getboolean("save_blob")
+            if self.type == "Fav":
+                self.db_cont.DBFavUpsert(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob)
+            elif self.type == "RT":
+                self.db_cont.DBRetweetUpsert(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob)
+
+            # image magickで画像変換
+            if media_type == "photo":
+                img_magick_path = self.config["processes"]["image_magick"]
+                if img_magick_path:
+                    os.system('"' + img_magick_path + '" -quality 60 ' + save_file_fullpath + ' ' + save_file_fullpath)
+
+            # 更新日時を上書き
+            config = self.config["timestamp"]
+            if config.getboolean("timestamp_created_at"):
+                os.utime(save_file_fullpath, (atime, mtime))
+
+            logger.info(os.path.basename(save_file_fullpath) + " -> done!")
+            self.add_cnt += 1
+
+            # 画像を常に保存する設定の場合はコピーする
+            config = self.config["db"]
+            if config.getboolean("save_permanent_image_flag"):
+                shutil.copy2(save_file_fullpath, config["save_permanent_image_path"])
+
+            # 画像をアーカイブする設定の場合
+            config = self.config["archive"]
+            if config.getboolean("is_archive"):
+                shutil.copy2(save_file_fullpath, config["archive_temp_path"])
+        else:
+            logger.info(os.path.basename(save_file_fullpath) + " -> exist")
+            return None
         return 0
 
     def InterpretTweets(self, tweets: List[dict]) -> int:
         """ツイートオブジェクトを解釈して画像URLを取得して保存する
 
         Note:
-            画像を保存する機能はImageSaverが担う
+            画像を保存する機能はMediaSaverが担う
 
         Args:
             tweets (list[dict]): 画像を含んでいる可能性があるツイートオブジェクト辞書配列
@@ -403,95 +479,43 @@ class Crawler(metaclass=ABCMeta):
             int: 0(成功)
         """
         for tweet in tweets:
-            # 末端ツイートを取得
-            tweet = self.GetMediaTweet(tweet)
+            # メディアツイートツリーを取得
+            media_tweets = self.GetMediaTweet(tweet)
 
-            if "extended_entities" not in tweet:
-                logger.debug("メディアを含んでいないツイートです。")
+            if not media_tweets:
                 continue
-            if "media" not in tweet["extended_entities"]:
-                logger.debug("メディアを含んでいないツイートです。")
-                continue
-            media_list = tweet["extended_entities"]["media"]
 
             # 画像つきツイートが投稿された日時を取得する
+            # 引用RTなどのツリーで関係ツイートが複数ある場合は最新の日時を一律付与する
             # もしcreated_atが不正な形式だった場合、strptimeはValueErrorを返す
             # ex) tweet["created_at"] = "Tue Sep 04 15:55:52 +0000 2012"
             td_format = "%a %b %d %H:%M:%S +0000 %Y"
-            created_time = time.strptime(tweet["created_at"], td_format)
+            mt = media_tweets[-1]
+            created_time = time.strptime(mt["created_at"], td_format)
             atime = mtime = time.mktime(
                 (created_time.tm_year,
-                 created_time.tm_mon,
-                 created_time.tm_mday,
-                 created_time.tm_hour,
-                 created_time.tm_min,
-                 created_time.tm_sec,
-                 0, 0, -1)
+                    created_time.tm_mon,
+                    created_time.tm_mday,
+                    created_time.tm_hour,
+                    created_time.tm_min,
+                    created_time.tm_sec,
+                    0, 0, -1)
             )
 
-            for media_dict in media_list:
-                media_type = "None"
-                if "type" not in media_dict:
-                    logger.debug("メディアタイプが不明です。")
+            # 取得したメディアツイートツリー（複数想定）
+            for media_tweet in media_tweets:
+                if "extended_entities" not in media_tweet:
+                    logger.debug("メディアを含んでいないツイートです。")
                     continue
-                media_type = media_dict["type"]
-
-                url = self.GetMediaUrl(media_dict)
-                if url == "":
+                if "media" not in media_tweet["extended_entities"]:
+                    logger.debug("メディアを含んでいないツイートです。")
                     continue
 
-                if media_type == "photo":
-                    url_orig = url + ":orig"
-                    url_thumbnail = url + ":large"
-                    file_name = os.path.basename(url)
-                    save_file_path = os.path.join(self.save_path, os.path.basename(url))
-                    save_file_fullpath = os.path.abspath(save_file_path)
-                elif media_type == "video":
-                    url_orig = url
-                    url_thumbnail = media_dict["media_url"] + ":orig"  # サムネ
-                    file_name = os.path.basename(url_orig)
-                    save_file_path = os.path.join(self.save_path, os.path.basename(url_orig))
-                    save_file_fullpath = os.path.abspath(save_file_path)
-                else:
-                    logger.debug("メディアタイプが不明です。")
-                    continue
-
-                if not os.path.isfile(save_file_fullpath):
-                    # URLから画像を取得してローカルに保存
-                    urllib.request.urlretrieve(url_orig, save_file_fullpath)
-                    self.add_url_list.append(url_orig)
-
-                    # DB操作 TODO::typeで判別しないで派生先クラスでそれぞれ担当させる
-                    include_blob = self.config["db"].getboolean("save_blob")
-                    if self.type == "Fav":
-                        self.db_cont.DBFavUpsert(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob)
-                    elif self.type == "RT":
-                        self.db_cont.DBRetweetUpsert(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob)
-
-                    # image magickで画像変換
-                    if media_type == "photo":
-                        img_magick_path = self.config["processes"]["image_magick"]
-                        if img_magick_path:
-                            os.system('"' + img_magick_path + '" -quality 60 ' + save_file_fullpath + ' ' + save_file_fullpath)
-
-                    # 更新日時を上書き
-                    config = self.config["timestamp"]
-                    if config.getboolean("timestamp_created_at"):
-                        os.utime(save_file_fullpath, (atime, mtime))
-
-                    logger.info(os.path.basename(save_file_fullpath) + " -> done!")
-                    self.add_cnt += 1
-
-                    # 画像を常に保存する設定の場合はコピーする
-                    config = self.config["db"]
-                    if config.getboolean("save_permanent_image_flag"):
-                        shutil.copy2(save_file_fullpath, config["save_permanent_image_path"])
-
-                    # 画像をアーカイブする設定の場合
-                    config = self.config["archive"]
-                    if config.getboolean("is_archive"):
-                        shutil.copy2(save_file_fullpath, config["archive_temp_path"])
-
+                # メディアリスト（今の仕様なら画像で最大4枚まで）
+                media_list = media_tweet["extended_entities"]["media"]
+                for media_dict in media_list:
+                    # メディア保存
+                    self.MediaSaver(media_tweet, media_dict, atime, mtime)
         return 0
 
     def GetExistFilelist(self) -> list:

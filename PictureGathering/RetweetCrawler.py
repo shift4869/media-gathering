@@ -60,30 +60,39 @@ class RetweetCrawler(Crawler):
 
             for t in timeline_tweets:
                 # メディアを保持しているツイート部分を取得
-                media_tweet = self.GetMediaTweet(t)
-                if "extended_entities" not in media_tweet:
+                media_tweets = self.GetMediaTweet(t)
+                
+                if not media_tweets:
                     continue
-                entities = media_tweet["extended_entities"]
 
-                include_new_flag = False
-                # 一つでも保存していない画像を含んでいるか判定
-                for entity in entities["media"]:
-                    media_url = self.GetMediaUrl(entity)
-                    filename = os.path.basename(media_url)
+                # 取得したメディアツイートツリー（複数想定）
+                for media_tweet in media_tweets:
+                    # 引用RTなどのツリーで関係ツイートが複数ある場合は最新の日時を一律付与する
+                    media_tweet["created_at"] = media_tweets[-1]["created_at"]
 
-                    # 既存ファイルの最後のファイル名と一致したら探索を途中で打ち切る
-                    if filename == exist_oldest_filename:
-                        end_flag = True
+                    if "extended_entities" not in media_tweet:
+                        continue
+                    entities = media_tweet["extended_entities"]
 
-                    # 存在しないならそのツイートを収集対象とする
-                    if filename not in exist_filenames:
-                        include_new_flag = True
-                        break
+                    include_new_flag = False
+                    # 一つでも保存していない画像を含んでいるか判定
+                    for entity in entities["media"]:
+                        media_url = self.GetMediaUrl(entity)
+                        filename = os.path.basename(media_url)
 
-                # 一つでも保存していない画像を含んでいたらツイートを収集する
-                if include_new_flag:
-                    rt_tweets.append(media_tweet)
-                    get_cnt = get_cnt + 1
+                        # 既存ファイルの最後のファイル名と一致したら探索を途中で打ち切る
+                        if filename == exist_oldest_filename:
+                            end_flag = True
+
+                        # 存在しないならそのツイートを収集対象とする
+                        if filename not in exist_filenames:
+                            include_new_flag = True
+                            break
+
+                    # 一つでも保存していない画像を含んでいたらツイートを収集する
+                    if include_new_flag:
+                        rt_tweets.append(media_tweet)
+                        get_cnt = get_cnt + 1
 
                 # 探索を途中で打ち切る
                 if end_flag:
