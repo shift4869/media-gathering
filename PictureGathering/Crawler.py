@@ -322,10 +322,12 @@ class Crawler(metaclass=ABCMeta):
             list[dict]: 上記分岐にて出力された辞書リスト
         """
         result = []
+        id_str = []
         # ツイートオブジェクトにRTフラグが立っている場合
         if tweet.get("retweeted") and tweet.get("retweeted_status"):
             if tweet["retweeted_status"].get("extended_entities"):
                 result.append(tweet["retweeted_status"])  # (2)
+                id_str.append(tweet["retweeted_status"]["id_str"])
             # ツイートオブジェクトに引用RTフラグも立っている場合
             if tweet["retweeted_status"].get("is_quote_status") and tweet["retweeted_status"].get("quoted_status"):
                 if tweet["retweeted_status"]["quoted_status"].get("extended_entities"):
@@ -334,6 +336,7 @@ class Crawler(metaclass=ABCMeta):
         elif tweet.get("is_quote_status") and tweet.get("quoted_status"):
             if tweet["quoted_status"].get("extended_entities"):
                 result.append(tweet["quoted_status"])  # (3)
+                id_str.append(tweet["quoted_status"]["id_str"])
             # ツイートオブジェクトにRTフラグも立っている場合（仕様上、本来はここはいらない）
             if tweet["quoted_status"].get("retweeted") and tweet["quoted_status"].get("retweeted_status"):
                 if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
@@ -342,7 +345,7 @@ class Crawler(metaclass=ABCMeta):
         # ツイートオブジェクトにメディアがある場合
         if tweet.get("extended_entities"):
             if tweet["extended_entities"].get("media"):
-                if tweet not in result:
+                if tweet["id_str"] not in id_str:
                     result.append(tweet)
         return result  # (1)
 
