@@ -277,9 +277,10 @@ class TestRetweetCrawler(unittest.TestCase):
             # 予想値取得
             expect = []
             for s_ti in s_t:
-                r = rc.GetMediaTweet(s_ti)
-                if r.get("extended_entities"):
-                    expect.append(r)
+                rs = rc.GetMediaTweet(s_ti)
+                for r in rs:
+                    if r.get("extended_entities"):
+                        expect.append(r)
             expect.reverse()
 
             self.assertEqual(len(expect), len(actual))
