@@ -20,6 +20,7 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta, timezone
 from logging import DEBUG, INFO, getLogger
 from pathlib import Path
+from typing import List
 
 import requests
 import slackweb
@@ -379,11 +380,24 @@ class Crawler(metaclass=ABCMeta):
 
         return url
 
-    def InterpretTweets(self, tweets: dict) -> int:
-        """ツイートオブジェクトから画像を保存する
+    def ImageSaver(self, url_orig: str, save_file_fullpath: str) -> int:
+        """指定URLの画像を保存する
 
         Args:
-            tweets (dict): 画像を含んでいる可能性があるツイートオブジェクト辞書
+
+        Returns:
+            int: 0(成功)
+        """
+        return 0
+
+    def InterpretTweets(self, tweets: List[dict]) -> int:
+        """ツイートオブジェクトを解釈して画像URLを取得して保存する
+
+        Note:
+            画像を保存する機能はImageSaverが担う
+
+        Args:
+            tweets (list[dict]): 画像を含んでいる可能性があるツイートオブジェクト辞書配列
 
         Returns:
             int: 0(成功)
