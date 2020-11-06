@@ -22,6 +22,7 @@ import warnings
 from contextlib import ExitStack
 from datetime import datetime
 from logging import WARNING, getLogger
+from typing import List
 
 import requests
 from mock import MagicMock, PropertyMock, patch
@@ -727,25 +728,31 @@ class TestCrawler(unittest.TestCase):
         random.shuffle(s_tweet_list)
 
         # 予想値取得用
-        def GetMediaTweet(tweet: dict) -> dict:
-            result = tweet
+        def GetMediaTweet(tweet: dict) -> List[dict]:
+            result = []
             # ツイートオブジェクトにRTフラグが立っている場合
             if tweet.get("retweeted") and tweet.get("retweeted_status"):
                 if tweet["retweeted_status"].get("extended_entities"):
-                    result = tweet["retweeted_status"]
+                    result.append(tweet["retweeted_status"])  # (2)
                 # ツイートオブジェクトに引用RTフラグも立っている場合
                 if tweet["retweeted_status"].get("is_quote_status") and tweet["retweeted_status"].get("quoted_status"):
                     if tweet["retweeted_status"]["quoted_status"].get("extended_entities"):
-                        return GetMediaTweet(tweet["retweeted_status"])
+                        result = result + GetMediaTweet(tweet["retweeted_status"])  # (4)
             # ツイートオブジェクトに引用RTフラグが立っている場合
             elif tweet.get("is_quote_status") and tweet.get("quoted_status"):
                 if tweet["quoted_status"].get("extended_entities"):
-                    result = tweet["quoted_status"]
+                    result.append(tweet["quoted_status"])  # (3)
                 # ツイートオブジェクトにRTフラグも立っている場合（仕様上、本来はここはいらない）
                 if tweet["quoted_status"].get("retweeted") and tweet["quoted_status"].get("retweeted_status"):
                     if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
-                        return GetMediaTweet(tweet["quoted_status"])
-            return result
+                        result = result + GetMediaTweet(tweet["quoted_status"])
+            
+            # ツイートオブジェクトにメディアがある場合
+            if tweet.get("extended_entities"):
+                if tweet["extended_entities"].get("media"):
+                    if tweet not in result:
+                        result.append(tweet)
+            return result  # (1)
 
         # 実行
         for s_tweet in s_tweet_list:
