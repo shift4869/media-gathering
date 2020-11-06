@@ -81,7 +81,7 @@ class FavCrawler(Crawler):
         fav_get_max_loop = int(self.config["tweet_timeline"]["fav_get_max_loop"]) + 1
         for i in range(1, fav_get_max_loop):
             tweets = self.FavTweetsGet(i)
-            self.ImageSaver(tweets)
+            self.InterpretTweets(tweets)
         self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
         self.EndOfProcess()
         return 0

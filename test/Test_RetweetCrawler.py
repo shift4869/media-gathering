@@ -373,7 +373,7 @@ class TestRetweetCrawler(unittest.TestCase):
         with ExitStack() as stack:
             mocklogger = stack.enter_context(patch.object(logger, "info"))
             mockrtg = stack.enter_context(patch("PictureGathering.RetweetCrawler.RetweetCrawler.RetweetsGet"))
-            mockimgsv = stack.enter_context(patch("PictureGathering.Crawler.Crawler.ImageSaver"))
+            mockimgsv = stack.enter_context(patch("PictureGathering.Crawler.Crawler.InterpretTweets"))
             mockshfol = stack.enter_context(patch("PictureGathering.Crawler.Crawler.ShrinkFolder"))
             mockeop = stack.enter_context(patch("PictureGathering.Crawler.Crawler.EndOfProcess"))
         

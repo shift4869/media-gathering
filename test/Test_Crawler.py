@@ -753,7 +753,7 @@ class TestCrawler(unittest.TestCase):
             actual = crawler.GetMediaTweet(s_tweet)
             self.assertEqual(expect, actual)
 
-    def test_ImageSaver(self):
+    def test_InterpretTweets(self):
         """画像保存をチェックする
         """
 
@@ -794,7 +794,7 @@ class TestCrawler(unittest.TestCase):
             media_tweet_s = self.__GetNoRetweetedTweetSample(img_url_s)
             tweets.append(media_tweet_s)
             expect_save_num = len(media_tweet_s["extended_entities"]["media"])
-            self.assertEqual(0, crawler.ImageSaver(tweets))
+            self.assertEqual(0, crawler.InterpretTweets(tweets))
 
             self.assertEqual(expect_save_num, crawler.add_cnt)
             self.assertEqual(expect_save_num, mocksql.call_count)

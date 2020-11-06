@@ -379,7 +379,7 @@ class Crawler(metaclass=ABCMeta):
 
         return url
 
-    def ImageSaver(self, tweets: dict) -> int:
+    def InterpretTweets(self, tweets: dict) -> int:
         """ツイートオブジェクトから画像を保存する
 
         Args:

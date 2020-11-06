@@ -135,7 +135,7 @@ class RetweetCrawler(Crawler):
     def Crawl(self):
         logger.info("Retweet Crawler run.")
         tweets = self.RetweetsGet()
-        self.ImageSaver(tweets)
+        self.InterpretTweets(tweets)
         self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
         self.EndOfProcess()
         return 0
