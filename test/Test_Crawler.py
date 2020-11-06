@@ -98,7 +98,8 @@ class TestCrawler(unittest.TestCase):
                 ]
             }},
             "created_at": "Sat Nov 18 17:12:58 +0000 2018",
-            "id": 12345,
+            "id": {int(r)},
+            "id_str": "{r}",
             "user": {{
                 "id_str": "12345_id_str_sample",
                 "name": "shift_name_sample",
@@ -121,7 +122,8 @@ class TestCrawler(unittest.TestCase):
         r = "{:0>5}".format(random.randint(0, 99999))
         tweet_json = f'''{{
             "created_at": "Sat Nov 18 17:12:58 +0000 2018",
-            "id": 12345,
+            "id": {int(r)},
+            "id_str": "{r}",
             "user": {{
                 "id_str": "12345_id_str_sample",
                 "name": "shift_name_sample",
@@ -160,7 +162,8 @@ class TestCrawler(unittest.TestCase):
                 ]
             }},
             "created_at": "Sat Nov 18 17:12:58 +0000 2018",
-            "id": 12345,
+            "id": {int(r)},
+            "id_str": "{r}",
             "user": {{
                 "id_str": "12345_id_str_sample",
                 "name": "shift_name_sample",
@@ -182,9 +185,11 @@ class TestCrawler(unittest.TestCase):
             dict: ツイートオブジェクト（サンプル）
         """
 
+        r = "{:0>5}".format(random.randint(0, 99999))
         tweet_json = f'''{{
             "created_at": "Sat Nov 18 17:12:58 +0000 2018",
-            "id": 12345,
+            "id": {int(r)},
+            "id_str": "{r}",
             "id_str": "12345_id_str_sample",
             "user": {{
                 "id_str": "12345_id_str_sample",
@@ -209,10 +214,11 @@ class TestCrawler(unittest.TestCase):
             dict: ツイートオブジェクト（サンプル）
         """
 
+        r = "{:0>5}".format(random.randint(0, 99999))
         tweet_json = f'''{{
             "created_at": "Sat Nov 18 17:12:58 +0000 2018",
-            "id": 12345,
-            "id_str": "12345_id_str_sample",
+            "id": {int(r)},
+            "id_str": "{r}",
             "user": {{
                 "id_str": "12345_id_str_sample",
                 "name": "shift_name_sample",
