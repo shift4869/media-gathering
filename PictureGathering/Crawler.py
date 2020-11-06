@@ -417,7 +417,7 @@ class Crawler(metaclass=ABCMeta):
             # 画像つきツイートが投稿された日時を取得する
             # もしcreated_atが不正な形式だった場合、strptimeはValueErrorを返す
             # ex) tweet["created_at"] = "Tue Sep 04 15:55:52 +0000 2012"
-            td_format = '%a %b %d %H:%M:%S +0000 %Y'
+            td_format = "%a %b %d %H:%M:%S +0000 %Y"
             created_time = time.strptime(tweet["created_at"], td_format)
             atime = mtime = time.mktime(
                 (created_time.tm_year,
@@ -461,7 +461,7 @@ class Crawler(metaclass=ABCMeta):
                     urllib.request.urlretrieve(url_orig, save_file_fullpath)
                     self.add_url_list.append(url_orig)
 
-                    # DB操作
+                    # DB操作 TODO::typeで判別しないで派生先クラスでそれぞれ担当させる
                     include_blob = self.config["db"].getboolean("save_blob")
                     if self.type == "Fav":
                         self.db_cont.DBFavUpsert(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob)
