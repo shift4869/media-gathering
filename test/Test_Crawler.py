@@ -826,7 +826,7 @@ class TestCrawler(unittest.TestCase):
         for mtime, path in sorted(xs, reverse=True):
             expect_filelist.append(path)
 
-        self.assertAlmostEqual(expect_filelist, crawler.GetExistFilelist())
+        self.assertEqual(expect_filelist, crawler.GetExistFilelist())
 
     def test_ShrinkFolder(self):
         """フォルダ内ファイルの数を一定にする機能をチェックする
