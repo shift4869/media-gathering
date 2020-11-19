@@ -393,7 +393,7 @@ class Crawler(metaclass=ABCMeta):
                 if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
                     result = result + self.GetMediaTweet(tweet["quoted_status"], id_str_list)
 
-        return result  # (1)
+        return result
 
     def MediaSaver(self, tweet: dict, media_dict: dict, atime: float, mtime: float) -> int:
         """指定URLの画像を保存する

@@ -734,31 +734,37 @@ class TestCrawler(unittest.TestCase):
         random.shuffle(s_tweet_list)
 
         # 予想値取得用
-        def GetMediaTweet(tweet: dict) -> List[dict]:
+        def GetMediaTweet(tweet: dict, id_str_list: list = None) -> List[dict]:
             result = []
-            # ツイートオブジェクトにRTフラグが立っている場合
-            if tweet.get("retweeted") and tweet.get("retweeted_status"):
-                if tweet["retweeted_status"].get("extended_entities"):
-                    result.append(tweet["retweeted_status"])  # (2)
-                # ツイートオブジェクトに引用RTフラグも立っている場合
-                if tweet["retweeted_status"].get("is_quote_status") and tweet["retweeted_status"].get("quoted_status"):
-                    if tweet["retweeted_status"]["quoted_status"].get("extended_entities"):
-                        result = result + GetMediaTweet(tweet["retweeted_status"])  # (4)
-            # ツイートオブジェクトに引用RTフラグが立っている場合
-            elif tweet.get("is_quote_status") and tweet.get("quoted_status"):
-                if tweet["quoted_status"].get("extended_entities"):
-                    result.append(tweet["quoted_status"])  # (3)
-                # ツイートオブジェクトにRTフラグも立っている場合（仕様上、本来はここはいらない）
-                if tweet["quoted_status"].get("retweeted") and tweet["quoted_status"].get("retweeted_status"):
-                    if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
-                        result = result + GetMediaTweet(tweet["quoted_status"])
-            
+            # デフォルト引数の処理
+            if id_str_list is None:
+                id_str_list = []
             # ツイートオブジェクトにメディアがある場合
             if tweet.get("extended_entities"):
                 if tweet["extended_entities"].get("media"):
-                    if tweet not in result:
+                    if tweet["id_str"] not in id_str_list:
                         result.append(tweet)
-            return result  # (1)
+                        id_str_list.append(tweet["id_str"])
+            # ツイートオブジェクトにRTフラグが立っている場合
+            if tweet.get("retweeted") and tweet.get("retweeted_status"):
+                if tweet["retweeted_status"].get("extended_entities"):
+                    result.append(tweet["retweeted_status"])
+                    id_str_list.append(tweet["retweeted_status"]["id_str"])
+                # ツイートオブジェクトに引用RTフラグも立っている場合
+                if tweet["retweeted_status"].get("is_quote_status") and tweet["retweeted_status"].get("quoted_status"):
+                    if tweet["retweeted_status"]["quoted_status"].get("extended_entities"):
+                        result = result + GetMediaTweet(tweet["retweeted_status"], id_str_list)
+            # ツイートオブジェクトに引用RTフラグが立っている場合
+            elif tweet.get("is_quote_status") and tweet.get("quoted_status"):
+                if tweet["quoted_status"].get("extended_entities"):
+                    result.append(tweet["quoted_status"])
+                    id_str_list.append(tweet["quoted_status"]["id_str"])
+                # ツイートオブジェクトにRTフラグも立っている場合（仕様上、本来はここはいらない）
+                if tweet["quoted_status"].get("retweeted") and tweet["quoted_status"].get("retweeted_status"):
+                    if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
+                        result = result + GetMediaTweet(tweet["quoted_status"], id_str_list)
+
+            return result
 
         # 実行
         for s_tweet in s_tweet_list:
