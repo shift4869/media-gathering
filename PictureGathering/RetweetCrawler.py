@@ -46,6 +46,7 @@ class RetweetCrawler(Crawler):
 
         get_cnt = 0
         end_flag = False
+        expect_filenames = []
         for i in range(1, self.retweet_get_max_loop):
             # タイムラインツイート取得
             params = {
@@ -59,6 +60,12 @@ class RetweetCrawler(Crawler):
             timeline_tweets = self.TwitterAPIRequest(url, params)
 
             for t in timeline_tweets:
+                # RTまたは引用RTフラグが立っているツイートのみ対象とする
+                rt_flag = t.get("retweeted")
+                quote_flag = t.get("is_quote_status")
+                if not (rt_flag or quote_flag):
+                    continue
+
                 # メディアを保持しているツイート部分を取得
                 media_tweets = self.GetMediaTweet(t)
                 
@@ -68,7 +75,7 @@ class RetweetCrawler(Crawler):
                 # 取得したメディアツイートツリー（複数想定）
                 for media_tweet in media_tweets:
                     # 引用RTなどのツリーで関係ツイートが複数ある場合は最新の日時を一律付与する
-                    media_tweet["created_at"] = media_tweets[-1]["created_at"]
+                    media_tweet["created_at"] = media_tweets[0]["created_at"]
 
                     if "extended_entities" not in media_tweet:
                         continue
@@ -84,13 +91,27 @@ class RetweetCrawler(Crawler):
                         if filename == exist_oldest_filename:
                             end_flag = True
 
-                        # 存在しないならそのツイートを収集対象とする
+                        # 現在保存場所に存在しないファイル　かつ
+                        # これから収集される予定の、既に収集済のファイルでもない ならば
+                        # そのツイートを収集対象とする
                         if filename not in exist_filenames:
-                            include_new_flag = True
-                            break
+                            if filename not in expect_filenames:
+                                include_new_flag = True
+                                expect_filenames.append(filename)
+                                # break
 
                     # 一つでも保存していない画像を含んでいたらツイートを収集する
                     if include_new_flag:
+                        # ツイートオブジェクトの階層を加味して既に取得しているので、
+                        # 収集時にはRT,引用RTフラグを消しておく
+                        # これによりCrawlerでの解釈時に重複して階層取得することを防ぐ
+                        if media_tweet.get("retweeted") and media_tweet.get("retweeted_status"):
+                            media_tweet["retweeted"] = False
+                            media_tweet["retweeted_status"] = {"modified_by_crawler": True}
+                        if media_tweet.get("is_quote_status") and media_tweet.get("quoted_status"):
+                            media_tweet["is_quote_status"] = False
+                            media_tweet["quoted_status"] = {"modified_by_crawler": True}
+                        
                         rt_tweets.append(media_tweet)
                         get_cnt = get_cnt + 1
 
@@ -106,7 +127,6 @@ class RetweetCrawler(Crawler):
                 break
 
         # 古い順にする
-        # rt_tweets = reversed(rt_tweets)
         rt_tweets.reverse()
 
         return rt_tweets

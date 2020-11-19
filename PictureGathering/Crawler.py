@@ -343,7 +343,7 @@ class Crawler(metaclass=ABCMeta):
             return ""
         return url
 
-    def GetMediaTweet(self, tweet: dict) -> List[dict]:
+    def GetMediaTweet(self, tweet: dict, id_str_list: list = None) -> List[dict]:
         """ツイートオブジェクトの階層（RT、引用RTの親子関係）をたどり、末端のツイート部分の辞書を切り抜く
 
         Note:
@@ -362,31 +362,37 @@ class Crawler(metaclass=ABCMeta):
             list[dict]: 上記分岐にて出力された辞書リスト
         """
         result = []
-        id_str = []
-        # ツイートオブジェクトにRTフラグが立っている場合
-        if tweet.get("retweeted") and tweet.get("retweeted_status"):
-            if tweet["retweeted_status"].get("extended_entities"):
-                result.append(tweet["retweeted_status"])  # (2)
-                id_str.append(tweet["retweeted_status"]["id_str"])
-            # ツイートオブジェクトに引用RTフラグも立っている場合
-            if tweet["retweeted_status"].get("is_quote_status") and tweet["retweeted_status"].get("quoted_status"):
-                if tweet["retweeted_status"]["quoted_status"].get("extended_entities"):
-                    result = result + self.GetMediaTweet(tweet["retweeted_status"])  # (4)
-        # ツイートオブジェクトに引用RTフラグが立っている場合
-        elif tweet.get("is_quote_status") and tweet.get("quoted_status"):
-            if tweet["quoted_status"].get("extended_entities"):
-                result.append(tweet["quoted_status"])  # (3)
-                id_str.append(tweet["quoted_status"]["id_str"])
-            # ツイートオブジェクトにRTフラグも立っている場合（仕様上、本来はここはいらない）
-            if tweet["quoted_status"].get("retweeted") and tweet["quoted_status"].get("retweeted_status"):
-                if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
-                    result = result + self.GetMediaTweet(tweet["quoted_status"])
+
+        # デフォルト引数の処理
+        if id_str_list is None:
+            id_str_list = []
         
         # ツイートオブジェクトにメディアがある場合
         if tweet.get("extended_entities"):
             if tweet["extended_entities"].get("media"):
-                if tweet["id_str"] not in id_str:
+                if tweet["id_str"] not in id_str_list:
                     result.append(tweet)
+                    id_str_list.append(tweet["id_str"])
+
+        # ツイートオブジェクトにRTフラグが立っている場合
+        if tweet.get("retweeted") and tweet.get("retweeted_status"):
+            if tweet["retweeted_status"].get("extended_entities"):
+                result.append(tweet["retweeted_status"])
+                id_str_list.append(tweet["retweeted_status"]["id_str"])
+            # ツイートオブジェクトに引用RTフラグも立っている場合
+            if tweet["retweeted_status"].get("is_quote_status") and tweet["retweeted_status"].get("quoted_status"):
+                if tweet["retweeted_status"]["quoted_status"].get("extended_entities"):
+                    result = result + self.GetMediaTweet(tweet["retweeted_status"], id_str_list)
+        # ツイートオブジェクトに引用RTフラグが立っている場合
+        elif tweet.get("is_quote_status") and tweet.get("quoted_status"):
+            if tweet["quoted_status"].get("extended_entities"):
+                result.append(tweet["quoted_status"])
+                id_str_list.append(tweet["quoted_status"]["id_str"])
+            # ツイートオブジェクトにRTフラグも立っている場合（仕様上、本来はここはいらない）
+            if tweet["quoted_status"].get("retweeted") and tweet["quoted_status"].get("retweeted_status"):
+                if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
+                    result = result + self.GetMediaTweet(tweet["quoted_status"], id_str_list)
+
         return result  # (1)
 
     def MediaSaver(self, tweet: dict, media_dict: dict, atime: float, mtime: float) -> int:
@@ -492,7 +498,7 @@ class Crawler(metaclass=ABCMeta):
             # もしcreated_atが不正な形式だった場合、strptimeはValueErrorを返す
             # ex) tweet["created_at"] = "Tue Sep 04 15:55:52 +0000 2012"
             td_format = "%a %b %d %H:%M:%S +0000 %Y"
-            mt = media_tweets[-1]
+            mt = media_tweets[0]
             created_time = time.strptime(mt["created_at"], td_format)
             atime = mtime = time.mktime(
                 (created_time.tm_year,
