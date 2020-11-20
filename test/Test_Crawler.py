@@ -772,26 +772,22 @@ class TestCrawler(unittest.TestCase):
             actual = crawler.GetMediaTweet(s_tweet)
             self.assertEqual(expect, actual)
 
-    def test_InterpretTweets(self):
+    def test_MediaSaver(self):
         """画像保存をチェックする
         """
 
         use_file_list = []
 
-        # 初期化：前テストで使用したファイルが残っていた場合削除する
-        sample_img = ["sample.png_1", "sample.png_2"]
-        for file in sample_img:
-            if os.path.exists(file):
-                os.remove(file)
-
         with ExitStack() as stack:
             mocksql = stack.enter_context(patch("PictureGathering.DBController.DBController.DBFavUpsert"))
             mockurllib = stack.enter_context(patch("PictureGathering.Crawler.urllib.request.urlretrieve"))
             mocksystem = stack.enter_context(patch("PictureGathering.Crawler.os.system"))
+            mockshutil = stack.enter_context(patch("PictureGathering.Crawler.shutil"))
 
             # mock設定
             mocksql.return_value = 0
             mocksystem.return_value = 0
+            mockshutil.return_value = 0
             crawler = ConcreteCrawler()
             crawler.save_path = os.getcwd()
 
@@ -800,7 +796,7 @@ class TestCrawler(unittest.TestCase):
                 save_file_path = os.path.join(crawler.save_path, os.path.basename(url))
 
                 with open(save_file_path, "wb") as fout:
-                    fout.write("test".encode())
+                    fout.write(save_file_fullpath.encode())
 
                 use_file_list.append(save_file_path)
 
@@ -808,13 +804,27 @@ class TestCrawler(unittest.TestCase):
 
             mockurllib.side_effect = urlopen_sideeffect
 
-            tweets = []
             img_url_s = "http://www.img.filename.sample.com/media/sample.png"
             media_tweet_s = self.__GetNoRetweetedTweetSample(img_url_s)
-            tweets.append(media_tweet_s)
-            expect_save_num = len(media_tweet_s["extended_entities"]["media"])
-            self.assertEqual(0, crawler.InterpretTweets(tweets))
+            td_format_s = "%a %b %d %H:%M:%S +0000 %Y"
+            created_time_s = time.strptime(media_tweet_s["created_at"], td_format_s)
+            atime_s = mtime_s = time.mktime(
+                (created_time_s.tm_year,
+                    created_time_s.tm_mon,
+                    created_time_s.tm_mday,
+                    created_time_s.tm_hour,
+                    created_time_s.tm_min,
+                    created_time_s.tm_sec,
+                    0, 0, -1)
+            )
 
+            # 実行
+            for media_dict in media_tweet_s["extended_entities"]["media"]:
+                actual = crawler.MediaSaver(media_tweet_s, media_dict, atime_s, mtime_s)
+                self.assertEqual(0, actual)
+
+            # 呼び出し確認
+            expect_save_num = len(media_tweet_s["extended_entities"]["media"])
             self.assertEqual(expect_save_num, crawler.add_cnt)
             self.assertEqual(expect_save_num, mocksql.call_count)
             self.assertEqual(expect_save_num, mockurllib.call_count)
@@ -827,6 +837,63 @@ class TestCrawler(unittest.TestCase):
         # 後始末：テストで使用したファイルを削除する
         for path in use_file_list:
             os.remove(path)
+
+    def test_InterpretTweets(self):
+        """ツイートオブジェクトの解釈をチェックする
+        """
+        crawler = ConcreteCrawler()
+
+        # ツイートサンプル作成
+        s_media_url = "http://pbs.twimg.com/media/add_sample{}.jpg:orig"
+        s_nrt_t = [self.__GetNoRetweetedTweetSample(s_media_url.format(i)) for i in range(3)]
+        s_nm_t = [self.__GetNoMediaTweetSample() for i in range(3)]
+        s_rt_t = [self.__GetRetweetTweetSample(s_media_url.format(i)) for i in range(3)]
+        s_quote_t = [self.__GetQuoteTweetSample(s_media_url.format(i)) for i in range(3)]
+        s_rt_quote_t = [self.__GetRetweetQuoteTweetSample(s_media_url.format(i)) for i in range(3)]
+        s_tweet_list = s_nrt_t + s_nm_t + s_rt_t + s_quote_t + s_rt_quote_t
+        random.shuffle(s_tweet_list)
+
+        # MediaSaverを呼び出すまでのツイートオブジェクト解釈結果を収集
+        def GetMediaSaverCalledArg(tweets: List[dict]) -> int:
+            res_list = []
+            for tweet in tweets:
+                media_tweets = crawler.GetMediaTweet(tweet)
+                if not media_tweets:
+                    continue
+
+                td_format = "%a %b %d %H:%M:%S +0000 %Y"
+                mt = media_tweets[0]
+                created_time = time.strptime(mt["created_at"], td_format)
+                atime = mtime = time.mktime(
+                    (created_time.tm_year,
+                        created_time.tm_mon,
+                        created_time.tm_mday,
+                        created_time.tm_hour,
+                        created_time.tm_min,
+                        created_time.tm_sec,
+                        0, 0, -1)
+                )
+
+                for media_tweet in media_tweets:
+                    media_list = media_tweet["extended_entities"]["media"]
+                    for media_dict in media_list:
+                        arg = (media_tweet, media_dict, atime, mtime)
+                        res_list.append(arg)
+            return res_list
+
+        with ExitStack() as stack:
+            mockms = stack.enter_context(patch("PictureGathering.Crawler.Crawler.MediaSaver"))
+            mockms.return_value = 0
+
+            expect_called_arg = GetMediaSaverCalledArg(s_tweet_list)
+
+            actual = crawler.InterpretTweets(s_tweet_list)
+            actual_called_arg = []
+            for called_arg in mockms.call_args_list:
+                actual_called_arg.append(called_arg[0])
+
+            self.assertEqual(len(expect_called_arg), len(actual_called_arg))
+            self.assertEqual(expect_called_arg, actual_called_arg)
 
     def test_GetExistFilelist(self):
         """save_pathにあるファイル名一覧取得処理をチェックする
