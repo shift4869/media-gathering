@@ -6,10 +6,13 @@ name: Python package
 on:
   push:
     branches: [ master, develop, feature/ci ]
+  schedule:
+    # min hour(UTC) day month week[0(sun)-6(sat)]
+    # */1 17:00 , run
+    - cron:  "0 8 1 * *"
 
 jobs:
   build:
-
     runs-on: windows-latest
     strategy:
       matrix:
