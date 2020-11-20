@@ -4,6 +4,8 @@
 name: Python package
 
 on:
+  workflow_dispatch:
+    branches: [ master, develop, feature/ci ]
   push:
     branches: [ master, develop, feature/ci ]
   schedule:
