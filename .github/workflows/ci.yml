@@ -5,7 +5,11 @@ name: Python package
 
 on:
   workflow_dispatch:
-    branches: [ master, develop, feature/ci ]
+    inputs:
+      loglevel:
+        description: "Log level"
+        required: true
+        default: "warning"
   push:
     branches: [ master, develop, feature/ci ]
   schedule:
