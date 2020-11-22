@@ -116,3 +116,5 @@ log*.txt*
 /archive
 credentials.json
 *.jpg
+*.gif
+*.xcf

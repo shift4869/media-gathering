@@ -323,7 +323,7 @@ class Crawler(metaclass=ABCMeta):
                 logger.info("画像を含んでいないツイートです。")
                 return ""
             url = media_dict["media_url"]
-        elif media_type == "video":
+        elif media_type == "video" or media_type == "animated_gif":
             if "video_info" not in media_dict:
                 logger.info("動画を含んでいないツイートです。")
                 return ""
@@ -424,7 +424,7 @@ class Crawler(metaclass=ABCMeta):
             file_name = os.path.basename(url)
             save_file_path = os.path.join(self.save_path, os.path.basename(url))
             save_file_fullpath = os.path.abspath(save_file_path)
-        elif media_type == "video":
+        elif media_type == "video" or media_type == "animated_gif":
             url_orig = url
             url_thumbnail = media_dict["media_url"] + ":orig"  # サムネ
             file_name = os.path.basename(url_orig)
