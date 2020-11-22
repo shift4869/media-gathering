@@ -664,6 +664,8 @@ class TestCrawler(unittest.TestCase):
 
         img_url_s = "http://www.img.filename.sample.com/media/sample.png"
         video_url_s = "https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4"
+        animated_gif_url_s = "https://video.twimg.com/tweet_video/EnZCUyTXYAEdWNP.mp4"
+        
         img_filename_s = os.path.basename(img_url_s)
 
         crawler = ConcreteCrawler()
@@ -716,6 +718,26 @@ class TestCrawler(unittest.TestCase):
             }}
         }}"""
         self.assertEqual(video_url_s + "_2048", crawler.GetMediaUrl(json.loads(media_tweet_json)))
+
+        # media_urlなし(animated_gif)
+        media_tweet_json = f"""{{
+            "type": "animated_gif"
+        }}"""
+        self.assertEqual("", crawler.GetMediaUrl(json.loads(media_tweet_json)))
+
+        # animated_gif
+        media_tweet_json = f"""{{
+            "type": "animated_gif",
+            "video_info": {{
+                "variants":[{{
+                    "content_type": "video/mp4",
+                    "bitrate": 0,
+                    "url": "{animated_gif_url_s}"
+                }}
+                ]
+            }}
+        }}"""
+        self.assertEqual(animated_gif_url_s, crawler.GetMediaUrl(json.loads(media_tweet_json)))
 
     def test_GetMediaTweet(self):
         """ツイートオブジェクトの階層解釈処理をチェックする
