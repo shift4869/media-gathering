@@ -664,8 +664,8 @@ class TestCrawler(unittest.TestCase):
 
         img_url_s = "http://www.img.filename.sample.com/media/sample.png"
         video_url_s = "https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4"
-        animated_gif_url_s = "https://video.twimg.com/tweet_video/EnZCUyTXYAEdWNP.mp4"
-        
+        animated_gif_url_s = "https://video.twimg.com/tweet_video/sample.mp4"
+
         img_filename_s = os.path.basename(img_url_s)
 
         crawler = ConcreteCrawler()
