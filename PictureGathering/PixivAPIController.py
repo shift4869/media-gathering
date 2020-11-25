@@ -114,15 +114,19 @@ class PixivAPIController:
 
         Notes:
             リファラの関係？で直接requestできないためAPIを通して保存する
+            save_directory_pathは
+            {base_path}/{作者名}({作者pixivID})/{イラストタイトル}({イラストID})/の形を想定している
             漫画形式の場合：
-                save_directory_path下に{3ケタの連番}.{拡張子}の形式で保存
+                save_directory_pathを使用し
+                /{作者名}({作者pixivID})/{イラストタイトル}({イラストID})/{3ケタの連番}.{拡張子}の形式で保存
             イラスト一枚絵の場合：
-                save_directory_path下に{イラストタイトル}({イラストID}).{拡張子}の形式で保存
+                save_directory_pathからイラストタイトルとイラストIDを取得し
+                /{作者名}({作者pixivID})/{イラストタイトル}({イラストID}).{拡張子}の形式で保存
 
         Args:
             urls (List[str]): イラスト直リンクURL（GetIllustURLsの返り値）
-                              urlが一つだけの場合はイラスト一枚絵と判断する
-            save_directory_path (str): 保存先フルパス
+                              len(urls)が1の場合はイラスト一枚絵と判断する
+            save_directory_path (str): 保存先フルパス（{base_path}/{MakeSaveDirectoryPathの返り値}）
 
         Returns:
             int: 成功時0
