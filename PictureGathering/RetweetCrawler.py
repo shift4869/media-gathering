@@ -77,28 +77,35 @@ class RetweetCrawler(Crawler):
                     # 引用RTなどのツリーで関係ツイートが複数ある場合は最新の日時を一律付与する
                     media_tweet["created_at"] = media_tweets[0]["created_at"]
 
-                    if "extended_entities" not in media_tweet:
-                        continue
-                    entities = media_tweet["extended_entities"]
-
+                    entities = media_tweet.get("extended_entities")
                     include_new_flag = False
-                    # 一つでも保存していない画像を含んでいるか判定
-                    for entity in entities["media"]:
-                        media_url = self.GetMediaUrl(entity)
-                        filename = os.path.basename(media_url)
+                    if not entities:
+                        # pixivリンクが含まれているか
+                        if media_tweet.get("entities").get("urls"):
+                            e_urls = media_tweet["entities"]["urls"]
+                            for element in e_urls:
+                                expanded_url = element.get("expanded_url")
+                                if "https://www.pixiv.net/artworks/" in expanded_url:
+                                    include_new_flag = True
+                        pass
+                    else:
+                        # 一つでも保存していない画像を含んでいるか判定
+                        for entity in entities["media"]:
+                            media_url = self.GetMediaUrl(entity)
+                            filename = os.path.basename(media_url)
 
-                        # 既存ファイルの最後のファイル名と一致したら探索を途中で打ち切る
-                        if filename == exist_oldest_filename:
-                            end_flag = True
+                            # 既存ファイルの最後のファイル名と一致したら探索を途中で打ち切る
+                            if filename == exist_oldest_filename:
+                                end_flag = True
 
-                        # 現在保存場所に存在しないファイル　かつ
-                        # これから収集される予定の、既に収集済のファイルでもない ならば
-                        # そのツイートを収集対象とする
-                        if filename not in exist_filenames:
-                            if filename not in expect_filenames:
-                                include_new_flag = True
-                                expect_filenames.append(filename)
-                                # break
+                            # 現在保存場所に存在しないファイル　かつ
+                            # これから収集される予定の、既に収集済のファイルでもない ならば
+                            # そのツイートを収集対象とする
+                            if filename not in exist_filenames:
+                                if filename not in expect_filenames:
+                                    include_new_flag = True
+                                    expect_filenames.append(filename)
+                                    # break
 
                     # 一つでも保存していない画像を含んでいたらツイートを収集する
                     if include_new_flag:

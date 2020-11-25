@@ -26,7 +26,7 @@ import requests
 import slackweb
 from requests_oauthlib import OAuth1Session
 
-from PictureGathering import DBController, WriteHTML, Archiver, GoogleDrive
+from PictureGathering import DBController, WriteHTML, Archiver, GoogleDrive, PixivAPIController
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 logger = getLogger("root")
@@ -349,6 +349,7 @@ class Crawler(metaclass=ABCMeta):
         Note:
            ツイートオブジェクトのルートを引数として受け取り、以下のように判定して返す
            (1)メディアが添付されているツイートの場合、resultにtweetそのものを追加
+           (1')pixivのリンクがツイートに含まれている場合、resultにtweetそのものを追加
            (2)RTされているツイートの場合、resultにtweet["retweeted_status"]を追加
            (3)引用RTされているツイートの場合、resultにtweet["quoted_status"]を追加
            (4)引用RTがRTされているツイートの場合、resultにtweet["retweeted_status"]["quoted_status"]を追加
@@ -392,6 +393,15 @@ class Crawler(metaclass=ABCMeta):
             if tweet["quoted_status"].get("retweeted") and tweet["quoted_status"].get("retweeted_status"):
                 if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
                     result = result + self.GetMediaTweet(tweet["quoted_status"], id_str_list)
+
+        # ツイートにpixivのリンクがある場合
+        if tweet.get("entities"):
+            if tweet["entities"].get("urls"):
+                url = tweet["entities"]["urls"][0].get("expanded_url")
+                if "https://www.pixiv.net/artworks/" in url:
+                    if tweet["id_str"] not in id_str_list:
+                        result.append(tweet)
+                        id_str_list.append(tweet["id_str"])
 
         return result
 
@@ -486,6 +496,13 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             int: 0(成功)
         """
+        pa_cont = None
+        if self.config["pixiv"].getboolean("is_pixiv_trace"):
+            username = self.config["pixiv"]["username"]
+            password = self.config["pixiv"]["password"]
+            save_pixiv_base_path = self.config["pixiv"]["save_base_path"]
+            pa_cont = PixivAPIController.PixivAPIController(username, password)
+
         for tweet in tweets:
             # メディアツイートツリーを取得
             media_tweets = self.GetMediaTweet(tweet)
@@ -512,6 +529,18 @@ class Crawler(metaclass=ABCMeta):
 
             # 取得したメディアツイートツリー（複数想定）
             for media_tweet in media_tweets:
+                # pixivリンクが含まれているか
+                if pa_cont and tweet.get("entities").get("urls"):
+                    e_urls = tweet["entities"]["urls"]
+                    for element in e_urls:
+                        url = element.get("expanded_url")
+                        if "https://www.pixiv.net/artworks/" in url:
+                            urls = pa_cont.GetIllustURLs(url)
+                            sd_path = pa_cont.MakeSaveDirectoryPath(url)
+                            save_directory_path = os.path.join(save_pixiv_base_path, sd_path)
+                            pa_cont.DownloadURLs(urls, save_directory_path)
+                    # continue
+
                 if "extended_entities" not in media_tweet:
                     logger.debug("メディアを含んでいないツイートです。")
                     continue

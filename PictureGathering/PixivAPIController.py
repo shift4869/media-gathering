@@ -87,7 +87,7 @@ class PixivAPIController:
            保存先ディレクトリパスを生成する
 
         Notes:
-            保存先ディレクトリパスの形式は以下とする：
+            保存先ディレクトリパスの形式は以下とする
             ./{作者名}({作者pixivID})/{イラストタイトル}({イラストID})/
 
         Args:
@@ -106,6 +106,7 @@ class PixivAPIController:
         illust_title = regix.sub("", work.title)
 
         res = "./{}({})/{}({})/".format(author_name, author_id, illust_title, illust_id)
+
         return res
 
     def DownloadURLs(self, urls, save_directory_path):
@@ -113,23 +114,41 @@ class PixivAPIController:
 
         Notes:
             リファラの関係？で直接requestできないためAPIを通して保存する
+            漫画形式の場合：
+                save_directory_path下に{3ケタの連番}.{拡張子}の形式で保存
+            イラスト一枚絵の場合：
+                save_directory_path下に{イラストタイトル}({イラストID}).{拡張子}の形式で保存
 
         Args:
             urls (List[str]): イラスト直リンクURL（GetIllustURLsの返り値）
+                              urlが一つだけの場合はイラスト一枚絵と判断する
             save_directory_path (str): 保存先フルパス
 
         Returns:
             int: 成功時0
         """
-        os.makedirs(save_directory_path, exist_ok=True)
-        dirname = os.path.basename(os.path.dirname(save_directory_path))
-        logger.info("Download pixiv illust: [" + dirname + "] -> see below ...")
-        for i, url in enumerate(urls):
+        pages = len(urls)
+        if pages > 1:  # 漫画形式
+            dirname = os.path.basename(os.path.dirname(save_directory_path))
+            logger.info("Download pixiv illust: [" + dirname + "] -> see below ...")
+
+            os.makedirs(save_directory_path, exist_ok=True)
+            for i, url in enumerate(urls):
+                root, ext = os.path.splitext(url)
+                name = "{:03}{}".format(i + 1, ext)
+                self.aapi.download(url, path=save_directory_path, name=name)
+                logger.info("\t\t: " + name + " -> done({}/{})".format(i + 1, pages))
+                sleep(0.5)
+        else:  # 一枚絵
+            head, tail = os.path.split(save_directory_path[:-1])
+            save_directory_path = head + "/"
+            os.makedirs(save_directory_path, exist_ok=True)
+
+            url = urls[0]
             root, ext = os.path.splitext(url)
-            name = "{:03}{}".format(i + 1, ext)
+            name = "{}{}".format(tail, ext)
             self.aapi.download(url, path=save_directory_path, name=name)
-            logger.info("\t\t: " + name + " -> done({}/{})".format(i + 1, len(urls)))
-            sleep(0.5)
+            logger.info("Download pixiv illust: " + name + " -> done")
 
         return 0
 
