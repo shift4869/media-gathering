@@ -395,7 +395,7 @@ class Crawler(metaclass=ABCMeta):
 
         return result
 
-    def MediaSaver(self, tweet: dict, media_dict: dict, atime: float, mtime: float) -> int:
+    def TweetMediaSaver(self, tweet: dict, media_dict: dict, atime: float, mtime: float) -> int:
         """指定URLの画像を保存する
 
         Args:
@@ -478,7 +478,7 @@ class Crawler(metaclass=ABCMeta):
         """ツイートオブジェクトを解釈して画像URLを取得して保存する
 
         Note:
-            画像を保存する機能はMediaSaverが担う
+            画像を保存する機能はTweetMediaSaverが担う
 
         Args:
             tweets (list[dict]): 画像を含んでいる可能性があるツイートオブジェクト辞書配列
@@ -523,7 +523,7 @@ class Crawler(metaclass=ABCMeta):
                 media_list = media_tweet["extended_entities"]["media"]
                 for media_dict in media_list:
                     # メディア保存
-                    self.MediaSaver(media_tweet, media_dict, atime, mtime)
+                    self.TweetMediaSaver(media_tweet, media_dict, atime, mtime)
         return 0
 
     def GetExistFilelist(self) -> list:

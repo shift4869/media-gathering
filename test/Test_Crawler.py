@@ -794,7 +794,7 @@ class TestCrawler(unittest.TestCase):
             actual = crawler.GetMediaTweet(s_tweet)
             self.assertEqual(expect, actual)
 
-    def test_MediaSaver(self):
+    def test_TweetMediaSaver(self):
         """画像保存をチェックする
         """
 
@@ -842,7 +842,7 @@ class TestCrawler(unittest.TestCase):
 
             # 実行
             for media_dict in media_tweet_s["extended_entities"]["media"]:
-                actual = crawler.MediaSaver(media_tweet_s, media_dict, atime_s, mtime_s)
+                actual = crawler.TweetMediaSaver(media_tweet_s, media_dict, atime_s, mtime_s)
                 self.assertEqual(0, actual)
 
             # 呼び出し確認
@@ -875,8 +875,8 @@ class TestCrawler(unittest.TestCase):
         s_tweet_list = s_nrt_t + s_nm_t + s_rt_t + s_quote_t + s_rt_quote_t
         random.shuffle(s_tweet_list)
 
-        # MediaSaverを呼び出すまでのツイートオブジェクト解釈結果を収集
-        def GetMediaSaverCalledArg(tweets: List[dict]) -> int:
+        # TweetMediaSaverを呼び出すまでのツイートオブジェクト解釈結果を収集
+        def GetTweetMediaSaverCalledArg(tweets: List[dict]) -> int:
             res_list = []
             for tweet in tweets:
                 media_tweets = crawler.GetMediaTweet(tweet)
@@ -904,10 +904,10 @@ class TestCrawler(unittest.TestCase):
             return res_list
 
         with ExitStack() as stack:
-            mockms = stack.enter_context(patch("PictureGathering.Crawler.Crawler.MediaSaver"))
+            mockms = stack.enter_context(patch("PictureGathering.Crawler.Crawler.TweetMediaSaver"))
             mockms.return_value = 0
 
-            expect_called_arg = GetMediaSaverCalledArg(s_tweet_list)
+            expect_called_arg = GetTweetMediaSaverCalledArg(s_tweet_list)
 
             actual = crawler.InterpretTweets(s_tweet_list)
             actual_called_arg = []
