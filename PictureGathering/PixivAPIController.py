@@ -22,34 +22,92 @@ class PixivAPIController:
             password (str): APIを利用するpixivユーザーIDのパスワード
 
         Attributes:
-            username (str): APIを利用するpixivユーザーID
-            password (str): APIを利用するpixivユーザーIDのパスワード
             api (PixivAPI): 非公式pixivAPI（全体操作）
             aapi (AppPixivAPI): 非公式pixivAPI（詳細操作）
+            auth_success (boolean): API認証が正常に完了したかどうか
         """
-        self.username = username
-        self.password = password
-        self.api = PixivAPI()
-        self.aapi = AppPixivAPI()
-        try:
-            self.api.login(username, password)
-            self.aapi.login(username, password)
-        except Exception:
+        self.api = None
+        self.aapi = None
+        self.auth_success = False
+        self.api, self.aapi, self.auth_success = self.Login(username, password)
+
+        if not self.auth_success:
             exit(-1)
 
-    def GetIllustId(self, url):
-        """pixiv作品ページURLからイラストIDを取得する
+    def Login(self, username, password):
+        """非公式pixivAPIインスタンスを生成し、ログインする
+
+        Note:
+            前回ログインからのrefresh_tokenが残っている場合はそれを使用する
+
+        Args:
+            username (str): APIを利用するpixivユーザーID
+            password (str): APIを利用するpixivユーザーIDのパスワード
+
+        Returns:
+            (api, aapi, auth_success) (PixivAPI, AppPixivAPI, boolean): 非公式pixivAPI（全体操作, 詳細操作, 認証結果）
+        """
+        api = PixivAPI()
+        aapi = AppPixivAPI()
+
+        # 前回ログインからのrefresh_tokenが残っているか調べる
+        REFRESH_TOKEN_PATH = "./config/refresh_token.ini"
+        auth_success = False
+        if os.path.exists(REFRESH_TOKEN_PATH):
+            refresh_token = ""
+            with open(REFRESH_TOKEN_PATH, "r") as fin:
+                refresh_token = str(fin.read())
+            try:
+                api.auth(refresh_token=refresh_token)
+                aapi.auth(refresh_token=refresh_token)
+                auth_success = (api.access_token is not None) and (aapi.access_token is not None)
+            except Exception:
+                pass
+        
+        if not auth_success:
+            try:
+                api.login(username, password)
+                aapi.login(username, password)
+                auth_success = (api.access_token is not None) and (aapi.access_token is not None)
+
+                # refresh_tokenを保存
+                refresh_token = api.refresh_token
+                with open(REFRESH_TOKEN_PATH, "w") as fout:
+                    fout.write(refresh_token)
+            except Exception:
+                return (None, None, False)
+
+        return (api, aapi, auth_success)
+
+    def IsPixivURL(self, url):
+        """URLがpixivのURLかどうか判定する
 
         Note:
             想定URL形式：https://www.pixiv.net/artworks/********
 
         Args:
+            url (str): 判定対象url
+
+        Returns:
+            boolean: pixiv作品ページURLならTrue、そうでなければFalse
+        """
+        pattern = r"^https://www.pixiv.net/artworks/[0-9]*$"
+        regix = re.compile(pattern)
+        return not (regix.findall(url) == [])
+
+    def GetIllustId(self, url):
+        """pixiv作品ページURLからイラストIDを取得する
+
+        Args:
             url (str): pixiv作品ページURL
 
         Returns:
-            int: イラストID
+            int: 成功時 イラストID、失敗時 -1
         """
-        _, tail = os.path.split(url)
+        if not self.IsPixivURL(url):
+            return -1
+
+        head, tail = os.path.split(url)
         illust_id = int(tail)
         return illust_id
 
