@@ -1,0 +1,146 @@
+# coding: utf-8
+import configparser
+import os
+import re
+import sys
+import unittest
+import warnings
+from logging import WARNING, getLogger
+
+from contextlib import ExitStack
+from mock import MagicMock, PropertyMock, mock_open, patch
+from pixivpy3 import *
+
+from PictureGathering import PixivAPIController
+
+
+logger = getLogger("root")
+logger.setLevel(WARNING)
+
+
+class TestPixivAPIController(unittest.TestCase):
+
+    def setUp(self):
+        # requestsのResourceWarning抑制
+        warnings.simplefilter("ignore", ResourceWarning)
+
+        CONFIG_FILE_NAME = "./config/config.ini"
+        self.config = configparser.ConfigParser()
+        self.config.read(CONFIG_FILE_NAME, encoding="utf8")
+        self.username = self.config["pixiv"]["username"]
+        self.password = self.config["pixiv"]["password"]
+
+    def tearDown(self):
+        pass
+
+    def test_PixivAPIController(self):
+        """非公式pixivAPI利用クラス初期状態チェック
+        """
+        pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
+        self.assertIsNotNone(pa_cont.api)
+        self.assertIsNotNone(pa_cont.aapi)
+        self.assertTrue(pa_cont.auth_success)
+        self.assertIsNotNone(pa_cont.api.access_token)
+        self.assertIsNotNone(pa_cont.aapi.access_token)
+
+    def test_Login(self):
+        """非公式pixivAPIインスタンス生成とログインをチェック
+        """
+        pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
+        
+        # refresh_tokenが既に存在しているなら削除
+        REFRESH_TOKEN_PATH = "./config/refresh_token.ini"
+        if os.path.exists(REFRESH_TOKEN_PATH):
+            os.remove(REFRESH_TOKEN_PATH)
+
+        # refresh_tokenが存在していない状況をエミュレート
+        with ExitStack() as stack:
+            # open()をモックに置き換える
+            mockfout = mock_open()
+            mockfp = stack.enter_context(patch("PictureGathering.PixivAPIController.open", mockfout))
+            mockpapubauth = stack.enter_context(patch("pixivpy3.PixivAPI.auth"))
+            mockpaappauth = stack.enter_context(patch("pixivpy3.AppPixivAPI.auth"))
+            mockpapublogin = stack.enter_context(patch("pixivpy3.PixivAPI.login"))
+            mockpaapplogin = stack.enter_context(patch("pixivpy3.AppPixivAPI.login"))
+            mockpapubat = stack.enter_context(patch("pixivpy3.PixivAPI.access_token"))
+            mockpaappat = stack.enter_context(patch("pixivpy3.AppPixivAPI.access_token"))
+            mockpapubrt = stack.enter_context(patch("pixivpy3.PixivAPI.refresh_token"))
+
+            not_expect = (None, None, False)
+            actual = pa_cont.Login(self.username, self.password)
+            mockpapublogin.assert_called_once_with(self.username, self.password)
+            mockpaapplogin.assert_called_once_with(self.username, self.password)
+            self.assertEqual(mockpapubauth.call_count, 0)
+            self.assertEqual(mockpaappauth.call_count, 0)
+            self.assertNotEqual(not_expect, actual)
+
+        # refresh_tokenを保存
+        refresh_token = pa_cont.api.refresh_token
+        with open(REFRESH_TOKEN_PATH, "w") as fout:
+            fout.write(refresh_token)
+        self.assertTrue(os.path.exists(REFRESH_TOKEN_PATH))
+
+        # refresh_tokenが存在している状況をエミュレート
+        with ExitStack() as stack:
+            # open()をモックに置き換える
+            mockfout = mock_open()
+            mockfp = stack.enter_context(patch("PictureGathering.PixivAPIController.open", mockfout))
+            mockpapubauth = stack.enter_context(patch("pixivpy3.PixivAPI.auth"))
+            mockpaappauth = stack.enter_context(patch("pixivpy3.AppPixivAPI.auth"))
+            mockpapublogin = stack.enter_context(patch("pixivpy3.PixivAPI.login"))
+            mockpaapplogin = stack.enter_context(patch("pixivpy3.AppPixivAPI.login"))
+            mockpapubat = stack.enter_context(patch("pixivpy3.PixivAPI.access_token"))
+            mockpaappat = stack.enter_context(patch("pixivpy3.AppPixivAPI.access_token"))
+            mockpapubrt = stack.enter_context(patch("pixivpy3.PixivAPI.refresh_token"))
+
+            not_expect = (None, None, False)
+            actual = pa_cont.Login(self.username, self.password)
+            mockpapubauth.assert_called_once_with(refresh_token="")
+            mockpaappauth.assert_called_once_with(refresh_token="")
+            self.assertEqual(mockpapublogin.call_count, 0)
+            self.assertEqual(mockpaapplogin.call_count, 0)
+            self.assertNotEqual(not_expect, actual)
+
+        # refresh_tokenは保存したままにしておく
+        self.assertTrue(os.path.exists(REFRESH_TOKEN_PATH))
+
+    def test_IsPixivURL(self):
+        """pixivのURLかどうか判定する機能をチェック
+        """
+        expect = ""
+        actual = ""
+        self.assertEqual(expect, actual)
+
+    def test_GetIllustId(self):
+        """pixiv作品ページURLからイラストIDを取得する機能をチェック
+        """
+        expect = ""
+        actual = ""
+        self.assertEqual(expect, actual)
+
+    def test_GetIllustURLs(self):
+        """pixiv作品ページURLからイラストへの直リンクを取得する機能をチェック
+        """
+        expect = ""
+        actual = ""
+        self.assertEqual(expect, actual)
+
+    def test_MakeSaveDirectoryPath(self):
+        """保存先ディレクトリパスを生成する機能をチェック
+        """
+        expect = ""
+        actual = ""
+        self.assertEqual(expect, actual)
+
+    def test_DownloadIllusts(self):
+        """イラストをダウンロードする機能をチェック
+        """
+        expect = ""
+        actual = ""
+        self.assertEqual(expect, actual)
+
+
+if __name__ == "__main__":
+    if sys.argv:
+        del sys.argv[1:]
+    unittest.main()
