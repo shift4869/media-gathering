@@ -64,14 +64,18 @@ class PixivAPIController:
             url (str): pixiv作品ページURL
 
         Returns:
-            List[str]: pixiv作品のイラストへの直リンクlist
+            List[str]: 成功時 pixiv作品のイラストへの直リンクlist、失敗時 空リスト
         """
         illust_id = self.GetIllustId(url)
+        if illust_id == -1:
+            return []
 
         # イラスト情報取得
         # json_result = aapi.illust_detail(illust_id)
         # illust = json_result.illust
         works = self.api.works(illust_id)
+        if works.status != "success":
+            return []
         work = works.response[0]
 
         illust_urls = []
@@ -98,16 +102,22 @@ class PixivAPIController:
             str: 保存先ディレクトリパス
         """
         illust_id = self.GetIllustId(url)
+        if illust_id == -1:
+            return []
+
         works = self.api.works(illust_id)
+        if works.status != "success":
+            return []
         work = works.response[0]
 
+        # パスに使えない文字をサニタイズする
+        # TODO::サニタイズを厳密に行う
         regix = re.compile(r'[\\/:*?"<>|]')
         author_name = regix.sub("", work.user.name)
         author_id = int(work.user.id)
         illust_title = regix.sub("", work.title)
 
         res = "./{}({})/{}({})/".format(author_name, author_id, illust_title, illust_id)
-
         return res
 
     def DownloadIllusts(self, urls, save_directory_path):
@@ -130,12 +140,17 @@ class PixivAPIController:
             save_directory_path (str): 保存先フルパス（{base_path}/{MakeSaveDirectoryPathの返り値}）
 
         Returns:
-            int: 成功時0
+            int: DL成功時0、スキップされた場合1、エラー時-1
         """
         pages = len(urls)
         if pages > 1:  # 漫画形式
             dirname = os.path.basename(os.path.dirname(save_directory_path))
             logger.info("Download pixiv illust: [" + dirname + "] -> see below ...")
+
+            # 既に存在しているなら再DLしないでスキップ
+            if os.path.exists(save_directory_path):
+                logger.info("\t\t: exist -> skip")
+                return 1
 
             os.makedirs(save_directory_path, exist_ok=True)
             for i, url in enumerate(urls):
@@ -144,7 +159,7 @@ class PixivAPIController:
                 self.aapi.download(url, path=save_directory_path, name=name)
                 logger.info("\t\t: " + name + " -> done({}/{})".format(i + 1, pages))
                 sleep(0.5)
-        else:  # 一枚絵
+        elif pages == 1:  # 一枚絵
             head, tail = os.path.split(save_directory_path[:-1])
             save_directory_path = head + "/"
             os.makedirs(save_directory_path, exist_ok=True)
@@ -152,9 +167,16 @@ class PixivAPIController:
             url = urls[0]
             root, ext = os.path.splitext(url)
             name = "{}{}".format(tail, ext)
+            
+            # 既に存在しているなら再DLしないでスキップ
+            if os.path.exists(os.path.join(save_directory_path, name)):
+                logger.info("Download pixiv illust: " + name + " -> exist")
+                return 1
+
             self.aapi.download(url, path=save_directory_path, name=name)
             logger.info("Download pixiv illust: " + name + " -> done")
-
+        else:  # エラー
+            return -1
         return 0
 
 
