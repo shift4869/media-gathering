@@ -5,6 +5,7 @@ import os
 import re
 from logging import INFO, getLogger
 from time import sleep
+from typing import List
 
 from pixivpy3 import *
 
@@ -109,7 +110,7 @@ class PixivAPIController:
 
         return res
 
-    def DownloadURLs(self, urls, save_directory_path):
+    def DownloadIllusts(self, urls, save_directory_path):
         """pixiv作品ページURLからダウンロードする
 
         Notes:
@@ -169,5 +170,5 @@ if __name__ == "__main__":
         urls = pa_cont.GetIllustURLs(work_url)
         sd_path = pa_cont.MakeSaveDirectoryPath(work_url)
         save_directory_path = os.path.join(config["pixiv"]["save_base_path"], sd_path)
-        pa_cont.DownloadURLs(urls, save_directory_path)
+        pa_cont.DownloadIllusts(urls, save_directory_path)
     pass

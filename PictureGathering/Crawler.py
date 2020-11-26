@@ -485,13 +485,14 @@ class Crawler(metaclass=ABCMeta):
         return 0
 
     def InterpretTweets(self, tweets: List[dict]) -> int:
-        """ツイートオブジェクトを解釈して画像URLを取得して保存する
+        """ツイートオブジェクトを解釈してメディアURLを取得して保存する
 
         Note:
-            画像を保存する機能はTweetMediaSaverが担う
+            ツイートオブジェクトのメディアを保存する機能はTweetMediaSaverが担う
+            pixivのリンクが含まれている場合の処理はPixivAPIControllerが担う
 
         Args:
-            tweets (list[dict]): 画像を含んでいる可能性があるツイートオブジェクト辞書配列
+            tweets (list[dict]): メディアを含んでいる可能性があるツイートオブジェクト辞書配列
 
         Returns:
             int: 0(成功)
