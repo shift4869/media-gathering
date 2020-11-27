@@ -446,7 +446,11 @@ class Crawler(metaclass=ABCMeta):
 
         if not os.path.isfile(save_file_fullpath):
             # URLから画像を取得してローカルに保存
-            urllib.request.urlretrieve(url_orig, save_file_fullpath)
+            # タイムアウトを設定するためにurlopenを利用
+            # urllib.request.urlretrieve(url_orig, save_file_fullpath)
+            data = urllib.request.urlopen(url_orig, timeout=60).read()
+            with open(save_file_fullpath, mode="wb") as f:
+                f.write(data)
             self.add_url_list.append(url_orig)
 
             # DB操作 TODO::typeで判別しないで派生先クラスでそれぞれ担当させる
