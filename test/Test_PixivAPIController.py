@@ -50,28 +50,58 @@ class TestPixivAPIController(unittest.TestCase):
         
         # refresh_tokenが既に存在しているなら削除
         REFRESH_TOKEN_PATH = "./config/refresh_token.ini"
-        if os.path.exists(REFRESH_TOKEN_PATH):
-            os.remove(REFRESH_TOKEN_PATH)
+        # if os.path.exists(REFRESH_TOKEN_PATH):
+        #     os.remove(REFRESH_TOKEN_PATH)
 
         # refresh_tokenが存在していない状況をエミュレート
         with ExitStack() as stack:
             # open()をモックに置き換える
             mockfout = mock_open()
             mockfp = stack.enter_context(patch("PictureGathering.PixivAPIController.open", mockfout))
-            mockpapubauth = stack.enter_context(patch("pixivpy3.PixivAPI.auth"))
-            mockpaappauth = stack.enter_context(patch("pixivpy3.AppPixivAPI.auth"))
-            mockpapublogin = stack.enter_context(patch("pixivpy3.PixivAPI.login"))
-            mockpaapplogin = stack.enter_context(patch("pixivpy3.AppPixivAPI.login"))
-            mockpapubat = stack.enter_context(patch("pixivpy3.PixivAPI.access_token"))
-            mockpaappat = stack.enter_context(patch("pixivpy3.AppPixivAPI.access_token"))
-            mockpapubrt = stack.enter_context(patch("pixivpy3.PixivAPI.refresh_token"))
+            
+            mockpapub = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPI"))
+            mockpaapp = stack.enter_context(patch("PictureGathering.PixivAPIController.AppPixivAPI"))
+
+            def auth_side_effect(refresh_token):
+                return refresh_token
+
+            def login_side_effect(self, username, password):
+                return (username, password)
+
+            def responce_factory(access_token, refresh_token):
+                responce = MagicMock()
+                p_access_token = PropertyMock()
+                p_access_token.return_value = access_token
+                type(responce).access_token = p_access_token
+
+                p_refresh_token = PropertyMock()
+                p_refresh_token.return_value = refresh_token
+                type(responce).refresh_token = p_access_token
+
+                p_auth = MagicMock()
+                p_auth.side_effect = auth_side_effect
+                type(responce).auth = p_auth
+
+                p_login = MagicMock()
+                p_login.side_effect = login_side_effect
+                type(responce).login = p_login
+                return responce
+
+            def api_side_effect():
+                return responce_factory(pa_cont.api.access_token, pa_cont.api.refresh_token)
+                # self.access_token = pa_cont.api.access_token
+                # self.refresh_token = refresh_token
+                # return self
+
+            mockpapub.side_effect = api_side_effect
+            mockpaapp.side_effect = api_side_effect
+            # mockpapublogin.side_effect = login_side_effect
+            # mockpaapplogin.side_effect = login_side_effect
 
             not_expect = (None, None, False)
             actual = pa_cont.Login(self.username, self.password)
-            mockpapublogin.assert_called_once_with(self.username, self.password)
-            mockpaapplogin.assert_called_once_with(self.username, self.password)
-            self.assertEqual(mockpapubauth.call_count, 0)
-            self.assertEqual(mockpaappauth.call_count, 0)
+            self.assertEqual(mockpapub.call_count, 0)
+            self.assertEqual(mockpaapp.call_count, 0)
             self.assertNotEqual(not_expect, actual)
 
         # refresh_tokenを保存
