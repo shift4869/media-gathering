@@ -52,6 +52,8 @@ jobs:
 
     - name: Test with unittest
       run: |
+        cd ./config
         dir
+        cd ../
         python -m unittest
       working-directory: ./
