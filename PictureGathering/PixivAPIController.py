@@ -79,7 +79,8 @@ class PixivAPIController:
 
         return (api, aapi, auth_success)
 
-    def IsPixivURL(self, url):
+    @classmethod
+    def IsPixivURL(cls, url):
         """URLがpixivのURLかどうか判定する
 
         Note:

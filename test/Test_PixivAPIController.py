@@ -1,6 +1,7 @@
 # coding: utf-8
 import configparser
 import os
+import random
 import re
 import sys
 import unittest
@@ -104,9 +105,14 @@ class TestPixivAPIController(unittest.TestCase):
                 self.assertIsNotNone(actual[1])
                 self.assertEqual(expect[2], actual[2])
 
+        # 新規ログインを伴うテストを抑制する場合はFalse
+        # 新規ログインを伴うテストを行う場合はTrue
+        # TODO::パラメータによる分岐
+        IS_NEW_LOGIN_TEST = False
+
         # refresh_tokenが既に存在しているなら削除
         REFRESH_TOKEN_PATH = "./config/refresh_token.ini"
-        if os.path.exists(REFRESH_TOKEN_PATH):
+        if os.path.exists(REFRESH_TOKEN_PATH) and IS_NEW_LOGIN_TEST:
             os.remove(REFRESH_TOKEN_PATH)
 
         # refresh_tokenが存在していない状況をエミュレート
@@ -127,15 +133,54 @@ class TestPixivAPIController(unittest.TestCase):
     def test_IsPixivURL(self):
         """pixivのURLかどうか判定する機能をチェック
         """
-        expect = ""
-        actual = ""
-        self.assertEqual(expect, actual)
+        # pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
+        # クラスメソッドなのでインスタンス無しで呼べる
+        IsPixivURL = PixivAPIController.PixivAPIController.IsPixivURL
+        
+        # 正常系
+        url_s = "https://www.pixiv.net/artworks/24010650"
+        self.assertEqual(True, IsPixivURL(url_s))
+
+        # 全く関係ないアドレス(Google)
+        url_s = "https://www.google.co.jp/"
+        self.assertEqual(False, IsPixivURL(url_s))
+
+        # 全く関係ないアドレス(nijie)
+        url_s = "http://nijie.info/view.php?id=402197"
+        self.assertEqual(False, IsPixivURL(url_s))
+
+        # httpsでなくhttp
+        url_s = "http://www.pixiv.net/artworks/24010650"
+        self.assertEqual(False, IsPixivURL(url_s))
+
+        # pixivの別ページ
+        url_s = "https://www.pixiv.net/bookmark_new_illust.php"
+        self.assertEqual(False, IsPixivURL(url_s))
+
+        # プリフィックスエラー
+        url_s = "ftp:https://www.pixiv.net/artworks/24010650"
+        self.assertEqual(False, IsPixivURL(url_s))
+
+        # サフィックスエラー
+        url_s = "https://www.pixiv.net/artworks/24010650?rank=1"
+        self.assertEqual(False, IsPixivURL(url_s))
 
     def test_GetIllustId(self):
         """pixiv作品ページURLからイラストIDを取得する機能をチェック
         """
-        expect = ""
-        actual = ""
+        pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
+
+        # 正常系
+        r = "{:0>8}".format(random.randint(0, 99999999))
+        url_s = "https://www.pixiv.net/artworks/" + r
+        expect = int(r)
+        actual = pa_cont.GetIllustId(url_s)
+        self.assertEqual(expect, actual)
+
+        # サフィックスエラー
+        url_s = "https://www.pixiv.net/artworks/{}?rank=1".format(r)
+        expect = -1
+        actual = pa_cont.GetIllustId(url_s)
         self.assertEqual(expect, actual)
 
     def test_GetIllustURLs(self):
