@@ -802,7 +802,7 @@ class TestCrawler(unittest.TestCase):
 
         with ExitStack() as stack:
             mocksql = stack.enter_context(patch("PictureGathering.DBController.DBController.DBFavUpsert"))
-            mockurllib = stack.enter_context(patch("PictureGathering.Crawler.urllib.request.urlretrieve"))
+            mockurllib = stack.enter_context(patch("PictureGathering.Crawler.urllib.request.urlopen"))
             mocksystem = stack.enter_context(patch("PictureGathering.Crawler.os.system"))
             mockshutil = stack.enter_context(patch("PictureGathering.Crawler.shutil"))
 
@@ -813,16 +813,16 @@ class TestCrawler(unittest.TestCase):
             crawler = ConcreteCrawler()
             crawler.save_path = os.getcwd()
 
-            def urlopen_sideeffect(url_orig, save_file_fullpath):
+            def urlopen_sideeffect(url_orig, timeout=60):
                 url = url_orig.replace(":orig", "")
                 save_file_path = os.path.join(crawler.save_path, os.path.basename(url))
 
                 with open(save_file_path, "wb") as fout:
-                    fout.write(save_file_fullpath.encode())
+                    fout.write(save_file_path.encode())
 
                 use_file_list.append(save_file_path)
 
-                return save_file_path
+                return open(save_file_path, "rb")
 
             mockurllib.side_effect = urlopen_sideeffect
 

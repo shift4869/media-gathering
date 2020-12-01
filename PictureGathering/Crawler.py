@@ -535,15 +535,16 @@ class Crawler(metaclass=ABCMeta):
             # 取得したメディアツイートツリー（複数想定）
             for media_tweet in media_tweets:
                 # pixivリンクが含まれているか
-                if pa_cont and tweet.get("entities").get("urls"):
-                    e_urls = tweet["entities"]["urls"]
-                    for element in e_urls:
-                        url = element.get("expanded_url")
-                        if "https://www.pixiv.net/artworks/" in url:
-                            urls = pa_cont.GetIllustURLs(url)
-                            sd_path = pa_cont.MakeSaveDirectoryPath(url)
-                            save_directory_path = os.path.join(save_pixiv_base_path, sd_path)
-                            pa_cont.DownloadIllusts(urls, save_directory_path)
+                if pa_cont and tweet.get("entities"):
+                    if tweet["entities"].get("urls"):
+                        e_urls = tweet["entities"]["urls"]
+                        for element in e_urls:
+                            url = element.get("expanded_url")
+                            if "https://www.pixiv.net/artworks/" in url:
+                                urls = pa_cont.GetIllustURLs(url)
+                                sd_path = pa_cont.MakeSaveDirectoryPath(url)
+                                save_directory_path = os.path.join(save_pixiv_base_path, sd_path)
+                                pa_cont.DownloadIllusts(urls, save_directory_path)
                     # continue
 
                 if "extended_entities" not in media_tweet:
