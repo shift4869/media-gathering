@@ -47,13 +47,16 @@ def Decrypt(path, key):
 if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     arg_parser = argparse.ArgumentParser(description="Encrypt Config")
-    arg_parser.add_argument("--path", help="target file")
+    arg_parser.add_argument("--path", help="target file", default="")
     arg_parser.add_argument("--key", help="encrypt/decrypt key", default="")
+    arg_parser.add_argument("--type", help="dummy", default="")
     args = arg_parser.parse_args()
     
     # arg_parser.print_help()
 
     if args.key == "":
+        if args.path == "":
+            args.path = "./config_ci.ini"
         Encrypt(args.path)
     else:
         Decrypt(args.path, str(args.key).encode())
