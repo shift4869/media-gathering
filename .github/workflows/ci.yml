@@ -53,5 +53,8 @@ jobs:
     - name: Test with unittest
       run: |
         dir
+        if exist ./config/config.ini ( echo config.ini found. ) else ( echo config.ini not found. )
+        echo test start ...
         python -m unittest
+        echo test end
       working-directory: ./
