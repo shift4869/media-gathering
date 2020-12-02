@@ -53,7 +53,5 @@ jobs:
     - name: Test with unittest
       run: |
         dir
-        echo test start ...
         python -m unittest
-        echo test end
       working-directory: ./
