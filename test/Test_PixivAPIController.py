@@ -3,6 +3,7 @@ import configparser
 import os
 import random
 import re
+import shutil
 import sys
 import unittest
 import warnings
@@ -186,23 +187,142 @@ class TestPixivAPIController(unittest.TestCase):
     def test_GetIllustURLs(self):
         """pixiv作品ページURLからイラストへの直リンクを取得する機能をチェック
         """
-        expect = ""
-        actual = ""
+        pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
+        
+        # 一枚絵
+        url_s = "https://www.pixiv.net/artworks/59580629"
+        expect = ["https://i.pximg.net/img-original/img/2016/10/22/10/11/37/59580629_p0.jpg"]
+        actual = pa_cont.GetIllustURLs(url_s)
+        self.assertEqual(expect, actual)
+
+        # 漫画形式
+        url_s = "https://www.pixiv.net/artworks/24010650"
+        expect = ["https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p0.png",
+                  "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p1.png",
+                  "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p2.png",
+                  "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p3.png",
+                  "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p4.png"]
+        actual = pa_cont.GetIllustURLs(url_s)
+        self.assertEqual(expect, actual)
+
+        # サフィックスエラー
+        url_s = "https://www.pixiv.net/artworks/24010650?rank=1"
+        expect = []
+        actual = pa_cont.GetIllustURLs(url_s)
+        self.assertEqual(expect, actual)
+
+        # 不正なイラストID
+        url_s = "https://www.pixiv.net/artworks/00000000"
+        expect = []
+        actual = pa_cont.GetIllustURLs(url_s)
         self.assertEqual(expect, actual)
 
     def test_MakeSaveDirectoryPath(self):
         """保存先ディレクトリパスを生成する機能をチェック
         """
-        expect = ""
-        actual = ""
+        pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
+        url_s = "https://www.pixiv.net/artworks/24010650"
+        expect = "./shift(149176)/フランの羽[アイコン用](24010650)/"
+        actual = pa_cont.MakeSaveDirectoryPath(url_s)
+        self.assertEqual(expect, actual)
+
+        # サフィックスエラー
+        url_s = "https://www.pixiv.net/artworks/24010650?rank=1"
+        expect = []
+        actual = pa_cont.MakeSaveDirectoryPath(url_s)
+        self.assertEqual(expect, actual)
+
+        # 不正なイラストID
+        url_s = "https://www.pixiv.net/artworks/00000000"
+        expect = []
+        actual = pa_cont.MakeSaveDirectoryPath(url_s)
         self.assertEqual(expect, actual)
 
     def test_DownloadIllusts(self):
         """イラストをダウンロードする機能をチェック
+            実際に非公式pixivAPIを通してDLする
         """
-        expect = ""
-        actual = ""
-        self.assertEqual(expect, actual)
+        pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
+        TEST_BASE_PATH = "./test/PG_Pixiv"
+
+        work_url_s = "https://www.pixiv.net/artworks/24010650"
+        urls_s = pa_cont.GetIllustURLs(work_url_s)
+        sd_path_s = pa_cont.MakeSaveDirectoryPath(work_url_s)
+        save_directory_path_s = os.path.join(TEST_BASE_PATH, sd_path_s)
+        
+        # expect = ["https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p0.png",
+        #           "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p1.png",
+        #           "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p2.png",
+        #           "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p3.png",
+        #           "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p4.png"]
+
+        # テスト用ディレクトリが存在する場合は削除する
+        # shutil.rmtree()で再帰的に全て削除する ※指定パス注意
+        if os.path.exists(TEST_BASE_PATH):
+            shutil.rmtree(TEST_BASE_PATH)
+
+        # 一枚絵
+        # 予想される保存先ディレクトリとファイル名を取得
+        save_directory_path_cache = save_directory_path_s
+        head_s, tail_s = os.path.split(save_directory_path_cache[:-1])
+        save_directory_path_cache = head_s + "/"
+
+        url_s = urls_s[0]
+        root_s, ext_s = os.path.splitext(url_s)
+        name_s = "{}{}".format(tail_s, ext_s)
+
+        # 実行
+        res = pa_cont.DownloadIllusts([url_s], save_directory_path_s)
+        self.assertEqual(0, res)  # 新規DL成功想定（実際にDLする）
+
+        # DL後のディレクトリ構成とファイルの存在チェック
+        self.assertTrue(os.path.exists(TEST_BASE_PATH))
+        self.assertTrue(os.path.exists(save_directory_path_cache))
+        self.assertTrue(os.path.exists(os.path.join(save_directory_path_cache, name_s)))
+
+        # 2回目の実行
+        res = pa_cont.DownloadIllusts([url_s], save_directory_path_s)
+        self.assertEqual(1, res)  # 2回目は既にDL済なのでスキップされる想定
+
+        # 漫画形式
+        # 予想される保存先ディレクトリとファイル名を取得
+        save_directory_path_cache = save_directory_path_s
+        dirname_s = os.path.basename(os.path.dirname(save_directory_path_s))
+        head_s, tail_s = os.path.split(save_directory_path_s[:-1])
+        save_directory_path_cache = head_s + "/"
+        self.assertEqual(os.path.join(save_directory_path_cache, dirname_s), save_directory_path_s[:-1])
+
+        expect_names = []
+        for i, url_s in enumerate(urls_s):
+            root_s, ext_s = os.path.splitext(url_s)
+            name_s = "{:03}{}".format(i + 1, ext_s)
+            expect_names.append(name_s)
+
+        # 実行
+        res = pa_cont.DownloadIllusts(urls_s, save_directory_path_s)
+        self.assertEqual(0, res)  # 新規DL成功想定（実際にDLする）
+
+        # DL後のディレクトリ構成とファイルの存在チェック
+        self.assertTrue(os.path.exists(TEST_BASE_PATH))
+        self.assertTrue(os.path.exists(save_directory_path_cache))
+        self.assertTrue(os.path.exists(os.path.join(save_directory_path_cache, dirname_s)))
+        self.assertTrue(os.path.exists(save_directory_path_s))
+        for name_s in expect_names:
+            expect_path = os.path.join(save_directory_path_s, name_s)
+            self.assertTrue(os.path.exists(expect_path))
+
+        # 2回目の実行
+        res = pa_cont.DownloadIllusts(urls_s, save_directory_path_s)
+        self.assertEqual(1, res)  # 2回目は既にDL済なのでスキップされる想定
+
+        # urls指定エラー（空リスト）
+        res = pa_cont.DownloadIllusts([], save_directory_path_s)
+        self.assertEqual(-1, res)
+
+        # 後始末：テスト用ディレクトリを削除する
+        # shutil.rmtree()で再帰的に全て削除する ※指定パス注意
+        if os.path.exists(TEST_BASE_PATH):
+            shutil.rmtree(TEST_BASE_PATH)
 
 
 if __name__ == "__main__":
