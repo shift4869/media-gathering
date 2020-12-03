@@ -398,7 +398,8 @@ class Crawler(metaclass=ABCMeta):
         if tweet.get("entities"):
             if tweet["entities"].get("urls"):
                 url = tweet["entities"]["urls"][0].get("expanded_url")
-                if "https://www.pixiv.net/artworks/" in url:
+                IsPixivURL = PixivAPIController.PixivAPIController.IsPixivURL
+                if IsPixivURL(url):
                     if tweet["id_str"] not in id_str_list:
                         result.append(tweet)
                         id_str_list.append(tweet["id_str"])
@@ -502,11 +503,13 @@ class Crawler(metaclass=ABCMeta):
             int: 0(成功)
         """
         pa_cont = None
+        IsPixivURL = None
         if self.config["pixiv"].getboolean("is_pixiv_trace"):
             username = self.config["pixiv"]["username"]
             password = self.config["pixiv"]["password"]
             save_pixiv_base_path = self.config["pixiv"]["save_base_path"]
             pa_cont = PixivAPIController.PixivAPIController(username, password)
+            IsPixivURL = PixivAPIController.PixivAPIController.IsPixivURL
 
         for tweet in tweets:
             # メディアツイートツリーを取得
@@ -540,7 +543,7 @@ class Crawler(metaclass=ABCMeta):
                         e_urls = tweet["entities"]["urls"]
                         for element in e_urls:
                             url = element.get("expanded_url")
-                            if "https://www.pixiv.net/artworks/" in url:
+                            if IsPixivURL(url):
                                 urls = pa_cont.GetIllustURLs(url)
                                 sd_path = pa_cont.MakeSaveDirectoryPath(url)
                                 save_directory_path = os.path.join(save_pixiv_base_path, sd_path)
