@@ -249,12 +249,6 @@ class TestPixivAPIController(unittest.TestCase):
         urls_s = pa_cont.GetIllustURLs(work_url_s)
         sd_path_s = pa_cont.MakeSaveDirectoryPath(work_url_s)
         save_directory_path_s = os.path.join(TEST_BASE_PATH, sd_path_s)
-        
-        # expect = ["https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p0.png",
-        #           "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p1.png",
-        #           "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p2.png",
-        #           "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p3.png",
-        #           "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p4.png"]
 
         # テスト用ディレクトリが存在する場合は削除する
         # shutil.rmtree()で再帰的に全て削除する ※指定パス注意
