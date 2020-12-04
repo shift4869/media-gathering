@@ -146,5 +146,6 @@ def GoogleDriveApiTest():
 
 
 if __name__ == '__main__':
-    GoogleDriveAllDelete()
+    # GoogleDriveAllDelete()
     # UploadToGoogleDrive("D:\\Users\\shift\\Documents\\git\\PictureGathering\\archive\\Fav_20200624_174315.zip", "./config/credentials.json")
+    pass
