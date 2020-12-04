@@ -56,7 +56,15 @@
     - 自分のtwitterアカウントのAPIトークンを設定する（必須）
     - ローカルの保存先パスを設定する（必須）
     - image magickをインストールしておく（任意）
-1. PictureGathering.pyを実行する
+1. PictureGathering.pyを実行する（以下は一例）
+    - 以下を記述した.vbsファイルを用意する  
+    ```
+    Set ws=CreateObject("Wscript.Shell")
+    ws.CurrentDirectory = "{解凍したPictureGatheringへのパス}\PictureGathering"
+    ws.run "cmd /c """"{python実行ファイルまでのパス}\python.exe"" {解凍したPictureGatheringへのパス}\PictureGathering\PictureGathering.py --type=""Fav""""", vbhide
+    ```
+    - `--type`を`Fav`でなく`RT`に変更すれば対象がRetweetとなる
+    - 作成した.vbsを「タスクのスケジュール」などで実行する
 1. 出力されたhtmlを確認する
 1. ローカルの保存先パスにメディアが保存されたことを確認する
 
