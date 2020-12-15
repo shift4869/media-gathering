@@ -221,21 +221,22 @@ class TestPixivAPIController(unittest.TestCase):
         """保存先ディレクトリパスを生成する機能をチェック
         """
         pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
+        TEST_BASE_PATH = "./test/PG_Pixiv"
         url_s = "https://www.pixiv.net/artworks/24010650"
-        expect = "./shift(149176)/フランの羽[アイコン用](24010650)/"
-        actual = pa_cont.MakeSaveDirectoryPath(url_s)
+        expect = os.path.join(TEST_BASE_PATH, "./shift(149176)/フランの羽[アイコン用](24010650)/")
+        actual = pa_cont.MakeSaveDirectoryPath(url_s, TEST_BASE_PATH)
         self.assertEqual(expect, actual)
 
         # サフィックスエラー
         url_s = "https://www.pixiv.net/artworks/24010650?rank=1"
-        expect = []
-        actual = pa_cont.MakeSaveDirectoryPath(url_s)
+        expect = ""
+        actual = pa_cont.MakeSaveDirectoryPath(url_s, TEST_BASE_PATH)
         self.assertEqual(expect, actual)
 
         # 不正なイラストID
         url_s = "https://www.pixiv.net/artworks/00000000"
-        expect = []
-        actual = pa_cont.MakeSaveDirectoryPath(url_s)
+        expect = ""
+        actual = pa_cont.MakeSaveDirectoryPath(url_s, TEST_BASE_PATH)
         self.assertEqual(expect, actual)
 
     def test_DownloadIllusts(self):
@@ -247,8 +248,7 @@ class TestPixivAPIController(unittest.TestCase):
 
         work_url_s = "https://www.pixiv.net/artworks/24010650"
         urls_s = pa_cont.GetIllustURLs(work_url_s)
-        sd_path_s = pa_cont.MakeSaveDirectoryPath(work_url_s)
-        save_directory_path_s = os.path.join(TEST_BASE_PATH, sd_path_s)
+        save_directory_path_s = pa_cont.MakeSaveDirectoryPath(work_url_s, TEST_BASE_PATH)
 
         # テスト用ディレクトリが存在する場合は削除する
         # shutil.rmtree()で再帰的に全て削除する ※指定パス注意

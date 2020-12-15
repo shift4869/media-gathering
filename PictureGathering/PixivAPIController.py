@@ -146,27 +146,30 @@ class PixivAPIController:
 
         return illust_urls
 
-    def MakeSaveDirectoryPath(self, url):
+    def MakeSaveDirectoryPath(self, url, base_path):
         """pixiv作品ページURLから作者情報を取得し、
            保存先ディレクトリパスを生成する
 
         Notes:
             保存先ディレクトリパスの形式は以下とする
             ./{作者名}({作者pixivID})/{イラストタイトル}({イラストID})/
+            既に{作者pixivID}が一致するディレクトリがある場合はそのディレクトリを使用する
+            （{作者名}変更に対応するため）
 
         Args:
-            url (str): pixiv作品ページURL
+            url (str)      : pixiv作品ページURL
+            base_path (str): 保存先ディレクトリのベースとなるパス
 
         Returns:
-            str: 保存先ディレクトリパス
+            str: 成功時 保存先ディレクトリパス、失敗時 空文字列
         """
         illust_id = self.GetIllustId(url)
         if illust_id == -1:
-            return []
+            return ""
 
         works = self.api.works(illust_id)
         if works.status != "success":
-            return []
+            return ""
         work = works.response[0]
 
         # パスに使えない文字をサニタイズする
@@ -176,8 +179,31 @@ class PixivAPIController:
         author_id = int(work.user.id)
         illust_title = regix.sub("", work.title)
 
-        res = "./{}({})/{}({})/".format(author_name, author_id, illust_title, illust_id)
-        return res
+        # 既に{作者pixivID}が一致するディレクトリがあるか調べる
+        IS_SEARCH_AUTHOR_ID = True
+        sd_path = ""
+        if IS_SEARCH_AUTHOR_ID:
+            xs = []
+            for root, dirs, files in os.walk(base_path):
+                if root == base_path:
+                    for dir in dirs:
+                        xs.append(dir)
+            os.walk(base_path).close()
+
+            regix = re.compile(r'.*\(([0-9]*)\)$')
+            for dir_name in xs:
+                result = regix.match(str(dir_name))
+                if result:
+                    ai = result.group(1)
+                    if ai == str(author_id):
+                        sd_path = "./{}/{}({})/".format(dir_name, illust_title, illust_id)
+                        break
+        
+        if sd_path == "":
+            sd_path = "./{}({})/{}({})/".format(author_name, author_id, illust_title, illust_id)
+
+        save_directory_path = os.path.join(base_path, sd_path)
+        return save_directory_path
 
     def DownloadIllusts(self, urls, save_directory_path):
         """pixiv作品ページURLからダウンロードする
@@ -196,7 +222,7 @@ class PixivAPIController:
         Args:
             urls (List[str]): イラスト直リンクURL（GetIllustURLsの返り値）
                               len(urls)が1の場合はイラスト一枚絵と判断する
-            save_directory_path (str): 保存先フルパス（{base_path}/{MakeSaveDirectoryPathの返り値}）
+            save_directory_path (str): 保存先フルパス
 
         Returns:
             int: DL成功時0、スキップされた場合1、エラー時-1
@@ -247,9 +273,8 @@ if __name__ == "__main__":
 
     if config["pixiv"].getboolean("is_pixiv_trace"):
         pa_cont = PixivAPIController(config["pixiv"]["username"], config["pixiv"]["password"])
-        work_url = "https://www.pixiv.net/artworks/85861864"
+        work_url = "https://www.pixiv.net/artworks/24010650"
         urls = pa_cont.GetIllustURLs(work_url)
-        sd_path = pa_cont.MakeSaveDirectoryPath(work_url)
-        save_directory_path = os.path.join(config["pixiv"]["save_base_path"], sd_path)
+        save_directory_path = pa_cont.MakeSaveDirectoryPath(work_url, config["pixiv"]["save_base_path"])
         pa_cont.DownloadIllusts(urls, save_directory_path)
     pass
