@@ -545,8 +545,7 @@ class Crawler(metaclass=ABCMeta):
                             url = element.get("expanded_url")
                             if IsPixivURL(url):
                                 urls = pa_cont.GetIllustURLs(url)
-                                sd_path = pa_cont.MakeSaveDirectoryPath(url)
-                                save_directory_path = os.path.join(save_pixiv_base_path, sd_path)
+                                save_directory_path = pa_cont.MakeSaveDirectoryPath(url, save_pixiv_base_path)
                                 pa_cont.DownloadIllusts(urls, save_directory_path)
                     # continue
 
