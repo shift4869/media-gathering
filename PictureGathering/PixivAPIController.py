@@ -14,7 +14,7 @@ logger.setLevel(INFO)
 
 
 class PixivAPIController:
-    def __init__(self, username, password):
+    def __init__(self, username: str, password: str):
         """非公式pixivAPI利用クラス
 
         Args:
@@ -34,7 +34,7 @@ class PixivAPIController:
         if not self.auth_success:
             exit(-1)
 
-    def Login(self, username, password):
+    def Login(self, username: str, password: str) -> (PixivAPI, AppPixivAPI, bool):
         """非公式pixivAPIインスタンスを生成し、ログインする
 
         Note:
@@ -80,7 +80,7 @@ class PixivAPIController:
         return (api, aapi, auth_success)
 
     @classmethod
-    def IsPixivURL(cls, url):
+    def IsPixivURL(cls, url: str) -> bool:
         """URLがpixivのURLかどうか判定する
 
         Note:
@@ -96,7 +96,7 @@ class PixivAPIController:
         regix = re.compile(pattern)
         return not (regix.findall(url) == [])
 
-    def GetIllustId(self, url):
+    def GetIllustId(self, url: str) -> int:
         """pixiv作品ページURLからイラストIDを取得する
 
         Args:
@@ -112,7 +112,7 @@ class PixivAPIController:
         illust_id = int(tail)
         return illust_id
 
-    def GetIllustURLs(self, url):
+    def GetIllustURLs(self, url: str) -> List[str]:
         """pixiv作品ページURLからイラストへの直リンクを取得する
 
         Note:
@@ -146,7 +146,7 @@ class PixivAPIController:
 
         return illust_urls
 
-    def MakeSaveDirectoryPath(self, url, base_path):
+    def MakeSaveDirectoryPath(self, url: str, base_path: str) -> str:
         """pixiv作品ページURLから作者情報を取得し、
            保存先ディレクトリパスを生成する
 
@@ -205,7 +205,7 @@ class PixivAPIController:
         save_directory_path = os.path.join(base_path, sd_path)
         return save_directory_path
 
-    def DownloadIllusts(self, urls, save_directory_path):
+    def DownloadIllusts(self, urls: List[str], save_directory_path: str) -> int:
         """pixiv作品ページURLからダウンロードする
 
         Notes:
