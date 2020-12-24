@@ -61,28 +61,28 @@ class TestPixivAPIController(unittest.TestCase):
         # インスタンス生成時のsideeffectを生成する
         # access_token, refresh_tokenを属性として持ち、
         # auth(), login()をメソッドとして持つオブジェクトを模倣する
-        def responce_factory(access_token, refresh_token):
-            responce = MagicMock()
+        def response_factory(access_token, refresh_token):
+            response = MagicMock()
             p_access_token = PropertyMock()
             p_access_token.return_value = access_token
-            type(responce).access_token = p_access_token
+            type(response).access_token = p_access_token
 
             p_refresh_token = PropertyMock()
             p_refresh_token.return_value = refresh_token
-            type(responce).refresh_token = p_access_token
+            type(response).refresh_token = p_access_token
 
             p_auth = MagicMock()
             p_auth.side_effect = auth_side_effect
-            type(responce).auth = p_auth
+            type(response).auth = p_auth
 
             p_login = MagicMock()
             p_login.side_effect = login_side_effect
-            type(responce).login = p_login
-            return responce
+            type(response).login = p_login
+            return response
 
         # インスタンス生成時のsideeffect(PixivAPI(), AppPixivAPI())
         def api_side_effect():
-            return responce_factory(pa_cont.api.access_token, pa_cont.api.refresh_token)
+            return response_factory(pa_cont.api.access_token, pa_cont.api.refresh_token)
 
         # モック生成と一連のテストをまとめた関数
         def LoginProcessTest():

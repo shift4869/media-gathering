@@ -423,8 +423,8 @@ class TestCrawler(unittest.TestCase):
             "resources": "favorites"
         }
 
-        # responce = crawler.oath.get(url, params=params)
-        # favorites_limit_text_sample = responce.text
+        # response = crawler.oath.get(url, params=params)
+        # favorites_limit_text_sample = response.text
         favorites_limit_text_sample = f"""{{
             "resources": {{
                 "favorites": {{
@@ -475,27 +475,27 @@ class TestCrawler(unittest.TestCase):
             mockTWARType.return_value = "favorites"
 
             # mock設定
-            def responce_factory(status_code, text):
-                responce = MagicMock()
+            def response_factory(status_code, text):
+                response = MagicMock()
                 p_status_code = PropertyMock()
                 p_status_code.return_value = status_code
-                type(responce).status_code = p_status_code
+                type(response).status_code = p_status_code
 
                 p_text = PropertyMock()
                 p_text.return_value = text
-                type(responce).text = p_text
+                type(response).text = p_text
 
-                return responce
+                return response
 
-            text = f"""{{"text": "api_responce_text_sample"}}"""
+            text = f"""{{"text": "api_response_text_sample"}}"""
 
-            responce1 = responce_factory(503, text)
-            responce2 = responce_factory(200, text)
-            responce3 = responce_factory(200, text)
-            responce4 = responce_factory(200, text)
-            responce5 = responce_factory(404, text)
+            response1 = response_factory(503, text)
+            response2 = response_factory(200, text)
+            response3 = response_factory(200, text)
+            response4 = response_factory(200, text)
+            response5 = response_factory(404, text)
 
-            mockoauth.side_effect = (responce1, responce2, responce3, responce4, responce5)
+            mockoauth.side_effect = (response1, response2, response3, response4, response5)
             mockWaitUntilReset.return_value = 0
             mockTWALimitContext.side_effect = ((70, 0), (0, 0), (75, 0))
 
@@ -528,17 +528,17 @@ class TestCrawler(unittest.TestCase):
             crawler = ConcreteCrawler()
 
             # mock設定
-            def responce_factory(url, headers):
-                responce = MagicMock()
+            def response_factory(url, headers):
+                response = MagicMock()
                 p_url = PropertyMock()
                 p_url.return_value = url
-                type(responce).url = p_url
+                type(response).url = p_url
 
                 p_headers = PropertyMock()
                 p_headers.return_value = headers
-                type(responce).headers = p_headers
+                type(response).headers = p_headers
 
-                return responce
+                return response
 
             headers100 = {"X-Rate-Limit-Remaining": "100",
                           "X-Rate-Limit-Reset": time.mktime(datetime.now().timetuple())}
@@ -547,28 +547,28 @@ class TestCrawler(unittest.TestCase):
                         "X-Rate-Limit-Reset": time.mktime(datetime.now().timetuple())}
 
             url = "https://api.twitter.com/1.1/favorites/list.json"
-            responce1 = responce_factory(url, headers100)
-            responce2 = responce_factory(url, headers0)
-            responce3 = MagicMock()
+            response1 = response_factory(url, headers100)
+            response2 = response_factory(url, headers0)
+            response3 = MagicMock()
             p_url = PropertyMock()
             p_url.return_value = url
-            type(responce3).url = p_url
+            type(response3).url = p_url
 
             mockWaitUntilReset.return_value = 0
             mockTWALimit.return_value = 0
 
             # 1回目(headersあり、Remaining=100)
-            self.assertIsNotNone(crawler.WaitTwitterAPIUntilReset(responce1))
+            self.assertIsNotNone(crawler.WaitTwitterAPIUntilReset(response1))
             self.assertEqual(0, mockWaitUntilReset.call_count)
             self.assertEqual(0, mockTWALimit.call_count)
 
             # 2回目(headersあり、Remaining=0)
-            self.assertIsNotNone(crawler.WaitTwitterAPIUntilReset(responce2))
+            self.assertIsNotNone(crawler.WaitTwitterAPIUntilReset(response2))
             self.assertEqual(1, mockWaitUntilReset.call_count)
             self.assertEqual(1, mockTWALimit.call_count)
 
             # 3回目(headersなし)
-            self.assertIsNotNone(crawler.WaitTwitterAPIUntilReset(responce3))
+            self.assertIsNotNone(crawler.WaitTwitterAPIUntilReset(response3))
             self.assertEqual(1, mockWaitUntilReset.call_count)
             self.assertEqual(2, mockTWALimit.call_count)
 
@@ -586,26 +586,26 @@ class TestCrawler(unittest.TestCase):
             crawler = ConcreteCrawler()
 
             # mock設定
-            def responce_factory(status_code, text):
-                responce = MagicMock()
+            def response_factory(status_code, text):
+                response = MagicMock()
                 p_status_code = PropertyMock()
                 p_status_code.return_value = status_code
-                type(responce).status_code = p_status_code
+                type(response).status_code = p_status_code
 
                 p_text = PropertyMock()
                 p_text.return_value = text
-                type(responce).text = p_text
+                type(response).text = p_text
 
-                return responce
+                return response
 
-            text = f"""{{"text": "api_responce_text_sample"}}"""
+            text = f"""{{"text": "api_response_text_sample"}}"""
 
             url = "https://api.twitter.com/1.1/favorites/list.json"
-            responce1 = responce_factory(503, text)
-            responce2 = responce_factory(200, text)
-            responce3 = responce_factory(404, text)
+            response1 = response_factory(503, text)
+            response2 = response_factory(200, text)
+            response3 = response_factory(404, text)
 
-            mockoauth.side_effect = (responce1, responce2, responce3)
+            mockoauth.side_effect = (response1, response2, response3)
             mockTWAUntilReset.return_value = 0
 
             params = {
@@ -1031,14 +1031,14 @@ class TestCrawler(unittest.TestCase):
 
             # mock設定
             mockctapi.return_value = {"id_str": "12345_id_str_sample"}
-            responce = MagicMock()
+            response = MagicMock()
             status_code = PropertyMock()
             status_code.return_value = 200
-            type(responce).status_code = status_code
+            type(response).status_code = status_code
             text = PropertyMock()
             text.return_value = f'{{"text": "sample"}}'
-            type(responce).text = text
-            mockoauth.return_value = responce
+            type(response).text = text
+            mockoauth.return_value = response
             mocksql.return_value = 0
 
             self.assertEqual(0, crawler.PostTweet("test"))
@@ -1056,11 +1056,11 @@ class TestCrawler(unittest.TestCase):
             mockreq = stack.enter_context(patch("PictureGathering.Crawler.requests.post"))
 
             # mock設定
-            responce = MagicMock()
+            response = MagicMock()
             status_code = PropertyMock()
             status_code.return_value = 200
-            type(responce).status_code = status_code
-            mockreq.return_value = responce
+            type(response).status_code = status_code
+            mockreq.return_value = response
 
             str = "text"
             self.assertEqual(0, crawler.PostLineNotify(str))
@@ -1092,11 +1092,11 @@ class TestCrawler(unittest.TestCase):
             mockreq = stack.enter_context(patch("PictureGathering.Crawler.requests.post"))
 
             # mock設定
-            responce = MagicMock()
+            response = MagicMock()
             status_code = PropertyMock()
             status_code.return_value = 204  # 成功すると204 No Contentが返ってくる
-            type(responce).status_code = status_code
-            mockreq.return_value = responce
+            type(response).status_code = status_code
+            mockreq.return_value = response
 
             str = "text"
             self.assertEqual(0, crawler.PostDiscordNotify(str))

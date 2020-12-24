@@ -214,12 +214,12 @@ class Crawler(metaclass=ABCMeta):
             params = {
                 "resources": self.GetTwitterAPIResourceType(called_url)
             }
-            responce = self.oath.get(url, params=params)
+            response = self.oath.get(url, params=params)
 
-            if responce.status_code == 503:
+            if response.status_code == 503:
                 # 503 : Service Unavailable
                 if unavailableCnt > 10:
-                    raise Exception('Twitter API error %d' % responce.status_code)
+                    raise Exception('Twitter API error %d' % response.status_code)
 
                 unavailableCnt += 1
                 logger.info('Service Unavailable 503')
@@ -228,43 +228,43 @@ class Crawler(metaclass=ABCMeta):
 
             unavailableCnt = 0
 
-            if responce.status_code != 200:
-                raise Exception('Twitter API error %d' % responce.status_code)
+            if response.status_code != 200:
+                raise Exception('Twitter API error %d' % response.status_code)
 
-            remaining, reset = self.GetTwitterAPILimitContext(json.loads(responce.text), params)
+            remaining, reset = self.GetTwitterAPILimitContext(json.loads(response.text), params)
             if (remaining == 0):
                 self.WaitUntilReset(reset)
             else:
                 break
         return 0
 
-    def WaitTwitterAPIUntilReset(self, responce: dict) -> int:
+    def WaitTwitterAPIUntilReset(self, response: dict) -> int:
         """TwitterAPIが利用できるまで待つ
 
         Args:
-            responce (dict): 利用できるまで待つTwitterAPIを使ったときのレスポンス
+            response (dict): 利用できるまで待つTwitterAPIを使ったときのレスポンス
 
         Returns:
-            int: 成功時0、このメソッド実行後はresponceに対応するエンドポイントが利用可能であることが保証される
+            int: 成功時0、このメソッド実行後はresponseに対応するエンドポイントが利用可能であることが保証される
         """
         # X-Rate-Limit-Remaining が入ってないことが稀にあるのでチェック
-        if 'X-Rate-Limit-Remaining' in responce.headers and 'X-Rate-Limit-Reset' in responce.headers:
+        if 'X-Rate-Limit-Remaining' in response.headers and 'X-Rate-Limit-Reset' in response.headers:
             # 回数制限（ヘッダ参照）
-            remain_cnt = int(responce.headers['X-Rate-Limit-Remaining'])
-            dt_unix = int(responce.headers['X-Rate-Limit-Reset'])
+            remain_cnt = int(response.headers['X-Rate-Limit-Remaining'])
+            dt_unix = int(response.headers['X-Rate-Limit-Reset'])
             dt_jst_aware = datetime.fromtimestamp(dt_unix, timezone(timedelta(hours=9)))
             remain_sec = dt_unix - time.mktime(datetime.now().timetuple())
-            logger.debug('リクエストURL {}'.format(responce.url))
+            logger.debug('リクエストURL {}'.format(response.url))
             logger.debug('アクセス可能回数 {}'.format(remain_cnt))
             logger.debug('リセット時刻 {}'.format(dt_jst_aware))
             logger.debug('リセットまでの残り時間 %s[s]' % remain_sec)
             if remain_cnt == 0:
                 self.WaitUntilReset(dt_unix)
-                self.CheckTwitterAPILimit(responce.url)
+                self.CheckTwitterAPILimit(response.url)
         else:
             # 回数制限（API参照）
             logger.debug('not found  -  X-Rate-Limit-Remaining or X-Rate-Limit-Reset')
-            self.CheckTwitterAPILimit(responce.url)
+            self.CheckTwitterAPILimit(response.url)
         return 0
 
     def TwitterAPIRequest(self, url: str, params: dict) -> dict:
@@ -283,23 +283,23 @@ class Crawler(metaclass=ABCMeta):
         """
         unavailableCnt = 0
         while True:
-            responce = self.oath.get(url, params=params)
+            response = self.oath.get(url, params=params)
 
-            if responce.status_code == 503:
+            if response.status_code == 503:
                 # 503 : Service Unavailable
                 if unavailableCnt > 10:
-                    raise Exception('Twitter API error %d' % responce.status_code)
+                    raise Exception('Twitter API error %d' % response.status_code)
 
                 unavailableCnt += 1
                 logger.info('Service Unavailable 503')
-                self.WaitTwitterAPIUntilReset(responce)
+                self.WaitTwitterAPIUntilReset(response)
                 continue
             unavailableCnt = 0
 
-            if responce.status_code != 200:
-                raise Exception('Twitter API error %d' % responce.status_code)
+            if response.status_code != 200:
+                raise Exception('Twitter API error %d' % response.status_code)
 
-            res = json.loads(responce.text)
+            res = json.loads(response.text)
             return res
 
     def GetMediaUrl(self, media_dict: dict) -> str:
@@ -707,7 +707,7 @@ class Crawler(metaclass=ABCMeta):
             targets = self.db_cont.DBDelSelect()
             url = "https://api.twitter.com/1.1/statuses/destroy/{}.json"
             for target in targets:
-                responce = self.oath.post(url.format(target["tweet_id"]))  # tweet_id
+                response = self.oath.post(url.format(target["tweet_id"]))  # tweet_id
 
         logger.info("End Of " + self.type + " Crawl Process.")
         return 0
@@ -742,14 +742,14 @@ class Crawler(metaclass=ABCMeta):
                 files = {
                     "media": urllib.request.urlopen(pickup_url).read()
                 }
-                responce = self.oath.post(url, files=files)
+                response = self.oath.post(url, files=files)
 
-                if responce.status_code != 200:
-                    logger.error("Error code: {0}".format(responce.status_code))
+                if response.status_code != 200:
+                    logger.error("Error code: {0}".format(response.status_code))
                     return None
 
-                media_id = json.loads(responce.text)['media_id']
-                media_id_string = json.loads(responce.text)['media_id_string']
+                media_id = json.loads(response.text)['media_id']
+                media_id_string = json.loads(response.text)['media_id_string']
                 logger.debug("Media ID: {} ".format(media_id))
 
                 # メディアIDの文字列をカンマ","で結合
@@ -773,12 +773,12 @@ class Crawler(metaclass=ABCMeta):
             # メディアID（カンマ区切り）をパラメータに含める
             params["media_ids"] = media_ids
 
-        responce = self.oath.post(url, params=params)
-        logger.debug(responce.text)
-        self.db_cont.DBDelUpsert(json.loads(responce.text))
+        response = self.oath.post(url, params=params)
+        logger.debug(response.text)
+        self.db_cont.DBDelUpsert(json.loads(response.text))
 
-        if responce.status_code != 200:
-            logger.error("Error code: {0}".format(responce.status_code))
+        if response.status_code != 200:
+            logger.error("Error code: {0}".format(response.status_code))
             return None
 
         return 0
@@ -798,10 +798,10 @@ class Crawler(metaclass=ABCMeta):
         headers = {"Authorization": "Bearer " + token}
         payload = {"message": str}
 
-        responce = requests.post(url, headers=headers, params=payload)
+        response = requests.post(url, headers=headers, params=payload)
 
-        if responce.status_code != 200:
-            logger.error("Error code: {0}".format(responce.status_code))
+        if response.status_code != 200:
+            logger.error("Error code: {0}".format(response.status_code))
             return None
 
         return 0
@@ -844,10 +844,10 @@ class Crawler(metaclass=ABCMeta):
             "content": str
         }
 
-        responce = requests.post(url, headers=headers, data=json.dumps(payload))
+        response = requests.post(url, headers=headers, data=json.dumps(payload))
 
-        if responce.status_code != 204:  # 成功すると204 No Contentが返ってくる
-            logger.error("Error code: {0}".format(responce.status_code))
+        if response.status_code != 204:  # 成功すると204 No Contentが返ってくる
+            logger.error("Error code: {0}".format(response.status_code))
             return None
 
         return 0
