@@ -1,5 +1,6 @@
 # coding: utf-8
 import configparser
+import glob
 import logging.config
 import os
 import re
@@ -282,23 +283,25 @@ class PixivAPIController:
         """うごイラをダウンロードする
 
         Notes:
-            /{作者名}({作者pixivID})/{イラストタイトル}({イラストID})/{3ケタの連番}.{拡張子}の形式で各フレームを保存
-            /{作者名}({作者pixivID})/{イラストタイトル}({イラストID}).gifとしてアニメーションgifを保存
+            {base_path}/{イラストタイトル}({イラストID})/以下に各フレーム画像を保存
+            {base_path}/{イラストタイトル}({イラストID}).gifとしてアニメーションgifを保存
 
         Args:
             illust_id (int):イラストID
-            save_directory_path (str): 保存先フルパス
+            base_path (str): 保存先ベースフルパス
 
         Returns:
             int: DL成功時0、スキップされた場合1、エラー時-1
         """
         works = self.api.works(illust_id)
         if works.status != "success":
-            return ""
+            return -1
         work = works.response[0]
 
         if work.type != "ugoira":
-            return 0  # うごイラではなかった
+            return 1  # うごイラではなかった
+        
+        logger.info("\t\t: ugoira download -> see below ...")
 
         # サニタイズ
         regix = re.compile(r'[\\/:*?"<>|]')
@@ -306,52 +309,51 @@ class PixivAPIController:
         author_id = int(work.user.id)
         illust_title = regix.sub("", work.title)
 
+        # うごイラの各フレームを保存するディレクトリを生成
         sd_path = "./{}({})/".format(illust_title, illust_id)
-
         save_directory_path = os.path.join(base_path, sd_path)
         os.makedirs(save_directory_path, exist_ok=True)
 
-        # zipファイルDL
-        url = list(work.metadata["zip_urls"].values())[0]
-        frames = work.metadata["frames"]
-        # frames = [f["delay_msec"] for f in frames]
-        frames = [list(f.values())[0] for f in frames]
-        name = "{}({}).zip".format(illust_title, illust_id)
-        self.aapi.download(url, path=save_directory_path, name=name)
+        # うごイラの情報をaapiから取得する
+        # アドレスは以下の形になっている
+        # https://{...}/{イラストID}_ugoira{画像の番号}.jpg
+        illust = self.aapi.illust_detail(illust_id)
+        ugoira = self.aapi.ugoira_metadata(illust_id)
+        ugoira_url = illust.illust.meta_single_page.original_image_url.rsplit("0", 1)
+        frames_len = len(ugoira.ugoira_metadata.frames)
+        delays = [f["delay"] for f in ugoira.ugoira_metadata.frames]
 
-        zipfile_path = os.path.join(save_directory_path, name)
-        while not os.path.exists(zipfile_path):
-            pass
+        # 各フレーム画像DL
+        for i in range(frames_len):
+            frame_url = ugoira_url[0] + str(i) + ugoira_url[1]
+            self.aapi.download(frame_url, path=save_directory_path)
+            logger.info("\t\t: " + frame_url.rsplit("/", 1)[1] + " -> done({}/{})".format(i + 1, frames_len))
+            sleep(0.5)
         
-        with zipfile.ZipFile(zipfile_path) as existing_zip:
-            existing_zip.extractall(save_directory_path)
+        # DLした各フレーム画像のパスを収集
+        frames = glob.glob(os.path.join(save_directory_path + "/*"))
+        frames.sort(key=os.path.getmtime, reverse=False)
         
-        xs = []
-        for root, dirs, files in os.walk(save_directory_path):
-            if root == save_directory_path:
-                for file in files:
-                    _, ext = os.path.splitext(file)
-                    if ext != ".zip":
-                        xs.append(file)
-        os.walk(base_path).close()
-        
-        first = Image.open(os.path.join(save_directory_path, xs[0]))
+        # うごイラをanimated gifとして保存
+        first = Image.open(frames[0])
         first = first.copy()
         image_list = []
-        for f in xs[1:]:
-            buf = Image.open(os.path.join(save_directory_path, f))
+        for f in frames[1:]:
+            buf = Image.open(f)
             buf = buf.copy()
-            buf = buf.quantize(method=0)  # ディザリング抑制
+            # buf = buf.quantize(method=0)  # ディザリング抑制
             image_list.append(buf)
         name = "{}({}).gif".format(illust_title, illust_id)
         first.save(
             fp=os.path.join(base_path, name),
             save_all=True,
             append_images=image_list,
-            duration=frames,
+            optimize=False,
+            duration=delays,
             loop=0
         )
-        pass
+        logger.info("\t\t: animated gif saved: " + name + " -> done")
+        return 0
 
 
 if __name__ == "__main__":
