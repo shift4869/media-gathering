@@ -3,10 +3,12 @@ import configparser
 import logging.config
 import os
 import re
+import zipfile
 from logging import INFO, getLogger
 from time import sleep
 from typing import List
 
+from PIL import Image
 from pixivpy3 import *
 
 logger = getLogger("root")
@@ -218,6 +220,11 @@ class PixivAPIController:
             イラスト一枚絵の場合：
                 save_directory_pathからイラストタイトルとイラストIDを取得し
                 /{作者名}({作者pixivID})/{イラストタイトル}({イラストID}).{拡張子}の形式で保存
+            うごイラの場合：
+                save_directory_pathからイラストタイトルとイラストIDを取得し
+                /{作者名}({作者pixivID})/{イラストタイトル}({イラストID}).{拡張子}の形式で扉絵（1枚目）を保存
+                /{作者名}({作者pixivID})/{イラストタイトル}({イラストID})/{3ケタの連番}.{拡張子}の形式で各フレームを保存
+                /{作者名}({作者pixivID})/{イラストタイトル}({イラストID}).gifとしてアニメーションgifを保存
 
         Args:
             urls (List[str]): イラスト直リンクURL（GetIllustURLsの返り値）
@@ -260,9 +267,91 @@ class PixivAPIController:
 
             self.aapi.download(url, path=save_directory_path, name=name)
             logger.info("Download pixiv illust: " + name + " -> done")
+
+            # うごイラの場合は追加で保存する
+            regix = re.compile(r'.*\(([0-9]*)\)$')
+            result = regix.match(tail)
+            if result:
+                illust_id = int(result.group(1))
+                self.GetUgoira(illust_id, save_directory_path)
         else:  # エラー
             return -1
         return 0
+    
+    def GetUgoira(self, illust_id: int, base_path: str) -> int:
+        """うごイラをダウンロードする
+
+        Notes:
+            /{作者名}({作者pixivID})/{イラストタイトル}({イラストID})/{3ケタの連番}.{拡張子}の形式で各フレームを保存
+            /{作者名}({作者pixivID})/{イラストタイトル}({イラストID}).gifとしてアニメーションgifを保存
+
+        Args:
+            illust_id (int):イラストID
+            save_directory_path (str): 保存先フルパス
+
+        Returns:
+            int: DL成功時0、スキップされた場合1、エラー時-1
+        """
+        works = self.api.works(illust_id)
+        if works.status != "success":
+            return ""
+        work = works.response[0]
+
+        if work.type != "ugoira":
+            return 0  # うごイラではなかった
+
+        # サニタイズ
+        regix = re.compile(r'[\\/:*?"<>|]')
+        author_name = regix.sub("", work.user.name)
+        author_id = int(work.user.id)
+        illust_title = regix.sub("", work.title)
+
+        sd_path = "./{}({})/".format(illust_title, illust_id)
+
+        save_directory_path = os.path.join(base_path, sd_path)
+        os.makedirs(save_directory_path, exist_ok=True)
+
+        # zipファイルDL
+        url = list(work.metadata["zip_urls"].values())[0]
+        frames = work.metadata["frames"]
+        # frames = [f["delay_msec"] for f in frames]
+        frames = [list(f.values())[0] for f in frames]
+        name = "{}({}).zip".format(illust_title, illust_id)
+        self.aapi.download(url, path=save_directory_path, name=name)
+
+        zipfile_path = os.path.join(save_directory_path, name)
+        while not os.path.exists(zipfile_path):
+            pass
+        
+        with zipfile.ZipFile(zipfile_path) as existing_zip:
+            existing_zip.extractall(save_directory_path)
+        
+        xs = []
+        for root, dirs, files in os.walk(save_directory_path):
+            if root == save_directory_path:
+                for file in files:
+                    _, ext = os.path.splitext(file)
+                    if ext != ".zip":
+                        xs.append(file)
+        os.walk(base_path).close()
+        
+        first = Image.open(os.path.join(save_directory_path, xs[0]))
+        first = first.copy()
+        image_list = []
+        for f in xs[1:]:
+            buf = Image.open(os.path.join(save_directory_path, f))
+            buf = buf.copy()
+            buf = buf.quantize(method=0)  # ディザリング抑制
+            image_list.append(buf)
+        name = "{}({}).gif".format(illust_title, illust_id)
+        first.save(
+            fp=os.path.join(base_path, name),
+            save_all=True,
+            append_images=image_list,
+            duration=frames,
+            loop=0
+        )
+        pass
 
 
 if __name__ == "__main__":
@@ -273,7 +362,7 @@ if __name__ == "__main__":
 
     if config["pixiv"].getboolean("is_pixiv_trace"):
         pa_cont = PixivAPIController(config["pixiv"]["username"], config["pixiv"]["password"])
-        work_url = "https://www.pixiv.net/artworks/24010650"
+        work_url = "https://www.pixiv.net/artworks/86470256"
         urls = pa_cont.GetIllustURLs(work_url)
         save_directory_path = pa_cont.MakeSaveDirectoryPath(work_url, config["pixiv"]["save_base_path"])
         pa_cont.DownloadIllusts(urls, save_directory_path)
