@@ -443,9 +443,22 @@ class TestCrawler(unittest.TestCase):
             }}
         }}"""
 
+        # 正常系
         remaining, reset = crawler.GetTwitterAPILimitContext(json.loads(favorites_limit_text_sample), params)
         self.assertEqual(70, remaining)
         self.assertEqual(1563195985, reset)
+
+        # res_textとparamsの対応が一致しない
+        params["resources"] = "error"
+        remaining, reset = crawler.GetTwitterAPILimitContext(json.loads(favorites_limit_text_sample), params)
+        self.assertEqual(-1, remaining)
+        self.assertEqual(-1, reset)
+
+        # paramsに"resources"が存在しない
+        del params["resources"]
+        remaining, reset = crawler.GetTwitterAPILimitContext(json.loads(favorites_limit_text_sample), params)
+        self.assertEqual(-1, remaining)
+        self.assertEqual(-1, reset)
 
     def test_WaitUntilReset(self):
         """指定UNIX時間まで待機する処理の呼び出しをチェックする
