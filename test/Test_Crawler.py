@@ -131,6 +131,24 @@ class TestCrawler(unittest.TestCase):
         tweet_s = json.loads(tweet_json)
         return tweet_s
 
+    def __GetNoMediaTweetWithPixivSample(self) -> dict:
+        """ツイートオブジェクトのサンプルを生成する（メディアなし、RTフラグなし、本文にpixivリンクあり）
+
+        Args:
+            img_url_s (str): 画像URLサンプル
+
+        Returns:
+            dict: ツイートオブジェクト（サンプル）
+        """
+        tweet_s = self.__GetNoMediaTweetSample()
+        r = "{:0>8}".format(random.randint(0, 99999999))
+        url = "https://www.pixiv.net/artworks/{}".format(r)
+        tweet_s["text"] = tweet_s["text"] + " " + url
+        tweet_s["retweeted"] = False
+        tweet_s["entities"] = {"urls": []}
+        tweet_s["entities"]["urls"].append({"expanded_url": url})
+        return tweet_s
+
     def __GetMediaTweetSample(self, img_url_s: str) -> dict:
         """ツイートオブジェクトのサンプルを生成する
 
@@ -658,7 +676,7 @@ class TestCrawler(unittest.TestCase):
                 "screen_name": crawler.user_name,
                 "page": i,
                 "count": crawler.count,
-                "include_entities": 1,  # ツイートのメタデータ取得。これしないと複数枚の画像に対応できない。
+                "include_entities": 1,
                 "tweet_mode": "extended"
             }
             self.assertIsNotNone(crawler.TwitterAPIRequest(url, params))
@@ -768,10 +786,11 @@ class TestCrawler(unittest.TestCase):
         s_media_url = "http://pbs.twimg.com/media/add_sample{}.jpg:orig"
         s_nrt_t = [self.__GetNoRetweetedTweetSample(s_media_url.format(i)) for i in range(3)]
         s_nm_t = [self.__GetNoMediaTweetSample() for i in range(3)]
+        s_nm_with_pixiv_t = [self.__GetNoMediaTweetWithPixivSample() for i in range(3)]
         s_rt_t = [self.__GetRetweetTweetSample(s_media_url.format(i)) for i in range(3)]
         s_quote_t = [self.__GetQuoteTweetSample(s_media_url.format(i)) for i in range(3)]
         s_rt_quote_t = [self.__GetRetweetQuoteTweetSample(s_media_url.format(i)) for i in range(3)]
-        s_tweet_list = s_nrt_t + s_nm_t + s_rt_t + s_quote_t + s_rt_quote_t
+        s_tweet_list = s_nrt_t + s_nm_t + s_nm_with_pixiv_t + s_rt_t + s_quote_t + s_rt_quote_t
         random.shuffle(s_tweet_list)
 
         # 予想値取得用
@@ -804,7 +823,16 @@ class TestCrawler(unittest.TestCase):
                 if tweet["quoted_status"].get("retweeted") and tweet["quoted_status"].get("retweeted_status"):
                     if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
                         result = result + GetMediaTweet(tweet["quoted_status"], id_str_list)
-
+            # ツイートにpixivのリンクがある場合
+            if tweet.get("entities"):
+                if tweet["entities"].get("urls"):
+                    url = tweet["entities"]["urls"][0].get("expanded_url")
+                    from PictureGathering import PixivAPIController
+                    IsPixivURL = PixivAPIController.PixivAPIController.IsPixivURL
+                    if IsPixivURL(url):
+                        if tweet["id_str"] not in id_str_list:
+                            result.append(tweet)
+                            id_str_list.append(tweet["id_str"])
             return result
 
         # 実行
@@ -820,15 +848,15 @@ class TestCrawler(unittest.TestCase):
         use_file_list = []
 
         with ExitStack() as stack:
-            mocksql = stack.enter_context(patch("PictureGathering.DBController.DBController.DBFavUpsert"))
             mockurllib = stack.enter_context(patch("PictureGathering.Crawler.urllib.request.urlopen"))
             mocksystem = stack.enter_context(patch("PictureGathering.Crawler.os.system"))
             mockshutil = stack.enter_context(patch("PictureGathering.Crawler.shutil"))
+            mocksql = stack.enter_context(patch("PictureGathering.DBController.DBController.DBFavUpsert"))
 
             # mock設定
-            mocksql.return_value = 0
             mocksystem.return_value = 0
             mockshutil.return_value = 0
+            mocksql.return_value = 0
             crawler = ConcreteCrawler()
             crawler.save_path = os.getcwd()
 
@@ -846,32 +874,89 @@ class TestCrawler(unittest.TestCase):
             mockurllib.side_effect = urlopen_sideeffect
 
             img_url_s = "http://www.img.filename.sample.com/media/sample.png"
-            media_tweet_s = self.__GetNoRetweetedTweetSample(img_url_s)
-            td_format_s = "%a %b %d %H:%M:%S +0000 %Y"
-            created_time_s = time.strptime(media_tweet_s["created_at"], td_format_s)
-            atime_s = mtime_s = time.mktime(
-                (created_time_s.tm_year,
-                    created_time_s.tm_mon,
-                    created_time_s.tm_mday,
-                    created_time_s.tm_hour,
-                    created_time_s.tm_min,
-                    created_time_s.tm_sec,
-                    0, 0, -1)
-            )
+            video_url_s = "https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample_video.mp4"
+            animated_gif_url_s = "https://video.twimg.com/tweet_video/sample_gif.mp4"
 
-            # 実行
-            for media_dict in media_tweet_s["extended_entities"]["media"]:
-                actual = crawler.TweetMediaSaver(media_tweet_s, media_dict, atime_s, mtime_s)
-                self.assertEqual(0, actual)
+            # ツイートサンプルの用意
+            # 最後にすでに存在するメディアを重複保存しようとしたときのテスト用の要素を追加する
+            media_tweet_list_s = []
+            for url_s in [img_url_s, video_url_s, animated_gif_url_s]:
+                media_tweet_list_s.append(self.__GetNoRetweetedTweetSample(url_s))
+            media_tweet_list_s.append(media_tweet_list_s[0])
 
-            # 呼び出し確認
-            expect_save_num = len(media_tweet_s["extended_entities"]["media"])
-            self.assertEqual(expect_save_num, crawler.add_cnt)
-            self.assertEqual(expect_save_num, mocksql.call_count)
-            self.assertEqual(expect_save_num, mockurllib.call_count)
-            # self.assertEqual(expect_save_num, mocksystem.call_count)
+            # video
+            media_tweet_json = f"""{{
+                "type": "video",
+                "media_url": "{video_url_s}",
+                "video_info": {{
+                    "variants":[{{
+                        "content_type": "video/mp4",
+                        "bitrate": 640,
+                        "url": "{video_url_s}_640"
+                    }},
+                    {{
+                        "content_type": "video/mp4",
+                        "bitrate": 2048,
+                        "url": "{video_url_s}_2048"
+                    }},
+                    {{
+                        "content_type": "video/mp4",
+                        "bitrate": 1024,
+                        "url": "{video_url_s}_1024"
+                    }}
+                    ]
+                }}
+            }}"""
+            media_tweet_list_s[1]["extended_entities"]["media"][0] = json.loads(media_tweet_json)
+            del media_tweet_list_s[1]["extended_entities"]["media"][1]
+        
+            # animated_gif
+            media_tweet_json = f"""{{
+                "type": "animated_gif",
+                "media_url": "{animated_gif_url_s}",
+                "video_info": {{
+                    "variants":[{{
+                        "content_type": "video/mp4",
+                        "bitrate": 0,
+                        "url": "{animated_gif_url_s}"
+                    }}
+                    ]
+                }}
+            }}"""
+            media_tweet_list_s[2]["extended_entities"]["media"][0] = json.loads(media_tweet_json)
+            del media_tweet_list_s[2]["extended_entities"]["media"][1]
 
-        # 画像が保存できたかチェック
+            for i, media_tweet_s in enumerate(media_tweet_list_s):
+                # media_tweet_s = self.__GetNoRetweetedTweetSample(url_s)
+                td_format_s = "%a %b %d %H:%M:%S +0000 %Y"
+                created_time_s = time.strptime(media_tweet_s["created_at"], td_format_s)
+                atime_s = mtime_s = time.mktime(
+                    (created_time_s.tm_year,
+                        created_time_s.tm_mon,
+                        created_time_s.tm_mday,
+                        created_time_s.tm_hour,
+                        created_time_s.tm_min,
+                        created_time_s.tm_sec,
+                        0, 0, -1)
+                )
+
+                # 実行
+                l_flag = (i == len(media_tweet_list_s) - 1)
+                expect = 1 if l_flag else 0
+                for media_dict in media_tweet_s["extended_entities"]["media"]:
+                    actual = crawler.TweetMediaSaver(media_tweet_s, media_dict, atime_s, mtime_s)
+                    self.assertEqual(expect, actual)  # 重複保存
+
+                # 呼び出し確認
+                expect_save_num = 0 if l_flag else len(media_tweet_s["extended_entities"]["media"])
+                self.assertEqual(expect_save_num, crawler.add_cnt)
+                self.assertEqual(expect_save_num, mocksql.call_count)
+                self.assertEqual(expect_save_num, mockurllib.call_count)
+                crawler.add_cnt = 0
+                mocksql.reset_mock()
+                mockurllib.reset_mock()
+
+        # メディアが保存できたかチェック
         for path in use_file_list:
             self.assertTrue(os.path.exists(path))
 
@@ -888,10 +973,11 @@ class TestCrawler(unittest.TestCase):
         s_media_url = "http://pbs.twimg.com/media/add_sample{}.jpg:orig"
         s_nrt_t = [self.__GetNoRetweetedTweetSample(s_media_url.format(i)) for i in range(3)]
         s_nm_t = [self.__GetNoMediaTweetSample() for i in range(3)]
+        s_nm_with_pixiv_t = [self.__GetNoMediaTweetWithPixivSample() for i in range(3)]
         s_rt_t = [self.__GetRetweetTweetSample(s_media_url.format(i)) for i in range(3)]
         s_quote_t = [self.__GetQuoteTweetSample(s_media_url.format(i)) for i in range(3)]
         s_rt_quote_t = [self.__GetRetweetQuoteTweetSample(s_media_url.format(i)) for i in range(3)]
-        s_tweet_list = s_nrt_t + s_nm_t + s_rt_t + s_quote_t + s_rt_quote_t
+        s_tweet_list = s_nrt_t + s_nm_t + s_nm_with_pixiv_t + s_rt_t + s_quote_t + s_rt_quote_t
         random.shuffle(s_tweet_list)
 
         # TweetMediaSaverを呼び出すまでのツイートオブジェクト解釈結果を収集
@@ -916,6 +1002,13 @@ class TestCrawler(unittest.TestCase):
                 )
 
                 for media_tweet in media_tweets:
+                    if "extended_entities" not in media_tweet:
+                        # logger.debug("メディアを含んでいないツイートです。")
+                        continue
+                    if "media" not in media_tweet["extended_entities"]:
+                        # logger.debug("メディアを含んでいないツイートです。")
+                        continue
+
                     media_list = media_tweet["extended_entities"]["media"]
                     for media_dict in media_list:
                         arg = (media_tweet, media_dict, atime, mtime)
@@ -924,7 +1017,9 @@ class TestCrawler(unittest.TestCase):
 
         with ExitStack() as stack:
             mockms = stack.enter_context(patch("PictureGathering.Crawler.Crawler.TweetMediaSaver"))
+            mockpa = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.DownloadIllusts"))
             mockms.return_value = 0
+            mockpa.return_value = 0
 
             expect_called_arg = GetTweetMediaSaverCalledArg(s_tweet_list)
 
@@ -1017,7 +1112,7 @@ class TestCrawler(unittest.TestCase):
             mockcpsnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.PostSlackNotify"))
             mockcpdnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.PostDiscordNotify"))
             mockamzf = stack.enter_context(patch("PictureGathering.Archiver.MakeZipFile"))
-            mockamzf = stack.enter_context(patch("PictureGathering.GoogleDrive.UploadToGoogleDrive"))
+            mockgdutgd = stack.enter_context(patch("PictureGathering.GoogleDrive.UploadToGoogleDrive"))
             mocksql = stack.enter_context(patch("PictureGathering.DBController.DBController.DBDelSelect"))
             mockoauth = stack.enter_context(patch("requests_oauthlib.OAuth1Session.post"))
 

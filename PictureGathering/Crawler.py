@@ -256,7 +256,7 @@ class Crawler(metaclass=ABCMeta):
             logger.debug("リクエストURL {}".format(response.url))
             logger.debug("アクセス可能回数 {}".format(remain_cnt))
             logger.debug("リセット時刻 {}".format(dt_jst_aware))
-            logger.debug("リセットまでの残り時間 %s[s]" % remain_sec)
+            logger.debug("リセットまでの残り時間 {}[s]".format(remain_sec))
             if remain_cnt == 0:
                 self.WaitUntilReset(dt_unix)
                 self.CheckTwitterAPILimit(response.url)
@@ -354,12 +354,13 @@ class Crawler(metaclass=ABCMeta):
            (4)引用RTがRTされているツイートの場合、resultにtweet["retweeted_status"]["quoted_status"]を追加
            引用RTはRTできるがRTは引用RTできないので無限ループにはならない（最大深さ2）
            id_strが重複しているツイートは格納しない
-        
+
         Args:
-            media_dict (dict): tweet
+            tweet (dict): ツイートオブジェクトのルート
+            id_str_list (list[str]): 格納済みツイートのid_strリスト
 
         Returns:
-            list[dict]: 上記分岐にて出力された辞書リスト
+            list[dict]: 上記判定にて出力された辞書リスト
         """
         result = []
 
@@ -415,18 +416,19 @@ class Crawler(metaclass=ABCMeta):
             mtime (float): 指定更新日時
 
         Returns:
-            int: 成功時0、None: 失敗時（メディア辞書構造がエラー、urlが取得できない、既に存在しているメディア）None
+            int: 成功時0、既に存在しているメディアだった場合1、
+                 失敗時（メディア辞書構造がエラー、urlが取得できない）-1
         """
         media_type = "None"
         if "type" not in media_dict:
             logger.debug("メディアタイプが不明です。")
-            return None
+            return -1
         media_type = media_dict["type"]
 
         url = self.GetMediaUrl(media_dict)
         if url == "":
             logger.debug("urlが不正です。")
-            return None
+            return -1
 
         if media_type == "photo":
             url_orig = url + ":orig"
@@ -442,7 +444,7 @@ class Crawler(metaclass=ABCMeta):
             save_file_fullpath = os.path.abspath(save_file_path)
         else:
             logger.debug("メディアタイプが不明です。")
-            return None
+            return -1
 
         if not os.path.isfile(save_file_fullpath):
             # URLから画像を取得してローカルに保存
@@ -485,7 +487,7 @@ class Crawler(metaclass=ABCMeta):
                 shutil.copy2(save_file_fullpath, config["archive_temp_path"])
         else:
             logger.info(os.path.basename(save_file_fullpath) + " -> exist")
-            return None
+            return 1
         return 0
 
     def InterpretTweets(self, tweets: List[dict]) -> int:
