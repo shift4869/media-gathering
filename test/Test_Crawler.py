@@ -374,7 +374,7 @@ class TestCrawler(unittest.TestCase):
         }
         self.assertEqual("users", crawler.GetTwitterAPIResourceType(url))
 
-        # ふぁぼリスト取得API
+        # favリスト取得API
         page = 1
         url = "https://api.twitter.com/1.1/favorites/list.json"
         params = {
@@ -471,9 +471,9 @@ class TestCrawler(unittest.TestCase):
 
         with ExitStack() as stack:
             mockTWARType = stack.enter_context(patch("PictureGathering.Crawler.Crawler.GetTwitterAPIResourceType"))
-            mockoauth = stack.enter_context(patch("requests_oauthlib.OAuth1Session.get"))
             mockWaitUntilReset = stack.enter_context(patch("PictureGathering.Crawler.Crawler.WaitUntilReset"))
             mockTWALimitContext = stack.enter_context(patch("PictureGathering.Crawler.Crawler.GetTwitterAPILimitContext"))
+            mockoauth = stack.enter_context(patch("requests_oauthlib.OAuth1Session.get"))
 
             crawler = ConcreteCrawler()
             url = "https://api.twitter.com/1.1/favorites/list.json"

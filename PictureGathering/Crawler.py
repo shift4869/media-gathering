@@ -78,7 +78,7 @@ class Crawler(metaclass=ABCMeta):
             self.db_cont = DBController.DBController(db_fullpath)
             if config.getboolean("save_permanent_image_flag"):
                 os.makedirs(config["save_permanent_image_path"], exist_ok=True)
-                
+
             config = self.config["save_directory"]
             os.makedirs(config["save_fav_path"], exist_ok=True)
             os.makedirs(config["save_retweet_path"], exist_ok=True)
@@ -187,9 +187,9 @@ class Crawler(metaclass=ABCMeta):
         """
         seconds = dt_unix - time.mktime(datetime.now().timetuple())
         seconds = max(seconds, 0)
-        logger.debug('=======================')
-        logger.debug('== waiting {} sec =='.format(seconds))
-        logger.debug('=======================')
+        logger.debug("=======================")
+        logger.debug("=== waiting {} sec ===".format(seconds))
+        logger.debug("=======================")
         sys.stdout.flush()
         time.sleep(seconds + 10)  # 念のため + 10 秒
         return 0
@@ -218,17 +218,17 @@ class Crawler(metaclass=ABCMeta):
             if response.status_code == 503:
                 # 503 : Service Unavailable
                 if unavailableCnt > 10:
-                    raise Exception('Twitter API error %d' % response.status_code)
+                    raise Exception("Twitter API error %d" % response.status_code)
 
                 unavailableCnt += 1
-                logger.info('Service Unavailable 503')
+                logger.info("Service Unavailable 503")
                 self.WaitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
                 continue
 
             unavailableCnt = 0
 
             if response.status_code != 200:
-                raise Exception('Twitter API error %d' % response.status_code)
+                raise Exception("Twitter API error %d" % response.status_code)
 
             remaining, reset = self.GetTwitterAPILimitContext(json.loads(response.text), params)
             if (remaining == 0):
@@ -247,22 +247,22 @@ class Crawler(metaclass=ABCMeta):
             int: 成功時0、このメソッド実行後はresponseに対応するエンドポイントが利用可能であることが保証される
         """
         # X-Rate-Limit-Remaining が入ってないことが稀にあるのでチェック
-        if 'X-Rate-Limit-Remaining' in response.headers and 'X-Rate-Limit-Reset' in response.headers:
+        if "X-Rate-Limit-Remaining" in response.headers and "X-Rate-Limit-Reset" in response.headers:
             # 回数制限（ヘッダ参照）
-            remain_cnt = int(response.headers['X-Rate-Limit-Remaining'])
-            dt_unix = int(response.headers['X-Rate-Limit-Reset'])
+            remain_cnt = int(response.headers["X-Rate-Limit-Remaining"])
+            dt_unix = int(response.headers["X-Rate-Limit-Reset"])
             dt_jst_aware = datetime.fromtimestamp(dt_unix, timezone(timedelta(hours=9)))
             remain_sec = dt_unix - time.mktime(datetime.now().timetuple())
-            logger.debug('リクエストURL {}'.format(response.url))
-            logger.debug('アクセス可能回数 {}'.format(remain_cnt))
-            logger.debug('リセット時刻 {}'.format(dt_jst_aware))
-            logger.debug('リセットまでの残り時間 %s[s]' % remain_sec)
+            logger.debug("リクエストURL {}".format(response.url))
+            logger.debug("アクセス可能回数 {}".format(remain_cnt))
+            logger.debug("リセット時刻 {}".format(dt_jst_aware))
+            logger.debug("リセットまでの残り時間 %s[s]" % remain_sec)
             if remain_cnt == 0:
                 self.WaitUntilReset(dt_unix)
                 self.CheckTwitterAPILimit(response.url)
         else:
             # 回数制限（API参照）
-            logger.debug('not found  -  X-Rate-Limit-Remaining or X-Rate-Limit-Reset')
+            logger.debug("not found  -  X-Rate-Limit-Remaining or X-Rate-Limit-Reset")
             self.CheckTwitterAPILimit(response.url)
         return 0
 
@@ -287,16 +287,16 @@ class Crawler(metaclass=ABCMeta):
             if response.status_code == 503:
                 # 503 : Service Unavailable
                 if unavailableCnt > 10:
-                    raise Exception('Twitter API error %d' % response.status_code)
+                    raise Exception("Twitter API error %d" % response.status_code)
 
                 unavailableCnt += 1
-                logger.info('Service Unavailable 503')
+                logger.info("Service Unavailable 503")
                 self.WaitTwitterAPIUntilReset(response)
                 continue
             unavailableCnt = 0
 
             if response.status_code != 200:
-                raise Exception('Twitter API error %d' % response.status_code)
+                raise Exception("Twitter API error %d" % response.status_code)
 
             res = json.loads(response.text)
             return res
@@ -602,7 +602,7 @@ class Crawler(metaclass=ABCMeta):
             if ".mp4" in file:  # media_type == "video":
                 url = self.GetVideoURL(os.path.basename(file))
             else:  # media_type == "photo":
-                image_base_url = 'http://pbs.twimg.com/media/{}:orig'
+                image_base_url = "http://pbs.twimg.com/media/{}:orig"
                 url = image_base_url.format(os.path.basename(file))
 
             if i > holding_file_num:
@@ -747,8 +747,8 @@ class Crawler(metaclass=ABCMeta):
                     logger.error("Error code: {0}".format(response.status_code))
                     return None
 
-                media_id = json.loads(response.text)['media_id']
-                media_id_string = json.loads(response.text)['media_id_string']
+                media_id = json.loads(response.text)["media_id"]
+                media_id_string = json.loads(response.text)["media_id_string"]
                 logger.debug("Media ID: {} ".format(media_id))
 
                 # メディアIDの文字列をカンマ","で結合
