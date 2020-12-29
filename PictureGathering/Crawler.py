@@ -19,7 +19,6 @@ import urllib
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta, timezone
 from logging import DEBUG, INFO, getLogger
-from pathlib import Path
 from typing import List
 
 import requests

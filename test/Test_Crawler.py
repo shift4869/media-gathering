@@ -5,10 +5,6 @@ Crawler.Crawler()の各種機能をテストする
 実際に使用する派生クラスのテストについてはそれぞれのファイルに記述する
 設定ファイルとして {CONFIG_FILE_NAME} にあるconfig.iniファイルを使用する
 各種トークン類もAPI利用のテストのために使用する
-
-Todo:
-    * FavCrawler, RetweetCrawlerのテスト分離
-    * PG_DB.dbのバックアップ機構
 """
 
 import configparser
@@ -287,6 +283,9 @@ class TestCrawler(unittest.TestCase):
             print(expect_config["ERROR_KEY1"]["ERROR_KEY2"])
 
         # 設定値比較
+        self.assertIsInstance(crawler.config, configparser.ConfigParser)
+        self.assertIsInstance(expect_config, configparser.ConfigParser)
+
         self.assertEqual(expect_config["twitter_token_keys"]["consumer_key"],
                          crawler.TW_CONSUMER_KEY)
         self.assertEqual(expect_config["twitter_token_keys"]["consumer_secret"],
@@ -305,19 +304,17 @@ class TestCrawler(unittest.TestCase):
         self.assertEqual(expect_config["discord_webhook_url"]["webhook_url"],
                          crawler.DISCORD_WEBHOOK_URL)
 
-        # self.assertEqual(os.path.abspath(expect_config["save_directory"]["save_fav_path"]),
-        #                 crawler.save_path)
-        # self.assertTrue(os.path.exists(crawler.save_path))
-        # self.assertEqual(os.path.abspath(expect_config["save_directory"]["save_retweet_path"]),
-        #                  crawler.save_retweet_path)
-        # self.assertTrue(os.path.exists(crawler.save_retweet_path))
+        self.assertEqual(expect_config["holding"]["holding_file_num"],
+                         crawler.config["holding"]["holding_file_num"])
+
+        # dbはTest_DBControlで確認
 
         self.assertEqual(expect_config["tweet_timeline"]["user_name"],
                          crawler.user_name)
-        # self.assertEqual(int(expect_config["tweet_timeline"]["retweet_get_max_loop"]),
-        #                  crawler.retweet_get_max_loop)
-        # self.assertEqual(int(expect_config["tweet_timeline"]["fav_get_max_loop"]) + 1,
-        #                  crawler.fav_get_max_loop)
+        self.assertEqual(expect_config["tweet_timeline"]["fav_get_max_loop"],
+                         crawler.config["tweet_timeline"]["fav_get_max_loop"])
+        self.assertEqual(expect_config["tweet_timeline"]["retweet_get_max_loop"],
+                         crawler.config["tweet_timeline"]["retweet_get_max_loop"])
         self.assertEqual(int(expect_config["tweet_timeline"]["count"]),
                          crawler.count)
         self.assertIn(crawler.config["tweet_timeline"]["kind_of_timeline"],
@@ -325,6 +322,8 @@ class TestCrawler(unittest.TestCase):
 
         self.assertEqual(expect_config["timestamp"]["timestamp_created_at"],
                          crawler.config["timestamp"]["timestamp_created_at"])
+
+        # pixivはTest_PixivAPIControllerで確認
 
         self.assertEqual(expect_config["notification"]["is_post_fav_done_reply"],
                          crawler.config["notification"]["is_post_fav_done_reply"])
@@ -339,8 +338,15 @@ class TestCrawler(unittest.TestCase):
         self.assertEqual(expect_config["notification"]["is_post_discord_notify"],
                          crawler.config["notification"]["is_post_discord_notify"])
 
-        self.assertEqual(expect_config["holding"]["holding_file_num"],
-                         crawler.config["holding"]["holding_file_num"])
+        # TODO::archiverのテストを独立させる
+        self.assertEqual(expect_config["archive"]["is_archive"],
+                         crawler.config["archive"]["is_archive"])
+        self.assertEqual(expect_config["archive"]["archive_temp_path"],
+                         crawler.config["archive"]["archive_temp_path"])
+        self.assertEqual(expect_config["archive"]["is_send_google_drive"],
+                         crawler.config["archive"]["is_send_google_drive"])
+        self.assertEqual(expect_config["archive"]["google_service_account_credentials"],
+                         crawler.config["archive"]["google_service_account_credentials"])
 
         self.assertEqual(expect_config["processes"]["image_magick"],
                          crawler.config["processes"]["image_magick"])
