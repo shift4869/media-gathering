@@ -676,73 +676,43 @@ class TestCrawler(unittest.TestCase):
         crawler = ConcreteCrawler()
 
         # typeなし
-        media_tweet_json = f"""{{
-            "media_url": "{img_url_s}"
-        }}"""
-        self.assertEqual("", crawler.GetMediaUrl(json.loads(media_tweet_json)))
+        extended_entities = self.__GetExtendedEntitiesSample(img_url_s, "photo")
+        media_s = extended_entities["extended_entities"]["media"][0]
+        del media_s["type"]
+        self.assertEqual("", crawler.GetMediaUrl(media_s))
 
         # media_urlなし(photo)
-        media_tweet_json = f"""{{
-            "type": "photo"
-        }}"""
-        self.assertEqual("", crawler.GetMediaUrl(json.loads(media_tweet_json)))
+        extended_entities = self.__GetExtendedEntitiesSample(img_url_s, "photo")
+        media_s = extended_entities["extended_entities"]["media"][0]
+        del media_s["media_url"]
+        self.assertEqual("", crawler.GetMediaUrl(media_s))
 
         # photo
-        media_tweet_json = f"""{{
-            "type": "photo",
-            "media_url": "{img_url_s}"
-        }}"""
-        self.assertEqual(img_url_s, crawler.GetMediaUrl(json.loads(media_tweet_json)))
+        extended_entities = self.__GetExtendedEntitiesSample(img_url_s, "photo")
+        media_s = extended_entities["extended_entities"]["media"][0]
+        self.assertEqual(media_s["media_url"], crawler.GetMediaUrl(media_s))
 
-        # media_urlなし(video)
-        media_tweet_json = f"""{{
-            "type": "video"
-        }}"""
-        self.assertEqual("", crawler.GetMediaUrl(json.loads(media_tweet_json)))
+        # video_infoなし(video)
+        extended_entities = self.__GetExtendedEntitiesSample(video_url_s, "video")
+        media_s = extended_entities["extended_entities"]["media"][0]
+        del media_s["video_info"]
+        self.assertEqual("", crawler.GetMediaUrl(media_s))
 
         # video
-        media_tweet_json = f"""{{
-            "type": "video",
-            "video_info": {{
-                "variants":[{{
-                    "content_type": "video/mp4",
-                    "bitrate": 640,
-                    "url": "{video_url_s}_640"
-                }},
-                {{
-                    "content_type": "video/mp4",
-                    "bitrate": 2048,
-                    "url": "{video_url_s}_2048"
-                }},
-                {{
-                    "content_type": "video/mp4",
-                    "bitrate": 1024,
-                    "url": "{video_url_s}_1024"
-                }}
-                ]
-            }}
-        }}"""
-        self.assertEqual(video_url_s + "_2048", crawler.GetMediaUrl(json.loads(media_tweet_json)))
+        extended_entities = self.__GetExtendedEntitiesSample(video_url_s, "video")
+        media_s = extended_entities["extended_entities"]["media"][0]
+        self.assertEqual(video_url_s + "_2048", crawler.GetMediaUrl(media_s))
 
-        # media_urlなし(animated_gif)
-        media_tweet_json = f"""{{
-            "type": "animated_gif"
-        }}"""
-        self.assertEqual("", crawler.GetMediaUrl(json.loads(media_tweet_json)))
+        # video_infoなし(animated_gif)
+        extended_entities = self.__GetExtendedEntitiesSample(animated_gif_url_s, "animated_gif")
+        media_s = extended_entities["extended_entities"]["media"][0]
+        del media_s["video_info"]
+        self.assertEqual("", crawler.GetMediaUrl(media_s))
 
         # animated_gif
-        media_tweet_json = f"""{{
-            "type": "animated_gif",
-            "video_info": {{
-                "variants":[{{
-                    "content_type": "video/mp4",
-                    "bitrate": 0,
-                    "url": "{animated_gif_url_s}"
-                }}
-                ]
-            }}
-        }}"""
-        self.assertEqual(animated_gif_url_s, crawler.GetMediaUrl(json.loads(media_tweet_json)))
+        extended_entities = self.__GetExtendedEntitiesSample(animated_gif_url_s, "animated_gif")
+        media_s = extended_entities["extended_entities"]["media"][0]
+        self.assertEqual(animated_gif_url_s, crawler.GetMediaUrl(media_s))
 
     def test_GetMediaTweet(self):
         """ツイートオブジェクトの階層解釈処理をチェックする
