@@ -224,8 +224,25 @@ class TestPixivAPIController(unittest.TestCase):
         TEST_BASE_PATH = "./test/PG_Pixiv"
         url_s = "https://www.pixiv.net/artworks/24010650"
         expect = os.path.join(TEST_BASE_PATH, "./shift(149176)/フランの羽[アイコン用](24010650)/")
+
+        # （想定）保存先ディレクトリが存在する場合は削除する
+        if os.path.exists(expect):
+            shutil.rmtree(expect)
+
+        # 保存先ディレクトリが存在しない場合の実行
         actual = pa_cont.MakeSaveDirectoryPath(url_s, TEST_BASE_PATH)
         self.assertEqual(expect, actual)
+
+        # 保存先ディレクトリを作成する
+        os.makedirs(actual, exist_ok=True)
+
+        # 保存先ディレクトリが存在する場合の実行
+        actual = pa_cont.MakeSaveDirectoryPath(url_s, TEST_BASE_PATH)
+        self.assertEqual(expect, actual)
+
+        # 保存先ディレクトリを削除する
+        if os.path.exists(actual):
+            shutil.rmtree(actual)
 
         # サフィックスエラー
         url_s = "https://www.pixiv.net/artworks/24010650?rank=1"
@@ -265,18 +282,25 @@ class TestPixivAPIController(unittest.TestCase):
         root_s, ext_s = os.path.splitext(url_s)
         name_s = "{}{}".format(tail_s, ext_s)
 
-        # 実行
-        res = pa_cont.DownloadIllusts([url_s], save_directory_path_s)
-        self.assertEqual(0, res)  # 新規DL成功想定（実際にDLする）
+        with ExitStack() as stack:
+            mockgu = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.DownloadUgoira"))
 
-        # DL後のディレクトリ構成とファイルの存在チェック
-        self.assertTrue(os.path.exists(TEST_BASE_PATH))
-        self.assertTrue(os.path.exists(save_directory_path_cache))
-        self.assertTrue(os.path.exists(os.path.join(save_directory_path_cache, name_s)))
+            # 1回目の実行
+            res = pa_cont.DownloadIllusts([url_s], save_directory_path_s)
+            self.assertEqual(0, res)  # 新規DL成功想定（実際にDLする）
+            mockgu.assert_called_once()
+            mockgu.reset_mock()
 
-        # 2回目の実行
-        res = pa_cont.DownloadIllusts([url_s], save_directory_path_s)
-        self.assertEqual(1, res)  # 2回目は既にDL済なのでスキップされる想定
+            # DL後のディレクトリ構成とファイルの存在チェック
+            self.assertTrue(os.path.exists(TEST_BASE_PATH))
+            self.assertTrue(os.path.exists(save_directory_path_cache))
+            self.assertTrue(os.path.exists(os.path.join(save_directory_path_cache, name_s)))
+
+            # 2回目の実行
+            res = pa_cont.DownloadIllusts([url_s], save_directory_path_s)
+            self.assertEqual(1, res)  # 2回目は既にDL済なのでスキップされる想定
+            mockgu.assert_not_called()
+            mockgu.reset_mock()
 
         # 漫画形式
         # 予想される保存先ディレクトリとファイル名を取得
@@ -292,22 +316,29 @@ class TestPixivAPIController(unittest.TestCase):
             name_s = "{:03}{}".format(i + 1, ext_s)
             expect_names.append(name_s)
 
-        # 実行
-        res = pa_cont.DownloadIllusts(urls_s, save_directory_path_s)
-        self.assertEqual(0, res)  # 新規DL成功想定（実際にDLする）
+        with ExitStack() as stack:
+            mockgu = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.DownloadUgoira"))
 
-        # DL後のディレクトリ構成とファイルの存在チェック
-        self.assertTrue(os.path.exists(TEST_BASE_PATH))
-        self.assertTrue(os.path.exists(save_directory_path_cache))
-        self.assertTrue(os.path.exists(os.path.join(save_directory_path_cache, dirname_s)))
-        self.assertTrue(os.path.exists(save_directory_path_s))
-        for name_s in expect_names:
-            expect_path = os.path.join(save_directory_path_s, name_s)
-            self.assertTrue(os.path.exists(expect_path))
+            # 1回目の実行
+            res = pa_cont.DownloadIllusts(urls_s, save_directory_path_s)
+            self.assertEqual(0, res)  # 新規DL成功想定（実際にDLする）
+            mockgu.assert_not_called()
+            mockgu.reset_mock()
 
-        # 2回目の実行
-        res = pa_cont.DownloadIllusts(urls_s, save_directory_path_s)
-        self.assertEqual(1, res)  # 2回目は既にDL済なのでスキップされる想定
+            # DL後のディレクトリ構成とファイルの存在チェック
+            self.assertTrue(os.path.exists(TEST_BASE_PATH))
+            self.assertTrue(os.path.exists(save_directory_path_cache))
+            self.assertTrue(os.path.exists(os.path.join(save_directory_path_cache, dirname_s)))
+            self.assertTrue(os.path.exists(save_directory_path_s))
+            for name_s in expect_names:
+                expect_path = os.path.join(save_directory_path_s, name_s)
+                self.assertTrue(os.path.exists(expect_path))
+
+            # 2回目の実行
+            res = pa_cont.DownloadIllusts(urls_s, save_directory_path_s)
+            self.assertEqual(1, res)  # 2回目は既にDL済なのでスキップされる想定
+            mockgu.assert_not_called()
+            mockgu.reset_mock()
 
         # urls指定エラー（空リスト）
         res = pa_cont.DownloadIllusts([], save_directory_path_s)
@@ -317,6 +348,17 @@ class TestPixivAPIController(unittest.TestCase):
         # shutil.rmtree()で再帰的に全て削除する ※指定パス注意
         if os.path.exists(TEST_BASE_PATH):
             shutil.rmtree(TEST_BASE_PATH)
+
+    def test_DownloadUgoira(self):
+        """うごイラをダウンロードする機能をチェック
+            実際に非公式pixivAPIを通してDLする
+        """
+        pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
+        TEST_BASE_PATH = "./test/PG_Pixiv"
+
+        work_url_s = "https://www.pixiv.net/artworks/86470256"
+        urls_s = pa_cont.GetIllustURLs(work_url_s)
+        save_directory_path_s = pa_cont.MakeSaveDirectoryPath(work_url_s, TEST_BASE_PATH)
 
 
 if __name__ == "__main__":

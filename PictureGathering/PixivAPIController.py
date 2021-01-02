@@ -274,12 +274,12 @@ class PixivAPIController:
             result = regix.match(tail)
             if result:
                 illust_id = int(result.group(1))
-                self.GetUgoira(illust_id, save_directory_path)
+                self.DownloadUgoira(illust_id, save_directory_path)
         else:  # エラー
             return -1
         return 0
     
-    def GetUgoira(self, illust_id: int, base_path: str) -> int:
+    def DownloadUgoira(self, illust_id: int, base_path: str) -> int:
         """うごイラをダウンロードする
 
         Notes:
