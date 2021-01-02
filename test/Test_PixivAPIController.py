@@ -1,5 +1,6 @@
 # coding: utf-8
 import configparser
+import glob
 import os
 import random
 import re
@@ -241,8 +242,8 @@ class TestPixivAPIController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
         # 保存先ディレクトリを削除する
-        if os.path.exists(actual):
-            shutil.rmtree(actual)
+        if os.path.exists(TEST_BASE_PATH):
+            shutil.rmtree(TEST_BASE_PATH)
 
         # サフィックスエラー
         url_s = "https://www.pixiv.net/artworks/24010650?rank=1"
@@ -356,9 +357,37 @@ class TestPixivAPIController(unittest.TestCase):
         pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
         TEST_BASE_PATH = "./test/PG_Pixiv"
 
-        work_url_s = "https://www.pixiv.net/artworks/86470256"
-        urls_s = pa_cont.GetIllustURLs(work_url_s)
-        save_directory_path_s = pa_cont.MakeSaveDirectoryPath(work_url_s, TEST_BASE_PATH)
+        # テスト用ディレクトリが存在する場合は削除する
+        # shutil.rmtree()で再帰的に全て削除する ※指定パス注意
+        if os.path.exists(TEST_BASE_PATH):
+            shutil.rmtree(TEST_BASE_PATH)
+
+        # サンプル画像：おみくじ(86704541)
+        work_url_s = "https://www.pixiv.net/artworks/86704541"
+        illust_id_s = pa_cont.GetIllustId(work_url_s)
+        expect_path = os.path.join(TEST_BASE_PATH, "おみくじ(86704541)")
+        expect_gif_path = expect_path + ".gif"
+        EXPECT_FRAME_NUM = 14
+        expect_frames = [os.path.join(expect_path, "{}_ugoira{}.jpg".format(illust_id_s, i)) for i in range(0, EXPECT_FRAME_NUM)]
+
+        # うごイラDL
+        res = pa_cont.DownloadUgoira(illust_id_s, TEST_BASE_PATH)
+
+        # DL後のディレクトリ構成とファイルの存在チェック
+        self.assertTrue(os.path.exists(TEST_BASE_PATH))
+        self.assertTrue(os.path.exists(expect_path))
+        self.assertTrue(os.path.exists(expect_gif_path))
+
+        # frameのDLをチェック
+        actual_frames = glob.glob(os.path.join(expect_path + "/*"))
+        actual_frames.sort(key=os.path.getmtime, reverse=False)
+        self.assertEqual(len(expect_frames), len(actual_frames))
+        self.assertEqual(expect_frames, actual_frames)
+
+        # 後始末：テスト用ディレクトリを削除する
+        # shutil.rmtree()で再帰的に全て削除する ※指定パス注意
+        if os.path.exists(TEST_BASE_PATH):
+            shutil.rmtree(TEST_BASE_PATH)
 
 
 if __name__ == "__main__":
