@@ -24,7 +24,7 @@ logger.setLevel(WARNING)
 class TestDBController(unittest.TestCase):
 
     def setUp(self):
-        self.engine = create_engine('sqlite:///:memory:', echo=False)
+        self.engine = create_engine("sqlite:///:memory:", echo=False)
         Base.metadata.create_all(self.engine)
 
         Session = sessionmaker(bind=self.engine)
@@ -78,8 +78,8 @@ class TestDBController(unittest.TestCase):
             fout.write(file_name.encode())  # ファイル名をテキトーに書き込んでおく
 
         # パラメータ設定
-        td_format = '%a %b %d %H:%M:%S +0000 %Y'
-        dts_format = '%Y-%m-%d %H:%M:%S'
+        td_format = "%a %b %d %H:%M:%S +0000 %Y"
+        dts_format = "%Y-%m-%d %H:%M:%S"
         tca = tweet["created_at"]
         dst = datetime.strptime(tca, td_format)
         text = tweet["text"] if "text" in tweet else tweet["full_text"]
@@ -125,8 +125,8 @@ class TestDBController(unittest.TestCase):
             fout.write(file_name.encode())  # ファイル名をテキトーに書き込んでおく
 
         # パラメータ設定
-        td_format = '%a %b %d %H:%M:%S +0000 %Y'
-        dts_format = '%Y-%m-%d %H:%M:%S'
+        td_format = "%a %b %d %H:%M:%S +0000 %Y"
+        dts_format = "%Y-%m-%d %H:%M:%S"
         tca = tweet["created_at"]
         dst = datetime.strptime(tca, td_format)
         text = tweet["text"] if "text" in tweet else tweet["full_text"]
@@ -167,8 +167,8 @@ class TestDBController(unittest.TestCase):
             dict: ツイートオブジェクト（辞書）
         """
         # ネストした引用符つきの文字列はjsonで処理できないのであくまで仮の文字列
-        tweet_url_s = 'http://www.tweet.sample.com'
-        tag_p_s = '<a href=https://mobile.twitter.com rel=nofollow>Twitter Web App</a>'
+        tweet_url_s = "http://www.tweet.sample.com"
+        tag_p_s = "<a href=https://mobile.twitter.com rel=nofollow>Twitter Web App</a>"
         tweet_json = f'''{{
             "entities": {{
                 "media": [{{
@@ -224,14 +224,14 @@ class TestDBController(unittest.TestCase):
         controlar = DBController.DBController()
         controlar.engine = self.engine
 
-        with freezegun.freeze_time('2018-11-18 17:12:58'):
-            img_url_s = 'http://www.img.filename.sample.com/media/sample.png'
+        with freezegun.freeze_time("2018-11-18 17:12:58"):
+            img_url_s = "http://www.img.filename.sample.com/media/sample.png"
             url_orig_s = img_url_s + ":orig"
             url_thumbnail_s = img_url_s + ":large"
             file_name_s = os.path.basename(img_url_s)
 
-            td_format_s = '%a %b %d %H:%M:%S +0000 %Y'
-            dts_format_s = '%Y-%m-%d %H:%M:%S'
+            td_format_s = "%a %b %d %H:%M:%S +0000 %Y"
+            dts_format_s = "%Y-%m-%d %H:%M:%S"
 
             tweet_s = self.GetTweetSample(img_url_s)
             save_file_fullpath_s = os.path.join(os.getcwd(), file_name_s)
@@ -264,7 +264,7 @@ class TestDBController(unittest.TestCase):
             self.assertEqual(expect, actual)
 
             del_tweet_s = self.GetDelTweetSample()
-            pattern = ' +[0-9]* '
+            pattern = " +[0-9]* "
             text = del_tweet_s["text"]
             add_num = int(re.findall(pattern, text)[0])
             del_num = int(re.findall(pattern, text)[1])
@@ -336,7 +336,7 @@ class TestDBController(unittest.TestCase):
         controlar.engine = self.engine
 
         # サンプル生成
-        video_url_s = 'https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4'
+        video_url_s = "https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4"
         file_name_s = os.path.basename(video_url_s)
         record = self.FavoriteSampleFactory(video_url_s)
         record.img_filename = file_name_s
@@ -470,7 +470,7 @@ class TestDBController(unittest.TestCase):
         controlar.engine = self.engine
 
         # サンプル生成
-        video_url_s = 'https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4'
+        video_url_s = "https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4"
         file_name_s = os.path.basename(video_url_s)
         record = self.RetweetSampleFactory(video_url_s)
         record.img_filename = file_name_s
@@ -577,7 +577,7 @@ class TestDBController(unittest.TestCase):
 
         # テーブルの用意
         records = []
-        td_format = '%a %b %d %H:%M:%S +0000 %Y'
+        td_format = "%a %b %d %H:%M:%S +0000 %Y"
         t = []
         s = []
         t.append(date.today())
