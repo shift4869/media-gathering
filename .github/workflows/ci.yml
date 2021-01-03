@@ -11,7 +11,7 @@ on:
         required: true
         default: "warning"
   push:
-    branches: [ master, develop, feature/ci ]
+    branches: [ master, develop, feature/ci, feature/test ]
   schedule:
     # min hour(UTC) day month week[0(sun)-6(sat)]
     # */1 17:00 , run
