@@ -14,6 +14,7 @@ import unittest
 from contextlib import ExitStack
 from datetime import datetime
 from logging import WARNING, getLogger
+from pathlib import Path
 
 from mock import MagicMock, PropertyMock, patch
 
@@ -217,7 +218,7 @@ class TestRetweetCrawler(unittest.TestCase):
         actual = rc.retweet_get_max_loop
         self.assertEqual(expect, actual)
 
-        expect = os.path.abspath(expect_config["save_directory"]["save_retweet_path"])
+        expect = Path(expect_config["save_directory"]["save_retweet_path"])
         actual = rc.save_path
         self.assertEqual(expect, actual)
 

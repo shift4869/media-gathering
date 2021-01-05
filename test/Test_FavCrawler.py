@@ -14,6 +14,7 @@ import unittest
 from contextlib import ExitStack
 from datetime import datetime
 from logging import WARNING, getLogger
+from pathlib import Path
 
 from mock import MagicMock, PropertyMock, patch
 
@@ -87,7 +88,7 @@ class TestFavCrawler(unittest.TestCase):
             print(expect_config["ERROR_KEY1"]["ERROR_KEY2"])
 
         # 設定値比較
-        expect = os.path.abspath(expect_config["save_directory"]["save_fav_path"])
+        expect = Path(expect_config["save_directory"]["save_fav_path"])
         actual = fc.save_path
         self.assertEqual(expect, actual)
 
