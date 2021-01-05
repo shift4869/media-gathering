@@ -1,9 +1,9 @@
 # coding: utf-8
-import os
 import random
 import sys
 from datetime import datetime
 from logging import DEBUG, INFO, getLogger
+from pathlib import Path
 
 from PictureGathering.Crawler import Crawler
 
@@ -15,7 +15,7 @@ class FavCrawler(Crawler):
     def __init__(self):
         super().__init__()
         try:
-            self.save_path = os.path.abspath(self.config["save_directory"]["save_fav_path"])
+            self.save_path = Path(self.config["save_directory"]["save_fav_path"])
         except KeyError:
             logger.exception("save_directory/save_fav_path is invalid.")
             exit(-1)

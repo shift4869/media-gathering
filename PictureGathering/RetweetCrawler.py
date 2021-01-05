@@ -1,9 +1,9 @@
 # coding: utf-8
-import os
 import random
 import sys
 from datetime import datetime
 from logging import DEBUG, INFO, getLogger
+from pathlib import Path
 
 from PictureGathering.Crawler import Crawler
 
@@ -16,7 +16,7 @@ class RetweetCrawler(Crawler):
         super().__init__()
         try:
             self.retweet_get_max_loop = int(self.config["tweet_timeline"]["retweet_get_max_loop"])
-            self.save_path = os.path.abspath(self.config["save_directory"]["save_retweet_path"])
+            self.save_path = Path(self.config["save_directory"]["save_retweet_path"])
         except KeyError:
             logger.exception("invalid config file eeror.")
             exit(-1)
@@ -35,7 +35,7 @@ class RetweetCrawler(Crawler):
         exist_filepaths = self.GetExistFilelist()
         exist_filenames = []
         for exist_filepath in exist_filepaths:
-            exist_filenames.append(os.path.basename(exist_filepath))
+            exist_filenames.append(Path(exist_filepath).name)
         if exist_filenames:
             exist_oldest_filename = exist_filenames[-1]
         else:
@@ -92,7 +92,7 @@ class RetweetCrawler(Crawler):
                         # 一つでも保存していない画像を含んでいるか判定
                         for entity in entities["media"]:
                             media_url = self.GetMediaUrl(entity)
-                            filename = os.path.basename(media_url)
+                            filename = Path(media_url).name
 
                             # 既存ファイルの最後のファイル名と一致したら探索を途中で打ち切る
                             if filename == exist_oldest_filename:

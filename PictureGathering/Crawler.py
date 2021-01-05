@@ -19,6 +19,7 @@ import urllib
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta, timezone
 from logging import DEBUG, INFO, getLogger
+from pathlib import Path
 from typing import List
 
 import requests
@@ -73,15 +74,16 @@ class Crawler(metaclass=ABCMeta):
                 raise IOError
 
             config = self.config["db"]
-            os.makedirs(config["save_path"], exist_ok=True)
-            db_fullpath = os.path.join(config["save_path"], config["save_file_name"])
+            save_path = Path(config["save_path"])
+            save_path.mkdir(parents=True, exist_ok=True)
+            db_fullpath = save_path / config["save_file_name"]
             self.db_cont = DBController.DBController(db_fullpath)
             if config.getboolean("save_permanent_image_flag"):
-                os.makedirs(config["save_permanent_image_path"], exist_ok=True)
+                Path(config["save_permanent_image_path"]).mkdir(parents=True, exist_ok=True)
 
             config = self.config["save_directory"]
-            os.makedirs(config["save_fav_path"], exist_ok=True)
-            os.makedirs(config["save_retweet_path"], exist_ok=True)
+            Path(config["save_fav_path"]).mkdir(parents=True, exist_ok=True)
+            Path(config["save_retweet_path"]).mkdir(parents=True, exist_ok=True)
 
             config = self.config["twitter_token_keys"]
             self.TW_CONSUMER_KEY = config["consumer_key"]
@@ -101,7 +103,7 @@ class Crawler(metaclass=ABCMeta):
             self.user_name = self.config["tweet_timeline"]["user_name"]
             self.count = int(self.config["tweet_timeline"]["count"])
 
-            self.save_path = ""
+            self.save_path = Path()
             self.type = ""
         except IOError:
             logger.exception(self.CONFIG_FILE_NAME + " is not exist or cannot be opened.")
@@ -135,8 +137,8 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             str: APIリソースタイプ
         """
-        called_url = urllib.parse.urlparse(url).path
-        url = urllib.parse.urljoin(url, os.path.basename(called_url))
+        called_url = Path(urllib.parse.urlparse(url).path)
+        url = urllib.parse.urljoin(url, called_url.name)
         resources = []
         if "users" in url:
             resources.append("users")
@@ -335,8 +337,8 @@ class Crawler(metaclass=ABCMeta):
                         url = video_variant["url"]
                         bitrate = int(video_variant["bitrate"])
             # クエリを除去
-            url_path = urllib.parse.urlparse(url).path
-            url = urllib.parse.urljoin(url, os.path.basename(url_path))
+            url_path = Path(urllib.parse.urlparse(url).path)
+            url = urllib.parse.urljoin(url, url_path.name)
         else:
             logger.info("メディアタイプが不明です。")
             return ""
@@ -433,47 +435,47 @@ class Crawler(metaclass=ABCMeta):
         if media_type == "photo":
             url_orig = url + ":orig"
             url_thumbnail = url + ":large"
-            file_name = os.path.basename(url)
-            save_file_path = os.path.join(self.save_path, os.path.basename(url))
-            save_file_fullpath = os.path.abspath(save_file_path)
+            file_name = Path(url).name
+            save_file_path = Path(self.save_path) / file_name
+            save_file_fullpath = save_file_path.resolve()
         elif media_type == "video" or media_type == "animated_gif":
             url_orig = url
             url_thumbnail = media_dict["media_url"] + ":orig"  # サムネ
-            file_name = os.path.basename(url_orig)
-            save_file_path = os.path.join(self.save_path, os.path.basename(url_orig))
-            save_file_fullpath = os.path.abspath(save_file_path)
+            file_name = Path(url_orig).name
+            save_file_path = Path(self.save_path) / file_name
+            save_file_fullpath = save_file_path.resolve()
         else:
             logger.debug("メディアタイプが不明です。")
             return -1
 
-        if not os.path.isfile(save_file_fullpath):
+        if not save_file_fullpath.is_file():
             # URLから画像を取得してローカルに保存
             # タイムアウトを設定するためにurlopenを利用
             # urllib.request.urlretrieve(url_orig, save_file_fullpath)
             data = urllib.request.urlopen(url_orig, timeout=60).read()
-            with open(save_file_fullpath, mode="wb") as f:
+            with save_file_fullpath.open(mode="wb") as f:
                 f.write(data)
             self.add_url_list.append(url_orig)
 
             # DB操作 TODO::typeで判別しないで派生先クラスでそれぞれ担当させる
             include_blob = self.config["db"].getboolean("save_blob")
             if self.type == "Fav":
-                self.db_cont.DBFavUpsert(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob)
+                self.db_cont.DBFavUpsert(file_name, url_orig, url_thumbnail, tweet, str(save_file_fullpath), include_blob)
             elif self.type == "RT":
-                self.db_cont.DBRetweetUpsert(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob)
+                self.db_cont.DBRetweetUpsert(file_name, url_orig, url_thumbnail, tweet, str(save_file_fullpath), include_blob)
 
             # image magickで画像変換
             if media_type == "photo":
-                img_magick_path = self.config["processes"]["image_magick"]
-                if img_magick_path:
-                    os.system('"' + img_magick_path + '" -quality 60 ' + save_file_fullpath + ' ' + save_file_fullpath)
+                img_magick_path = Path(self.config["processes"]["image_magick"])
+                if img_magick_path.is_file():
+                    os.system('"' + str(img_magick_path) + '" -quality 60 ' + str(save_file_fullpath) + " " + str(save_file_fullpath))
 
             # 更新日時を上書き
             config = self.config["timestamp"]
             if config.getboolean("timestamp_created_at"):
                 os.utime(save_file_fullpath, (atime, mtime))
 
-            logger.info(os.path.basename(save_file_fullpath) + " -> done!")
+            logger.info(save_file_fullpath.name + " -> done!")
             self.add_cnt += 1
 
             # 画像を常に保存する設定の場合はコピーする
@@ -486,7 +488,7 @@ class Crawler(metaclass=ABCMeta):
             if config.getboolean("is_archive"):
                 shutil.copy2(save_file_fullpath, config["archive_temp_path"])
         else:
-            logger.info(os.path.basename(save_file_fullpath) + " -> exist")
+            logger.info(save_file_fullpath.name + " -> exist")
             return 1
         return 0
 
@@ -508,7 +510,7 @@ class Crawler(metaclass=ABCMeta):
         if self.config["pixiv"].getboolean("is_pixiv_trace"):
             username = self.config["pixiv"]["username"]
             password = self.config["pixiv"]["password"]
-            save_pixiv_base_path = self.config["pixiv"]["save_base_path"]
+            save_pixiv_base_path = Path(self.config["pixiv"]["save_base_path"])
             pa_cont = PixivAPIController.PixivAPIController(username, password)
             IsPixivURL = PixivAPIController.PixivAPIController.IsPixivURL
 
@@ -546,8 +548,8 @@ class Crawler(metaclass=ABCMeta):
                             url = element.get("expanded_url")
                             if IsPixivURL(url):
                                 urls = pa_cont.GetIllustURLs(url)
-                                save_directory_path = pa_cont.MakeSaveDirectoryPath(url, save_pixiv_base_path)
-                                pa_cont.DownloadIllusts(urls, save_directory_path)
+                                save_directory_path = Path(pa_cont.MakeSaveDirectoryPath(url, str(save_pixiv_base_path)))
+                                pa_cont.DownloadIllusts(urls, str(save_directory_path))
                     # continue
 
                 if "extended_entities" not in media_tweet:
@@ -570,16 +572,17 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             list: self.save_pathに存在するファイル名一覧
         """
-        xs = []
-        for root, dir, files in os.walk(self.save_path):
-            for f in files:
-                path = os.path.join(root, f)
-                xs.append((os.path.getmtime(path), path))
-        os.walk(self.save_path).close()
-
         filelist = []
-        for mtime, path in sorted(xs, reverse=True):
+        save_path = Path(self.save_path)
+
+        # save_path配下のファイルとサブディレクトリ内を捜査し、全てのファイルを収集する
+        # (更新日時（mtime）, パス文字列)のタプルをリストに保持する
+        filelist_tp = [(sp.stat().st_mtime, str(sp)) for sp in save_path.glob("**/*") if sp.is_file()]
+        
+        # 更新日時（mtime）でソートし、最新のものからfilelistに追加する
+        for mtime, path in sorted(filelist_tp, reverse=True):
             filelist.append(path)
+
         return filelist
 
     def ShrinkFolder(self, holding_file_num: int) -> int:
@@ -601,19 +604,21 @@ class Crawler(metaclass=ABCMeta):
         add_img_filename = []
         for i, file in enumerate(filelist):
             url = ""
-            if ".mp4" in file:  # media_type == "video":
-                url = self.GetVideoURL(os.path.basename(file))
+            file_path = Path(file)
+
+            if ".mp4" == file_path.suffix:  # media_type == "video":
+                url = self.GetVideoURL(file_path.name)
             else:  # media_type == "photo":
                 image_base_url = "http://pbs.twimg.com/media/{}:orig"
-                url = image_base_url.format(os.path.basename(file))
+                url = image_base_url.format(file_path.name)
 
             if i > holding_file_num:
-                os.remove(file)
+                file_path.unlink(missing_ok=True)
                 self.del_cnt += 1
                 self.del_url_list.append(url)
             else:
                 # self.add_url_list.append(url)
-                add_img_filename.append(os.path.basename(file))
+                add_img_filename.append(file_path.name)
 
         # 存在マーキングを更新する
         self.UpdateDBExistMark(add_img_filename)

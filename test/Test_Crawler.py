@@ -18,6 +18,7 @@ import warnings
 from contextlib import ExitStack
 from datetime import datetime
 from logging import WARNING, getLogger
+from pathlib import Path
 from typing import List
 
 import requests
@@ -42,7 +43,7 @@ class ConcreteCrawler(Crawler.Crawler):
 
     def __init__(self):
         super().__init__()
-        self.save_path = os.getcwd()
+        self.save_path = Path("./test")
         self.type = "Fav"  # Favorite取得としておく
 
     def UpdateDBExistMark(self, file_name):
@@ -260,7 +261,7 @@ class TestCrawler(unittest.TestCase):
         # expect_config読み込みテスト
         CONFIG_FILE_NAME = "./config/config.ini"
         expect_config = configparser.ConfigParser()
-        self.assertTrue(os.path.exists(CONFIG_FILE_NAME))
+        self.assertTrue(Path(CONFIG_FILE_NAME).is_file())
         self.assertFalse(
             expect_config.read("ERROR_PATH" + CONFIG_FILE_NAME, encoding="utf8")
         )
@@ -339,7 +340,8 @@ class TestCrawler(unittest.TestCase):
         self.assertEqual(expect_config["processes"]["image_magick"],
                          crawler.config["processes"]["image_magick"])
         if crawler.config["processes"]["image_magick"] != "":
-            self.assertTrue(os.path.exists(crawler.config["processes"]["image_magick"]))
+            img_magick_path = Path(crawler.config["processes"]["image_magick"])
+            self.assertTrue(img_magick_path.is_file())
 
         self.assertIsInstance(crawler.oath, OAuth1Session)
 
@@ -796,18 +798,18 @@ class TestCrawler(unittest.TestCase):
             mockshutil.return_value = 0
             mocksql.return_value = 0
             crawler = ConcreteCrawler()
-            crawler.save_path = os.getcwd()
+            crawler.save_path = Path()
 
             def urlopen_sideeffect(url_orig, timeout=60):
-                url = url_orig.replace(":orig", "")
-                save_file_path = os.path.join(crawler.save_path, os.path.basename(url))
+                url = Path(url_orig.replace(":orig", ""))
+                save_file_path = Path(crawler.save_path) / url.name
 
-                with open(save_file_path, "wb") as fout:
-                    fout.write(save_file_path.encode())
+                with save_file_path.open(mode="wb") as fout:
+                    fout.write(bytes(save_file_path))
 
                 use_file_list.append(save_file_path)
 
-                return open(save_file_path, "rb")
+                return save_file_path.open(mode="rb")
 
             mockurllib.side_effect = urlopen_sideeffect
 
@@ -854,11 +856,11 @@ class TestCrawler(unittest.TestCase):
 
         # メディアが保存できたかチェック
         for path in use_file_list:
-            self.assertTrue(os.path.exists(path))
+            self.assertTrue(path.is_file())
 
         # 後始末：テストで使用したファイルを削除する
         for path in use_file_list:
-            os.remove(path)
+            path.unlink()
 
     def test_InterpretTweets(self):
         """ツイートオブジェクトの解釈をチェックする
@@ -933,6 +935,7 @@ class TestCrawler(unittest.TestCase):
 
         crawler = ConcreteCrawler()
 
+        # os.walkで収集した結果と比較する
         xs = []
         for root, dir, files in os.walk(crawler.save_path):
             for f in files:
@@ -944,7 +947,8 @@ class TestCrawler(unittest.TestCase):
         for mtime, path in sorted(xs, reverse=True):
             expect_filelist.append(path)
 
-        self.assertEqual(expect_filelist, crawler.GetExistFilelist())
+        actual_filelist = crawler.GetExistFilelist()
+        self.assertEqual(expect_filelist, actual_filelist)
 
     def test_ShrinkFolder(self):
         """フォルダ内ファイルの数を一定にする機能をチェックする
@@ -954,7 +958,7 @@ class TestCrawler(unittest.TestCase):
             mockGetExistFilelist = stack.enter_context(patch("PictureGathering.Crawler.Crawler.GetExistFilelist"))
             # mockGetVideoURL = stack.enter_context(patch("test.Test_Crawler.ConcreteCrawler.GetVideoURL"))
             mockUpdateDBExistMark = stack.enter_context(patch("PictureGathering.Crawler.Crawler.UpdateDBExistMark"))
-            mockos = stack.enter_context(patch("PictureGathering.Crawler.os.remove"))
+            mockpunl = stack.enter_context(patch("pathlib.Path.unlink"))
             image_base_url = "http://pbs.twimg.com/media/{}:orig"
             video_base_url = "https://video.twimg.com/ext_tw_video/1144527536388337664/pu/vid/626x882/{}"
 
