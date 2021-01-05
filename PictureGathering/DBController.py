@@ -160,7 +160,7 @@ class DBController:
         session.close()
 
         # 操作履歴保存
-        if self.operatefile.is_file():
+        if self.operatefile and self.operatefile.is_file():
             bname = "DBFavUpsert_" + file_name.split(".")[0] + ".bin"
             bin_file_path = self.operatefile.parent / bname
             with bin_file_path.open(mode="wb") as fout:
@@ -313,7 +313,7 @@ class DBController:
         session.close()
 
         # 操作履歴保存
-        if self.operatefile.is_file():
+        if self.operatefile and self.operatefile.is_file():
             bname = "DBRetweetUpsert_" + file_name.split(".")[0] + ".bin"
             bin_file_path = self.operatefile.parent / bname
             with bin_file_path.open(mode="wb") as fout:
@@ -454,7 +454,7 @@ class DBController:
         session.close()
 
         # 操作履歴保存
-        if self.operatefile.is_file():
+        if self.operatefile and self.operatefile.is_file():
             bname = "DBDelUpsert" + ".bin"
             bin_file_path = self.operatefile.parent / bname
             with bin_file_path.open(mode="wb") as fout:
