@@ -19,9 +19,8 @@ DEBUG = False
 
 
 class DBController:
-    def __init__(self, db_fullpath='PG_DB.db', save_operation=True):
+    def __init__(self, db_fullpath="PG_DB.db", save_operation=True):
         self.dbname = db_fullpath
-        # self.dbname = os.path.basename(db_fullpath)
         self.engine = create_engine(f"sqlite:///{self.dbname}", echo=False)
         Base.metadata.create_all(self.engine)
 
@@ -52,8 +51,8 @@ class DBController:
         """
         # img_filename,url,url_thumbnail,tweet_id,tweet_url,created_at,
         # user_id,user_name,screan_name,tweet_text,tweet_via,saved_localpath,saved_created_at
-        td_format = '%a %b %d %H:%M:%S +0000 %Y'
-        dts_format = '%Y-%m-%d %H:%M:%S'
+        td_format = "%a %b %d %H:%M:%S +0000 %Y"
+        dts_format = "%Y-%m-%d %H:%M:%S"
         tca = tweet["created_at"]
         dst = datetime.strptime(tca, td_format)
         text = tweet["text"] if "text" in tweet else tweet["full_text"]
@@ -91,12 +90,12 @@ class DBController:
         return param
 
     def __GetDelUpdateParam(self, tweet):
-        pattern = ' +[0-9]* '
+        pattern = " +[0-9]* "
         text = tweet["text"]
         add_num = int(re.findall(pattern, text)[0])
         del_num = int(re.findall(pattern, text)[1])
-        td_format = '%a %b %d %H:%M:%S +0000 %Y'
-        dts_format = '%Y-%m-%d %H:%M:%S'
+        td_format = "%a %b %d %H:%M:%S +0000 %Y"
+        dts_format = "%Y-%m-%d %H:%M:%S"
 
         tca = tweet["created_at"]
         dst = datetime.strptime(tca, td_format)
@@ -176,7 +175,7 @@ class DBController:
         """FavoriteからSELECTする
 
         Note:
-            'select * from Favorite order by created_at desc limit {}'.format(limit)
+            "select * from Favorite order by created_at desc limit {}".format(limit)
 
         Args:
             limit (int): 取得レコード数上限
@@ -197,7 +196,7 @@ class DBController:
         """Favoriteからfilenameを条件としてSELECTする
 
         Note:
-            'select * from Favorite where img_filename = {}'.format(file_name_s)
+            "select * from Favorite where img_filename = {}".format(file_name_s)
 
         Args:
             filename (str): 取得対象のファイル名
@@ -219,7 +218,7 @@ class DBController:
         　 is_exist_saved_fileフラグを更新する
 
         Note:
-            'update Favorite set is_exist_saved_file = {} where img_filename in ({})'.format(set_flag, filename)
+            "update Favorite set is_exist_saved_file = {} where img_filename in ({})".format(set_flag, filename)
 
         Args:
             file_list (list): 取得対象のファイル名リスト
@@ -247,7 +246,7 @@ class DBController:
         """Favorite中のis_exist_saved_fileフラグをすべて0に更新する
 
         Note:
-            'update Favorite set is_exist_saved_file = 0'
+            "update Favorite set is_exist_saved_file = 0"
 
         Returns:
              int: 0(成功)
@@ -329,7 +328,7 @@ class DBController:
         """RetweetからSELECTする
 
         Note:
-            'select * from Retweet order by created_at desc limit {}'.format(limit)
+            "select * from Retweet order by created_at desc limit {}".format(limit)
 
         Args:
             limit (int): 取得レコード数上限
@@ -350,7 +349,7 @@ class DBController:
         """Retweetからfilenameを条件としてSELECTする
 
         Note:
-            'select * from Retweet where img_filename = {}'.format(file_name_s)
+            "select * from Retweet where img_filename = {}".format(file_name_s)
 
         Args:
             filename (str): 取得対象のファイル名
@@ -372,7 +371,7 @@ class DBController:
         　 is_exist_saved_fileフラグを更新する
 
         Note:
-            'update Retweet set is_exist_saved_file = {} where img_filename in ({})'.format(set_flag, filename)
+            "update Retweet set is_exist_saved_file = {} where img_filename in ({})".format(set_flag, filename)
 
         Args:
             file_list (list): 取得対象のファイル名リスト
@@ -399,7 +398,7 @@ class DBController:
         """Retweet中のis_exist_saved_fileフラグをすべて0に更新する
 
         Note:
-            'update Retweet set is_exist_saved_file = 0'
+            "update Retweet set is_exist_saved_file = 0"
 
         Returns:
              int: 0(成功)
@@ -482,14 +481,14 @@ class DBController:
         t = date.today() - timedelta(1)
         # 今日未満 = 昨日以前の通知ツイートをDBから取得
         records = session.query(DeleteTarget).filter(~DeleteTarget.delete_done).\
-            filter(DeleteTarget.created_at < t.strftime('%Y-%m-%d %H:%M:%S')).all()
+            filter(DeleteTarget.created_at < t.strftime("%Y-%m-%d %H:%M:%S")).all()
 
         res_dict = [r.toDict() for r in records]  # 辞書リストに変換
 
         # 消去フラグを立てる
         for record in records:
             record.delete_done = True
-            record.deleted_at = t.strftime('%Y-%m-%d %H:%M:%S')
+            record.deleted_at = t.strftime("%Y-%m-%d %H:%M:%S")
         session.commit()
 
         session.close()
