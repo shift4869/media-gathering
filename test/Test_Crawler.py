@@ -99,6 +99,7 @@ class TestCrawler(unittest.TestCase):
                 "extended_entities": {{
                     "media": [{{
                         "type": "video",
+                        "media_url": "{media_url}",
                         "video_info": {{
                             "variants":[{{
                                 "content_type": "video/mp4",
@@ -124,6 +125,7 @@ class TestCrawler(unittest.TestCase):
                 "extended_entities": {{
                     "media": [{{
                         "type": "animated_gif",
+                        "media_url": "{media_url}",
                         "video_info": {{
                             "variants":[{{
                                 "content_type": "video/mp4",
@@ -814,53 +816,11 @@ class TestCrawler(unittest.TestCase):
             animated_gif_url_s = "https://video.twimg.com/tweet_video/sample_gif.mp4"
 
             # ツイートサンプルの用意
-            # 最後にすでに存在するメディアを重複保存しようとしたときのテスト用の要素を追加する
             media_tweet_list_s = []
-            for url_s in [img_url_s, video_url_s, animated_gif_url_s]:
-                media_tweet_list_s.append(self.__GetTweetSample(url_s, "photo"))
-            media_tweet_list_s.append(media_tweet_list_s[0])
-
-            # video
-            media_tweet_json = f"""{{
-                "type": "video",
-                "media_url": "{video_url_s}",
-                "video_info": {{
-                    "variants":[{{
-                        "content_type": "video/mp4",
-                        "bitrate": 640,
-                        "url": "{video_url_s}_640"
-                    }},
-                    {{
-                        "content_type": "video/mp4",
-                        "bitrate": 2048,
-                        "url": "{video_url_s}_2048"
-                    }},
-                    {{
-                        "content_type": "video/mp4",
-                        "bitrate": 1024,
-                        "url": "{video_url_s}_1024"
-                    }}
-                    ]
-                }}
-            }}"""
-            media_tweet_list_s[1]["extended_entities"]["media"][0] = json.loads(media_tweet_json)
-            del media_tweet_list_s[1]["extended_entities"]["media"][1]
-        
-            # animated_gif
-            media_tweet_json = f"""{{
-                "type": "animated_gif",
-                "media_url": "{animated_gif_url_s}",
-                "video_info": {{
-                    "variants":[{{
-                        "content_type": "video/mp4",
-                        "bitrate": 0,
-                        "url": "{animated_gif_url_s}"
-                    }}
-                    ]
-                }}
-            }}"""
-            media_tweet_list_s[2]["extended_entities"]["media"][0] = json.loads(media_tweet_json)
-            del media_tweet_list_s[2]["extended_entities"]["media"][1]
+            media_tweet_list_s.append(self.__GetTweetSample(img_url_s, "photo"))
+            media_tweet_list_s.append(self.__GetTweetSample(video_url_s, "video"))
+            media_tweet_list_s.append(self.__GetTweetSample(animated_gif_url_s, "animated_gif"))
+            media_tweet_list_s.append(media_tweet_list_s[0])  # 重複保存テスト用
 
             for i, media_tweet_s in enumerate(media_tweet_list_s):
                 # media_tweet_s = self.__GetNoRetweetedTweetSample(url_s)
@@ -878,10 +838,10 @@ class TestCrawler(unittest.TestCase):
 
                 # 実行
                 l_flag = (i == len(media_tweet_list_s) - 1)
-                expect = 1 if l_flag else 0
+                expect = 1 if l_flag else 0  # 重複保存時は1、それ以外は0を想定
                 for media_dict in media_tweet_s["extended_entities"]["media"]:
                     actual = crawler.TweetMediaSaver(media_tweet_s, media_dict, atime_s, mtime_s)
-                    self.assertEqual(expect, actual)  # 重複保存
+                    self.assertEqual(expect, actual)
 
                 # 呼び出し確認
                 expect_save_num = 0 if l_flag else len(media_tweet_s["extended_entities"]["media"])
