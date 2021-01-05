@@ -1,15 +1,15 @@
 # coding: utf-8
 import json
-import os
 import re
 import sys
 import unittest
 from contextlib import ExitStack
 from datetime import date, datetime, timedelta
 from logging import WARNING, getLogger
+from mock import MagicMock, PropertyMock, patch
+from pathlib import Path
 
 import freezegun
-from mock import MagicMock, PropertyMock, patch
 from sqlalchemy import *
 from sqlalchemy.orm import *
 from sqlalchemy.orm.exc import *
@@ -47,19 +47,21 @@ class TestDBController(unittest.TestCase):
     
         records = self.session.query(Favorite).all()
         for r in records:
-            if os.path.exists(r.saved_localpath):
-                os.remove(r.saved_localpath)
+            lp = Path(r.saved_localpath)
+            if lp.is_file():
+                lp.unlink()
 
         records = self.session.query(Retweet).all()
         for r in records:
-            if os.path.exists(r.saved_localpath):
-                os.remove(r.saved_localpath)
+            lp = Path(r.saved_localpath)
+            if lp.is_file():
+                lp.unlink()
 
         self.session.close()
         if self.engine.url.database == ":memory:":
             Base.metadata.drop_all(self.engine)
 
-    def FavoriteSampleFactory(self, img_url):
+    def FavoriteSampleFactory(self, img_url: str) -> Favorite:
         """Favoriteオブジェクトを生成する
 
         Args:
@@ -70,11 +72,11 @@ class TestDBController(unittest.TestCase):
         """
         url_orig = img_url + ":orig"
         url_thumbnail = img_url + ":large"
-        file_name = os.path.basename(img_url)
+        file_name = Path(img_url).name
         tweet = self.GetTweetSample(img_url)
-        save_file_fullpath = os.path.join(os.getcwd(), file_name)
+        save_file_fullpath = Path(file_name)
 
-        with open(save_file_fullpath, "wb") as fout:
+        with save_file_fullpath.open(mode="wb") as fout:
             fout.write(file_name.encode())  # ファイル名をテキトーに書き込んでおく
 
         # パラメータ設定
@@ -96,7 +98,7 @@ class TestDBController(unittest.TestCase):
                  tweet["user"]["screen_name"],
                  text,
                  via,
-                 save_file_fullpath,
+                 str(save_file_fullpath),
                  datetime.now().strftime(dts_format),
                  len(file_name.encode()),
                  file_name.encode())
@@ -117,11 +119,11 @@ class TestDBController(unittest.TestCase):
         """
         url_orig = img_url + ":orig"
         url_thumbnail = img_url + ":large"
-        file_name = os.path.basename(img_url)
+        file_name = Path(img_url).name
         tweet = self.GetTweetSample(img_url)
-        save_file_fullpath = os.path.join(os.getcwd(), file_name)
+        save_file_fullpath = Path(file_name)
 
-        with open(save_file_fullpath, "wb") as fout:
+        with save_file_fullpath.open(mode="wb") as fout:
             fout.write(file_name.encode())  # ファイル名をテキトーに書き込んでおく
 
         # パラメータ設定
@@ -143,7 +145,7 @@ class TestDBController(unittest.TestCase):
                  tweet["user"]["screen_name"],
                  text,
                  via,
-                 save_file_fullpath,
+                 str(save_file_fullpath),
                  datetime.now().strftime(dts_format),
                  len(file_name.encode()),
                  file_name.encode())
@@ -228,15 +230,15 @@ class TestDBController(unittest.TestCase):
             img_url_s = "http://www.img.filename.sample.com/media/sample.png"
             url_orig_s = img_url_s + ":orig"
             url_thumbnail_s = img_url_s + ":large"
-            file_name_s = os.path.basename(img_url_s)
+            file_name_s = Path(img_url_s).name
 
             td_format_s = "%a %b %d %H:%M:%S +0000 %Y"
             dts_format_s = "%Y-%m-%d %H:%M:%S"
 
             tweet_s = self.GetTweetSample(img_url_s)
-            save_file_fullpath_s = os.path.join(os.getcwd(), file_name_s)
+            save_file_fullpath_s = Path(file_name_s)
 
-            with open(save_file_fullpath_s, "wb") as fout:
+            with save_file_fullpath_s.open(mode="wb") as fout:
                 fout.write(b"abcde")
 
             tca = tweet_s["created_at"]
@@ -255,12 +257,12 @@ class TestDBController(unittest.TestCase):
                 "screan_name": tweet_s["user"]["screen_name"],
                 "tweet_text": tweet_s["text"],
                 "tweet_via": via,
-                "saved_localpath": save_file_fullpath_s,
+                "saved_localpath": str(save_file_fullpath_s),
                 "saved_created_at": datetime.now().strftime(dts_format_s),
                 "media_size": 5,
                 "media_blob": b"abcde"
             }
-            actual = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, save_file_fullpath_s, True)
+            actual = controlar._DBController__GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, str(save_file_fullpath_s), True)
             self.assertEqual(expect, actual)
 
             del_tweet_s = self.GetDelTweetSample()
@@ -337,7 +339,7 @@ class TestDBController(unittest.TestCase):
 
         # サンプル生成
         video_url_s = "https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4"
-        file_name_s = os.path.basename(video_url_s)
+        file_name_s = Path(video_url_s).name
         record = self.FavoriteSampleFactory(video_url_s)
         record.img_filename = file_name_s
         self.session.add(record)
@@ -471,7 +473,7 @@ class TestDBController(unittest.TestCase):
 
         # サンプル生成
         video_url_s = "https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4"
-        file_name_s = os.path.basename(video_url_s)
+        file_name_s = Path(video_url_s).name
         record = self.RetweetSampleFactory(video_url_s)
         record.img_filename = file_name_s
         self.session.add(record)
@@ -612,9 +614,9 @@ class TestDBController(unittest.TestCase):
 
         # テスト用操作履歴ファイルを反映する
         operate_file = "./test/operate_file_example/operatefile.txt"
-        operate_file_path = os.path.join(os.getcwd(), operate_file)
+        operate_file_path = Path(operate_file)
 
-        res = controlar.DBReflectFromFile(operate_file_path)
+        res = controlar.DBReflectFromFile(str(operate_file_path))
         self.assertEqual(res, 0)
 
         # テスト用操作履歴ファイル反映後の想定状況と比較する
