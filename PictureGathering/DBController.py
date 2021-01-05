@@ -1,12 +1,11 @@
 # coding: utf-8
 import configparser
-import copy
-import os
 import pickle
 import re
 import sqlite3
 from contextlib import closing
 from datetime import date, datetime, timedelta
+from pathlib import Path
 
 from sqlalchemy import *
 from sqlalchemy.orm import *
@@ -26,8 +25,8 @@ class DBController:
 
         self.operatefile = None
         if save_operation and not DEBUG:
-            self.operatefile = os.path.join(os.path.abspath("./archive"), "operatefile.txt")  # 操作履歴保存ファイル
-            with open(self.operatefile, "w", encoding="utf_8") as fout:
+            self.operatefile = Path("./archive").resolve() / "operatefile.txt"  # 操作履歴保存ファイル
+            with self.operatefile.open(mode="w", encoding="utf_8") as fout:
                 fout.write("")
 
     def __GetUpdateParam(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob):
@@ -82,7 +81,7 @@ class DBController:
                     param["media_size"] = len(param["media_blob"])
             else:
                 param["media_blob"] = None
-                param["media_size"] = os.path.getsize(save_file_fullpath)
+                param["media_size"] = Path(save_file_fullpath).stat().st_size
         except Exception:
             param["media_blob"] = None
             param["media_size"] = -1
@@ -161,12 +160,12 @@ class DBController:
         session.close()
 
         # 操作履歴保存
-        if self.operatefile:
+        if self.operatefile.is_file():
             bname = "DBFavUpsert_" + file_name.split(".")[0] + ".bin"
-            bin_file_path = os.path.join(os.path.dirname(self.operatefile), bname)
-            with open(bin_file_path, "wb") as fout:
+            bin_file_path = self.operatefile.parent / bname
+            with bin_file_path.open(mode="wb") as fout:
                 pickle.dump(tweet, fout)
-            with open(self.operatefile, "a", encoding="utf_8") as fout:
+            with self.operatefile.open(mode="a", encoding="utf_8") as fout:
                 fout.write("DBFavUpsert,{},{},{},{},{}\n".format(file_name, url_orig, url_thumbnail, save_file_fullpath, include_blob))
 
         return res
@@ -314,12 +313,12 @@ class DBController:
         session.close()
 
         # 操作履歴保存
-        if self.operatefile:
+        if self.operatefile.is_file():
             bname = "DBRetweetUpsert_" + file_name.split(".")[0] + ".bin"
-            bin_file_path = os.path.join(os.path.dirname(self.operatefile), bname)
-            with open(bin_file_path, "wb") as fout:
+            bin_file_path = self.operatefile.parent / bname
+            with bin_file_path.open(mode="wb") as fout:
                 pickle.dump(tweet, fout)
-            with open(self.operatefile, "a", encoding="utf_8") as fout:
+            with self.operatefile.open(mode="a", encoding="utf_8") as fout:
                 fout.write("DBRetweetUpsert,{},{},{},{},{}\n".format(file_name, url_orig, url_thumbnail, save_file_fullpath, include_blob))
 
         return res
@@ -455,12 +454,12 @@ class DBController:
         session.close()
 
         # 操作履歴保存
-        if self.operatefile:
+        if self.operatefile.is_file():
             bname = "DBDelUpsert" + ".bin"
-            bin_file_path = os.path.join(os.path.dirname(self.operatefile), bname)
-            with open(bin_file_path, "wb") as fout:
+            bin_file_path = self.operatefile.parent / bname
+            with bin_file_path.open(mode="wb") as fout:
                 pickle.dump(tweet, fout)
-            with open(self.operatefile, "a", encoding="utf_8") as fout:
+            with self.operatefile.open(mode="a", encoding="utf_8") as fout:
                 fout.write("DBDelUpsert\n")
 
         return res
@@ -502,26 +501,27 @@ class DBController:
         """
         fav_upsert_file_list = []
         rt_upsert_file_list = []
-        with open(operate_file_path, "r", encoding="utf_8") as fin:
+        fp = Path(operate_file_path)
+        with fp.open(mode="r", encoding="utf_8") as fin:
             lines = fin.readlines()
             for line_str in lines:
                 token = re.split("[,\n]", line_str)
                 params = token[:-1]
                 if params[0] == "DBFavUpsert":
                     bin_file = "DBFavUpsert_" + params[1].split(".")[0] + ".bin"
-                    with open(os.path.join(os.path.dirname(operate_file_path), bin_file), "rb") as bin:
+                    with (fp.parent / bin_file).open(mode="rb") as bin:
                         tweet = pickle.load(bin)
                     self.DBFavUpsert(params[1], params[2], params[3], tweet, params[4], params[5] == "True")
                     fav_upsert_file_list.append(params[1])
                 elif params[0] == "DBRetweetUpsert":
                     bin_file = "DBRetweetUpsert_" + params[1].split(".")[0] + ".bin"
-                    with open(os.path.join(os.path.dirname(operate_file_path), bin_file), "rb") as bin:
+                    with (fp.parent / bin_file).open(mode="rb") as bin:
                         tweet = pickle.load(bin)
                     self.DBRetweetUpsert(params[1], params[2], params[3], tweet, params[4], params[5] == "True")
                     rt_upsert_file_list.append(params[1])
                 elif params[0] == "DBDelUpsert":
                     bin_file = "DBDelUpsert" + ".bin"
-                    with open(os.path.join(os.path.dirname(operate_file_path), bin_file), "rb") as bin:
+                    with (fp.parent / bin_file).open(mode="rb") as bin:
                         tweet = pickle.load(bin)
                     self.DBDelUpsert(tweet)
 
@@ -535,6 +535,6 @@ class DBController:
 
 if __name__ == "__main__":
     DEBUG = True
-    db_fullpath = os.path.join("J:\\twitter", "PG_DB.db")
-    db_cont = DBController(db_fullpath=db_fullpath, save_operation=True)
+    db_fullpath = Path("J:\\twitter") / "PG_DB.db"
+    db_cont = DBController(db_fullpath=str(db_fullpath), save_operation=True)
     # db_cont.DBReflectFromFile("./archive/operatefile.txt")
