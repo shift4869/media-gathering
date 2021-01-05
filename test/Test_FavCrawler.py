@@ -79,7 +79,7 @@ class TestFavCrawler(unittest.TestCase):
         # expect_config読み込みテスト
         CONFIG_FILE_NAME = "./config/config.ini"
         expect_config = configparser.ConfigParser()
-        self.assertTrue(os.path.exists(CONFIG_FILE_NAME))
+        self.assertTrue(Path(CONFIG_FILE_NAME).is_file())
         self.assertFalse(expect_config.read("ERROR_PATH" + CONFIG_FILE_NAME, encoding="utf8"))
         expect_config.read(CONFIG_FILE_NAME, encoding="utf8")
 

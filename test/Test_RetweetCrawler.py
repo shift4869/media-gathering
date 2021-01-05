@@ -205,7 +205,7 @@ class TestRetweetCrawler(unittest.TestCase):
         # expect_config読み込みテスト
         CONFIG_FILE_NAME = "./config/config.ini"
         expect_config = configparser.ConfigParser()
-        self.assertTrue(os.path.exists(CONFIG_FILE_NAME))
+        self.assertTrue(Path(CONFIG_FILE_NAME).is_file())
         self.assertFalse(expect_config.read("ERROR_PATH" + CONFIG_FILE_NAME, encoding="utf8"))
         expect_config.read(CONFIG_FILE_NAME, encoding="utf8")
 
@@ -244,7 +244,7 @@ class TestRetweetCrawler(unittest.TestCase):
             # 既存ファイル一覧を取得する
             s_exist_filenames = []
             for s_exist_filepath in s_exist_filepaths:
-                s_exist_filenames.append(os.path.basename(s_exist_filepath))
+                s_exist_filenames.append(Path(s_exist_filepath).name)
             if s_exist_filenames:
                 exist_oldest_filename = s_exist_filenames[-1]
             else:
