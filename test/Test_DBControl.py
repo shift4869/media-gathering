@@ -108,7 +108,7 @@ class TestDBController(unittest.TestCase):
                      param[7], param[8], param[9], param[10], param[11], param[12], param[13], param[14])
         return f
 
-    def RetweetSampleFactory(self, img_url):
+    def RetweetSampleFactory(self, img_url: str) -> Retweet:
         """Retweetオブジェクトを生成する
 
         Args:
@@ -155,7 +155,7 @@ class TestDBController(unittest.TestCase):
                      param[7], param[8], param[9], param[10], param[11], param[12], param[13], param[14])
         return rt
 
-    def GetTweetSample(self, img_url_s):
+    def GetTweetSample(self, img_url_s: str) -> dict:
         """ツイートオブジェクトのサンプルを生成する
 
         Notes:
@@ -190,7 +190,7 @@ class TestDBController(unittest.TestCase):
         tweet_s = json.loads(tweet_json)
         return tweet_s
 
-    def GetDelTweetSample(self):
+    def GetDelTweetSample(self) -> dict:
         """ツイートオブジェクトのサンプルを生成する
 
         Notes:
