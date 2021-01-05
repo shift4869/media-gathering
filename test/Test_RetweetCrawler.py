@@ -7,7 +7,6 @@ RetweetCrawler.RetweetCrawler()の各種機能をテストする
 import configparser
 import freezegun
 import json
-import os
 import random
 import sys
 import unittest
