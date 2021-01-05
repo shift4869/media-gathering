@@ -253,7 +253,9 @@ class PixivAPIController:
                 logger.info("\t\t: " + name + " -> done({}/{})".format(i + 1, pages))
                 sleep(0.5)
         elif pages == 1:  # 一枚絵
-            head, tail = os.path.split(save_directory_path[:-1])
+            if save_directory_path[-1] == "/":
+                save_directory_path = save_directory_path[:-1]
+            head, tail = os.path.split(save_directory_path)
             save_directory_path = head + "/"
             os.makedirs(save_directory_path, exist_ok=True)
 
