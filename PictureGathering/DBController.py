@@ -25,7 +25,7 @@ class DBController:
 
         self.operatefile = None
         if save_operation and not DEBUG:
-            self.operatefile = Path("./archive").resolve() / "operatefile.txt"  # 操作履歴保存ファイル
+            self.operatefile = Path("./archive") / "operatefile.txt"  # 操作履歴保存ファイル
             with self.operatefile.open(mode="w", encoding="utf_8") as fout:
                 fout.write("")
 
