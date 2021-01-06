@@ -437,13 +437,13 @@ class Crawler(metaclass=ABCMeta):
             url_thumbnail = url + ":large"
             file_name = Path(url).name
             save_file_path = Path(self.save_path) / file_name
-            save_file_fullpath = save_file_path
+            save_file_fullpath = save_file_path.absolute()
         elif media_type == "video" or media_type == "animated_gif":
             url_orig = url
             url_thumbnail = media_dict["media_url"] + ":orig"  # サムネ
             file_name = Path(url_orig).name
             save_file_path = Path(self.save_path) / file_name
-            save_file_fullpath = save_file_path
+            save_file_fullpath = save_file_path.absolute()
         else:
             logger.debug("メディアタイプが不明です。")
             return -1
