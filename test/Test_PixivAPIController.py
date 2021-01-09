@@ -1,18 +1,15 @@
 # coding: utf-8
 import configparser
-import glob
-import os
 import random
 import re
 import shutil
 import sys
 import unittest
 import warnings
-from logging import WARNING, getLogger
-
 from contextlib import ExitStack
+from logging import WARNING, getLogger
 from mock import MagicMock, PropertyMock, mock_open, patch
-from pixivpy3 import *
+from pathlib import Path
 
 from PictureGathering import PixivAPIController
 
@@ -28,13 +25,19 @@ class TestPixivAPIController(unittest.TestCase):
         warnings.simplefilter("ignore", ResourceWarning)
 
         CONFIG_FILE_NAME = "./config/config.ini"
-        self.config = configparser.ConfigParser()
-        self.config.read(CONFIG_FILE_NAME, encoding="utf8")
-        self.username = self.config["pixiv"]["username"]
-        self.password = self.config["pixiv"]["password"]
+        config = configparser.ConfigParser()
+        config.read(CONFIG_FILE_NAME, encoding="utf8")
+        self.username = config["pixiv"]["username"]
+        self.password = config["pixiv"]["password"]
+
+        self.TEST_BASE_PATH = "./test/PG_Pixiv"
+        self.TBP = Path(self.TEST_BASE_PATH)
 
     def tearDown(self):
-        pass
+        # 後始末：テスト用ディレクトリを削除する
+        # shutil.rmtree()で再帰的に全て削除する ※指定パス注意
+        if self.TBP.is_dir():
+            shutil.rmtree(self.TBP)
 
     def test_PixivAPIController(self):
         """非公式pixivAPI利用クラス初期状態チェック
@@ -50,7 +53,7 @@ class TestPixivAPIController(unittest.TestCase):
         """非公式pixivAPIインスタンス生成とログインをチェック
         """
         pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
-        
+
         # auth関数のsideeffect
         def auth_side_effect(refresh_token):
             return refresh_token
@@ -114,23 +117,24 @@ class TestPixivAPIController(unittest.TestCase):
 
         # refresh_tokenが既に存在しているなら削除
         REFRESH_TOKEN_PATH = "./config/refresh_token.ini"
-        if os.path.exists(REFRESH_TOKEN_PATH) and IS_NEW_LOGIN_TEST:
-            os.remove(REFRESH_TOKEN_PATH)
+        RTP = Path(REFRESH_TOKEN_PATH)
+        if RTP.is_file() and IS_NEW_LOGIN_TEST:
+            RTP.unlink()
 
         # refresh_tokenが存在していない状況をエミュレート
         LoginProcessTest()
 
         # refresh_tokenを保存
         refresh_token = pa_cont.api.refresh_token
-        with open(REFRESH_TOKEN_PATH, "w") as fout:
+        with RTP.open(mode="w") as fout:
             fout.write(refresh_token)
-        self.assertTrue(os.path.exists(REFRESH_TOKEN_PATH))
+        self.assertTrue(RTP.is_file())
 
         # refresh_tokenが存在している状況をエミュレート
         LoginProcessTest()
 
         # refresh_tokenは保存したままにしておく
-        self.assertTrue(os.path.exists(REFRESH_TOKEN_PATH))
+        self.assertTrue(RTP.is_file())
 
     def test_IsPixivURL(self):
         """pixivのURLかどうか判定する機能をチェック
@@ -222,39 +226,34 @@ class TestPixivAPIController(unittest.TestCase):
         """保存先ディレクトリパスを生成する機能をチェック
         """
         pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
-        TEST_BASE_PATH = "./test/PG_Pixiv"
         url_s = "https://www.pixiv.net/artworks/24010650"
-        expect = os.path.join(TEST_BASE_PATH, "./shift(149176)/フランの羽[アイコン用](24010650)/")
+        expect = Path(self.TEST_BASE_PATH) / "./shift(149176)/フランの羽[アイコン用](24010650)/"
 
         # （想定）保存先ディレクトリが存在する場合は削除する
-        if os.path.exists(expect):
+        if expect.is_dir():
             shutil.rmtree(expect)
 
         # 保存先ディレクトリが存在しない場合の実行
-        actual = pa_cont.MakeSaveDirectoryPath(url_s, TEST_BASE_PATH)
+        actual = Path(pa_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH))
         self.assertEqual(expect, actual)
 
         # 保存先ディレクトリを作成する
-        os.makedirs(actual, exist_ok=True)
+        actual.mkdir(parents=True, exist_ok=True)
 
         # 保存先ディレクトリが存在する場合の実行
-        actual = pa_cont.MakeSaveDirectoryPath(url_s, TEST_BASE_PATH)
+        actual = Path(pa_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH))
         self.assertEqual(expect, actual)
-
-        # 保存先ディレクトリを削除する
-        if os.path.exists(TEST_BASE_PATH):
-            shutil.rmtree(TEST_BASE_PATH)
 
         # サフィックスエラー
         url_s = "https://www.pixiv.net/artworks/24010650?rank=1"
         expect = ""
-        actual = pa_cont.MakeSaveDirectoryPath(url_s, TEST_BASE_PATH)
+        actual = pa_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH)
         self.assertEqual(expect, actual)
 
         # 不正なイラストID
         url_s = "https://www.pixiv.net/artworks/00000000"
         expect = ""
-        actual = pa_cont.MakeSaveDirectoryPath(url_s, TEST_BASE_PATH)
+        actual = pa_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH)
         self.assertEqual(expect, actual)
 
     def test_DownloadIllusts(self):
@@ -262,132 +261,103 @@ class TestPixivAPIController(unittest.TestCase):
             実際に非公式pixivAPIを通してDLする
         """
         pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
-        TEST_BASE_PATH = "./test/PG_Pixiv"
-
         work_url_s = "https://www.pixiv.net/artworks/24010650"
         urls_s = pa_cont.GetIllustURLs(work_url_s)
-        save_directory_path_s = pa_cont.MakeSaveDirectoryPath(work_url_s, TEST_BASE_PATH)
-
-        # テスト用ディレクトリが存在する場合は削除する
-        # shutil.rmtree()で再帰的に全て削除する ※指定パス注意
-        if os.path.exists(TEST_BASE_PATH):
-            shutil.rmtree(TEST_BASE_PATH)
+        save_directory_path_s = Path(pa_cont.MakeSaveDirectoryPath(work_url_s, self.TEST_BASE_PATH))
 
         # 一枚絵
         # 予想される保存先ディレクトリとファイル名を取得
-        save_directory_path_cache = save_directory_path_s
-        head_s, tail_s = os.path.split(save_directory_path_cache[:-1])
-        save_directory_path_cache = head_s + "/"
-
+        save_directory_path_cache = save_directory_path_s.parent
         url_s = urls_s[0]
-        root_s, ext_s = os.path.splitext(url_s)
-        name_s = "{}{}".format(tail_s, ext_s)
+        name_s = "{}{}".format(save_directory_path_s.name, Path(url_s).suffix)
 
         with ExitStack() as stack:
             mockgu = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.DownloadUgoira"))
 
             # 1回目の実行
-            res = pa_cont.DownloadIllusts([url_s], save_directory_path_s)
+            res = pa_cont.DownloadIllusts([url_s], str(save_directory_path_s))
             self.assertEqual(0, res)  # 新規DL成功想定（実際にDLする）
             mockgu.assert_called_once()
             mockgu.reset_mock()
 
             # DL後のディレクトリ構成とファイルの存在チェック
-            self.assertTrue(os.path.exists(TEST_BASE_PATH))
-            self.assertTrue(os.path.exists(save_directory_path_cache))
-            self.assertTrue(os.path.exists(os.path.join(save_directory_path_cache, name_s)))
+            self.assertTrue(self.TBP.is_dir())
+            self.assertTrue(save_directory_path_cache.is_dir())
+            self.assertTrue((save_directory_path_cache / name_s).is_file())
 
             # 2回目の実行
-            res = pa_cont.DownloadIllusts([url_s], save_directory_path_s)
+            res = pa_cont.DownloadIllusts([url_s], str(save_directory_path_s))
             self.assertEqual(1, res)  # 2回目は既にDL済なのでスキップされる想定
             mockgu.assert_not_called()
             mockgu.reset_mock()
 
         # 漫画形式
         # 予想される保存先ディレクトリとファイル名を取得
-        save_directory_path_cache = save_directory_path_s
-        dirname_s = os.path.basename(os.path.dirname(save_directory_path_s))
-        head_s, tail_s = os.path.split(save_directory_path_s[:-1])
-        save_directory_path_cache = head_s + "/"
-        self.assertEqual(os.path.join(save_directory_path_cache, dirname_s), save_directory_path_s[:-1])
+        save_directory_path_cache = save_directory_path_s.parent
+        dirname_s = save_directory_path_s.name
+        self.assertEqual((save_directory_path_cache / dirname_s), save_directory_path_s)
 
         expect_names = []
         for i, url_s in enumerate(urls_s):
-            root_s, ext_s = os.path.splitext(url_s)
-            name_s = "{:03}{}".format(i + 1, ext_s)
+            name_s = "{:03}{}".format(i + 1, Path(url_s).suffix)
             expect_names.append(name_s)
 
         with ExitStack() as stack:
             mockgu = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.DownloadUgoira"))
 
             # 1回目の実行
-            res = pa_cont.DownloadIllusts(urls_s, save_directory_path_s)
+            res = pa_cont.DownloadIllusts(urls_s, str(save_directory_path_s))
             self.assertEqual(0, res)  # 新規DL成功想定（実際にDLする）
             mockgu.assert_not_called()
             mockgu.reset_mock()
 
             # DL後のディレクトリ構成とファイルの存在チェック
-            self.assertTrue(os.path.exists(TEST_BASE_PATH))
-            self.assertTrue(os.path.exists(save_directory_path_cache))
-            self.assertTrue(os.path.exists(os.path.join(save_directory_path_cache, dirname_s)))
-            self.assertTrue(os.path.exists(save_directory_path_s))
+            self.assertTrue(self.TBP.is_dir())
+            self.assertTrue(save_directory_path_cache.is_dir())
+            self.assertTrue((save_directory_path_cache / dirname_s).is_dir())
+            self.assertTrue(save_directory_path_s.is_dir())
             for name_s in expect_names:
-                expect_path = os.path.join(save_directory_path_s, name_s)
-                self.assertTrue(os.path.exists(expect_path))
+                self.assertTrue((save_directory_path_s / name_s).is_file())
 
             # 2回目の実行
-            res = pa_cont.DownloadIllusts(urls_s, save_directory_path_s)
+            res = pa_cont.DownloadIllusts(urls_s, str(save_directory_path_s))
             self.assertEqual(1, res)  # 2回目は既にDL済なのでスキップされる想定
             mockgu.assert_not_called()
             mockgu.reset_mock()
 
         # urls指定エラー（空リスト）
-        res = pa_cont.DownloadIllusts([], save_directory_path_s)
+        res = pa_cont.DownloadIllusts([], str(save_directory_path_s))
         self.assertEqual(-1, res)
-
-        # 後始末：テスト用ディレクトリを削除する
-        # shutil.rmtree()で再帰的に全て削除する ※指定パス注意
-        if os.path.exists(TEST_BASE_PATH):
-            shutil.rmtree(TEST_BASE_PATH)
 
     def test_DownloadUgoira(self):
         """うごイラをダウンロードする機能をチェック
             実際に非公式pixivAPIを通してDLする
         """
         pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
-        TEST_BASE_PATH = "./test/PG_Pixiv"
-
-        # テスト用ディレクトリが存在する場合は削除する
-        # shutil.rmtree()で再帰的に全て削除する ※指定パス注意
-        if os.path.exists(TEST_BASE_PATH):
-            shutil.rmtree(TEST_BASE_PATH)
 
         # サンプル画像：おみくじ(86704541)
         work_url_s = "https://www.pixiv.net/artworks/86704541"
         illust_id_s = pa_cont.GetIllustId(work_url_s)
-        expect_path = os.path.join(TEST_BASE_PATH, "おみくじ(86704541)")
-        expect_gif_path = expect_path + ".gif"
+        expect_path = self.TBP / "おみくじ(86704541)"
+        expect_gif_path = expect_path.parent / "{}{}".format(expect_path.name, ".gif")
         EXPECT_FRAME_NUM = 14
-        expect_frames = [os.path.join(expect_path, "{}_ugoira{}.jpg".format(illust_id_s, i)) for i in range(0, EXPECT_FRAME_NUM)]
+        expect_frames = [str(expect_path / "{}_ugoira{}.jpg".format(illust_id_s, i)) for i in range(0, EXPECT_FRAME_NUM)]
 
         # うごイラDL
-        res = pa_cont.DownloadUgoira(illust_id_s, TEST_BASE_PATH)
+        res = pa_cont.DownloadUgoira(illust_id_s, self.TEST_BASE_PATH)
 
         # DL後のディレクトリ構成とファイルの存在チェック
-        self.assertTrue(os.path.exists(TEST_BASE_PATH))
-        self.assertTrue(os.path.exists(expect_path))
-        self.assertTrue(os.path.exists(expect_gif_path))
+        self.assertTrue(self.TBP.is_dir())
+        self.assertTrue(expect_path.is_dir())
+        self.assertTrue(expect_gif_path.is_file())
 
         # frameのDLをチェック
-        actual_frames = glob.glob(os.path.join(expect_path + "/*"))
-        actual_frames.sort(key=os.path.getmtime, reverse=False)
+        actual_frames = []
+        af = [(sp.stat().st_mtime, str(sp)) for sp in expect_path.glob("**/*") if sp.is_file()]
+        for mtime, path in sorted(af, reverse=False):
+            actual_frames.append(path)
         self.assertEqual(len(expect_frames), len(actual_frames))
         self.assertEqual(expect_frames, actual_frames)
-
-        # 後始末：テスト用ディレクトリを削除する
-        # shutil.rmtree()で再帰的に全て削除する ※指定パス注意
-        if os.path.exists(TEST_BASE_PATH):
-            shutil.rmtree(TEST_BASE_PATH)
 
 
 if __name__ == "__main__":
