@@ -97,8 +97,8 @@ class PixivAPIController:
             boolean: pixiv作品ページURLならTrue、そうでなければFalse
         """
         pattern = r"^https://www.pixiv.net/artworks/[0-9]*$"
-        regix = re.compile(pattern)
-        return not (regix.findall(url) == [])
+        regex = re.compile(pattern)
+        return not (regex.findall(url) == [])
 
     def GetIllustId(self, url: str) -> int:
         """pixiv作品ページURLからイラストIDを取得する
@@ -178,10 +178,10 @@ class PixivAPIController:
 
         # パスに使えない文字をサニタイズする
         # TODO::サニタイズを厳密に行う
-        regix = re.compile(r'[\\/:*?"<>|]')
-        author_name = regix.sub("", work.user.name)
+        regex = re.compile(r'[\\/:*?"<>|]')
+        author_name = regex.sub("", work.user.name)
         author_id = int(work.user.id)
-        illust_title = regix.sub("", work.title)
+        illust_title = regex.sub("", work.title)
 
         # 既に{作者pixivID}が一致するディレクトリがあるか調べる
         IS_SEARCH_AUTHOR_ID = True
@@ -194,9 +194,9 @@ class PixivAPIController:
                         xs.append(dir)
             os.walk(base_path).close()
 
-            regix = re.compile(r'.*\(([0-9]*)\)$')
+            regex = re.compile(r'.*\(([0-9]*)\)$')
             for dir_name in xs:
-                result = regix.match(str(dir_name))
+                result = regex.match(str(dir_name))
                 if result:
                     ai = result.group(1)
                     if ai == str(author_id):
@@ -273,8 +273,8 @@ class PixivAPIController:
             logger.info("Download pixiv illust: " + name + " -> done")
 
             # うごイラの場合は追加で保存する
-            regix = re.compile(r'.*\(([0-9]*)\)$')
-            result = regix.match(tail)
+            regex = re.compile(r'.*\(([0-9]*)\)$')
+            result = regex.match(tail)
             if result:
                 illust_id = int(result.group(1))
                 self.DownloadUgoira(illust_id, save_directory_path)
@@ -307,10 +307,10 @@ class PixivAPIController:
         logger.info("\t\t: ugoira download -> see below ...")
 
         # サニタイズ
-        regix = re.compile(r'[\\/:*?"<>|]')
-        author_name = regix.sub("", work.user.name)
+        regex = re.compile(r'[\\/:*?"<>|]')
+        author_name = regex.sub("", work.user.name)
         author_id = int(work.user.id)
-        illust_title = regix.sub("", work.title)
+        illust_title = regex.sub("", work.title)
 
         # うごイラの各フレームを保存するディレクトリを生成
         sd_path = "./{}({})/".format(illust_title, illust_id)

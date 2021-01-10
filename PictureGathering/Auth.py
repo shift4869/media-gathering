@@ -167,8 +167,8 @@ if __name__ == "__main__":
 
         # 認証後に表示されるPINを調べる
         pattern = r"^[0-9]{7}$"
-        regix = re.compile(pattern)
-        if regix.findall(pin) == []:
+        regex = re.compile(pattern)
+        if regex.findall(pin) == []:
             print("PIN is invalid.")
             print("process end.")
             exit(-1)
