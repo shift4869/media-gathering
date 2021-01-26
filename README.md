@@ -57,7 +57,11 @@
     - ローカルの保存先パスを設定する（必須）
     - image magickをインストールしておく（任意）
 1. PictureGathering.pyを実行する（以下は一例）
-    - 以下を記述した.vbsファイルを用意する  
+    - ※自動実行しないで手動で実行するならパスが通っている環境で以下でOK
+    ```
+    python PictureGathering.py --type="Fav"
+    ```
+    - または、以下を記述した.vbsファイルを用意する  
     ```
     Set ws=CreateObject("Wscript.Shell")
     ws.CurrentDirectory = "{解凍したPictureGatheringへのパス}\PictureGathering"
@@ -65,10 +69,6 @@
     ```
     - `--type`を`Fav`でなく`RT`に変更すれば対象がRetweetとなる
     - 作成した.vbsを「タスクのスケジュール」などで実行する
-    - ※自動実行しないで手動で実行するならパスが通っている環境で以下でOK
-    ```
-    python PictureGathering.py --type="Fav"
-    ```
 1. 出力されたhtmlを確認する
 1. ローカルの保存先パスにメディアが保存されたことを確認する
 
@@ -76,4 +76,6 @@
 ## License/Author
 [MIT License](https://github.com/shift4869/PictureGathering/blob/master/LICENSE)  
 Copyright (c) 2018 [shift](https://twitter.com/_shift4869)
+
+使用した外部ライブラリのライセンスについては[こちら](https://github.com/shift4869/PictureGathering/blob/master/EXTERNAL_LIBRARY.md)  を参照
 
