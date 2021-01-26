@@ -56,10 +56,11 @@ class PixivAPIController:
 
         # 前回ログインからのrefresh_tokenが残っているか調べる
         REFRESH_TOKEN_PATH = "./config/refresh_token.ini"
+        rt_path = Path(REFRESH_TOKEN_PATH)
         auth_success = False
-        if os.path.exists(REFRESH_TOKEN_PATH):
+        if rt_path.is_file():
             refresh_token = ""
-            with open(REFRESH_TOKEN_PATH, "r") as fin:
+            with rt_path.open(mode="r") as fin:
                 refresh_token = str(fin.read())
             try:
                 api.auth(refresh_token=refresh_token)
@@ -67,7 +68,7 @@ class PixivAPIController:
                 auth_success = (api.access_token is not None) and (aapi.access_token is not None)
             except Exception:
                 pass
-        
+
         if not auth_success:
             try:
                 api.login(username, password)
@@ -76,7 +77,7 @@ class PixivAPIController:
 
                 # refresh_tokenを保存
                 refresh_token = api.refresh_token
-                with open(REFRESH_TOKEN_PATH, "w") as fout:
+                with rt_path.open(mode="w") as fout:
                     fout.write(refresh_token)
             except Exception:
                 return (None, None, False)
@@ -112,7 +113,7 @@ class PixivAPIController:
         if not self.IsPixivURL(url):
             return -1
 
-        head, tail = os.path.split(url)
+        tail = Path(url).name
         illust_id = int(tail)
         return illust_id
 
@@ -186,17 +187,16 @@ class PixivAPIController:
         # 既に{作者pixivID}が一致するディレクトリがあるか調べる
         IS_SEARCH_AUTHOR_ID = True
         sd_path = ""
+        save_path = Path(base_path)
         if IS_SEARCH_AUTHOR_ID:
-            xs = []
-            for root, dirs, files in os.walk(base_path):
-                if root == base_path:
-                    for dir in dirs:
-                        xs.append(dir)
-            os.walk(base_path).close()
+            filelist = []
+            filelist_tp = [(sp.stat().st_mtime, sp.name) for sp in save_path.glob("*") if sp.is_dir()]
+            for mtime, path in sorted(filelist_tp, reverse=True):
+                filelist.append(path)
 
             regex = re.compile(r'.*\(([0-9]*)\)$')
-            for dir_name in xs:
-                result = regex.match(str(dir_name))
+            for dir_name in filelist:
+                result = regex.match(dir_name)
                 if result:
                     ai = result.group(1)
                     if ai == str(author_id):
@@ -206,8 +206,8 @@ class PixivAPIController:
         if sd_path == "":
             sd_path = "./{}({})/{}({})/".format(author_name, author_id, illust_title, illust_id)
 
-        save_directory_path = os.path.join(base_path, sd_path)
-        return save_directory_path
+        save_directory_path = save_path / sd_path
+        return str(save_directory_path)
 
     def DownloadIllusts(self, urls: List[str], save_directory_path: str) -> int:
         """pixiv作品ページURLからダウンロードする
@@ -237,44 +237,41 @@ class PixivAPIController:
             int: DL成功時0、スキップされた場合1、エラー時-1
         """
         pages = len(urls)
+        sd_path = Path(save_directory_path)
         if pages > 1:  # 漫画形式
-            dirname = os.path.basename(os.path.dirname(save_directory_path))
+            dirname = sd_path.parent.name
             logger.info("Download pixiv illust: [" + dirname + "] -> see below ...")
 
             # 既に存在しているなら再DLしないでスキップ
-            if os.path.exists(save_directory_path):
+            if sd_path.is_dir():
                 logger.info("\t\t: exist -> skip")
                 return 1
 
-            os.makedirs(save_directory_path, exist_ok=True)
+            sd_path.mkdir(parents=True, exist_ok=True)
             for i, url in enumerate(urls):
-                root, ext = os.path.splitext(url)
+                ext = Path(url).suffix
                 name = "{:03}{}".format(i + 1, ext)
-                self.aapi.download(url, path=save_directory_path, name=name)
+                self.aapi.download(url, path=str(sd_path), name=name)
                 logger.info("\t\t: " + name + " -> done({}/{})".format(i + 1, pages))
                 sleep(0.5)
         elif pages == 1:  # 一枚絵
-            if save_directory_path[-1] == "/":
-                save_directory_path = save_directory_path[:-1]
-            head, tail = os.path.split(save_directory_path)
-            save_directory_path = head + "/"
-            os.makedirs(save_directory_path, exist_ok=True)
+            sd_path.parent.mkdir(parents=True, exist_ok=True)
 
             url = urls[0]
-            root, ext = os.path.splitext(url)
-            name = "{}{}".format(tail, ext)
+            ext = Path(url).suffix
+            name = "{}{}".format(sd_path.name, ext)
             
             # 既に存在しているなら再DLしないでスキップ
-            if os.path.exists(os.path.join(save_directory_path, name)):
+            if (sd_path.parent / name).is_file():
                 logger.info("Download pixiv illust: " + name + " -> exist")
                 return 1
 
-            self.aapi.download(url, path=save_directory_path, name=name)
+            self.aapi.download(url, path=str(sd_path.parent), name=name)
             logger.info("Download pixiv illust: " + name + " -> done")
 
             # うごイラの場合は追加で保存する
             regex = re.compile(r'.*\(([0-9]*)\)$')
-            result = regex.match(tail)
+            result = regex.match(sd_path.name)
             if result:
                 illust_id = int(result.group(1))
                 self.DownloadUgoira(illust_id, save_directory_path)
@@ -313,9 +310,8 @@ class PixivAPIController:
         illust_title = regex.sub("", work.title)
 
         # うごイラの各フレームを保存するディレクトリを生成
-        sd_path = "./{}({})/".format(illust_title, illust_id)
-        save_directory_path = os.path.join(base_path, sd_path)
-        os.makedirs(save_directory_path, exist_ok=True)
+        sd_path = Path(base_path) / "./{}({})/".format(illust_title, illust_id)
+        sd_path.mkdir(parents=True, exist_ok=True)
 
         # うごイラの情報をaapiから取得する
         # アドレスは以下の形になっている
@@ -329,14 +325,16 @@ class PixivAPIController:
         # 各フレーム画像DL
         for i in range(frames_len):
             frame_url = ugoira_url[0] + str(i) + ugoira_url[1]
-            self.aapi.download(frame_url, path=save_directory_path)
+            self.aapi.download(frame_url, path=str(sd_path))
             logger.info("\t\t: " + frame_url.rsplit("/", 1)[1] + " -> done({}/{})".format(i + 1, frames_len))
             sleep(0.5)
         
         # DLした各フレーム画像のパスを収集
-        frames = glob.glob(os.path.join(save_directory_path + "/*"))
-        frames.sort(key=os.path.getmtime, reverse=False)
-        
+        frames = []
+        fr = [(sp.stat().st_mtime, str(sp)) for sp in sd_path.glob("*") if sp.is_file()]
+        for mtime, path in sorted(fr, reverse=False):
+            frames.append(path)
+
         # うごイラをanimated gifとして保存
         first = Image.open(frames[0])
         first = first.copy()
@@ -348,7 +346,7 @@ class PixivAPIController:
             image_list.append(buf)
         name = "{}({}).gif".format(illust_title, illust_id)
         first.save(
-            fp=os.path.join(base_path, name),
+            fp=str(Path(base_path) / name),
             save_all=True,
             append_images=image_list,
             optimize=False,
@@ -367,7 +365,7 @@ if __name__ == "__main__":
 
     if config["pixiv"].getboolean("is_pixiv_trace"):
         pa_cont = PixivAPIController(config["pixiv"]["username"], config["pixiv"]["password"])
-        work_url = "https://www.pixiv.net/artworks/86470256"
+        work_url = "https://www.pixiv.net/artworks/86704541"
         urls = pa_cont.GetIllustURLs(work_url)
         save_directory_path = pa_cont.MakeSaveDirectoryPath(work_url, config["pixiv"]["save_base_path"])
         pa_cont.DownloadIllusts(urls, save_directory_path)

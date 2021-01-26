@@ -229,7 +229,7 @@ class TestPixivAPIController(unittest.TestCase):
         url_s = "https://www.pixiv.net/artworks/24010650"
         expect = Path(self.TEST_BASE_PATH) / "./shift(149176)/フランの羽[アイコン用](24010650)/"
 
-        # （想定）保存先ディレクトリが存在する場合は削除する
+        # 想定保存先ディレクトリが存在する場合は削除する
         if expect.is_dir():
             shutil.rmtree(expect)
 
