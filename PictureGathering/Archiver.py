@@ -1,9 +1,9 @@
 # coding: utf-8
-from datetime import datetime
 import glob
 import os
 import re
 import zipfile
+from datetime import datetime
 
 
 def MakeZipFile(target_directory, type_str):
