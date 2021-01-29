@@ -106,7 +106,7 @@ ENV/
 *.ini
 !config_example.ini
 !logging.ini
-!encrypt.ini
+!encrypt*.ini
 *.html
 *.db
 log*.txt*
@@ -115,7 +115,7 @@ log*.txt*
 *.vbs
 /drawio
 /archive
-credentials.json
+credentials*.json
 *.jpg
 *.gif
 *.xcf
