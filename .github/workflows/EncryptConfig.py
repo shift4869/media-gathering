@@ -20,8 +20,8 @@ def Encrypt(path: str, key: str = "") -> int:
     if not sd.is_file():
         return -1
 
-    new_path = (sd.parent / sd.name.replace(sd.stem, "encrypt")).absolute()
-    new_key_path = (sd.parent / sd.name.replace(sd.stem, "key")).absolute()
+    new_path = (sd.parent / sd.name.replace(sd.stem, "encrypt_" + sd.stem)).absolute()
+    new_key_path = (sd.parent / sd.name.replace(sd.stem, "key_" + sd.stem)).absolute()
 
     with open(sd, "rb") as fin:
         with open(new_path, "wb") as fout:
