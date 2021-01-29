@@ -43,9 +43,22 @@ jobs:
         dir
       working-directory: ./.github\workflows
 
-    - name: Move config file
+    - name: Copy config file
       run: |
         copy decrypt.ini ../../config/config.ini
+        cd ../../config/
+        dir
+      working-directory: ./.github\workflows
+
+    - name: Make credentials file
+      run: |
+        python EncryptConfig.py --type="decrypt" --path="./encrypt_credentials_ci.json" --key="${{ secrets.SECRET_KEY }}"
+        dir
+      working-directory: ./.github\workflows
+
+    - name: Copy credentials file
+      run: |
+        copy decrypt.ini ../../config/credentials.json
         cd ../../config/
         dir
       working-directory: ./.github\workflows

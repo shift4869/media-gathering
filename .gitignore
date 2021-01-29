@@ -115,7 +115,7 @@ log*.txt*
 *.vbs
 /drawio
 /archive
-credentials*.json
+*credentials*.json
 *.jpg
 *.gif
 *.xcf
