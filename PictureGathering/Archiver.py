@@ -1,42 +1,41 @@
 # coding: utf-8
-import glob
-import os
 import re
 import zipfile
 from datetime import datetime
+from pathlib import Path
 
 
-def MakeZipFile(target_directory, type_str):
+def MakeZipFile(target_directory: str, type_str: str) -> str:
     """保存した画像をzipファイルに固める
     """
 
     # 対象フォルダ内のzip以外のファイルをzipに固める
 
     # アーカイブの名前を設定
-    target_directory = os.path.abspath(target_directory)
+    target_sd = Path(target_directory).absolute()
     now = datetime.now()
     date_str = now.strftime("%Y%m%d_%H%M%S")
     type_str = "Fav" if type_str == "Fav" else "RT"
     achive_name = "{}_{}.zip".format(type_str, date_str)
-    target_path = os.path.join(target_directory, achive_name)
+    target_path = target_sd / achive_name
 
     # 既にあるzipファイルは削除する
-    zipfile_list = [p for p in glob.glob(os.path.join(target_directory, "*.*")) if re.search("^(.*zip).*$", p)]
+    zipfile_list = [p for p in target_sd.glob("**/*") if re.search("^(.*zip).*$", str(p))]
     for f in zipfile_list:
-        os.remove(f)
+        f.unlink()
 
     # 対象ファイルリストを設定
     # zipファイル以外を対象とする
-    target_list = [p for p in glob.glob(os.path.join(target_directory, "*.*")) if re.search("^(?!.*zip).*$", p)]
+    target_list = [p for p in target_sd.glob("**/*") if re.search("^(?!.*zip).*$", str(p))]
 
     # zip圧縮する
     if target_list:
         with zipfile.ZipFile(target_path, "w", compression=zipfile.ZIP_DEFLATED) as zfout:
             for f in target_list:
-                zfout.write(f, os.path.basename(f))
-                os.remove(f)  # アーカイブしたファイルは削除する
+                zfout.write(f, f.name)
+                f.unlink()  # アーカイブしたファイルは削除する
 
-    return target_path
+    return str(target_path)
 
 
 if __name__ == "__main__":
