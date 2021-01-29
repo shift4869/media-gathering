@@ -58,7 +58,7 @@ jobs:
 
     - name: Copy credentials file
       run: |
-        copy decrypt.ini ../../config/credentials.json
+        copy decrypt.json ../../config/credentials.json
         cd ../../config/
         dir
       working-directory: ./.github\workflows
