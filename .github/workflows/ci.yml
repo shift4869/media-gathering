@@ -39,7 +39,7 @@ jobs:
 
     - name: Make config file
       run: |
-        python EncryptConfig.py --path="./encrypt.ini" --key="${{ secrets.SECRET_KEY }}"
+        python EncryptConfig.py --type="decrypt" --path="./encrypt.ini" --key="${{ secrets.SECRET_KEY }}"
         dir
       working-directory: ./.github\workflows
 

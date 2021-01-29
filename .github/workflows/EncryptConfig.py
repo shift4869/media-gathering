@@ -2,61 +2,71 @@
 
 import argparse
 import os
+from pathlib import Path
+
 from cryptography.fernet import Fernet
 
 
-def Encrypt(path):
-    key = Fernet.generate_key()
+def Encrypt(path: str, key: str = "") -> int:
+    if key == "":
+        key = Fernet.generate_key()
+    else:
+        key = str(key).encode()
     f = Fernet(key)
 
-    dir, name = os.path.split(path)
-    name_noext = os.path.splitext(os.path.basename(path))[0]
-    new_name = name.replace(name_noext, "encrypt")
-    new_key = name.replace(name_noext, "key")
-    new_path = os.path.join(dir, new_name)
-    new_key_path = os.path.join(dir, new_key)
+    if path == "":
+        return -1
+    sd = Path(path)
+    if not sd.is_file():
+        return -1
 
-    with open(path, "rb") as fin:
+    new_path = (sd.parent / sd.name.replace(sd.stem, "encrypt")).absolute()
+    new_key_path = (sd.parent / sd.name.replace(sd.stem, "key")).absolute()
+
+    with open(sd, "rb") as fin:
         with open(new_path, "wb") as fout:
             token = f.encrypt(fin.read())
             fout.write(token)
     with open(new_key_path, "wb") as fout:
         fout.write(key)
     
-    print("Encrypt success")
+    print("Encrypt success -> ({}, {})".format(new_path.name, new_key_path.name))
     return 0
 
 
-def Decrypt(path, key):
-    dir, name = os.path.split(path)
-    name_noext = os.path.splitext(os.path.basename(path))[0]
-    new_name = name.replace(name_noext, "decrypt")
-    new_path = os.path.join(dir, new_name)
+def Decrypt(path: str, key: str):
+    if path == "":
+        return -1
+    sd = Path(path)
+    if not sd.is_file():
+        return -1
 
-    f = Fernet(key)
+    new_path = (sd.parent / sd.name.replace(sd.stem, "decrypt")).absolute()
 
-    with open(path, "rb") as fin:
+    if key == "":
+        return -1
+    f = Fernet(str(key).encode())
+
+    with open(sd, "rb") as fin:
         with open(new_path, "wb") as fout:
             token = f.decrypt(fin.read())
             fout.write(token)
 
-    print("Decrypt success")
+    print("Decrypt success -> ({})".format(new_path.name))
     return 0
 
 
 if __name__ == "__main__":
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    os.chdir(Path(__file__).absolute().parent)
     arg_parser = argparse.ArgumentParser(description="Encrypt Config")
     arg_parser.add_argument("--path", help="target file", default="")
     arg_parser.add_argument("--key", help="encrypt/decrypt key", default="")
-    arg_parser.add_argument("--type", help="dummy", default="")
+    arg_parser.add_argument("--type", help="encrypt or decrypt", default="")
     args = arg_parser.parse_args()
     
-    # arg_parser.print_help()
-
-    if args.key == "":
-        if args.path == "":
-            args.path = "./config_ci.ini"
-        Encrypt(args.path)
+    if args.type == "encrypt":
+        Encrypt(args.path, args.key)
+    elif args.type == "decrypt":
+        Decrypt(args.path, args.key)
     else:
-        Decrypt(args.path, str(args.key).encode())
+        arg_parser.print_help()
