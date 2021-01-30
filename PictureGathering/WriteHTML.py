@@ -25,9 +25,9 @@ th_template = '''<th>
      </div>
     </th>
 '''
-POINTER_PATH = './pointer.png'
-FAV_HTML_PATH = './html/FavPictureGathering.html'
-RETWEET_HTML_PATH = './html/RetweetPictureGathering.html'
+POINTER_PATH = "./pointer.png"
+FAV_HTML_PATH = "./html/FavPictureGathering.html"
+RETWEET_HTML_PATH = "./html/RetweetPictureGathering.html"
 COLUMN_NUM = 6
 
 
@@ -40,14 +40,14 @@ def MakeTHTag(url, url_thumbnail, tweet_url):
                               pointer_path=POINTER_PATH)
 
 
-def WriteResultHTML(op_type, db_controller):
+def WriteResultHTML(op_type, db_controller, limit=300):
     save_path = ""
     db = []
     if op_type == "Fav":
-        db = db_controller.DBFavSelect()
+        db = db_controller.DBFavSelect(limit)
         save_path = FAV_HTML_PATH
     elif op_type == "RT":
-        db = db_controller.DBRetweetSelect()
+        db = db_controller.DBRetweetSelect(limit)
         save_path = RETWEET_HTML_PATH
     else:
         return -1

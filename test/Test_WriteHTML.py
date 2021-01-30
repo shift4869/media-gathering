@@ -2,11 +2,11 @@
 import configparser
 from contextlib import ExitStack
 from mock import MagicMock, PropertyMock, patch
-import os
 import re
 import sys
 import unittest
 from logging import WARNING, getLogger
+from pathlib import Path
 
 from mock import MagicMock, PropertyMock, mock_open, patch
 
@@ -84,11 +84,17 @@ class TestWriteHTML(unittest.TestCase):
 
             # DBコントローラー（SELECTだけなので本番のDBを使う）
             CONFIG_FILE_NAME = "./config/config.ini"
+            config_path = Path(CONFIG_FILE_NAME)
             config = configparser.ConfigParser()
-            self.assertTrue(os.path.exists(CONFIG_FILE_NAME))
-            config.read(CONFIG_FILE_NAME, encoding="utf8")
-            db_path = os.path.join(config["db"]["save_path"], config["db"]["save_file_name"])
-            db_cont = DBController.DBController(db_path, False)
+            self.assertTrue(config_path.is_file())
+            config.read(config_path, encoding="utf8")
+            db_path = Path(config["db"]["save_path"]) / config["db"]["save_file_name"]
+            # db_cont = ModifiedDBController(str(db_path), False)
+            db_cont = DBController.DBController(str(db_path), False)
+
+            # Select時にデフォルトではキリが良い数しか取得しない
+            # 全分岐を通るために中途半端な数を要求する
+            limit_s = 299  # 299レコード取得する
 
             # テスト用html生成関数
             def MakeResultHTML(db):
@@ -108,13 +114,13 @@ class TestWriteHTML(unittest.TestCase):
                 return res
 
             # Fav
-            s_db = db_cont.DBFavSelect()
+            s_db = db_cont.DBFavSelect(limit_s)
             s_save_path = self.FAV_HTML_PATH
             res = MakeResultHTML(s_db)
             expect = self.template.format(table_content=res)
             expect = re.sub("\n *", "\n", expect)
 
-            res = WriteHTML.WriteResultHTML("Fav", db_cont)
+            res = WriteHTML.WriteResultHTML("Fav", db_cont, limit_s)
             # print(mockfout.mock_calls)
             actual = mockfout().write.call_args[0][0]
             actual = re.sub("\n *", "\n", actual)
@@ -122,13 +128,13 @@ class TestWriteHTML(unittest.TestCase):
             self.assertEqual(expect, actual)
 
             # Retweet
-            s_db = db_cont.DBRetweetSelect()
+            s_db = db_cont.DBRetweetSelect(limit_s)
             s_save_path = self.RETWEET_HTML_PATH
             res = MakeResultHTML(s_db)
             expect = self.template.format(table_content=res)
             expect = re.sub("\n *", "\n", expect)
 
-            res = WriteHTML.WriteResultHTML("RT", db_cont)
+            res = WriteHTML.WriteResultHTML("RT", db_cont, limit_s)
             # print(mockfout.mock_calls)
             actual = mockfout().write.call_args[0][0]
             actual = re.sub("\n *", "\n", actual)
@@ -136,7 +142,7 @@ class TestWriteHTML(unittest.TestCase):
             self.assertEqual(expect, actual)
 
             # エラー処理チェック
-            res = WriteHTML.WriteResultHTML("error", db_cont)
+            res = WriteHTML.WriteResultHTML("error", db_cont, limit_s)
             self.assertEqual(-1, res)
 
 
