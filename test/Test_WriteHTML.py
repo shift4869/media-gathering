@@ -89,7 +89,6 @@ class TestWriteHTML(unittest.TestCase):
             self.assertTrue(config_path.is_file())
             config.read(config_path, encoding="utf8")
             db_path = Path(config["db"]["save_path"]) / config["db"]["save_file_name"]
-            # db_cont = ModifiedDBController(str(db_path), False)
             db_cont = DBController.DBController(str(db_path), False)
 
             # Select時にデフォルトではキリが良い数しか取得しない
