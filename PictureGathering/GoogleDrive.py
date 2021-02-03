@@ -48,26 +48,22 @@ def GetFolderId(service, folder_name: str) -> str:
     return folder_id
 
 
-def UploadToGoogleDrive(file_path, credentials_path, folder_name="PictureGathering"):
+def UploadToGoogleDrive(file_path: str, credentials_path: str, folder_name: str = "PictureGathering"):
+    """GoogleDriveへファイルをアップロードする
+    
+    Args:
+        file_path (str) : GoogleDriveへアップロードするファイルへのパス
+        credentials_path (str): credentials.jsonファイルへのパス
+        folder_name (str): アップロード先のGoogleDriveのフォルダ
+
+    Returns:
+        Files: アップロードしたファイルのファイルリソースオブジェクト
+    """
     warnings.filterwarnings("ignore")
-    creds = Credentials.from_service_account_file(credentials_path)
-    service = build("drive", "v3", credentials=creds, cache_discovery=False)
+    service = GetAPIService(credentials_path)
 
     # フォルダID取得
-    GOOGLEDRIVE_FOLDER_NAME = folder_name
-    folder_id = ""
-    results = service.files().list(q="mimeType='application/vnd.google-apps.folder'").execute()
-    items = results.get("files")
-    if not items:
-        return None
-    else:
-        for item in items:
-            if ("name" in item) and ("id" in item):
-                if item["name"] == GOOGLEDRIVE_FOLDER_NAME:
-                    folder_id = item["id"]
-                    break
-    if folder_id == "":
-        return None
+    folder_id = GetFolderId(service, folder_name)
 
     # 指定ファイル数以上存在する場合、一番古いファイルを削除する（ローテート）
     MAX_FILE_NUM = 10
@@ -109,33 +105,25 @@ def UploadToGoogleDrive(file_path, credentials_path, folder_name="PictureGatheri
                                      media_body=media,
                                      fields="id").execute()
 
-    # アップロードしたファイルはローカルから削除する
     # TODO::アップロード終了を検知する
-    # os.remove(file_path)
 
     return results
 
 
-def GoogleDriveAllDelete(folder_name="PictureGathering"):
+def GoogleDriveAllDelete(folder_name: str = "PictureGathering"):
+    """指定フォルダ内のファイルを全て削除する
+
+    Args:
+        folder_name (str): 対象フォルダ名
+
+    Returns:
+        int: 成功時0
+    """
     # 全ファイル消す
-    creds = Credentials.from_service_account_file("./config/credentials.json")
-    service = build("drive", "v3", credentials=creds)
+    service = GetAPIService("./config/credentials.json")
 
     # フォルダID取得
-    GOOGLEDRIVE_FOLDER_NAME = folder_name
-    folder_id = ""
-    results = service.files().list(q="mimeType='application/vnd.google-apps.folder'").execute()
-    items = results.get("files")
-    if not items:
-        return None
-    else:
-        for item in items:
-            if ("name" in item) and ("id" in item):
-                if item["name"] == GOOGLEDRIVE_FOLDER_NAME:
-                    folder_id = item["id"]
-                    break
-    if folder_id == "":
-        return None
+    folder_id = GetFolderId(service, folder_name)
 
     # 取得
     results = service.files().list(q="'{}' in parents".format(folder_id)).execute()
@@ -196,42 +184,6 @@ def GoogleDriveDirectoryCopy(src_foldername: str, dest_foldername: str) -> str:
         }
         service.files().copy(body=file_metadata, fileId=item["id"]).execute()
     return dest_folderid
-
-
-def GoogleDriveApiTest():
-    creds = Credentials.from_service_account_file("./config/credentials.json")
-
-    service = build("drive", "v3", credentials=creds)
-
-    # Call the Drive v3 API
-
-    # 作成（アップロード）
-    folder_id = ""
-    file_metadata = {
-        "name": "fw2g.jpg",
-        "mimeType": "image/jpeg",
-        "parents": [folder_id]
-    }
-    media = MediaFileUpload("fw2g.jpg",
-                            mimetype="image/jpeg",
-                            resumable=True)
-    service.files().create(body=file_metadata,
-                           media_body=media,
-                           fields="id").execute()
-
-    # 取得
-    results = service.files().list().execute()
-    items = results.get("files", [])
-
-    if not items:
-        print("No files found.")
-    else:
-        print("Files:")
-        for item in items:
-            print("{0} ({1})".format(item["name"], item["id"]))
-            # 削除（デリート）
-            if item["id"] != folder_id:
-                f = service.files().delete(fileId=item["id"]).execute()
 
 
 if __name__ == "__main__":
