@@ -1,21 +1,60 @@
 # coding: utf-8
-from datetime import datetime, timedelta, timezone
 import os
 import time
 import warnings
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
 from apiclient.http import MediaFileUpload
 
 
-def UploadToGoogleDrive(file_path, credentials_path):
+def GetAPIService(credentials_path: str):
+    """GoogleDriveのAPI操作サービスクライアントオブジェクト取得
+    
+    Args:
+        credentials_path (str): credentials.jsonファイルへのパス
+
+    Returns:
+        service : GoogleDriveのAPI操作サービスクライアントオブジェクト
+    """
+    cred_path = Path(credentials_path)
+    if not cred_path.is_file():
+        return None
+    creds = Credentials.from_service_account_file(str(cred_path))
+    service = build("drive", "v3", credentials=creds, cache_discovery=False)
+    return service
+
+
+def GetFolderId(service, folder_name: str) -> str:
+    """フォルダID取得
+    
+    Args:
+        service : GoogleDriveのAPI操作サービスクライアントオブジェクト
+        folder_name (str): 取得フォルダ名
+
+    Returns:
+        str: 正常時folder_nameのフォルダID、存在しないまたはエラー時空文字列
+    """
+    folder_id = ""
+    results = service.files().list(q="mimeType='application/vnd.google-apps.folder'").execute()
+    items = results.get("files")
+    for item in items:
+        if ("name" in item) and ("id" in item):
+            if item["name"] == folder_name:
+                folder_id = item["id"]
+                break
+    return folder_id
+
+
+def UploadToGoogleDrive(file_path, credentials_path, folder_name="PictureGathering"):
     warnings.filterwarnings("ignore")
     creds = Credentials.from_service_account_file(credentials_path)
     service = build("drive", "v3", credentials=creds, cache_discovery=False)
 
     # フォルダID取得
-    GOOGLEDRIVE_FOLDER_NAME = "PictureGathering"
+    GOOGLEDRIVE_FOLDER_NAME = folder_name
     folder_id = ""
     results = service.files().list(q="mimeType='application/vnd.google-apps.folder'").execute()
     items = results.get("files")
@@ -77,13 +116,13 @@ def UploadToGoogleDrive(file_path, credentials_path):
     return results
 
 
-def GoogleDriveAllDelete():
+def GoogleDriveAllDelete(folder_name="PictureGathering"):
     # 全ファイル消す
-    creds = Credentials.from_service_account_file('./config/credentials.json')
-    service = build('drive', 'v3', credentials=creds)
+    creds = Credentials.from_service_account_file("./config/credentials.json")
+    service = build("drive", "v3", credentials=creds)
 
     # フォルダID取得
-    GOOGLEDRIVE_FOLDER_NAME = "PictureGathering"
+    GOOGLEDRIVE_FOLDER_NAME = folder_name
     folder_id = ""
     results = service.files().list(q="mimeType='application/vnd.google-apps.folder'").execute()
     items = results.get("files")
@@ -99,53 +138,104 @@ def GoogleDriveAllDelete():
         return None
 
     # 取得
-    results = service.files().list().execute()
-    items = results.get('files')
+    results = service.files().list(q="'{}' in parents".format(folder_id)).execute()
+    items = results.get("files")
 
     for item in items:
         # 削除（デリート）
         if item["id"] != folder_id:
-            f = service.files().delete(fileId=item['id']).execute()
+            f = service.files().delete(fileId=item["id"]).execute()
     return 0
 
 
-def GoogleDriveApiTest():
-    creds = Credentials.from_service_account_file('./config/credentials.json')
+def GoogleDriveDirectoryCopy(src_foldername: str, dest_foldername: str) -> str:
+    """GoogleDrive内のディレクトリをコピーする
 
-    service = build('drive', 'v3', credentials=creds)
+    Notes:
+        権限の都合上、{src_foldername}内に{dest_foldername}を作成する。
+        {src_foldername}内のすべてのファイルを、./{src_foldername}/{dest_foldername}/ 配下にコピーする。
+
+    Args:
+        src_foldername (str): コピー元ファイルが存在するディレクトリ名
+        dest_foldername (str): コピー先ディレクトリ名（存在しない場合作成される）
+
+    Returns:
+        str: 正常時{dest_foldername}のフォルダID、エラー時空文字列
+    """
+    service = GetAPIService("./config/credentials.json")
+    if not service:
+        return ""
+
+    # src_foldernameのフォルダID取得
+    src_folderid = GetFolderId(service, src_foldername)
+
+    # dest_foldernameのフォルダID取得（存在しない場合は空文字列）
+    dest_folderid = GetFolderId(service, dest_foldername)
+
+    # dest_foldernameが存在していない場合作成
+    if dest_folderid == "":
+        file_metadata = {
+            "name": dest_foldername,
+            "mimeType": "application/vnd.google-apps.folder",
+            "parents": [src_folderid]
+        }
+        service.files().create(body=file_metadata,
+                               fields="id").execute()
+        dest_folderid = GetFolderId(service, dest_foldername)
+        if dest_folderid == "":
+            return ""
+
+    # src_foldername内のファイルを取得
+    results = service.files().list(q="mimeType!='application/vnd.google-apps.folder'",
+                                   fields="files(id,name,mimeType,trashed,parents,createdTime)").execute()
+    items = results.get("files", [])
+
+    for item in items:
+        file_metadata = {
+            "parents": [dest_folderid]
+        }
+        service.files().copy(body=file_metadata, fileId=item["id"]).execute()
+    return dest_folderid
+
+
+def GoogleDriveApiTest():
+    creds = Credentials.from_service_account_file("./config/credentials.json")
+
+    service = build("drive", "v3", credentials=creds)
 
     # Call the Drive v3 API
 
     # 作成（アップロード）
     folder_id = ""
     file_metadata = {
-        'name': "fw2g.jpg",
-        'mimeType': "image/jpeg",
-        'parents': [folder_id]
+        "name": "fw2g.jpg",
+        "mimeType": "image/jpeg",
+        "parents": [folder_id]
     }
     media = MediaFileUpload("fw2g.jpg",
-                            mimetype='image/jpeg',
+                            mimetype="image/jpeg",
                             resumable=True)
     service.files().create(body=file_metadata,
                            media_body=media,
-                           fields='id').execute()
+                           fields="id").execute()
 
     # 取得
     results = service.files().list().execute()
-    items = results.get('files', [])
+    items = results.get("files", [])
 
     if not items:
-        print('No files found.')
+        print("No files found.")
     else:
-        print('Files:')
+        print("Files:")
         for item in items:
-            print(u'{0} ({1})'.format(item['name'], item['id']))
+            print("{0} ({1})".format(item["name"], item["id"]))
             # 削除（デリート）
             if item["id"] != folder_id:
-                f = service.files().delete(fileId=item['id']).execute()
+                f = service.files().delete(fileId=item["id"]).execute()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # GoogleDriveAllDelete()
     # UploadToGoogleDrive("D:\\Users\\shift\\Documents\\git\\PictureGathering\\archive\\Fav_20200624_174315.zip", "./config/credentials.json")
+    # GoogleDriveDirectoryCopy("PictureGathering", "test")
     pass
