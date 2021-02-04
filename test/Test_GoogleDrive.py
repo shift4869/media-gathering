@@ -135,11 +135,11 @@ class TestGoogleDrive(unittest.TestCase):
                         res = {}
                         elements = []
 
-                        rs = re.search("^mimeType='()'$", buf_q)
+                        rs = re.search("^mimeType='(.*)'$", buf_q)
                         if rs and rs.groups():
                             mimeType = rs.groups()[0]
                             elements = [r for r in self.drive if r["mimeType"] == mimeType]
-                        rs = re.search("^mimeType!='()'$", buf_q)
+                        rs = re.search("^mimeType!='(.*)'$", buf_q)
                         if rs and rs.groups():
                             mimeType = rs.groups()[0]
                             elements = [r for r in self.drive if r["mimeType"] != mimeType]
