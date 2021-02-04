@@ -78,13 +78,14 @@ def UploadToGoogleDrive(file_path: str, credentials_path: str, folder_name: str 
         for item in items:
             created_datetime = datetime.strptime(item["createdTime"], td_format) + timedelta(hours=9)
             if old_create_time > created_datetime:
+                old_create_time = created_datetime
                 old_file_id = item["id"]
 
         if old_file_id != -1:
             results = service.files().delete(fileId=old_file_id).execute()
     
     # 同名ファイルがある場合は削除
-    file_name = os.path.basename(file_path)
+    file_name = Path(file_path).name
     results = service.files().list(q="name='{}' and mimeType='application/x-zip-compressed' and '{}' in parents".format(file_name, folder_id),
                                    fields="files(id,name,mimeType,trashed,parents,createdTime)").execute()
     items = results.get("files")
