@@ -37,22 +37,6 @@ TEST_FOLDER_NAME = "test"
 class TestGoogleDrive(unittest.TestCase):
     """テストメインクラス
     """
-    @classmethod
-    def setUpClass(cls):
-        # テスト用フォルダに現在のアーカイブ先フォルダ内のファイルをコピー
-        # service = GoogleDrive.GetAPIService(CREDENTIALS_PATH)
-        # dest_folderid = GoogleDrive.GoogleDriveDirectoryCopy(SOURCE_FOLDER_NAME, TEST_FOLDER_NAME)
-        pass
-
-    @classmethod
-    def tearDownClass(cls):
-        # service = GoogleDrive.GetAPIService(CREDENTIALS_PATH)
-        # dest_folderid = GoogleDrive.GetFolderId(service, TEST_FOLDER_NAME)
-        # テスト用フォルダ削除
-        # フォルダをdeleteするとフォルダ内のファイルも警告なしで全て削除される
-        # service.files().delete(fileId=dest_folderid).execute()
-        pass
-
     def setUp(self):
         # requestsのResourceWarning抑制
         warnings.simplefilter("ignore", ResourceWarning)
@@ -61,18 +45,19 @@ class TestGoogleDrive(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def __MakeInitialDrive(self):
+    def __MakeInitialDrive(self) -> List[dict]:
+        """仮想のGoogleDriveの初期状態を設定する
+
+        Returns:
+            list[dict]: GoogleDriveの仮想rootフォルダと仮想Filesオブジェクトのリスト
+        """
+        res = []
+
         # 仮想のrootフォルダ
         mimeType = "application/vnd.google-apps.folder"
-        res = []
         r = self.__MakeFilesObject(SOURCE_FOLDER_NAME, mimeType, [])
         parents = r["id"]
         res.append(r)
-
-        # 仮想のテスト用フォルダ
-        # r = self.__MakeFilesObject(TEST_FOLDER_NAME, mimeType, [parents])
-        # parents = r["id"]
-        # res.append(r)
 
         # 仮想のrootフォルダ内に仮想のサンプルファイルを追加
         mimeType = "application/x-zip-compressed"
@@ -80,7 +65,17 @@ class TestGoogleDrive(unittest.TestCase):
             res.append(self.__MakeFilesObject("sample_{}.zip".format(i), mimeType, [parents]))
         return res
 
-    def __MakeFilesObject(self, name, mimeType, parents):
+    def __MakeFilesObject(self, name: str, mimeType: str, parents: List[str]) -> dict:
+        """仮想Filesオブジェクトを生成する
+
+        Args:
+            name (str): ファイル/フォルダ名
+            mimeType (str): mimetype
+            parents (str): 所属するフォルダのID
+
+        Returns:
+            dict: 仮想Filesオブジェクト
+        """
         td_format = "%Y-%m-%dT%H:%M:%S.%fZ"
         ct = (datetime.now() + timedelta(hours=-9)).strftime(td_format)
         parents_str = "_".join(parents)
@@ -95,17 +90,35 @@ class TestGoogleDrive(unittest.TestCase):
         }
         return res
 
-    def __MakeCredentialsMock(self, mock):
-        # "google.oauth2.service_account.Credentials.from_service_account_file" のモックを設定するヘルパ
-        # 呼び出し例:creds = Credentials.from_service_account_file(str(cred_path))
+    def __MakeCredentialsMock(self, mock: MagicMock) -> MagicMock:
+        """ "google.oauth2.service_account.Credentials.from_service_account_file" のモックを設定するヘルパ
+
+        Notes:
+            呼び出し例:creds = Credentials.from_service_account_file(str(cred_path))
+
+        Args:
+            mock (MagicMock): 設定対象のmock
+
+        Returns:
+            MagicMock: 設定後のmock
+        """
         def creds_se(filename):
             return filename
         mock.side_effect = creds_se
         return mock
 
-    def __MakeMediaUploadMock(self, mock):
-        # "apiclient.http.MediaFileUpload" のモックを設定するヘルパ
-        # 呼び出し例:media = MediaFileUpload(file_path, mimetype="application/x-zip-compressed", resumable=True)
+    def __MakeMediaUploadMock(self, mock: MagicMock) -> MagicMock:
+        """ "apiclient.http.MediaFileUpload" のモックを設定するヘルパ
+
+        Notes:
+            呼び出し例:media = MediaFileUpload(file_path, mimetype="application/x-zip-compressed", resumable=True)
+
+        Args:
+            mock (MagicMock): 設定対象のmock
+
+        Returns:
+            MagicMock: 設定後のmock
+        """
         def mediaupload_se(file_path, mimetype, resumable):
             res = {
                 "file_path": file_path,
@@ -116,14 +129,23 @@ class TestGoogleDrive(unittest.TestCase):
         mock.side_effect = mediaupload_se
         return mock
 
-    def __MakeBuildMock(self, mock):
-        # "PictureGathering.GoogleDrive.build" のモックを設定するヘルパ
-        # 呼び出し例:
-        # service = build("drive", "v3", credentials=creds, cache_discovery=False)
-        # results = service.files().list(q="mimeType='application/vnd.google-apps.folder'").execute()
-        # results = service.files().create(body=file_metadata, media_body=media, fields="id").execute()
-        # results = service.files().copy(body=file_metadata, fileId=item["id"]).execute()
-        # results = service.files().delete(fileId=item["id"]).execute()
+    def __MakeBuildMock(self, mock: MagicMock) -> MagicMock:
+        """ "PictureGathering.GoogleDrive.build" のモックを設定するヘルパ
+
+        Notes:
+            呼び出し例:
+            service = build("drive", "v3", credentials=creds, cache_discovery=False)
+            results = service.files().list(q="mimeType='application/vnd.google-apps.folder'").execute()
+            results = service.files().create(body=file_metadata, media_body=media, fields="id").execute()
+            results = service.files().copy(body=file_metadata, fileId=item["id"]).execute()
+            results = service.files().delete(fileId=item["id"]).execute()
+
+        Args:
+            mock (MagicMock): 設定対象のmock
+
+        Returns:
+            MagicMock: 設定後のmock
+        """
         def ReturnBuild(serviceName, version, credentials, cache_discovery):
             def ReturnFiles():
                 buf_q = ""
@@ -200,7 +222,10 @@ class TestGoogleDrive(unittest.TestCase):
                     buf_fileId = fileId
 
                     def ReturnCopyExecute():
-                        record = [r for r in self.drive if r["id"] == buf_fileId][0]
+                        records = [r for r in self.drive if r["id"] == buf_fileId]
+                        if len(records) != 1:
+                            return ""
+                        record = records[0]
                         parents = buf_body.get("parents")
 
                         r = self.__MakeFilesObject(record["name"], record["mimeType"], parents)
@@ -243,10 +268,9 @@ class TestGoogleDrive(unittest.TestCase):
             p_files = PropertyMock()
             p_files.return_value = ReturnFiles
             type(r1).files = p_files
-
             return r1
+
         mock.side_effect = ReturnBuild
-        
         return mock
 
     def test_GetAPIService(self):
