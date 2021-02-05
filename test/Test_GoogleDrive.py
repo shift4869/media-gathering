@@ -4,7 +4,6 @@
 GoogleDrive APIの各種機能をテストする
 設定ファイルとして ./config/credentials.json を使用する
 各種機能、テストの中でもGoogleDrive APIを実際に呼び出してテストする
-TODO::モック化
 """
 
 import hashlib
@@ -103,6 +102,7 @@ class TestGoogleDrive(unittest.TestCase):
             MagicMock: 設定後のmock
         """
         def creds_se(filename):
+            self.assertTrue(Path(filename).is_file())
             return filename
         mock.side_effect = creds_se
         return mock
@@ -120,6 +120,8 @@ class TestGoogleDrive(unittest.TestCase):
             MagicMock: 設定後のmock
         """
         def mediaupload_se(file_path, mimetype, resumable):
+            self.assertTrue(Path(file_path).is_file())
+            self.assertEqual(True, resumable)
             res = {
                 "file_path": file_path,
                 "mimetype": mimetype,
@@ -147,40 +149,43 @@ class TestGoogleDrive(unittest.TestCase):
             MagicMock: 設定後のmock
         """
         def ReturnBuild(serviceName, version, credentials, cache_discovery):
+            self.assertEqual("drive", serviceName)
+            self.assertEqual("v3", version)
+            self.assertEqual(str(Path(CREDENTIALS_PATH)), credentials)
+            self.assertTrue(Path(credentials).is_file())
+            self.assertEqual(False, cache_discovery)
+
             def ReturnFiles():
-                buf_q = ""
-
                 def ReturnList(q, fields=""):
-                    buf_q = q
-
                     def ReturnListExecute():
                         res = {}
-                        elements = []
+                        records = []
 
-                        rs = re.search("^mimeType='(.*)'$", buf_q)
+                        rs = re.search("^mimeType='(.*)'$", q)
                         if rs and rs.groups():
                             mimeType = rs.groups()[0]
-                            elements = [r for r in self.drive if r["mimeType"] == mimeType]
-                        rs = re.search("^mimeType!='(.*)'$", buf_q)
+                            records = [r for r in self.drive if r["mimeType"] == mimeType]
+                        rs = re.search("^mimeType!='(.*)'$", q)
                         if rs and rs.groups():
                             mimeType = rs.groups()[0]
-                            elements = [r for r in self.drive if r["mimeType"] != mimeType]
-                        rs = re.search("^'(.*)' in parents$", buf_q)
+                            records = [r for r in self.drive if r["mimeType"] != mimeType]
+                        rs = re.search("^'(.*)' in parents$", q)
                         if rs and rs.groups():
                             parent = rs.groups()[0]
-                            elements = [r for r in self.drive if parent in r["parents"]]
-                        rs = re.search("^mimeType='(.*)' and '(.*)' in parents$", buf_q)
+                            records = [r for r in self.drive if parent in r["parents"]]
+                        rs = re.search("^mimeType='(.*)' and '(.*)' in parents$", q)
                         if rs and rs.groups():
                             mimeType = rs.groups()[0]
                             parent = rs.groups()[1]
-                            elements = [r for r in self.drive if r["mimeType"] == mimeType and parent in r["parents"]]
-                        rs = re.search("^name='(.*)' and mimeType='(.*)' and '(.*)' in parents$", buf_q)
+                            records = [r for r in self.drive if r["mimeType"] == mimeType and parent in r["parents"]]
+                        rs = re.search("^name='(.*)' and mimeType='(.*)' and '(.*)' in parents$", q)
                         if rs and rs.groups():
                             name = rs.groups()[0]
                             mimeType = rs.groups()[1]
                             parent = rs.groups()[2]
-                            elements = [r for r in self.drive if r["name"] == name and r["mimeType"] == mimeType and parent in r["parents"]]
-                        res["files"] = elements
+                            records = [r for r in self.drive if r["name"] == name and r["mimeType"] == mimeType and parent in r["parents"]]
+
+                        res["files"] = records
                         return res
 
                     r3 = MagicMock()
@@ -195,13 +200,13 @@ class TestGoogleDrive(unittest.TestCase):
                 type(r2).list = p_list
 
                 def ReturnCreate(body, fields="", media_body=""):
-                    buf_body = body
-                    buf_media_body = media_body
-
                     def ReturnCreateExecute():
-                        name = buf_body.get("name")
-                        mimeType = buf_body.get("mimeType")
-                        parents = buf_body.get("parents")
+                        self.assertTrue("name" in body)
+                        self.assertTrue("mimeType" in body)
+                        self.assertTrue("parents" in body)
+                        name = body.get("name")
+                        mimeType = body.get("mimeType")
+                        parents = body.get("parents")
 
                         r = self.__MakeFilesObject(name, mimeType, parents)
                         self.drive.append(r)
@@ -218,15 +223,15 @@ class TestGoogleDrive(unittest.TestCase):
                 type(r2).create = p_create
                 
                 def ReturnCopy(body, fileId):
-                    buf_body = body
-                    buf_fileId = fileId
-
                     def ReturnCopyExecute():
-                        records = [r for r in self.drive if r["id"] == buf_fileId]
-                        if len(records) != 1:
-                            return ""
+                        records = [r for r in self.drive if r["id"] == fileId]
+                        self.assertEqual(1, len(records))
                         record = records[0]
-                        parents = buf_body.get("parents")
+                        self.assertTrue("name" in record)
+                        self.assertTrue("mimeType" in record)
+
+                        self.assertTrue("parents" in body)
+                        parents = body.get("parents")
 
                         r = self.__MakeFilesObject(record["name"], record["mimeType"], parents)
                         self.drive.append(r)
@@ -243,12 +248,9 @@ class TestGoogleDrive(unittest.TestCase):
                 type(r2).copy = p_copy
                 
                 def ReturnDelete(fileId):
-                    buf_fileId = fileId
-
                     def ReturnDeleteExecute():
-                        records = [r for r in self.drive if r["id"] == buf_fileId]
-                        if len(records) != 1:
-                            return ""
+                        records = [r for r in self.drive if r["id"] == fileId]
+                        self.assertEqual(1, len(records))
                         r = records[0]
                         self.drive.remove(r)
                         return r["id"]
