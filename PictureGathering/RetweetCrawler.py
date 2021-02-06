@@ -5,7 +5,7 @@ from datetime import datetime
 from logging import DEBUG, INFO, getLogger
 from pathlib import Path
 
-from PictureGathering.Crawler import Crawler
+from PictureGathering.Crawler import Crawler, PixivAPIController
 
 logger = getLogger("root")
 logger.setLevel(INFO)
@@ -83,9 +83,10 @@ class RetweetCrawler(Crawler):
                         # pixivリンクが含まれているか
                         if media_tweet.get("entities").get("urls"):
                             e_urls = media_tweet["entities"]["urls"]
+                            IsPixivURL = PixivAPIController.PixivAPIController.IsPixivURL
                             for element in e_urls:
                                 expanded_url = element.get("expanded_url")
-                                if "https://www.pixiv.net/artworks/" in expanded_url:
+                                if IsPixivURL(expanded_url):
                                     include_new_flag = True
                         pass
                     else:

@@ -192,6 +192,10 @@ class TestCrawler(unittest.TestCase):
         # RTフラグ, 引用RTフラグ
         extended_entities = self.__GetExtendedEntitiesSample(media_url, "photo")
         media_tweet = dict(tweet)
+        r = "{:0>5}".format(random.randint(0, 99999))
+        media_tweet["id"] = int(r)
+        media_tweet["id_str"] = r
+        media_tweet["text"] = media_tweet["text"] + "_" + r
         media_tweet["extended_entities"] = extended_entities["extended_entities"]
         if is_retweeted and (not is_quoted):
             tweet["retweeted_status"] = media_tweet

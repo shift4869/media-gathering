@@ -17,7 +17,7 @@ from pathlib import Path
 
 from mock import MagicMock, PropertyMock, patch
 
-from PictureGathering import RetweetCrawler
+from PictureGathering import RetweetCrawler, PixivAPIController
 
 logger = getLogger("root")
 logger.setLevel(WARNING)
@@ -154,6 +154,10 @@ class TestRetweetCrawler(unittest.TestCase):
         # RTフラグ, 引用RTフラグ
         extended_entities = self.__GetExtendedEntitiesSample(media_url, "photo")
         media_tweet = dict(tweet)
+        r = "{:0>5}".format(random.randint(0, 99999))
+        media_tweet["id"] = int(r)
+        media_tweet["id_str"] = r
+        media_tweet["text"] = media_tweet["text"] + "_" + r
         media_tweet["extended_entities"] = extended_entities["extended_entities"]
         if is_retweeted and (not is_quoted):
             tweet["retweeted_status"] = media_tweet
@@ -260,16 +264,18 @@ class TestRetweetCrawler(unittest.TestCase):
             s_rt_t = [self.__GetTweetSample(s_media_url.format(i), "photo", True) for i in range(3)]
             s_quote_t = [self.__GetTweetSample(s_media_url.format(i), "photo", False, True) for i in range(3)]
             s_rt_quote_t = [self.__GetTweetSample(s_media_url.format(i), "photo", True, True) for i in range(3)]
-            s_t = s_nrt_t + s_nm_t + s_rt_t + s_quote_t + s_rt_quote_t
+            s_rt_pixiv_t = [self.__GetTweetSample(s_media_url.format(i), "None", True, False, True) for i in range(3)]
+            s_t = s_nrt_t + s_nm_t + s_rt_t + s_quote_t + s_rt_quote_t + s_rt_pixiv_t
+            random.shuffle(s_t)
             import copy
             s_t_expect = copy.deepcopy(s_t)
-            # random.shuffle(s_t)
             s_se = [[s_t[0]],
                     [s_t[1], s_t[2]],
                     [s_t[3], s_t[4], s_t[5]],
                     [s_t[6], s_t[7], s_t[8]],
                     [s_t[9], s_t[10], s_t[11]],
-                    [s_t[12], s_t[13], s_t[14]]]
+                    [s_t[12], s_t[13], s_t[14]],
+                    [s_t[15], s_t[16], s_t[17]]]
             mockapireq.side_effect = s_se
 
             # 変数設定
@@ -288,23 +294,56 @@ class TestRetweetCrawler(unittest.TestCase):
 
             # 予想値取得
             expect = []
-            for s_ti in s_t_expect:
-                rs = rc.GetMediaTweet(s_ti)
-                for r in rs:
-                    if r.get("extended_entities"):
-                        if r.get("retweeted") or r.get("is_quote_status"):
-                            if r.get("retweeted") and r.get("retweeted_status"):
-                                r["retweeted"] = False
-                                r["retweeted_status"] = {"modified_by_crawler": True}
-                            if r.get("is_quote_status") and r.get("quoted_status"):
-                                r["is_quote_status"] = False
-                                r["quoted_status"] = {"modified_by_crawler": True}
-                            expect.append(r)
+            s_expect_filenames = []
+            for t in s_t_expect:
+                rt_flag = t.get("retweeted")
+                quote_flag = t.get("is_quote_status")
+                if not (rt_flag or quote_flag):
+                    continue
+
+                media_tweets = rc.GetMediaTweet(t)
+                
+                if not media_tweets:
+                    continue
+
+                for media_tweet in media_tweets:
+                    media_tweet["created_at"] = media_tweets[0]["created_at"]
+
+                    entities = media_tweet.get("extended_entities")
+                    include_new_flag = False
+                    if not entities:
+                        if media_tweet.get("entities").get("urls"):
+                            e_urls = media_tweet["entities"]["urls"]
+                            IsPixivURL = PixivAPIController.PixivAPIController.IsPixivURL
+                            for element in e_urls:
+                                expanded_url = element.get("expanded_url")
+                                if IsPixivURL(expanded_url):
+                                    include_new_flag = True
+                        pass
+                    else:
+                        for entity in entities["media"]:
+                            media_url = rc.GetMediaUrl(entity)
+                            filename = Path(media_url).name
+
+                            if filename not in s_exist_filenames:
+                                if filename not in s_expect_filenames:
+                                    include_new_flag = True
+                                    s_expect_filenames.append(filename)
+
+                    if include_new_flag:
+                        if media_tweet.get("retweeted") and media_tweet.get("retweeted_status"):
+                            media_tweet["retweeted"] = False
+                            media_tweet["retweeted_status"] = {"modified_by_crawler": True}
+                        if media_tweet.get("is_quote_status") and media_tweet.get("quoted_status"):
+                            media_tweet["is_quote_status"] = False
+                            media_tweet["quoted_status"] = {"modified_by_crawler": True}
+                        
+                        expect.append(media_tweet)
+
             expect.reverse()
 
             self.assertEqual(len(expect), len(actual))
             self.assertEqual(expect, actual)
-            pass
 
     def test_UpdateDBExistMark(self):
         """存在マーキング更新機能呼び出しをチェックする
