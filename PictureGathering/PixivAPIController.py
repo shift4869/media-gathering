@@ -274,7 +274,7 @@ class PixivAPIController:
             result = regex.match(sd_path.name)
             if result:
                 illust_id = int(result.group(1))
-                self.DownloadUgoira(illust_id, save_directory_path)
+                self.DownloadUgoira(illust_id, str(sd_path.parent))
         else:  # エラー
             return -1
         return 0
@@ -287,7 +287,7 @@ class PixivAPIController:
             {base_path}/{イラストタイトル}({イラストID}).gifとしてアニメーションgifを保存
 
         Args:
-            illust_id (int):イラストID
+            illust_id (int): イラストID
             base_path (str): 保存先ベースフルパス
 
         Returns:
@@ -365,7 +365,7 @@ if __name__ == "__main__":
 
     if config["pixiv"].getboolean("is_pixiv_trace"):
         pa_cont = PixivAPIController(config["pixiv"]["username"], config["pixiv"]["password"])
-        work_url = "https://www.pixiv.net/artworks/86704541"
+        work_url = "https://www.pixiv.net/artworks/87559623"
         urls = pa_cont.GetIllustURLs(work_url)
         save_directory_path = pa_cont.MakeSaveDirectoryPath(work_url, config["pixiv"]["save_base_path"])
         pa_cont.DownloadIllusts(urls, save_directory_path)
