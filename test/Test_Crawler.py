@@ -925,13 +925,13 @@ class TestCrawler(unittest.TestCase):
 
             expect_called_arg = GetTweetMediaSaverCalledArg(s_tweet_list)
 
-            # actual = crawler.InterpretTweets(s_tweet_list)
+            actual = crawler.InterpretTweets(s_tweet_list)
             actual_called_arg = []
             for called_arg in mockms.call_args_list:
                 actual_called_arg.append(called_arg[0])
 
-            # self.assertEqual(len(expect_called_arg), len(actual_called_arg))
-            # self.assertEqual(expect_called_arg, actual_called_arg)
+            self.assertEqual(len(expect_called_arg), len(actual_called_arg))
+            self.assertEqual(expect_called_arg, actual_called_arg)
 
     def test_GetExistFilelist(self):
         """save_pathにあるファイル名一覧取得処理をチェックする
