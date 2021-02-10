@@ -39,30 +39,110 @@ class TestPixivAPIController(unittest.TestCase):
         if self.TBP.is_dir():
             shutil.rmtree(self.TBP)
 
+    def __MakeLoginMock(self, mock: MagicMock) -> MagicMock:
+        def LoginSideeffect(username, password):
+            if self.username == username and self.password == password:
+                def ReturnWorks(illust_id):
+                    r_works = MagicMock()
+                    p_status = PropertyMock()
+                    if 0 < illust_id and illust_id < 99999999:
+                        p_status.return_value = "success"
+                    else:
+                        p_status.return_value = "failed"
+                    type(r_works).status = p_status
+
+                    def ReturnResponse():
+                        r_response = MagicMock()
+                        p_is_manga = PropertyMock()
+
+                        # マンガ形式かどうかの判定
+                        is_manga = False
+                        if str(illust_id) == "59580629":
+                            is_manga = False
+                        elif str(illust_id) == "24010650":
+                            is_manga = True
+
+                        p_is_manga.return_value = is_manga
+                        type(r_response).is_manga = p_is_manga
+
+                        def ReturnLarge(url):
+                            r_large = MagicMock()
+                            p_large = PropertyMock()
+
+                            p_large.return_value = url
+                            type(r_large).large = p_large
+                            return r_large
+
+                        def ReturnImageurls(url):
+                            r_imageurls = MagicMock()
+                            p_imageurls = PropertyMock()
+                            p_imageurls.return_value = ReturnLarge(url)
+                            type(r_imageurls).image_urls = p_imageurls
+                            return r_imageurls
+
+                        def ReturnPages():
+                            r_pages = MagicMock()
+                            p_pages = PropertyMock()
+
+                            # 漫画形式のreturn_value設定
+                            res = []
+                            if str(illust_id) == "24010650":
+                                url_base = "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/{}_p{}.png"
+                                urls = [url_base.format(illust_id, i) for i in range(5)]
+                                res = [ReturnImageurls(url) for url in urls]
+
+                            p_pages.return_value = res
+                            type(r_pages).pages = p_pages
+                            return r_pages
+
+                        p_metadata = PropertyMock()
+                        p_metadata.return_value = ReturnPages()
+                        type(r_response).metadata = p_metadata
+
+                        # 一枚絵のreturn_value設定
+                        url = ""
+                        if str(illust_id) == "59580629":
+                            url = "https://i.pximg.net/img-original/img/2016/10/22/10/11/37/{}_p0.jpg".format(illust_id)
+
+                        p_image_urls = PropertyMock()
+                        p_image_urls.return_value = ReturnLarge(url)
+                        type(r_response).image_urls = p_image_urls
+
+                        return r_response
+
+                    p_response = PropertyMock()
+                    p_response.side_effect = lambda: [ReturnResponse()]
+                    type(r_works).response = p_response
+
+                    return r_works
+
+                api_response = MagicMock()
+                p_works = PropertyMock()
+                p_works.return_value = ReturnWorks
+                type(api_response).works = p_works
+
+                p_access_token = PropertyMock()
+                p_access_token.return_value = "ok"
+                type(api_response).access_token = p_access_token
+
+                aapi_response = MagicMock()
+                p_access_token = PropertyMock()
+                p_access_token.return_value = "ok"
+                type(aapi_response).access_token = p_access_token
+
+                return (api_response, aapi_response, True)
+            else:
+                return (None, None, False)
+
+        mock.side_effect = LoginSideeffect
+        return mock
+
     def test_PixivAPIController(self):
         """非公式pixivAPI利用クラス初期状態チェック
         """
         with ExitStack() as stack:
             mockpalogin = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.Login"))
-
-            def LoginSideeffect(username, password):
-                if self.username == username and self.password == password:
-                    api_response = MagicMock()
-                    p_access_token = PropertyMock()
-                    p_access_token.return_value = "ok"
-                    type(api_response).access_token = p_access_token
-
-                    aapi_response = MagicMock()
-                    p_access_token = PropertyMock()
-                    p_access_token.return_value = "ok"
-                    type(aapi_response).access_token = p_access_token
-
-                    return (api_response, aapi_response, True)
-                else:
-                    return (None, None, False)
-
-            mockpalogin.side_effect = LoginSideeffect
-
+            mockpalogin = self.__MakeLoginMock(mockpalogin)
             pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
 
             self.assertIsNotNone(pa_cont.api)
@@ -171,25 +251,7 @@ class TestPixivAPIController(unittest.TestCase):
         """
         with ExitStack() as stack:
             mockpalogin = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.Login"))
-
-            def LoginSideeffect(username, password):
-                if self.username == username and self.password == password:
-                    api_response = MagicMock()
-                    p_access_token = PropertyMock()
-                    p_access_token.return_value = "ok"
-                    type(api_response).access_token = p_access_token
-
-                    aapi_response = MagicMock()
-                    p_access_token = PropertyMock()
-                    p_access_token.return_value = "ok"
-                    type(aapi_response).access_token = p_access_token
-
-                    return (api_response, aapi_response, True)
-                else:
-                    return (None, None, False)
-
-            mockpalogin.side_effect = LoginSideeffect
-
+            mockpalogin = self.__MakeLoginMock(mockpalogin)
             pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
 
             # 正常系
@@ -210,72 +272,9 @@ class TestPixivAPIController(unittest.TestCase):
         """
         with ExitStack() as stack:
             mockpalogin = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.Login"))
-
-            def LoginSideeffect(username, password):
-                if self.username == username and self.password == password:
-                    def ReturnWorks(illust_id):
-                        r_works = MagicMock()
-                        p_status = PropertyMock()
-                        p_status.return_value = "success"
-                        type(r_works).status = p_status
-
-                        def ReturnResponse():
-                            r_response = MagicMock()
-                            p_is_manga = PropertyMock()
-                            p_is_manga.return_value = True
-                            type(r_response).is_manga = p_is_manga
-
-                            def ReturnImageurls():
-                                def ReturnLarge():
-                                    r_large = MagicMock()
-                                    p_large = PropertyMock()
-                                    p_large.return_value = str(illust_id)
-                                    type(r_large).large = p_large
-                                    return r_large
-
-                                r_imageurls = MagicMock()
-                                p_imageurls = PropertyMock()
-                                p_imageurls.return_value = ReturnLarge()
-                                type(r_imageurls).image_urls = p_imageurls
-                                return r_imageurls
-
-                            def ReturnPages():
-                                r_pages = MagicMock()
-                                p_pages = PropertyMock()
-                                p_pages.side_effect = lambda: [ReturnImageurls()]
-                                type(r_pages).pages = p_pages
-                                return r_pages
-
-                            p_metadata = PropertyMock()
-                            p_metadata.return_value = ReturnPages()
-                            type(r_response).metadata = p_metadata
-
-                            return r_response
-
-                        p_response = PropertyMock()
-                        p_response.side_effect = lambda: [ReturnResponse()]
-                        type(r_works).response = p_response
-
-                        return r_works
-
-                    api_response = MagicMock()
-                    p_works = PropertyMock()
-                    p_works.return_value = ReturnWorks
-                    type(api_response).works = p_works
-
-                    aapi_response = MagicMock()
-                    p_access_token = PropertyMock()
-                    p_access_token.return_value = "ok"
-                    type(aapi_response).access_token = p_access_token
-
-                    return (api_response, aapi_response, True)
-                else:
-                    return (None, None, False)
-
-            mockpalogin.side_effect = LoginSideeffect
-
+            mockpalogin = self.__MakeLoginMock(mockpalogin)
             pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
-        
+
             # 一枚絵
             url_s = "https://www.pixiv.net/artworks/59580629"
             expect = ["https://i.pximg.net/img-original/img/2016/10/22/10/11/37/59580629_p0.jpg"]
@@ -285,10 +284,10 @@ class TestPixivAPIController(unittest.TestCase):
             # 漫画形式
             url_s = "https://www.pixiv.net/artworks/24010650"
             expect = ["https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p0.png",
-                    "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p1.png",
-                    "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p2.png",
-                    "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p3.png",
-                    "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p4.png"]
+                      "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p1.png",
+                      "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p2.png",
+                      "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p3.png",
+                      "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p4.png"]
             actual = pa_cont.GetIllustURLs(url_s)
             self.assertEqual(expect, actual)
 
@@ -307,36 +306,40 @@ class TestPixivAPIController(unittest.TestCase):
     def test_MakeSaveDirectoryPath(self):
         """保存先ディレクトリパスを生成する機能をチェック
         """
-        pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
-        url_s = "https://www.pixiv.net/artworks/24010650"
-        expect = Path(self.TEST_BASE_PATH) / "./shift(149176)/フランの羽[アイコン用](24010650)/"
+        with ExitStack() as stack:
+            mockpalogin = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.Login"))
+            mockpalogin = self.__MakeLoginMock(mockpalogin)
+            pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
 
-        # 想定保存先ディレクトリが存在する場合は削除する
-        if expect.is_dir():
-            shutil.rmtree(expect)
+            url_s = "https://www.pixiv.net/artworks/24010650"
+            expect = Path(self.TEST_BASE_PATH) / "./shift(149176)/フランの羽[アイコン用](24010650)/"
 
-        # 保存先ディレクトリが存在しない場合の実行
-        actual = Path(pa_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH))
-        self.assertEqual(expect, actual)
+            # 想定保存先ディレクトリが存在する場合は削除する
+            if expect.is_dir():
+                shutil.rmtree(expect)
 
-        # 保存先ディレクトリを作成する
-        actual.mkdir(parents=True, exist_ok=True)
+            # 保存先ディレクトリが存在しない場合の実行
+            actual = Path(pa_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH))
+            self.assertEqual(expect, actual)
 
-        # 保存先ディレクトリが存在する場合の実行
-        actual = Path(pa_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH))
-        self.assertEqual(expect, actual)
+            # 保存先ディレクトリを作成する
+            actual.mkdir(parents=True, exist_ok=True)
 
-        # サフィックスエラー
-        url_s = "https://www.pixiv.net/artworks/24010650?rank=1"
-        expect = ""
-        actual = pa_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH)
-        self.assertEqual(expect, actual)
+            # 保存先ディレクトリが存在する場合の実行
+            actual = Path(pa_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH))
+            self.assertEqual(expect, actual)
 
-        # 不正なイラストID
-        url_s = "https://www.pixiv.net/artworks/00000000"
-        expect = ""
-        actual = pa_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH)
-        self.assertEqual(expect, actual)
+            # サフィックスエラー
+            url_s = "https://www.pixiv.net/artworks/24010650?rank=1"
+            expect = ""
+            actual = pa_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH)
+            self.assertEqual(expect, actual)
+
+            # 不正なイラストID
+            url_s = "https://www.pixiv.net/artworks/00000000"
+            expect = ""
+            actual = pa_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH)
+            self.assertEqual(expect, actual)
 
     def test_DownloadIllusts(self):
         """イラストをダウンロードする機能をチェック
