@@ -221,8 +221,9 @@ class TestCrawler(unittest.TestCase):
 
         # pixivリンク
         if is_pixiv:
-            r = "{:0>8}".format(random.randint(0, 99999999))
-            pixiv_url = "https://www.pixiv.net/artworks/{}".format(r)
+            # r = "{:0>8}".format(random.randint(0, 99999999))
+            # pixiv_url = "https://www.pixiv.net/artworks/{}".format(r)
+            pixiv_url = "https://www.pixiv.net/artworks/24010650"
             tweet["text"] = tweet["text"] + " " + pixiv_url
             tweet_json = f'''{{
                 "entities": {{
@@ -919,19 +920,49 @@ class TestCrawler(unittest.TestCase):
 
         with ExitStack() as stack:
             mockms = stack.enter_context(patch("PictureGathering.Crawler.Crawler.TweetMediaSaver"))
-            mockpa = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.DownloadIllusts"))
+            mockpa = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.__init__"))
+            mockpagiurls = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.GetIllustURLs"))
+            mockpamsdp = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.MakeSaveDirectoryPath"))
+            mockpadi = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.DownloadIllusts"))
             mockms.return_value = 0
-            mockpa.return_value = 0
+            mockpa.return_value = None
+
+            # Pixivイラストの情報サンプルを返す関数
+            def GetIllustData(illust_id):
+                idstr = str(illust_id)
+                url_base = {
+                    "59580629": "https://i.pximg.net/img-original/img/2016/10/22/10/11/37/{}_p0.jpg",
+                    "24010650": "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/{}_p{}.png",
+                    "86704541": "https://.../{}_ugoira{}.jpg"
+                }
+                cols = ["id", "type", "is_manga", "author_name", "author_id", "title", "image_url", "image_urls"]
+                data = {
+                    "59580629": [59580629, "illust", False, "author_name", 0, "title",
+                                 url_base["59580629"].format(illust_id), []],
+                    "24010650": [24010650, "illust", True, "shift", 149176, "フランの羽[アイコン用]",
+                                 "", [url_base["24010650"].format(illust_id, i) for i in range(5)]],
+                    "86704541": [86704541, "ugoira", False, "author_name", 0, "おみくじ",
+                                 url_base["86704541"].format(illust_id, 0), [url_base["86704541"].format(illust_id, i) for i in range(14)]]
+                }
+                res = {}
+                for c, d in zip(cols, data[idstr]):
+                    res[c] = d
+                return res
+            
+            illust = GetIllustData(24010650)
+            mockpagiurls.return_value = illust["image_urls"]
+            mockpamsdp.return_value = "./{}({})/{}({})/".format(illust["author_name"], illust["author_id"], illust["title"], illust["id"])
+            mockpadi.return_value = 0
 
             expect_called_arg = GetTweetMediaSaverCalledArg(s_tweet_list)
 
-            # actual = crawler.InterpretTweets(s_tweet_list)
+            actual = crawler.InterpretTweets(s_tweet_list)
             actual_called_arg = []
             for called_arg in mockms.call_args_list:
                 actual_called_arg.append(called_arg[0])
 
-            # self.assertEqual(len(expect_called_arg), len(actual_called_arg))
-            # self.assertEqual(expect_called_arg, actual_called_arg)
+            self.assertEqual(len(expect_called_arg), len(actual_called_arg))
+            self.assertEqual(expect_called_arg, actual_called_arg)
 
     def test_GetExistFilelist(self):
         """save_pathにあるファイル名一覧取得処理をチェックする
