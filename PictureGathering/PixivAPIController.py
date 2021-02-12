@@ -365,7 +365,7 @@ if __name__ == "__main__":
 
     if config["pixiv"].getboolean("is_pixiv_trace"):
         pa_cont = PixivAPIController(config["pixiv"]["username"], config["pixiv"]["password"])
-        work_url = "https://www.pixiv.net/artworks/87559623"
+        work_url = "https://www.pixiv.net/artworks/86704541"
         urls = pa_cont.GetIllustURLs(work_url)
         save_directory_path = pa_cont.MakeSaveDirectoryPath(work_url, config["pixiv"]["save_base_path"])
         pa_cont.DownloadIllusts(urls, save_directory_path)
