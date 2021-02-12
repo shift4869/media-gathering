@@ -46,9 +46,12 @@ class TestPixivAPIController(unittest.TestCase):
         }
         cols = ["id", "type", "is_manga", "author_name", "author_id", "title", "image_url", "image_urls"]
         data = {
-            "59580629": [59580629, "illust", False, "author_name", 0, "title", url_base["59580629"].format(illust_id), []],
-            "24010650": [24010650, "illust", True, "shift", 149176, "フランの羽[アイコン用]", "", [url_base["24010650"].format(illust_id, i) for i in range(5)]],
-            "86704541": [86704541, "ugoira", False, "author_name", 0, "おみくじ", url_base["86704541"].format(illust_id, 0), [url_base["86704541"].format(illust_id, i) for i in range(14)]]
+            "59580629": [59580629, "illust", False, "author_name", 0, "title",
+                         url_base["59580629"].format(illust_id), []],
+            "24010650": [24010650, "illust", True, "shift", 149176, "フランの羽[アイコン用]",
+                         "", [url_base["24010650"].format(illust_id, i) for i in range(5)]],
+            "86704541": [86704541, "ugoira", False, "author_name", 0, "おみくじ",
+                         url_base["86704541"].format(illust_id, 0), [url_base["86704541"].format(illust_id, i) for i in range(14)]]
         }
         res = {}
         for c, d in zip(cols, data[idstr]):
@@ -266,25 +269,22 @@ class TestPixivAPIController(unittest.TestCase):
         with ExitStack() as stack:
             mockpalogin = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.Login"))
             mockpalogin = self.__MakeLoginMock(mockpalogin)
-            pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
 
+            # 正常系
+            pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
             self.assertIsNotNone(pa_cont.api)
             self.assertIsNotNone(pa_cont.aapi)
             self.assertTrue(pa_cont.auth_success)
             self.assertIsNotNone(pa_cont.api.access_token)
             self.assertIsNotNone(pa_cont.aapi.access_token)
 
+            # 異常系
+            with self.assertRaises(SystemExit):
+                pa_cont = PixivAPIController.PixivAPIController("invalid user", "invalid password")
+
     def test_Login(self):
         """非公式pixivAPIインスタンス生成とログインをチェック
         """
-        # auth関数のsideeffect
-        def auth_side_effect(refresh_token):
-            return refresh_token
-
-        # login関数のsideeffect
-        def login_side_effect(username, password):
-            return (username, password)
-
         # インスタンス生成時のsideeffectを生成する
         # access_token, refresh_tokenを属性として持ち、
         # auth(), login()をメソッドとして持つオブジェクトを模倣する
@@ -299,30 +299,34 @@ class TestPixivAPIController(unittest.TestCase):
             type(response).refresh_token = p_access_token
 
             p_auth = MagicMock()
-            p_auth.side_effect = auth_side_effect
+            p_auth.side_effect = lambda refresh_token: refresh_token
             type(response).auth = p_auth
 
             p_login = MagicMock()
-            p_login.side_effect = login_side_effect
+            p_login.side_effect = lambda username, password: (username, password)
             type(response).login = p_login
             return response
-
-        # インスタンス生成時のsideeffect(PixivAPI(), AppPixivAPI())
-        def api_side_effect():
-            return response_factory("ok_access_token", "ok_refresh_token")
 
         with ExitStack() as stack:
             # open()をモックに置き換える
             mockfout = mock_open()
-            mockfp = stack.enter_context(patch("PictureGathering.PixivAPIController.open", mockfout))
+            mockfp = stack.enter_context(patch("pathlib.Path.open", mockfout))
 
             # mockpalogin = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.Login"))
             mockpapub = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPI"))
             mockpaapp = stack.enter_context(patch("PictureGathering.PixivAPIController.AppPixivAPI"))
 
-            mockpapub.side_effect = api_side_effect
-            mockpaapp.side_effect = api_side_effect
+            mockpapub.side_effect = lambda: response_factory("ok_access_token", "ok_refresh_token")
+            mockpaapp.side_effect = lambda: response_factory("ok_access_token", "ok_refresh_token")
 
+            # refresh_tokenファイルが存在する場合、一時的にリネームする
+            REFRESH_TOKEN_PATH = "./config/refresh_token.ini"
+            rt_path = Path(REFRESH_TOKEN_PATH)
+            tmp_path = rt_path.parent / "tmp.ini"
+            if rt_path.is_file():
+                rt_path.rename(tmp_path)
+
+            # refresh_tokenファイルが存在しない場合のテスト
             expect = (mockpapub.side_effect(), mockpaapp.side_effect(), True)
             # インスタンス生成時にLoginが呼ばれる
             pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
@@ -331,8 +335,32 @@ class TestPixivAPIController(unittest.TestCase):
             self.assertEqual(mockpapub.call_count, 1)
             self.assertEqual(mockpaapp.call_count, 1)
             self.assertEqual(expect[2], actual[2])
+            mockpapub.reset_mock()
+            mockpaapp.reset_mock()
 
-            # TODO::refresh_tokenの有無によって分岐
+            # 一時的にリネームしていた場合は復元する
+            # そうでない場合はダミーのファイルを作っておく
+            if tmp_path.is_file():
+                tmp_path.rename(rt_path)
+            else:
+                rt_path.touch()
+
+            # refresh_tokenファイルが存在する場合のテスト
+            expect = (mockpapub.side_effect(), mockpaapp.side_effect(), True)
+            # インスタンス生成時にLoginが呼ばれる
+            pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
+            actual = (pa_cont.api, pa_cont.aapi, pa_cont.auth_success)
+
+            self.assertEqual(mockpapub.call_count, 1)
+            self.assertEqual(mockpaapp.call_count, 1)
+            self.assertEqual(expect[2], actual[2])
+            mockpapub.reset_mock()
+            mockpaapp.reset_mock()
+
+            # ダミーファイルがある場合は削除しておく
+            if not tmp_path.is_file() and rt_path.stat().st_size == 0:
+                rt_path.unlink()
+            pass
 
     def test_IsPixivURL(self):
         """pixivのURLかどうか判定する機能をチェック
@@ -406,11 +434,7 @@ class TestPixivAPIController(unittest.TestCase):
 
             # 漫画形式
             url_s = "https://www.pixiv.net/artworks/24010650"
-            expect = ["https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p0.png",
-                      "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p1.png",
-                      "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p2.png",
-                      "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p3.png",
-                      "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p4.png"]
+            expect = ["https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p{}.png".format(i) for i in range(5)]
             actual = pa_cont.GetIllustURLs(url_s)
             self.assertEqual(expect, actual)
 
@@ -574,6 +598,18 @@ class TestPixivAPIController(unittest.TestCase):
                 actual_frames.append(path)
             self.assertEqual(len(expect_frames), len(actual_frames))
             self.assertEqual(expect_frames, actual_frames)
+
+            # うごイラでないイラストIDを入力
+            work_url_s = "https://www.pixiv.net/artworks/24010650"
+            illust_id_s = pa_cont.GetIllustId(work_url_s)
+            res = pa_cont.DownloadUgoira(illust_id_s, self.TEST_BASE_PATH)
+            self.assertEqual(1, res)  # うごイラではなかった
+
+            # 不正なイラストIDを入力
+            work_url_s = "https://www.pixiv.net/artworks/00000000"
+            illust_id_s = pa_cont.GetIllustId(work_url_s)
+            res = pa_cont.DownloadUgoira(illust_id_s, self.TEST_BASE_PATH)
+            self.assertEqual(-1, res)  # 不正なイラストID
 
 
 if __name__ == "__main__":
