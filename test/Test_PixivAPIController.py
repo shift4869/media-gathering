@@ -1,7 +1,6 @@
 # coding: utf-8
 import configparser
 import random
-import re
 import shutil
 import sys
 import unittest
@@ -10,6 +9,8 @@ from contextlib import ExitStack
 from logging import WARNING, getLogger
 from mock import MagicMock, PropertyMock, mock_open, patch
 from pathlib import Path
+from time import sleep
+from typing import List
 
 from PictureGathering import PixivAPIController
 
@@ -43,107 +44,187 @@ class TestPixivAPIController(unittest.TestCase):
         idstr = str(illust_id)
         url_base = {
             "59580629": "https://i.pximg.net/img-original/img/2016/10/22/10/11/37/{}_p0.jpg",
-            "24010650": "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/{}_p{}.png"
+            "24010650": "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/{}_p{}.png",
+            "86704541": "https://.../{}_ugoira{}.jpg"
         }
+        cols = ["id", "type", "is_manga", "author_name", "author_id", "title", "image_url", "image_urls"]
         data = {
-            "59580629": [59580629, False, "author_name", "author_id", "title", url_base["59580629"].format(illust_id), []],
-            "24010650": [24010650, True, "shift", 149176, "フランの羽[アイコン用]", "", [url_base["24010650"].format(illust_id, i) for i in range(5)]],
+            "59580629": [59580629, "illust", False, "author_name", "author_id", "title", url_base["59580629"].format(illust_id), []],
+            "24010650": [24010650, "illust", True, "shift", 149176, "フランの羽[アイコン用]", "", [url_base["24010650"].format(illust_id, i) for i in range(5)]],
+            "86704541": [86704541, "ugoira", False, "author_name", 0, "おみくじ", url_base["86704541"].format(illust_id, 0), [url_base["86704541"].format(illust_id, i) for i in range(14)]]
         }
-        cols = ["id", "is_manga", "author_name", "author_id", "title", "image_url", "image_urls"]
         res = {}
         for c, d in zip(cols, data[idstr]):
             res[c] = d
         return res
 
+    def __MakePublicApiMock(self) -> MagicMock:
+        def ReturnWorks(illust_id):
+            r_works = MagicMock()
+            p_status = PropertyMock()
+            s = {}
+            if 0 < illust_id and illust_id < 99999999:
+                p_status.return_value = "success"
+                s = self.__GetIllustData(illust_id)
+            else:
+                p_status.return_value = "failed"
+            type(r_works).status = p_status
+
+            def ReturnResponse():
+                r_response = MagicMock()
+                p_type = PropertyMock()
+                p_type.return_value = s["type"]
+                type(r_response).type = p_type
+
+                p_is_manga = PropertyMock()
+                p_is_manga.return_value = s["is_manga"]
+                type(r_response).is_manga = p_is_manga
+
+                r_name_id = MagicMock()
+                p_name = PropertyMock()
+                p_name.return_value = s["author_name"]
+                type(r_name_id).name = p_name
+                p_id = PropertyMock()
+                p_id.return_value = s["author_id"]
+                type(r_name_id).id = p_id
+                p_user = PropertyMock()
+                p_user.return_value = r_name_id
+                type(r_response).user = p_user
+
+                p_title = PropertyMock()
+                p_title.return_value = s["title"]
+                type(r_response).title = p_title
+
+                def ReturnLarge(url):
+                    r_large = MagicMock()
+                    p_large = PropertyMock()
+
+                    p_large.return_value = url
+                    type(r_large).large = p_large
+                    return r_large
+
+                def ReturnImageurls(url):
+                    r_imageurls = MagicMock()
+                    p_imageurls = PropertyMock()
+                    p_imageurls.return_value = ReturnLarge(url)
+                    type(r_imageurls).image_urls = p_imageurls
+                    return r_imageurls
+
+                def ReturnPages():
+                    r_pages = MagicMock()
+                    p_pages = PropertyMock()
+
+                    # 漫画形式のreturn_value設定
+                    p_pages.return_value = [ReturnImageurls(url) for url in s["image_urls"]]
+                    type(r_pages).pages = p_pages
+                    return r_pages
+
+                p_metadata = PropertyMock()
+                p_metadata.return_value = ReturnPages()
+                type(r_response).metadata = p_metadata
+
+                # 一枚絵のreturn_value設定
+                p_image_urls = PropertyMock()
+                p_image_urls.return_value = ReturnLarge(s["image_url"])
+                type(r_response).image_urls = p_image_urls
+
+                return r_response
+
+            p_response = PropertyMock()
+            p_response.side_effect = lambda: [ReturnResponse()]
+            type(r_works).response = p_response
+
+            return r_works
+
+        api_response = MagicMock()
+        p_works = PropertyMock()
+        p_works.return_value = ReturnWorks
+        type(api_response).works = p_works
+
+        p_access_token = PropertyMock()
+        p_access_token.return_value = "ok"
+        type(api_response).access_token = p_access_token
+
+        return api_response
+
+    def __MakeAppApiMock(self) -> MagicMock:
+        aapi_response = MagicMock()
+        p_access_token = PropertyMock()
+        p_access_token.return_value = "ok"
+        type(aapi_response).access_token = p_access_token
+
+        def ReturnDownload(url, path, name=""):
+            if name == "":
+                name = Path(url).name
+            # ダミーファイルをダウンロードしたことにしてpathに生成する
+            with (Path(path) / name).open("wb") as fout:
+                fout.write(url.encode())
+
+            # DLには多少時間がかかる想定
+            sleep(0.01)
+
+        p_download = PropertyMock()
+        p_download.return_value = ReturnDownload
+        type(aapi_response).download = p_download
+
+        def ReturnIllustDetail(illust_id):
+            s = {}
+            if 0 < illust_id and illust_id < 99999999:
+                s = self.__GetIllustData(illust_id)
+
+            r_original_image_url = MagicMock()
+            p_original_image_url = PropertyMock()
+            p_original_image_url.return_value = s["image_url"]
+            type(r_original_image_url).original_image_url = p_original_image_url
+
+            r_meta_single_page = MagicMock()
+            p_meta_single_page = PropertyMock()
+            p_meta_single_page.return_value = r_original_image_url
+            type(r_meta_single_page).meta_single_page = p_meta_single_page
+
+            r_illust = MagicMock()
+            p_illust = PropertyMock()
+            p_illust.return_value = r_meta_single_page
+            type(r_illust).illust = p_illust
+
+            return r_illust
+
+        p_illust_detail = PropertyMock()
+        p_illust_detail.return_value = ReturnIllustDetail
+        type(aapi_response).illust_detail = p_illust_detail
+
+        def ReturnUgoiraMetadata(illust_id):
+            s = {}
+            if 0 < illust_id and illust_id < 99999999:
+                s = self.__GetIllustData(illust_id)
+
+            frames_len = len(s["image_urls"])
+            DEFAULT_DELAY = 30
+            frames = [{"delay": DEFAULT_DELAY} for i in range(frames_len)]
+
+            r_frames = MagicMock()
+            p_frames = PropertyMock()
+            p_frames.return_value = frames
+            type(r_frames).frames = p_frames
+
+            r_ugoira_metadata2 = MagicMock()
+            p_ugoira_metadata2 = PropertyMock()
+            p_ugoira_metadata2.return_value = r_frames
+            type(r_ugoira_metadata2).ugoira_metadata = p_ugoira_metadata2
+
+            return r_ugoira_metadata2
+
+        p_ugoira_metadata = PropertyMock()
+        p_ugoira_metadata.return_value = ReturnUgoiraMetadata
+        type(aapi_response).ugoira_metadata = p_ugoira_metadata
+
+        return aapi_response
+
     def __MakeLoginMock(self, mock: MagicMock) -> MagicMock:
         def LoginSideeffect(username, password):
             if self.username == username and self.password == password:
-                def ReturnWorks(illust_id):
-                    r_works = MagicMock()
-                    p_status = PropertyMock()
-                    s = {}
-                    if 0 < illust_id and illust_id < 99999999:
-                        p_status.return_value = "success"
-                        s = self.__GetIllustData(illust_id)
-                    else:
-                        p_status.return_value = "failed"
-                    type(r_works).status = p_status
-
-                    def ReturnResponse():
-                        r_response = MagicMock()
-                        p_is_manga = PropertyMock()
-                        p_is_manga.return_value = s["is_manga"]
-                        type(r_response).is_manga = p_is_manga
-
-                        r_name_id = MagicMock()
-                        p_name = PropertyMock()
-                        p_name.return_value = s["author_name"]
-                        type(r_name_id).name = p_name
-                        p_id = PropertyMock()
-                        p_id.return_value = s["author_id"]
-                        type(r_name_id).id = p_id
-                        p_user = PropertyMock()
-                        p_user.return_value = r_name_id
-                        type(r_response).user = p_user
-
-                        p_title = PropertyMock()
-                        p_title.return_value = s["title"]
-                        type(r_response).title = p_title
-
-                        def ReturnLarge(url):
-                            r_large = MagicMock()
-                            p_large = PropertyMock()
-
-                            p_large.return_value = url
-                            type(r_large).large = p_large
-                            return r_large
-
-                        def ReturnImageurls(url):
-                            r_imageurls = MagicMock()
-                            p_imageurls = PropertyMock()
-                            p_imageurls.return_value = ReturnLarge(url)
-                            type(r_imageurls).image_urls = p_imageurls
-                            return r_imageurls
-
-                        def ReturnPages():
-                            r_pages = MagicMock()
-                            p_pages = PropertyMock()
-
-                            # 漫画形式のreturn_value設定
-                            p_pages.return_value = [ReturnImageurls(url) for url in s["image_urls"]]
-                            type(r_pages).pages = p_pages
-                            return r_pages
-
-                        p_metadata = PropertyMock()
-                        p_metadata.return_value = ReturnPages()
-                        type(r_response).metadata = p_metadata
-
-                        # 一枚絵のreturn_value設定
-                        p_image_urls = PropertyMock()
-                        p_image_urls.return_value = ReturnLarge(s["image_url"])
-                        type(r_response).image_urls = p_image_urls
-
-                        return r_response
-
-                    p_response = PropertyMock()
-                    p_response.side_effect = lambda: [ReturnResponse()]
-                    type(r_works).response = p_response
-
-                    return r_works
-
-                api_response = MagicMock()
-                p_works = PropertyMock()
-                p_works.return_value = ReturnWorks
-                type(api_response).works = p_works
-
-                p_access_token = PropertyMock()
-                p_access_token.return_value = "ok"
-                type(api_response).access_token = p_access_token
-
-                aapi_response = MagicMock()
-                p_access_token = PropertyMock()
-                p_access_token.return_value = "ok"
-                type(aapi_response).access_token = p_access_token
+                api_response = self.__MakePublicApiMock()
+                aapi_response = self.__MakeAppApiMock()
 
                 return (api_response, aapi_response, True)
             else:
@@ -152,6 +233,36 @@ class TestPixivAPIController(unittest.TestCase):
         mock.side_effect = LoginSideeffect
         return mock
 
+    def __MakeImageMock(self, mock: MagicMock) -> MagicMock:
+        def ReturnOpen(path):
+            r_open = MagicMock()
+            p_copy = PropertyMock()
+            p_copy.return_value = lambda: ReturnOpen(path)
+            type(r_open).copy = p_copy
+
+            def ReturnSave(fp, save_all, append_images, optimize, duration, loop):
+                path_list = []
+                for image in append_images:
+                    path_list.append(image.return_value)
+                
+                # gifファイルを生成したことにしてダミーをfpに生成する
+                with Path(fp).open("wb") as fout:
+                    fout.write(fp.encode())
+                    fout.write(", ".join(path_list).encode())
+                    fout.write(", ".join(map(str, duration)).encode())
+
+            p_save = PropertyMock()
+            p_save.return_value = ReturnSave
+            type(r_open).save = p_save
+
+            r_open.return_value = path
+            return r_open
+
+        p_open = PropertyMock()
+        p_open.return_value = ReturnOpen
+        type(mock).open = p_open
+        return mock
+    
     def test_PixivAPIController(self):
         """非公式pixivAPI利用クラス初期状態チェック
         """
@@ -362,6 +473,7 @@ class TestPixivAPIController(unittest.TestCase):
         """
         with ExitStack() as stack:
             mockgu = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.DownloadUgoira"))
+            mocksleep = stack.enter_context(patch("PictureGathering.PixivAPIController.sleep"))
             mockpalogin = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.Login"))
             mockpalogin = self.__MakeLoginMock(mockpalogin)
             pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
@@ -432,31 +544,39 @@ class TestPixivAPIController(unittest.TestCase):
         """うごイラをダウンロードする機能をチェック
             実際に非公式pixivAPIを通してDLする
         """
-        pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
+        with ExitStack() as stack:
+            mocksleep = stack.enter_context(patch("PictureGathering.PixivAPIController.sleep"))
+            mockpalogin = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.Login"))
+            mockimage = stack.enter_context(patch("PictureGathering.PixivAPIController.Image"))
 
-        # サンプル画像：おみくじ(86704541)
-        work_url_s = "https://www.pixiv.net/artworks/86704541"
-        illust_id_s = pa_cont.GetIllustId(work_url_s)
-        expect_path = self.TBP / "おみくじ(86704541)"
-        expect_gif_path = expect_path.parent / "{}{}".format(expect_path.name, ".gif")
-        EXPECT_FRAME_NUM = 14
-        expect_frames = [str(expect_path / "{}_ugoira{}.jpg".format(illust_id_s, i)) for i in range(0, EXPECT_FRAME_NUM)]
+            mockpalogin = self.__MakeLoginMock(mockpalogin)
+            mockimage = self.__MakeImageMock(mockimage)
 
-        # うごイラDL
-        res = pa_cont.DownloadUgoira(illust_id_s, self.TEST_BASE_PATH)
+            pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
 
-        # DL後のディレクトリ構成とファイルの存在チェック
-        self.assertTrue(self.TBP.is_dir())
-        self.assertTrue(expect_path.is_dir())
-        self.assertTrue(expect_gif_path.is_file())
+            # サンプル画像：おみくじ(86704541)
+            work_url_s = "https://www.pixiv.net/artworks/86704541"
+            illust_id_s = pa_cont.GetIllustId(work_url_s)
+            expect_path = self.TBP / "おみくじ(86704541)"
+            expect_gif_path = expect_path.parent / "{}{}".format(expect_path.name, ".gif")
+            EXPECT_FRAME_NUM = 14
+            expect_frames = [str(expect_path / "{}_ugoira{}.jpg".format(illust_id_s, i)) for i in range(0, EXPECT_FRAME_NUM)]
 
-        # frameのDLをチェック
-        actual_frames = []
-        af = [(sp.stat().st_mtime, str(sp)) for sp in expect_path.glob("**/*") if sp.is_file()]
-        for mtime, path in sorted(af, reverse=False):
-            actual_frames.append(path)
-        self.assertEqual(len(expect_frames), len(actual_frames))
-        self.assertEqual(expect_frames, actual_frames)
+            # うごイラDL
+            res = pa_cont.DownloadUgoira(illust_id_s, self.TEST_BASE_PATH)
+
+            # DL後のディレクトリ構成とファイルの存在チェック
+            self.assertTrue(self.TBP.is_dir())
+            self.assertTrue(expect_path.is_dir())
+            self.assertTrue(expect_gif_path.is_file())
+
+            # frameのDLをチェック
+            actual_frames = []
+            af = [(sp.stat().st_mtime, str(sp)) for sp in expect_path.glob("**/*") if sp.is_file()]
+            for mtime, path in sorted(af, reverse=False):
+                actual_frames.append(path)
+            self.assertEqual(len(expect_frames), len(actual_frames))
+            self.assertEqual(expect_frames, actual_frames)
 
 
 if __name__ == "__main__":
