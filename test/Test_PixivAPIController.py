@@ -22,6 +22,8 @@ logger.setLevel(WARNING)
 class TestPixivAPIController(unittest.TestCase):
 
     def setUp(self):
+        """コンフィグファイルからパスワードを取得する
+        """
         CONFIG_FILE_NAME = "./config/config.ini"
         config = configparser.ConfigParser()
         config.read(CONFIG_FILE_NAME, encoding="utf8")
@@ -32,12 +34,21 @@ class TestPixivAPIController(unittest.TestCase):
         self.TBP = Path(self.TEST_BASE_PATH)
 
     def tearDown(self):
-        # 後始末：テスト用ディレクトリを削除する
+        """後始末：テスト用ディレクトリを削除する
+        """
         # shutil.rmtree()で再帰的に全て削除する ※指定パス注意
         if self.TBP.is_dir():
             shutil.rmtree(self.TBP)
 
-    def __GetIllustData(self, illust_id):
+    def __GetIllustData(self, illust_id: int) -> dict:
+        """テスト用のイラスト情報を作成する
+
+        Args:
+            illust_id (int): イラストID (0 < illust_id < 99999999)
+
+        Returns:
+            dict: イラストIDで示されるイラスト情報を表す辞書（キーはcolsを参照）
+        """
         idstr = str(illust_id)
         url_base = {
             "59580629": "https://i.pximg.net/img-original/img/2016/10/22/10/11/37/{}_p0.jpg",
@@ -59,6 +70,28 @@ class TestPixivAPIController(unittest.TestCase):
         return res
 
     def __MakePublicApiMock(self) -> MagicMock:
+        """非公式pixivAPIの全体操作機能のモックを作成する
+
+        Note:
+            以下のプロパティ、メソッドを模倣する
+            api_response
+                access_token
+                works[0]
+                    type
+                    is_manga
+                    user
+                        name
+                        is
+                    metadata
+                        pages[]
+                            image_urls
+                                large
+                    image_urls
+                        large
+
+        Returns:
+            MagicMock: api_response
+        """
         def ReturnWorks(illust_id):
             r_works = MagicMock()
             p_status = PropertyMock()
@@ -148,6 +181,24 @@ class TestPixivAPIController(unittest.TestCase):
         return api_response
 
     def __MakeAppApiMock(self) -> MagicMock:
+        """非公式pixivAPIの詳細操作機能のモックを作成する
+
+        Note:
+            以下のプロパティ、メソッドを模倣する
+            aapi_response
+                access_token
+                download(url, path, name="")
+                illust_detail(illust_id)
+                    illust
+                        meta_single_page
+                            original_image_url
+                ugoira_metadata(illust_id)
+                    ugoira_metadata
+                        frames[]
+
+        Returns:
+            MagicMock: aapi_response
+        """
         aapi_response = MagicMock()
         p_access_token = PropertyMock()
         p_access_token.return_value = "ok"
@@ -221,6 +272,15 @@ class TestPixivAPIController(unittest.TestCase):
         return aapi_response
 
     def __MakeLoginMock(self, mock: MagicMock) -> MagicMock:
+        """非公式pixivAPIのログイン機能のモックを作成する
+
+        Note:
+            ID/PWが一致すればOKとする
+            対象のmockは "PictureGathering.PixivAPIController.PixivAPIController.Login" にpatchする
+
+        Returns:
+            MagicMock: ログイン機能のside_effectを持つモック
+        """
         def LoginSideeffect(username, password):
             if self.username == username and self.password == password:
                 api_response = self.__MakePublicApiMock()
@@ -234,6 +294,18 @@ class TestPixivAPIController(unittest.TestCase):
         return mock
 
     def __MakeImageMock(self, mock: MagicMock) -> MagicMock:
+        """PIL.Imageクラスのモックを作成する
+
+        Note:
+            以下のプロパティ、メソッドを模倣する
+            mock
+                open(path)
+                    copy()
+                    save(fp, save_all, append_images, optimize, duration, loop)
+
+        Returns:
+            MagicMock: PIL.Imageクラスのモック
+        """
         def ReturnOpen(path):
             r_open = MagicMock()
             p_copy = PropertyMock()
@@ -490,7 +562,7 @@ class TestPixivAPIController(unittest.TestCase):
 
     def test_DownloadIllusts(self):
         """イラストをダウンロードする機能をチェック
-            実際に非公式pixivAPIを通してDLする
+            実際に非公式pixivAPIを通してDLはしない
         """
         with ExitStack() as stack:
             mockgu = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.DownloadUgoira"))
@@ -563,7 +635,7 @@ class TestPixivAPIController(unittest.TestCase):
 
     def test_DownloadUgoira(self):
         """うごイラをダウンロードする機能をチェック
-            実際に非公式pixivAPIを通してDLする
+            実際に非公式pixivAPIを通してDLはしない
         """
         with ExitStack() as stack:
             mocksleep = stack.enter_context(patch("PictureGathering.PixivAPIController.sleep"))
