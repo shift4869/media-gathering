@@ -1,6 +1,5 @@
 # coding: utf-8
 import configparser
-import glob
 import logging.config
 import os
 import re
