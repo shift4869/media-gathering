@@ -196,11 +196,20 @@ class NijieController:
         pass
 
     def DetailPageAnalysis(self, soup) -> list[str]:
+        res = []
         # html構造解析
         div_ie5s = soup.find_all("div", id="img_filter")
         for div_ie5 in div_ie5s:
-            pass
-        pass
+            a_s = div_ie5.find_all("a")
+            img_url = ""
+            for a in a_s:
+                if a.get("href") is not None:
+                    img_url = "http:" + a.img["src"]
+                    break
+            if img_url == "":
+                continue
+            res.append(img_url)
+        return res
 
 
 if __name__ == "__main__":
