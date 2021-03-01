@@ -191,16 +191,17 @@ class NijieController:
 
         # BeautifulSoupのhtml解析準備を行う
         soup = BeautifulSoup(res.text, "html.parser")
-        urls = self.DetailPageAnalysis(soup)
+        urls, author_name, author_id, illust_name = self.DetailPageAnalysis(soup)
 
         pass
 
     def DetailPageAnalysis(self, soup) -> list[str]:
-        res = []
         # html構造解析
-        div_ie5s = soup.find_all("div", id="img_filter")
-        for div_ie5 in div_ie5s:
-            a_s = div_ie5.find_all("a")
+        urls = []
+        # 画像への直リンクを取得する
+        div_imgs = soup.find_all("div", id="img_filter")
+        for div_img in div_imgs:
+            a_s = div_img.find_all("a")
             img_url = ""
             for a in a_s:
                 if a.get("href") is not None:
@@ -208,8 +209,17 @@ class NijieController:
                     break
             if img_url == "":
                 continue
-            res.append(img_url)
-        return res
+            urls.append(img_url)
+
+        # 作者IDは1枚目の画像ファイル名に含まれている
+        author_id = int(Path(urls[0]).name.split("_")[0])
+
+        # 作品タイトル、作者名はページタイトルから取得する
+        title_tag = soup.find("title")
+        title = title_tag.text.split("|")
+        illust_name = title[0].strip()
+        author_name = title[1].strip()
+        return (urls, author_name, author_id, illust_name)
 
 
 if __name__ == "__main__":
