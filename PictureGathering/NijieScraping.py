@@ -170,7 +170,7 @@ class NijieController:
         res = requests.get(illust_url, headers=self.headers, cookies=self.cookies)
         res.raise_for_status()
 
-        # BeautifulSoupのhtml解析準備を行う
+        # BeautifulSoupを用いてhtml解析を行う
         soup = BeautifulSoup(res.text, "html.parser")
         urls, author_name, author_id, illust_name = self.DetailPageAnalysis(soup)
 
@@ -178,7 +178,11 @@ class NijieController:
         save_directory_path = self.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path)
         sd_path = Path(save_directory_path)
 
-        if len(urls) > 1:  # 漫画形式
+        pages = len(urls)
+        if pages > 1:  # 漫画形式
+            dirname = sd_path.parent.name
+            logger.info("Download nijie illust: [" + dirname + "] -> see below ...")
+
             # 既に存在しているなら再DLしないでスキップ
             if sd_path.is_dir():
                 logger.info("\t\t: exist -> skip")
@@ -198,8 +202,9 @@ class NijieController:
                 with Path(sd_path / file_name).open(mode="wb") as fout:
                     fout.write(res.content)
 
+                logger.info("\t\t: " + file_name + " -> done({}/{})".format(i + 1, pages))
                 sleep(0.5)
-        elif len(urls) == 1:  # 一枚絵
+        elif pages == 1:  # 一枚絵
             # {作者名}ディレクトリ作成
             sd_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -210,7 +215,7 @@ class NijieController:
 
             # 既に存在しているなら再DLしないでスキップ
             if (sd_path.parent / name).is_file():
-                logger.info("\t\t: exist -> skip")
+                logger.info("Download nijie illust: " + name + " -> exist")
                 return 1
 
             # 画像をDLする
@@ -220,6 +225,7 @@ class NijieController:
             # {作者名}ディレクトリ直下に保存
             with Path(sd_path.parent / name).open(mode="wb") as fout:
                 fout.write(res.content)
+            logger.info("Download nijie illust: " + name + " -> done")
 
         else:  # エラー
             return -1
@@ -311,7 +317,8 @@ if __name__ == "__main__":
 
     nc = NijieController(config["nijie"]["email"], config["nijie"]["password"])
     # illust_id = 417853
-    illust_id = 251267
+    # illust_id = 251267
+    illust_id = 418941
     illust_url = "http://nijie.info/view_popup.php?id={}".format(illust_id)
     nc.DownloadIllusts(illust_url, config["nijie"]["save_base_path"])
 
