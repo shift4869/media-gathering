@@ -64,15 +64,15 @@ class NijieController:
                         nc[key] = val
 
                     cookies.set(nc["name"], nc["value"], expires=nc["expires"], path=nc["path"], domain=nc["domain"])
-            
+
             # トップページをGETしてクッキーが有効かどうか調べる
             top_url = "http://nijie.info/index.php"
             res = requests.get(top_url, headers=self.headers, cookies=cookies)
             res.raise_for_status()
-            
+
             # 返ってきたレスポンスがトップページのものかチェック
             # 不正なクッキーだと年齢確認画面に飛ばされる（titleとurlから判別可能）
-            auth_success = res.status_code == 200 and res.url == top_url and "ニジエ - nijie" in res.text 
+            auth_success = res.status_code == 200 and res.url == top_url and "ニジエ - nijie" in res.text
 
         if not auth_success:
             # クッキーが存在していない場合、または有効なクッキーではなかった場合
@@ -160,45 +160,65 @@ class NijieController:
         illust_id = int(qd["id"][0])
         return illust_id
 
-    def GetIllustURLs(self, url: str) -> list[str]:
-        """nijie作品ページURLからイラストへの直リンクを取得する
-
-        Note:
-            漫画ページの場合、それぞれのページについて
-            全てURLを取得するため返り値はList[str]となる
-
-        Args:
-            url (str): nijie作品ページURL
-
-        Returns:
-            List[str]: 成功時 nijie作品のイラストへの直リンクlist、失敗時 空リスト
-        """
+    def DownloadIllusts(self, url: str, base_path: str) -> list[str]:
         illust_id = self.GetIllustId(url)
         if illust_id == -1:
             return []
 
         # 作品詳細ページを一時保存する場所
-        NIJIE_TEMPHTML_PATH = "./html/nijie_detail_page.html"
-        ntp = Path(NIJIE_TEMPHTML_PATH)
+        # NIJIE_TEMPHTML_PATH = "./html/nijie_detail_page.html"
+        # ntp = Path(NIJIE_TEMPHTML_PATH)
 
         # 作品詳細ページをGET
         illust_url = "http://nijie.info/view_popup.php?id={}".format(illust_id)
         res = requests.get(illust_url, headers=self.headers, cookies=self.cookies)
         res.raise_for_status()
 
-        with ntp.open(mode="w", encoding="UTF-8") as fout:
-            fout.write(res.text)
+        # 作品詳細ページを一時保存
+        # with ntp.open(mode="w", encoding="UTF-8") as fout:
+        #    fout.write(res.text)
 
         # BeautifulSoupのhtml解析準備を行う
         soup = BeautifulSoup(res.text, "html.parser")
         urls, author_name, author_id, illust_name = self.DetailPageAnalysis(soup)
 
-        pass
+        if len(urls) > 1:  # 漫画形式
+            # 保存先ディレクトリを取得
+            save_directory_path = self.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path)
+            sd_path = Path(save_directory_path)
+
+            # 既に存在しているなら再DLしないでスキップ
+            if sd_path.is_dir():
+                logger.info("\t\t: exist -> skip")
+                return 1
+
+            sd_path.mkdir(parents=True, exist_ok=True)
+
+            # 画像をDLする
+            # ファイル名は3桁の連番
+            for i, url in enumerate(urls):
+                res = requests.get(url, headers=self.headers, cookies=self.cookies)
+                res.raise_for_status()
+
+                ext = Path(url).suffix
+                file_name = "{:03}{}".format(i, ext)
+                with Path(sd_path / file_name).open(mode="wb") as fout:
+                    fout.write(res.content)
+
+                sleep(0.5)
+        elif len(urls) == 1:  # 一枚絵
+            pass
+        else:  # エラー
+            return -1
+
+        return 0
 
     def DetailPageAnalysis(self, soup) -> list[str]:
         # html構造解析
         urls = []
+
         # 画像への直リンクを取得する
+        # 漫画形式の場合
         div_imgs = soup.find_all("div", id="img_filter")
         for div_img in div_imgs:
             a_s = div_img.find_all("a")
@@ -221,6 +241,55 @@ class NijieController:
         author_name = title[1].strip()
         return (urls, author_name, author_id, illust_name)
 
+    def MakeSaveDirectoryPath(self, author_name, author_id, illust_name, illust_id, base_path: str) -> str:
+        """nijie作品ページURLから作者情報を取得し、
+           保存先ディレクトリパスを生成する
+
+        Notes:
+            保存先ディレクトリパスの形式は以下とする
+            ./{作者名}({作者nijieID})/{イラストタイトル}({イラストID})/
+            既に{作者nijieID}が一致するディレクトリがある場合はそのディレクトリを使用する
+            （{作者名}変更に対応するため）
+
+        Args:
+            url (str)      : nijie作品ページURL
+            base_path (str): 保存先ディレクトリのベースとなるパス
+
+        Returns:
+            str: 成功時 保存先ディレクトリパス、失敗時 空文字列
+        """
+        # パスに使えない文字をサニタイズする
+        # TODO::サニタイズを厳密に行う
+        regex = re.compile(r'[\\/:*?"<>|]')
+        author_name = regex.sub("", author_name)
+        author_id = int(author_id)
+        illust_title = regex.sub("", illust_name)
+
+        # 既に{作者nijieID}が一致するディレクトリがあるか調べる
+        IS_SEARCH_AUTHOR_ID = True
+        sd_path = ""
+        save_path = Path(base_path)
+        if IS_SEARCH_AUTHOR_ID:
+            filelist = []
+            filelist_tp = [(sp.stat().st_mtime, sp.name) for sp in save_path.glob("*") if sp.is_dir()]
+            for mtime, path in sorted(filelist_tp, reverse=True):
+                filelist.append(path)
+
+            regex = re.compile(r'.*\(([0-9]*)\)$')
+            for dir_name in filelist:
+                result = regex.match(dir_name)
+                if result:
+                    ai = result.group(1)
+                    if ai == str(author_id):
+                        sd_path = "./{}/{}({})/".format(dir_name, illust_title, illust_id)
+                        break
+        
+        if sd_path == "":
+            sd_path = "./{}({})/{}({})/".format(author_name, author_id, illust_title, illust_id)
+
+        save_directory_path = save_path / sd_path
+        return str(save_directory_path)
+
 
 if __name__ == "__main__":
     CONFIG_FILE_NAME = "./config/config.ini"
@@ -228,8 +297,9 @@ if __name__ == "__main__":
     config.read(CONFIG_FILE_NAME, encoding="utf8")
 
     nc = NijieController(config["nijie"]["email"], config["nijie"]["password"])
-    illust_id = 417853
+    # illust_id = 417853
+    illust_id = 251267
     illust_url = "http://nijie.info/view_popup.php?id={}".format(illust_id)
-    nc.GetIllustURLs(illust_url)
+    nc.DownloadIllusts(illust_url, config["nijie"]["save_base_path"])
 
     pass
