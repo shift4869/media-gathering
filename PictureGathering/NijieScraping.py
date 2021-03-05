@@ -165,33 +165,26 @@ class NijieController:
         if illust_id == -1:
             return []
 
-        # 作品詳細ページを一時保存する場所
-        # NIJIE_TEMPHTML_PATH = "./html/nijie_detail_page.html"
-        # ntp = Path(NIJIE_TEMPHTML_PATH)
-
         # 作品詳細ページをGET
         illust_url = "http://nijie.info/view_popup.php?id={}".format(illust_id)
         res = requests.get(illust_url, headers=self.headers, cookies=self.cookies)
         res.raise_for_status()
 
-        # 作品詳細ページを一時保存
-        # with ntp.open(mode="w", encoding="UTF-8") as fout:
-        #    fout.write(res.text)
-
         # BeautifulSoupのhtml解析準備を行う
         soup = BeautifulSoup(res.text, "html.parser")
         urls, author_name, author_id, illust_name = self.DetailPageAnalysis(soup)
 
-        if len(urls) > 1:  # 漫画形式
-            # 保存先ディレクトリを取得
-            save_directory_path = self.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path)
-            sd_path = Path(save_directory_path)
+        # 保存先ディレクトリを取得
+        save_directory_path = self.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path)
+        sd_path = Path(save_directory_path)
 
+        if len(urls) > 1:  # 漫画形式
             # 既に存在しているなら再DLしないでスキップ
             if sd_path.is_dir():
                 logger.info("\t\t: exist -> skip")
                 return 1
 
+            # {作者名}/{作品名}ディレクトリ作成
             sd_path.mkdir(parents=True, exist_ok=True)
 
             # 画像をDLする
@@ -207,7 +200,27 @@ class NijieController:
 
                 sleep(0.5)
         elif len(urls) == 1:  # 一枚絵
-            pass
+            # {作者名}ディレクトリ作成
+            sd_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # ファイル名設定
+            url = urls[0]
+            ext = Path(url).suffix
+            name = "{}{}".format(sd_path.name, ext)
+
+            # 既に存在しているなら再DLしないでスキップ
+            if (sd_path.parent / name).is_file():
+                logger.info("\t\t: exist -> skip")
+                return 1
+
+            # 画像をDLする
+            res = requests.get(url, headers=self.headers, cookies=self.cookies)
+            res.raise_for_status()
+
+            # {作者名}ディレクトリ直下に保存
+            with Path(sd_path.parent / name).open(mode="wb") as fout:
+                fout.write(res.content)
+
         else:  # エラー
             return -1
 
