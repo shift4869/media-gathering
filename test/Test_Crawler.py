@@ -837,7 +837,7 @@ class TestCrawler(unittest.TestCase):
                     (created_time_s.tm_year,
                         created_time_s.tm_mon,
                         created_time_s.tm_mday,
-                        created_time_s.tm_hour,
+                        created_time_s.tm_hour + 9,
                         created_time_s.tm_min,
                         created_time_s.tm_sec,
                         0, 0, -1)
@@ -898,7 +898,7 @@ class TestCrawler(unittest.TestCase):
                     (created_time.tm_year,
                         created_time.tm_mon,
                         created_time.tm_mday,
-                        created_time.tm_hour,
+                        created_time.tm_hour + 9,
                         created_time.tm_min,
                         created_time.tm_sec,
                         0, 0, -1)
