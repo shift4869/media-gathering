@@ -19,7 +19,17 @@ logger.setLevel(INFO)
 
 class NijieController:
     def __init__(self, email: str, password: str):
-        # User-Agent偽装用ヘッダ
+        """nijieページ取得用クラス
+
+        Args:
+            email (str): nijieユーザーIDとして登録したemailアドレス
+            password (str): nijieユーザーIDのパスワード
+
+        Attributes:
+            headers (dict): httpリクエスト時のUser-Agent偽装用ヘッダ
+            cookies (RequestsCookieJar): httpリクエスト時のクッキー、認証情報も含まれる
+            auth_success (boolean): nijieログインが正常に完了したかどうか
+        """
         self.headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"}
 
         self.cookies = None
@@ -29,17 +39,17 @@ class NijieController:
         if not self.auth_success:
             exit(-1)
     
-    def Login(self, email: str, password: str):
+    def Login(self, email: str, password: str) -> (RequestsCookieJar, bool):
         """nijieページにログインし、ログイン情報を保持したクッキーを返す
 
         Args:
-            email (str): nijieユーザー名（メールアドレス）
-            password (str): nijieユーザーPW
+            email (str): nijieユーザーIDとして登録したemailアドレス
+            password (str): nijieユーザーIDのパスワード
 
         Returns:
-            cookies: ログイン情報を保持したクッキー
+            cookies (RequestsCookieJar): ログイン情報を保持したクッキー
         """
-        # ログイン情報を保持するクッキー置き場
+        # ログイン情報を保持するクッキーファイル置き場
         NIJIE_COOKIE_PATH = "./config/nijie_cookie.ini"
         ncp = Path(NIJIE_COOKIE_PATH)
 
@@ -112,7 +122,7 @@ class NijieController:
                 domain = c.domain
                 return f'name="{name}", value="{value}", expires={expires}, path="{path}", domain="{domain}"'
 
-            # クッキー情報を保存する
+            # クッキー情報をファイルに保存する
             with ncp.open(mode="w") as fout:
                 for c in cookies:
                     fout.write(CookieToString(c) + "\n")
