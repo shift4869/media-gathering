@@ -363,10 +363,10 @@ class TestDBController(unittest.TestCase):
         r2 = self.FavoriteSampleFactory(img_url_2)
         self.session.add(r1)
         self.session.add(r2)
-        self.session.commit()
 
         r1.is_exist_saved_file = True
         r2.is_exist_saved_file = True
+        self.session.commit()
         expect = [r1.toDict(), r2.toDict()]
         actual = controlar.DBFavFlagUpdate([r1.img_filename, r2.img_filename], 1)
         self.assertEqual(expect[0]["is_exist_saved_file"], actual[0]["is_exist_saved_file"])
@@ -377,10 +377,10 @@ class TestDBController(unittest.TestCase):
         r3 = self.FavoriteSampleFactory(img_url_3)
         r3.is_exist_saved_file = True
         self.session.add(r3)
-        self.session.commit()
 
         r1.is_exist_saved_file = False
         r3.is_exist_saved_file = False
+        self.session.commit()
         expect = [r1.toDict(), r3.toDict()]
         actual = controlar.DBFavFlagUpdate([r1.img_filename, r3.img_filename], 0)
         self.assertEqual(expect[0]["is_exist_saved_file"], actual[0]["is_exist_saved_file"])
@@ -497,10 +497,10 @@ class TestDBController(unittest.TestCase):
         r2 = self.RetweetSampleFactory(img_url_2)
         self.session.add(r1)
         self.session.add(r2)
-        self.session.commit()
 
         r1.is_exist_saved_file = True
         r2.is_exist_saved_file = True
+        self.session.commit()
         expect = [r1.toDict(), r2.toDict()]
         actual = controlar.DBRetweetFlagUpdate([r1.img_filename, r2.img_filename], 1)
         self.assertEqual(expect[0]["is_exist_saved_file"], actual[0]["is_exist_saved_file"])
@@ -511,10 +511,10 @@ class TestDBController(unittest.TestCase):
         r3 = self.RetweetSampleFactory(img_url_3)
         r3.is_exist_saved_file = True
         self.session.add(r3)
-        self.session.commit()
 
         r1.is_exist_saved_file = False
         r3.is_exist_saved_file = False
+        self.session.commit()
         expect = [r1.toDict(), r3.toDict()]
         actual = controlar.DBRetweetFlagUpdate([r1.img_filename, r3.img_filename], 0)
         self.assertEqual(expect[0]["is_exist_saved_file"], actual[0]["is_exist_saved_file"])
