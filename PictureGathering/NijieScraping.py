@@ -179,7 +179,7 @@ class NijieController:
         sd_path = Path(save_directory_path)
 
         pages = len(urls)
-        if pages > 1:  # 漫画形式
+        if pages > 1:  # 漫画形式、うごイラ複数
             dirname = sd_path.parent.name
             logger.info("Download nijie illust: [" + dirname + "] -> see below ...")
 
@@ -204,7 +204,7 @@ class NijieController:
 
                 logger.info("\t\t: " + file_name + " -> done({}/{})".format(i + 1, pages))
                 sleep(0.5)
-        elif pages == 1:  # 一枚絵
+        elif pages == 1:  # 一枚絵、うごイラ一枚
             # {作者名}ディレクトリ作成
             sd_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -236,19 +236,33 @@ class NijieController:
         # html構造解析
         urls = []
 
-        # 画像への直リンクを取得する
-        # 漫画形式の場合
+        # メディアへの直リンクを取得する
+        # メディアは画像（jpg, png）、うごイラ（gif, mp4）などがある
+        # メディアが置かれているdiv
         div_imgs = soup.find_all("div", id="img_filter")
         for div_img in div_imgs:
+            # うごイラがないかvideoタグを探す
+            video_s = div_img.find_all("video")
+            video_url = ""
+            for video in video_s:
+                if video.get("src") is not None:
+                    video_url = "http:" + video["src"]
+                    break
+            if video_url != "":
+                # videoタグがあった場合はaタグは探さない
+                # 詳細ページへのリンクしか持っていないので
+                urls.append(video_url)
+                continue
+
+            # 一枚絵、漫画がないかaタグを探す
             a_s = div_img.find_all("a")
             img_url = ""
             for a in a_s:
                 if a.get("href") is not None:
                     img_url = "http:" + a.img["src"]
                     break
-            if img_url == "":
-                continue
-            urls.append(img_url)
+            if img_url != "":
+                urls.append(img_url)
 
         # 作者IDは1枚目の画像ファイル名に含まれている
         author_id = int(Path(urls[0]).name.split("_")[0])
@@ -311,14 +325,17 @@ class NijieController:
 
 
 if __name__ == "__main__":
+    logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
     CONFIG_FILE_NAME = "./config/config.ini"
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE_NAME, encoding="utf8")
 
     nc = NijieController(config["nijie"]["email"], config["nijie"]["password"])
-    # illust_id = 417853
-    # illust_id = 251267
-    illust_id = 418941
+    # illust_id = 251267  # 一枚絵
+    # illust_id = 251197  # 漫画
+    # illust_id = 414793  # うごイラ一枚
+    illust_id = 409587  # うごイラ複数
+
     illust_url = "http://nijie.info/view_popup.php?id={}".format(illust_id)
     nc.DownloadIllusts(illust_url, config["nijie"]["save_base_path"])
 
