@@ -1085,7 +1085,7 @@ class TestCrawler(unittest.TestCase):
             status_code.return_value = 200
             type(response).status_code = status_code
             text = PropertyMock()
-            text.return_value = f'{{"text": "sample"}}'
+            text.return_value = f'{{"text": "sample", "created_at": "Fri Mar 19 04:28:10 +0000 2021"}}'
             type(response).text = text
             mockoauth.return_value = response
             mocksql.return_value = 0

@@ -780,12 +780,27 @@ class Crawler(metaclass=ABCMeta):
             params["media_ids"] = media_ids
 
         response = self.oath.post(url, params=params)
-        logger.debug(response.text)
-        self.db_cont.DBDelUpsert(json.loads(response.text))
-
         if response.status_code != 200:
             logger.error("Error code: {0}".format(response.status_code))
             return None
+
+        # 時刻調整
+        tweet = json.loads(response.text)
+        td_format = "%a %b %d %H:%M:%S +0000 %Y"
+        created_time = time.strptime(tweet["created_at"], td_format)
+        mktuple = (created_time.tm_year,
+                   created_time.tm_mon,
+                   created_time.tm_mday,
+                   created_time.tm_hour + 9,
+                   created_time.tm_min,
+                   created_time.tm_sec,
+                   created_time.tm_wday,
+                   created_time.tm_yday,
+                   created_time.tm_isdst)
+        created_at_str = time.strftime(td_format, mktuple)
+        tweet["created_at"] = created_at_str
+        logger.debug(tweet)
+        self.db_cont.DBDelUpsert(tweet)
 
         return 0
 
