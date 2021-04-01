@@ -9,6 +9,7 @@ import zipfile
 from logging import INFO, getLogger
 from pathlib import Path
 from time import sleep
+from typing import List
 
 import requests
 from bs4 import BeautifulSoup
@@ -39,7 +40,7 @@ class NijieController:
         if not self.auth_success:
             exit(-1)
     
-    def Login(self, email: str, password: str) -> (RequestsCookieJar, bool):
+    def Login(self, email: str, password: str) -> (requests.cookies.RequestsCookieJar, bool):
         """nijieページにログインし、ログイン情報を保持したクッキーを返す
 
         Args:
@@ -75,14 +76,8 @@ class NijieController:
 
                     cookies.set(nc["name"], nc["value"], expires=nc["expires"], path=nc["path"], domain=nc["domain"])
 
-            # トップページをGETしてクッキーが有効かどうか調べる
-            top_url = "http://nijie.info/index.php"
-            res = requests.get(top_url, headers=self.headers, cookies=cookies)
-            res.raise_for_status()
-
-            # 返ってきたレスポンスがトップページのものかチェック
-            # 不正なクッキーだと年齢確認画面に飛ばされる（titleとurlから判別可能）
-            auth_success = res.status_code == 200 and res.url == top_url and "ニジエ - nijie" in res.text
+            # クッキーが有効かチェック
+            auth_success = self.IsValidCookies(self.headers, cookies)
 
         if not auth_success:
             # クッキーが存在していない場合、または有効なクッキーではなかった場合
@@ -113,21 +108,32 @@ class NijieController:
             # 以降はクッキーに認証情報が含まれているため、これを用いて各ページをGETする
             cookies = res.cookies
 
-            # クッキー解析用
-            def CookieToString(c):
-                name = c.name
-                value = c.value
-                expires = c.expires
-                path = c.path
-                domain = c.domain
-                return f'name="{name}", value="{value}", expires={expires}, path="{path}", domain="{domain}"'
+            # クッキーが有効かチェック
+            auth_success = self.IsValidCookies(self.headers, cookies)
+            if auth_success:
+                # クッキー解析用
+                def CookieToString(c):
+                    return f'name="{c.name}", value="{c.value}", expires={c.expires}, path="{c.path}", domain="{c.domain}"'
 
-            # クッキー情報をファイルに保存する
-            with ncp.open(mode="w") as fout:
-                for c in cookies:
-                    fout.write(CookieToString(c) + "\n")
+                # クッキー情報をファイルに保存する
+                with ncp.open(mode="w") as fout:
+                    for c in cookies:
+                        fout.write(CookieToString(c) + "\n")
 
         return (cookies, auth_success)
+
+    def IsValidCookies(self, headers, cookies) -> bool:
+        if not (headers and cookies):
+            return False
+            
+        # トップページをGETしてクッキーが有効かどうか調べる
+        top_url = "http://nijie.info/index.php"
+        res = requests.get(top_url, headers=headers, cookies=cookies)
+        res.raise_for_status()
+
+        # 返ってきたレスポンスがトップページのものかチェック
+        # 不正なクッキーだと年齢確認画面に飛ばされる（titleとurlから判別可能）
+        return res.status_code == 200 and res.url == top_url and "ニジエ - nijie" in res.text
 
     @classmethod
     def IsNijieURL(cls, url: str) -> bool:

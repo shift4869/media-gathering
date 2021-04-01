@@ -49,45 +49,18 @@ class TestNijieController(unittest.TestCase):
         Returns:
             dict: イラストIDで示されるイラスト情報を表す辞書（キーはcolsを参照）
         """
-        idstr = str(illust_id)
-        url_base = {
-            "59580629": "https://i.pximg.net/img-original/img/2016/10/22/10/11/37/{}_p0.jpg",
-            "24010650": "https://i.pximg.net/img-original/img/2011/12/30/23/52/44/{}_p{}.png",
-            "86704541": "https://.../{}_ugoira{}.jpg"
-        }
-        cols = ["id", "type", "is_manga", "author_name", "author_id", "title", "image_url", "image_urls"]
-        data = {
-            "59580629": [59580629, "illust", False, "author_name", 0, "title",
-                         url_base["59580629"].format(illust_id), []],
-            "24010650": [24010650, "illust", True, "shift", 149176, "フランの羽[アイコン用]",
-                         "", [url_base["24010650"].format(illust_id, i) for i in range(5)]],
-            "86704541": [86704541, "ugoira", False, "author_name", 0, "おみくじ",
-                         url_base["86704541"].format(illust_id, 0), [url_base["86704541"].format(illust_id, i) for i in range(14)]]
-        }
-        res = {}
-        for c, d in zip(cols, data[idstr]):
-            res[c] = d
-        return res
+        pass
 
-    def __MakePublicApiMock(self) -> MagicMock:
-        """非公式nijieAPIの全体操作機能のモックを作成する
+    def __MakeSoupMock(self) -> MagicMock:
+        """html構造解析時のbs4モックを作成する
 
         Note:
             以下のプロパティ、メソッドを模倣する
-            api_response
-                access_token
-                works[0]
-                    type
-                    is_manga
-                    user
-                        name
-                        is
-                    metadata
-                        pages[]
-                            image_urls
-                                large
-                    image_urls
-                        large
+            find_all("div", id="img_filter")[]
+                find_all("video")[]
+                    {"src": "video_url"}
+                find_all("a")[]
+                    img["src"]
 
         Returns:
             MagicMock: api_response
@@ -180,204 +153,169 @@ class TestNijieController(unittest.TestCase):
 
         return api_response
 
-    def __MakeAppApiMock(self) -> MagicMock:
-        """非公式nijieAPIの詳細操作機能のモックを作成する
-
-        Note:
-            以下のプロパティ、メソッドを模倣する
-            aapi_response
-                access_token
-                download(url, path, name="")
-                illust_detail(illust_id)
-                    illust
-                        meta_single_page
-                            original_image_url
-                ugoira_metadata(illust_id)
-                    ugoira_metadata
-                        frames[]
-
-        Returns:
-            MagicMock: aapi_response
-        """
-        aapi_response = MagicMock()
-        p_access_token = PropertyMock()
-        p_access_token.return_value = "ok"
-        type(aapi_response).access_token = p_access_token
-
-        def ReturnDownload(url, path, name=""):
-            if name == "":
-                name = Path(url).name
-            # ダミーファイルをダウンロードしたことにしてpathに生成する
-            with (Path(path) / name).open("wb") as fout:
-                fout.write(url.encode())
-
-            # DLには多少時間がかかる想定
-            sleep(0.01)
-
-        p_download = PropertyMock()
-        p_download.return_value = ReturnDownload
-        type(aapi_response).download = p_download
-
-        def ReturnIllustDetail(illust_id):
-            s = {}
-            if 0 < illust_id and illust_id < 99999999:
-                s = self.__GetIllustData(illust_id)
-
-            r_original_image_url = MagicMock()
-            p_original_image_url = PropertyMock()
-            p_original_image_url.return_value = s["image_url"]
-            type(r_original_image_url).original_image_url = p_original_image_url
-
-            r_meta_single_page = MagicMock()
-            p_meta_single_page = PropertyMock()
-            p_meta_single_page.return_value = r_original_image_url
-            type(r_meta_single_page).meta_single_page = p_meta_single_page
-
-            r_illust = MagicMock()
-            p_illust = PropertyMock()
-            p_illust.return_value = r_meta_single_page
-            type(r_illust).illust = p_illust
-
-            return r_illust
-
-        p_illust_detail = PropertyMock()
-        p_illust_detail.return_value = ReturnIllustDetail
-        type(aapi_response).illust_detail = p_illust_detail
-
-        def ReturnUgoiraMetadata(illust_id):
-            s = {}
-            if 0 < illust_id and illust_id < 99999999:
-                s = self.__GetIllustData(illust_id)
-
-            frames_len = len(s["image_urls"])
-            DEFAULT_DELAY = 30
-            frames = [{"delay": DEFAULT_DELAY} for i in range(frames_len)]
-
-            r_frames = MagicMock()
-            p_frames = PropertyMock()
-            p_frames.return_value = frames
-            type(r_frames).frames = p_frames
-
-            r_ugoira_metadata2 = MagicMock()
-            p_ugoira_metadata2 = PropertyMock()
-            p_ugoira_metadata2.return_value = r_frames
-            type(r_ugoira_metadata2).ugoira_metadata = p_ugoira_metadata2
-
-            return r_ugoira_metadata2
-
-        p_ugoira_metadata = PropertyMock()
-        p_ugoira_metadata.return_value = ReturnUgoiraMetadata
-        type(aapi_response).ugoira_metadata = p_ugoira_metadata
-
-        return aapi_response
-
     def __MakeLoginMock(self, mock: MagicMock) -> MagicMock:
-        """非公式nijieAPIのログイン機能のモックを作成する
+        """nijieページへのログイン機能のモックを作成する
 
         Note:
             ID/PWが一致すればOKとする
-            対象のmockは "PictureGathering.NijieController.NijieController.Login" にpatchする
+            対象のmockは "PictureGathering.NijieScraping.NijieController.Login" にpatchする
 
         Returns:
             MagicMock: ログイン機能のside_effectを持つモック
         """
-        def LoginSideeffect(username, password):
-            if self.username == username and self.password == password:
-                api_response = self.__MakePublicApiMock()
-                aapi_response = self.__MakeAppApiMock()
-
-                return (api_response, aapi_response, True)
+        def LoginSideeffect(email, password):
+            if self.email == email and self.password == password:
+                cookies = "valid cookies"
+                return (cookies, True)
             else:
-                return (None, None, False)
+                return (None, False)
 
         mock.side_effect = LoginSideeffect
         return mock
 
-    
     def test_NijieController(self):
         """nijieページ取得初期状態チェック
         """
-        pass
+        with ExitStack() as stack:
+            mocknslogin = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.Login"))
+            mocknslogin = self.__MakeLoginMock(mocknslogin)
+
+            # 正常系
+            ns_cont = NijieScraping.NijieController(self.email, self.password)
+            expect_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"}
+
+            self.assertEqual(expect_headers, ns_cont.headers)
+            self.assertIsNotNone(ns_cont.cookies)
+            self.assertTrue(ns_cont.auth_success)
+
+            # 異常系
+            with self.assertRaises(SystemExit):
+                ns_cont = NijieScraping.NijieController("invalid email", "invalid password")
 
     def test_Login(self):
-        """非公式nijieAPIインスタンス生成とログインをチェック
+        """nijieページスクレイピングのインスタンス生成とログインをチェック
         """
-        # インスタンス生成時のsideeffectを生成する
-        # access_token, refresh_tokenを属性として持ち、
-        # auth(), login()をメソッドとして持つオブジェクトを模倣する
-        def response_factory(access_token, refresh_token):
-            response = MagicMock()
-            p_access_token = PropertyMock()
-            p_access_token.return_value = access_token
-            type(response).access_token = p_access_token
-
-            p_refresh_token = PropertyMock()
-            p_refresh_token.return_value = refresh_token
-            type(response).refresh_token = p_access_token
-
-            p_auth = MagicMock()
-            p_auth.side_effect = lambda refresh_token: refresh_token
-            type(response).auth = p_auth
-
-            p_login = MagicMock()
-            p_login.side_effect = lambda username, password: (username, password)
-            type(response).login = p_login
-            return response
-        return
 
         with ExitStack() as stack:
+            r = "{:0>8}".format(random.randint(0, 99999999))
+            c = 'name="name", value="{}:{}", expires="expires", path={}, domain="domain"\n'.format(self.email, self.password, r)
+
             # open()をモックに置き換える
-            mockfout = mock_open()
+            mockfout = mock_open(read_data=c)
             mockfp = stack.enter_context(patch("pathlib.Path.open", mockfout))
 
-            # mockpalogin = stack.enter_context(patch("PictureGathering.NijieController.NijieController.Login"))
-            mockpapub = stack.enter_context(patch("PictureGathering.NijieController.NijieAPI"))
-            mockpaapp = stack.enter_context(patch("PictureGathering.NijieController.AppNijieAPI"))
+            # モック置き換え
+            mocknsreqget = stack.enter_context(patch("PictureGathering.NijieScraping.requests.get"))
+            mocknsreqpost = stack.enter_context(patch("PictureGathering.NijieScraping.requests.post"))
+            mocknsreqcj = stack.enter_context(patch("PictureGathering.NijieScraping.requests.cookies.RequestsCookieJar"))
+            mocknsisvalidcookies = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.IsValidCookies"))
 
-            mockpapub.side_effect = lambda: response_factory("ok_access_token", "ok_refresh_token")
-            mockpaapp.side_effect = lambda: response_factory("ok_access_token", "ok_refresh_token")
+            # requests.getで取得する内容のモックを返す
+            def ReturnGet(url, headers):
+                response = MagicMock()
+                p_url = PropertyMock()
+                p_url.return_value = "test_url.html?url={}".format(r)
+                type(response).url = p_url
 
-            # refresh_tokenファイルが存在する場合、一時的にリネームする
-            REFRESH_TOKEN_PATH = "./config/refresh_token.ini"
-            rt_path = Path(REFRESH_TOKEN_PATH)
-            tmp_path = rt_path.parent / "tmp.ini"
-            if rt_path.is_file():
-                rt_path.rename(tmp_path)
+                p_raise_for_status = PropertyMock()
+                p_raise_for_status.side_effect = None
+                type(response).raise_for_status = p_raise_for_status
 
-            # refresh_tokenファイルが存在しない場合のテスト
-            expect = (mockpapub.side_effect(), mockpaapp.side_effect(), True)
+                return response
+
+            # requests.postで取得する内容のモックを返す
+            def ReturnPost(url, data):
+                response = MagicMock()
+
+                dict_cookies = MagicMock()
+                type(dict_cookies).name = "name"
+                type(dict_cookies).value = data["email"] + ":" + data["password"]
+                type(dict_cookies).expires = "expires"
+                type(dict_cookies).path = data["url"]
+                type(dict_cookies).domain = "domain"
+
+                type(response).cookies = [dict_cookies]
+
+                def IsValid(s):
+                    # ログインページのURLか
+                    f_url = (url == "https://nijie.info/login_int.php")
+                    # ログイン情報は正しいか
+                    f_outh = (data["email"] == self.email) and (data["password"] == self.password)
+                    return f_url and f_outh
+
+                type(response).raise_for_status = IsValid
+
+                return response
+
+            # requests.cookies.RequestsCookieJar()で取得する内容のモックを返す
+            actual_read_cookies = {}
+
+            def ReturnCookieJar():
+                response = MagicMock()
+
+                def ReturnSet(s, name, value, expires="", path="", domain=""):
+                    actual_read_cookies["name"] = name
+                    actual_read_cookies["value"] = value
+                    actual_read_cookies["expires"] = expires
+                    actual_read_cookies["path"] = path
+                    actual_read_cookies["domain"] = domain
+                    return actual_read_cookies
+
+                type(response).set = ReturnSet
+
+                return response
+
+            mocknsreqget.side_effect = ReturnGet
+            mocknsreqpost.side_effect = ReturnPost
+            mocknsreqcj.side_effect = ReturnCookieJar
+            mocknsisvalidcookies.return_value = True
+
+            # クッキーファイルが存在する場合、一時的にリネームする
+            NIJIE_COOKIE_PATH = "./config/nijie_cookie.ini"
+            nc_path = Path(NIJIE_COOKIE_PATH)
+            tmp_path = nc_path.parent / "tmp.ini"
+            if nc_path.is_file():
+                nc_path.rename(tmp_path)
+
+            # クッキーファイルが存在しない場合のテスト
+            expect_cookies = {
+                "name": "name",
+                "value": self.email + ":" + self.password,
+                "expires": "expires",
+                "path": r,
+                "domain": "domain",
+            }
             # インスタンス生成時にLoginが呼ばれる
-            pa_cont = NijieController.NijieController(self.username, self.password)
-            actual = (pa_cont.api, pa_cont.aapi, pa_cont.auth_success)
-
-            self.assertEqual(mockpapub.call_count, 1)
-            self.assertEqual(mockpaapp.call_count, 1)
-            self.assertEqual(expect[2], actual[2])
-            mockpapub.reset_mock()
-            mockpaapp.reset_mock()
+            ns_cont = NijieScraping.NijieController(self.email, self.password)
+            self.assertEqual(1, len(ns_cont.cookies))
+            res_cookies = ns_cont.cookies[0]
+            actual_cookies = {
+                "name": res_cookies.name,
+                "value": res_cookies.value,
+                "expires": res_cookies.expires,
+                "path": res_cookies.path,
+                "domain": res_cookies.domain,
+            }
+            self.assertEqual(expect_cookies, actual_cookies)
+            self.assertTrue(ns_cont.auth_success)
 
             # 一時的にリネームしていた場合は復元する
             # そうでない場合はダミーのファイルを作っておく
             if tmp_path.is_file():
-                tmp_path.rename(rt_path)
+                tmp_path.rename(nc_path)
             else:
-                rt_path.touch()
+                nc_path.touch()
 
-            # refresh_tokenファイルが存在する場合のテスト
-            expect = (mockpapub.side_effect(), mockpaapp.side_effect(), True)
+            # クッキーファイルが存在する場合のテスト
             # インスタンス生成時にLoginが呼ばれる
-            pa_cont = NijieController.NijieController(self.username, self.password)
-            actual = (pa_cont.api, pa_cont.aapi, pa_cont.auth_success)
-
-            self.assertEqual(mockpapub.call_count, 1)
-            self.assertEqual(mockpaapp.call_count, 1)
-            self.assertEqual(expect[2], actual[2])
-            mockpapub.reset_mock()
-            mockpaapp.reset_mock()
+            ns_cont = NijieScraping.NijieController(self.email, self.password)
+            self.assertEqual(expect_cookies, actual_read_cookies)
+            self.assertTrue(ns_cont.auth_success)
 
             # ダミーファイルがある場合は削除しておく
-            if not tmp_path.is_file() and rt_path.stat().st_size == 0:
-                rt_path.unlink()
+            if not tmp_path.is_file() and nc_path.stat().st_size == 0:
+                nc_path.unlink()
+            pass
 
     def test_IsNijieURL(self):
         """nijieのURLかどうか判定する機能をチェック
