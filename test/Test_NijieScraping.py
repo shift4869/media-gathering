@@ -29,6 +29,7 @@ class TestNijieController(unittest.TestCase):
         config.read(CONFIG_FILE_NAME, encoding="utf8")
         self.email = config["nijie"]["email"]
         self.password = config["nijie"]["password"]
+        self.headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"}
 
         self.TEST_BASE_PATH = "./test/PG_Nijie"
         self.TBP = Path(self.TEST_BASE_PATH)
@@ -247,9 +248,9 @@ class TestNijieController(unittest.TestCase):
 
                 return response
 
-            # requests.cookies.RequestsCookieJar()で取得する内容のモックを返す
             actual_read_cookies = {}
 
+            # requests.cookies.RequestsCookieJar()で取得する内容のモックを返す
             def ReturnCookieJar():
                 response = MagicMock()
 
@@ -298,6 +299,14 @@ class TestNijieController(unittest.TestCase):
             }
             self.assertEqual(expect_cookies, actual_cookies)
             self.assertTrue(ns_cont.auth_success)
+            self.assertEqual(1, mocknsreqget.call_count)
+            self.assertEqual(1, mocknsreqpost.call_count)
+            self.assertEqual(1, mocknsreqcj.call_count)
+            self.assertEqual(1, mocknsisvalidcookies.call_count)
+            mocknsreqget.reset_mock()
+            mocknsreqpost.reset_mock()
+            mocknsreqcj.reset_mock()
+            mocknsisvalidcookies.reset_mock()
 
             # 一時的にリネームしていた場合は復元する
             # そうでない場合はダミーのファイルを作っておく
@@ -311,6 +320,14 @@ class TestNijieController(unittest.TestCase):
             ns_cont = NijieScraping.NijieController(self.email, self.password)
             self.assertEqual(expect_cookies, actual_read_cookies)
             self.assertTrue(ns_cont.auth_success)
+            self.assertEqual(0, mocknsreqget.call_count)
+            self.assertEqual(0, mocknsreqpost.call_count)
+            self.assertEqual(1, mocknsreqcj.call_count)
+            self.assertEqual(1, mocknsisvalidcookies.call_count)
+            mocknsreqget.reset_mock()
+            mocknsreqpost.reset_mock()
+            mocknsreqcj.reset_mock()
+            mocknsisvalidcookies.reset_mock()
 
             # ダミーファイルがある場合は削除しておく
             if not tmp_path.is_file() and nc_path.stat().st_size == 0:
@@ -322,7 +339,7 @@ class TestNijieController(unittest.TestCase):
         """
         # クラスメソッドなのでインスタンス無しで呼べる
         IsNijieURL = NijieScraping.NijieController.IsNijieURL
-        
+
         # 正常系
         # url_s = "https://www.nijie.net/artworks/24010650"
         # self.assertEqual(True, IsNijieURL(url_s))
