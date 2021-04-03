@@ -440,7 +440,7 @@ class TestPixivAPIController(unittest.TestCase):
         # pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
         # クラスメソッドなのでインスタンス無しで呼べる
         IsPixivURL = PixivAPIController.PixivAPIController.IsPixivURL
-        
+
         # 正常系
         url_s = "https://www.pixiv.net/artworks/24010650"
         self.assertEqual(True, IsPixivURL(url_s))

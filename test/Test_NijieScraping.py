@@ -380,8 +380,38 @@ class TestNijieController(unittest.TestCase):
         IsNijieURL = NijieScraping.NijieController.IsNijieURL
 
         # 正常系
-        # url_s = "https://www.nijie.net/artworks/24010650"
-        # self.assertEqual(True, IsNijieURL(url_s))
+        # 作品ページURL
+        url_s = "http://nijie.info/view.php?id=251267"
+        self.assertEqual(True, IsNijieURL(url_s))
+
+        # 作品詳細ページURL
+        url_s = "http://nijie.info/view_popup.php?id=251267"
+        self.assertEqual(True, IsNijieURL(url_s))
+
+        # 異常系
+        # 全く関係ないアドレス(Google)
+        url_s = "https://www.google.co.jp/"
+        self.assertEqual(False, IsNijieURL(url_s))
+
+        # 全く関係ないアドレス(pixiv)
+        url_s = "https://www.pixiv.net/artworks/24010650"
+        self.assertEqual(False, IsNijieURL(url_s))
+
+        # httpでなくhttps
+        url_s = "https://nijie.info/view_popup.php?id=251267"
+        self.assertEqual(False, IsNijieURL(url_s))
+
+        # nijieの別ページ
+        url_s = "http://nijie.info/user_like_illust_view.php?id=21030"
+        self.assertEqual(False, IsNijieURL(url_s))
+
+        # プリフィックスエラー
+        url_s = "ftp://nijie.info/view.php?id=251267"
+        self.assertEqual(False, IsNijieURL(url_s))
+
+        # サフィックスエラー
+        url_s = "http://nijie.info/view.php?rank=1"
+        self.assertEqual(False, IsNijieURL(url_s))
 
     def test_GetIllustId(self):
         """nijie作品ページURLからイラストIDを取得する機能をチェック
