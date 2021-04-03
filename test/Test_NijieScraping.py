@@ -43,16 +43,48 @@ class TestNijieController(unittest.TestCase):
         if self.TBP.is_dir():
             shutil.rmtree(self.TBP)
 
-    def __GetIllustData(self, illust_id: int) -> dict:
+    def __GetIllustData(self, illust_id: int) -> (list[str], str, int, str):
         """テスト用のイラスト情報を作成する
 
         Args:
             illust_id (int): イラストID (0 < illust_id < 99999999)
 
         Returns:
-            dict: イラストIDで示されるイラスト情報を表す辞書（キーはcolsを参照）
+            イラストIDで示される以下のイラスト情報
+            urls (list[str]): 画像直リンクURLのリスト
+            author_name (str): 作者名
+            author_id (int): 作者ID
+            illust_name (str): イラスト名
         """
-        pass
+        urls = {
+            "251267": ["http://pic.nijie.net/05/nijie_picture/21030_20180226022216_0.jpg"],
+            "251197": ["http://pic.nijie.net/05/nijie_picture/21030_20180225212822_0.jpg",
+                        "http://pic.nijie.net/02/nijie_picture/diff/main/21030_20180225212823_0.jpg",
+                        "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212824_1.jpg",
+                        "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212824_2.jpg",
+                        "http://pic.nijie.net/02/nijie_picture/diff/main/21030_20180225212824_3.jpg",
+                        "http://pic.nijie.net/04/nijie_picture/diff/main/21030_20180225212825_4.jpg",
+                        "http://pic.nijie.net/01/nijie_picture/diff/main/21030_20180225212827_5.jpg",
+                        "http://pic.nijie.net/01/nijie_picture/diff/main/21030_20180225212828_6.jpg",
+                        "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212828_7.jpg",
+                        "http://pic.nijie.net/04/nijie_picture/diff/main/21030_20180225212828_8.jpg"],
+            "414793": ["http://pic.nijie.net/06/nijie_picture/4112_20210207002919_0.mp4"],
+            "409587": ["http://pic.nijie.net/06/nijie_picture/317190_20210107221003_0.gif",
+                        "http://pic.nijie.net/01/nijie_picture/diff/main/409587_317190_20210107221005_0.mp4",
+                        "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221006_1.gif",
+                        "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221006_2.gif",
+                        "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221007_3.gif",
+                        "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221007_4.gif",
+                        "http://pic.nijie.net/06/nijie_picture/diff/main/409587_5_317190_20210108181522.gif"]
+        }
+        cols = ["illust_id", "urls", "author_name", "author_id", "illust_name"]
+        data = {
+            "251267": [urls["251267"], "author_name_1", 21030, "一枚絵"],
+            "251197": [urls["251197"], "author_name_1", 21030, "漫画"],
+            "414793": [urls["414793"], "author_name_2", 4112, "うごイラ一枚"],
+            "409587": [urls["409587"], "author_name_3", 317190, "うごイラ複数"]
+        }
+        return data[str(illust_id)]
 
     def __MakeSoupMock(self) -> MagicMock:
         """html構造解析時のbs4モックを作成する
@@ -510,35 +542,7 @@ class TestNijieController(unittest.TestCase):
                 # ここでは実際に解析はしない（test_DetailPageAnalysisが担当する）
                 # 伝達されたイラストIDを識別子として情報を返す
                 illust_id = str(soup)
-                urls = {
-                    "251267": ["http://pic.nijie.net/05/nijie_picture/21030_20180226022216_0.jpg"],
-                    "251197": ["http://pic.nijie.net/05/nijie_picture/21030_20180225212822_0.jpg",
-                               "http://pic.nijie.net/02/nijie_picture/diff/main/21030_20180225212823_0.jpg",
-                               "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212824_1.jpg",
-                               "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212824_2.jpg",
-                               "http://pic.nijie.net/02/nijie_picture/diff/main/21030_20180225212824_3.jpg",
-                               "http://pic.nijie.net/04/nijie_picture/diff/main/21030_20180225212825_4.jpg",
-                               "http://pic.nijie.net/01/nijie_picture/diff/main/21030_20180225212827_5.jpg",
-                               "http://pic.nijie.net/01/nijie_picture/diff/main/21030_20180225212828_6.jpg",
-                               "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212828_7.jpg",
-                               "http://pic.nijie.net/04/nijie_picture/diff/main/21030_20180225212828_8.jpg"],
-                    "414793": ["http://pic.nijie.net/06/nijie_picture/4112_20210207002919_0.mp4"],
-                    "409587": ["http://pic.nijie.net/06/nijie_picture/317190_20210107221003_0.gif",
-                               "http://pic.nijie.net/01/nijie_picture/diff/main/409587_317190_20210107221005_0.mp4",
-                               "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221006_1.gif",
-                               "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221006_2.gif",
-                               "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221007_3.gif",
-                               "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221007_4.gif",
-                               "http://pic.nijie.net/06/nijie_picture/diff/main/409587_5_317190_20210108181522.gif"]
-                }
-                cols = ["illust_id", "urls", "author_name", "author_id", "illust_name"]
-                data = {
-                    "251267": [urls["251267"], "author_name_1", 21030, "一枚絵"],
-                    "251197": [urls["251197"], "author_name_1", 21030, "漫画"],
-                    "414793": [urls["414793"], "author_name_2", 4112, "うごイラ一枚"],
-                    "409587": [urls["409587"], "author_name_3", 317190, "うごイラ複数"]
-                }
-                return data[illust_id]
+                return self.__GetIllustData(int(illust_id))
 
             # MakeSaveDirectoryPathのモック
             def ReturnMakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path):
@@ -552,13 +556,45 @@ class TestNijieController(unittest.TestCase):
             mocknsdpa.side_effect = ReturnDetailPageAnalysis
             mocknsmsdp.side_effect = ReturnMakeSaveDirectoryPath
 
+            # テスト用ディレクトリが存在しているならば削除する
+            # shutil.rmtree()で再帰的に全て削除する ※指定パス注意
+            if self.TBP.is_dir():
+                shutil.rmtree(self.TBP)
+
+            # 一枚絵、漫画形式、うごイラ一枚、うごイラ複数のそれぞれについてチェック
             # illust_id = 251267  # 一枚絵
             # illust_id = 251197  # 漫画
             # illust_id = 414793  # うごイラ一枚
             # illust_id = 409587  # うごイラ複数
-            url_s = "http://nijie.info/view.php?id=251267"
-            ns_cont.DownloadIllusts(url_s, str(self.TBP))
+            for illust_id in [251267, 251197, 414793, 409587]:
+                illust_url = "http://nijie.info/view.php?id={}".format(illust_id)
+                res = ns_cont.DownloadIllusts(illust_url, str(self.TBP))
+                self.assertEqual(0, res)  # どれも初めてDLしたはずなので返り値は0
 
+                urls, author_name, author_id, illust_name = self.__GetIllustData(illust_id)
+                save_directory_path = ReturnMakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, str(self.TBP))
+                sd_path = Path(save_directory_path)
+                
+                # DL後のディレクトリ構成とファイルの存在チェック
+                pages = len(urls)
+                if pages > 1:  # 漫画形式、うごイラ複数
+                    self.assertTrue(self.TBP.is_dir())
+                    self.assertTrue(sd_path.is_dir())
+                    for i, url in enumerate(urls):
+                        ext = Path(url).suffix
+                        file_name = "{:03}{}".format(i, ext)
+                        self.assertTrue((sd_path / file_name).is_file())
+                elif pages == 1:  # 一枚絵、うごイラ一枚
+                    url = urls[0]
+                    ext = Path(url).suffix
+                    name = "{}{}".format(sd_path.name, ext)
+                    self.assertTrue(self.TBP.is_dir())
+                    self.assertTrue(sd_path.parent.is_dir())
+                    self.assertTrue((sd_path.parent / name).is_file())
+                else:  # エラーならばテスト結果を失敗とする
+                    self.assertTrue(False)
+            
+            # 2回目のDLをシミュレート
         pass
 
     def test_DetailPageAnalysis(self):
