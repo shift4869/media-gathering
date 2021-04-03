@@ -344,6 +344,7 @@ class TestNijieController(unittest.TestCase):
 
             mocknsreqget = stack.enter_context(patch("PictureGathering.NijieScraping.requests.get"))
 
+            # requests.getで取得する内容のモックを返す
             def ReturnGet(url, headers, cookies):
                 top_url = "http://nijie.info/index.php"
                 response = MagicMock()
@@ -444,6 +445,62 @@ class TestNijieController(unittest.TestCase):
     def test_DownloadIllusts(self):
         """イラストをダウンロードする機能をチェック
         """
+        with ExitStack() as stack:
+            # モック置き換え
+            mocknsreqget = stack.enter_context(patch("PictureGathering.NijieScraping.requests.get"))
+            mocknsbs = stack.enter_context(patch("PictureGathering.NijieScraping.BeautifulSoup"))
+            mocknsdpa = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.DetailPageAnalysis"))
+            mocknsmsdp = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.MakeSaveDirectoryPath"))
+
+            mocknslogin = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.Login"))
+            mocknslogin = self.__MakeLoginMock(mocknslogin)
+            ns_cont = NijieScraping.NijieController(self.email, self.password)
+
+            # requests.getで取得する内容のモックを返す
+            def ReturnGet(url, headers, cookies):
+                illust_url = "http://nijie.info/view_popup.php?id="
+                response = MagicMock()
+
+                if illust_url in url and headers == self.headers and cookies == "valid cookies":
+                    type(response).status_code = 200
+                    type(response).url = url
+                    type(response).text = "ニジエ - nijie"
+                else:
+                    type(response).status_code = 401
+                    type(response).url = "invalid_url.php"
+                    type(response).text = "invalid text"
+
+                type(response).raise_for_status = lambda s: True
+
+                return response
+
+            # BeautifulSoupのモックを返す
+            def ReturnBeautifulSoup(markup, features):
+                response = MagicMock()
+                return response
+
+            # DetailPageAnalysisのモック
+            def ReturnDetailPageAnalysis(soup):
+                # response = MagicMock()
+                # response.return_value = ([], "", 0, "")
+                return ([], "", 0, "")
+
+            # MakeSaveDirectoryPathのモック
+            def ReturnMakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path):
+                return ""
+
+            mocknsreqget.side_effect = ReturnGet
+            mocknsbs.side_effect = ReturnBeautifulSoup
+            mocknsdpa.side_effect = ReturnDetailPageAnalysis
+            mocknsmsdp.side_effect = ReturnMakeSaveDirectoryPath
+
+            # illust_id = 251267  # 一枚絵
+            # illust_id = 251197  # 漫画
+            # illust_id = 414793  # うごイラ一枚
+            # illust_id = 409587  # うごイラ複数
+            url_s = "http://nijie.info/view.php?id=251267"
+            ns_cont.DownloadIllusts(url_s, str(self.TBP))
+
         pass
 
     def test_DetailPageAnalysis(self):
