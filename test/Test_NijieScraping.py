@@ -214,13 +214,13 @@ class TestNijieController(unittest.TestCase):
             # requests.getで取得する内容のモックを返す
             def ReturnGet(url, headers):
                 response = MagicMock()
-                p_url = PropertyMock()
-                p_url.return_value = "test_url.html?url={}".format(r)
-                type(response).url = p_url
+                type(response).url = "test_url.html?url={}".format(r)
 
-                p_raise_for_status = PropertyMock()
-                p_raise_for_status.side_effect = None
-                type(response).raise_for_status = p_raise_for_status
+                def IsValid(s):
+                    # 年齢確認で「はい」を選択したあとのURLか
+                    return (url == "https://nijie.info/age_jump.php?url=")
+
+                type(response).raise_for_status = IsValid
 
                 return response
 
@@ -333,6 +333,45 @@ class TestNijieController(unittest.TestCase):
             if not tmp_path.is_file() and nc_path.stat().st_size == 0:
                 nc_path.unlink()
             pass
+
+    def test_IsValidCookies(self):
+        """クッキーが正しいかどうか判定する機能をチェック
+        """
+        with ExitStack() as stack:
+            mocknslogin = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.Login"))
+            mocknslogin = self.__MakeLoginMock(mocknslogin)
+            ns_cont = NijieScraping.NijieController(self.email, self.password)
+
+            mocknsreqget = stack.enter_context(patch("PictureGathering.NijieScraping.requests.get"))
+
+            def ReturnGet(url, headers, cookies):
+                top_url = "http://nijie.info/index.php"
+                response = MagicMock()
+
+                if url == top_url and headers == self.headers and cookies == "valid cookies":
+                    type(response).status_code = 200
+                    type(response).url = url
+                    type(response).text = "ニジエ - nijie"
+                else:
+                    type(response).status_code = 401
+                    type(response).url = "invalid_url.php"
+                    type(response).text = "invalid text"
+
+                type(response).raise_for_status = lambda s: True
+
+                return response
+
+            mocknsreqget.side_effect = ReturnGet
+
+            # 正常系
+            res = ns_cont.IsValidCookies(ns_cont.headers, ns_cont.cookies)
+            self.assertTrue(res)
+
+            # 異常系
+            res = ns_cont.IsValidCookies(None, None)
+            self.assertFalse(res)
+            res = ns_cont.IsValidCookies(ns_cont.headers, "invalid cookies")
+            self.assertFalse(res)
 
     def test_IsNijieURL(self):
         """nijieのURLかどうか判定する機能をチェック

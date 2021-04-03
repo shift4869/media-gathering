@@ -122,7 +122,16 @@ class NijieController:
 
         return (cookies, auth_success)
 
-    def IsValidCookies(self, headers, cookies) -> bool:
+    def IsValidCookies(self, headers: dict, cookies: requests.cookies.RequestsCookieJar) -> bool:
+        """クッキーが有効かどうか判定する
+
+        Args:
+            headers (dict): requests.get時のヘッダー
+            cookies (requests.cookies.RequestsCookieJar): 判定対象のクッキー
+
+        Returns:
+            boolean: 有効なクッキーならTrue、そうでなければFalse
+        """
         if not (headers and cookies):
             return False
             
