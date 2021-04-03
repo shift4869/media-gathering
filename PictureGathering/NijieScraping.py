@@ -185,10 +185,19 @@ class NijieController:
         illust_id = int(qd["id"][0])
         return illust_id
 
-    def DownloadIllusts(self, url: str, base_path: str) -> list[str]:
+    def DownloadIllusts(self, url: str, base_path: str) -> int:
+        """nijie作品ページURLからイラストをダウンロードしてbase_path以下に保存する
+
+        Args:
+            url (str): nijie作品ページURL
+            base_path (str): 保存先ディレクトリのベースとなるパス
+
+        Returns:
+            int: DL成功時0、スキップされた場合1、エラー時-1
+        """
         illust_id = self.GetIllustId(url)
         if illust_id == -1:
-            return []
+            return -1
 
         # 作品詳細ページをGET
         illust_url = "http://nijie.info/view_popup.php?id={}".format(illust_id)
@@ -257,8 +266,23 @@ class NijieController:
 
         return 0
 
-    def DetailPageAnalysis(self, soup) -> list[str]:
-        # html構造解析
+    def DetailPageAnalysis(self, soup: BeautifulSoup) -> (list[str], str, int, str):
+        """nijie作品詳細ページを解析する
+
+        Notes:
+            illust_id: イラストIDはGetIllustId(url)で取得できる
+            うごイラはvideoタグから、画像はaタグから探す
+            一枚絵、うごイラ一枚の場合でもurlsはstrのlistで返される
+
+        Args:
+            soup (BeautifulSoup): 解析対象のBeautifulSoupインスタンス
+
+        Returns:
+            urls (list[str]): 画像直リンクURLのリスト
+            author_name (str): 作者名
+            author_id (int): 作者ID
+            illust_name (str): イラスト名
+        """
         urls = []
 
         # メディアへの直リンクを取得する
@@ -299,9 +323,8 @@ class NijieController:
         author_name = title[1].strip()
         return (urls, author_name, author_id, illust_name)
 
-    def MakeSaveDirectoryPath(self, author_name, author_id, illust_name, illust_id, base_path: str) -> str:
-        """nijie作品ページURLから作者情報を取得し、
-           保存先ディレクトリパスを生成する
+    def MakeSaveDirectoryPath(self, author_name: str, author_id: int, illust_name: str, illust_id: int, base_path: str) -> str:
+        """保存先ディレクトリパスを生成する
 
         Notes:
             保存先ディレクトリパスの形式は以下とする
@@ -310,7 +333,10 @@ class NijieController:
             （{作者名}変更に対応するため）
 
         Args:
-            url (str)      : nijie作品ページURL
+            author_name (str): 作者名
+            author_id (int): 作者ID
+            illust_name (str): 作品名
+            illust_id (int): 作者ID
             base_path (str): 保存先ディレクトリのベースとなるパス
 
         Returns:

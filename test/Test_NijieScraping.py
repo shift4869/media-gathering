@@ -441,23 +441,18 @@ class TestNijieController(unittest.TestCase):
             actual = ns_cont.GetIllustId(url_s)
             self.assertEqual(expect, actual)
 
-    def test_GetIllustURLs(self):
-        """nijie作品ページURLからイラストへの直リンクを取得する機能をチェック
-        """
-        pass
-
-    def test_MakeSaveDirectoryPath(self):
-        """保存先ディレクトリパスを生成する機能をチェック
-        """
-        pass
-
     def test_DownloadIllusts(self):
         """イラストをダウンロードする機能をチェック
         """
         pass
 
-    def test_DownloadUgoira(self):
-        """うごイラをダウンロードする機能をチェック
+    def test_DetailPageAnalysis(self):
+        """html構造解析機能をチェック
+        """
+        pass
+
+    def test_MakeSaveDirectoryPath(self):
+        """保存先ディレクトリパスを生成する機能をチェック
         """
         pass
 
