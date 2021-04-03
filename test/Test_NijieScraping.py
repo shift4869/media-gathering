@@ -1,9 +1,11 @@
 # coding: utf-8
 import configparser
 import random
+import re
 import shutil
 import sys
 import unittest
+import urllib.parse
 import warnings
 from contextlib import ExitStack
 from logging import WARNING, getLogger
@@ -458,14 +460,32 @@ class TestNijieController(unittest.TestCase):
 
             # requests.getで取得する内容のモックを返す
             def ReturnGet(url, headers, cookies):
-                illust_url = "http://nijie.info/view_popup.php?id="
                 response = MagicMock()
 
-                if illust_url in url and headers == self.headers and cookies == "valid cookies":
+                # メディアDL時
+                pattern = r"^http://pic.nijie.net/[^$]*$"
+                regex = re.compile(pattern)
+                f1 = not (regex.findall(url) == [])
+
+                # 作品詳細ページをGET時
+                pattern = r"^http://nijie.info/view_popup.php\?id=[0-9]*$"
+                regex = re.compile(pattern)
+                f2 = not (regex.findall(url) == [])
+
+                if f1 and headers == self.headers and cookies == "valid cookies":
+                    # メディアDLを模倣
+                    # contentにバイナリデータを設定
+                    type(response).content = str(url).encode("utf-8")
                     type(response).status_code = 200
                     type(response).url = url
-                    type(response).text = "ニジエ - nijie"
+                    type(response).text = url
+                elif f2 and headers == self.headers and cookies == "valid cookies":
+                    # 作品詳細ページをGET時
+                    type(response).status_code = 200
+                    type(response).url = url
+                    type(response).text = "ニジエ - nijie ," + url  # イラストID伝達用
                 else:
+                    # エラー
                     type(response).status_code = 401
                     type(response).url = "invalid_url.php"
                     type(response).text = "invalid text"
@@ -474,20 +494,58 @@ class TestNijieController(unittest.TestCase):
 
                 return response
 
-            # BeautifulSoupのモックを返す
+            # BeautifulSoupのモック
             def ReturnBeautifulSoup(markup, features):
-                response = MagicMock()
-                return response
+                # ここでは実際に解析はしない（test_DetailPageAnalysisが担当する）
+                # 識別に必要なイラストIDのみ伝達する
+                url = str(markup).split(",")[1]
+                qs = urllib.parse.urlparse(url).query
+                qd = urllib.parse.parse_qs(qs)
+                illust_id = int(qd["id"][0])
+
+                return illust_id
 
             # DetailPageAnalysisのモック
             def ReturnDetailPageAnalysis(soup):
-                # response = MagicMock()
-                # response.return_value = ([], "", 0, "")
-                return ([], "", 0, "")
+                # ここでは実際に解析はしない（test_DetailPageAnalysisが担当する）
+                # 伝達されたイラストIDを識別子として情報を返す
+                illust_id = str(soup)
+                urls = {
+                    "251267": ["http://pic.nijie.net/05/nijie_picture/21030_20180226022216_0.jpg"],
+                    "251197": ["http://pic.nijie.net/05/nijie_picture/21030_20180225212822_0.jpg",
+                               "http://pic.nijie.net/02/nijie_picture/diff/main/21030_20180225212823_0.jpg",
+                               "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212824_1.jpg",
+                               "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212824_2.jpg",
+                               "http://pic.nijie.net/02/nijie_picture/diff/main/21030_20180225212824_3.jpg",
+                               "http://pic.nijie.net/04/nijie_picture/diff/main/21030_20180225212825_4.jpg",
+                               "http://pic.nijie.net/01/nijie_picture/diff/main/21030_20180225212827_5.jpg",
+                               "http://pic.nijie.net/01/nijie_picture/diff/main/21030_20180225212828_6.jpg",
+                               "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212828_7.jpg",
+                               "http://pic.nijie.net/04/nijie_picture/diff/main/21030_20180225212828_8.jpg"],
+                    "414793": ["http://pic.nijie.net/06/nijie_picture/4112_20210207002919_0.mp4"],
+                    "409587": ["http://pic.nijie.net/06/nijie_picture/317190_20210107221003_0.gif",
+                               "http://pic.nijie.net/01/nijie_picture/diff/main/409587_317190_20210107221005_0.mp4",
+                               "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221006_1.gif",
+                               "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221006_2.gif",
+                               "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221007_3.gif",
+                               "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221007_4.gif",
+                               "http://pic.nijie.net/06/nijie_picture/diff/main/409587_5_317190_20210108181522.gif"]
+                }
+                cols = ["illust_id", "urls", "author_name", "author_id", "illust_name"]
+                data = {
+                    "251267": [urls["251267"], "黒雲鵺", 21030, "一枚絵"],
+                    "251197": [urls["251197"], "黒雲鵺", 21030, "漫画"],
+                    "414793": [urls["414793"], "むむ", 4112, "うごイラ一枚"],
+                    "409587": [urls["409587"], "mfp", 317190, "うごイラ複数"]
+                }
+                return data[illust_id]
 
             # MakeSaveDirectoryPathのモック
             def ReturnMakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path):
-                return ""
+                # 既存のディレクトリの存在は調べずに単純に結合して返す
+                sd_path = "./{}({})/{}({})/".format(author_name, author_id, illust_name, illust_id)
+                save_directory_path = Path(base_path) / sd_path
+                return str(save_directory_path)
 
             mocknsreqget.side_effect = ReturnGet
             mocknsbs.side_effect = ReturnBeautifulSoup
