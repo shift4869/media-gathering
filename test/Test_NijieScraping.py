@@ -533,10 +533,10 @@ class TestNijieController(unittest.TestCase):
                 }
                 cols = ["illust_id", "urls", "author_name", "author_id", "illust_name"]
                 data = {
-                    "251267": [urls["251267"], "黒雲鵺", 21030, "一枚絵"],
-                    "251197": [urls["251197"], "黒雲鵺", 21030, "漫画"],
-                    "414793": [urls["414793"], "むむ", 4112, "うごイラ一枚"],
-                    "409587": [urls["409587"], "mfp", 317190, "うごイラ複数"]
+                    "251267": [urls["251267"], "author_name_1", 21030, "一枚絵"],
+                    "251197": [urls["251197"], "author_name_1", 21030, "漫画"],
+                    "414793": [urls["414793"], "author_name_2", 4112, "うごイラ一枚"],
+                    "409587": [urls["409587"], "author_name_3", 317190, "うごイラ複数"]
                 }
                 return data[illust_id]
 
