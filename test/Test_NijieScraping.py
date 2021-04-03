@@ -410,13 +410,36 @@ class TestNijieController(unittest.TestCase):
         self.assertEqual(False, IsNijieURL(url_s))
 
         # サフィックスエラー
-        url_s = "http://nijie.info/view.php?rank=1"
+        url_s = "http://nijie.info/view.php?id=251267&rank=1"
         self.assertEqual(False, IsNijieURL(url_s))
 
     def test_GetIllustId(self):
         """nijie作品ページURLからイラストIDを取得する機能をチェック
         """
-        pass
+        with ExitStack() as stack:
+            mocknslogin = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.Login"))
+            mocknslogin = self.__MakeLoginMock(mocknslogin)
+            ns_cont = NijieScraping.NijieController(self.email, self.password)
+
+            # 正常系
+            r = "{:0>6}".format(random.randint(0, 999999))
+            # 作品ページURL
+            url_s = "http://nijie.info/view.php?id={}".format(r)
+            expect = int(r)
+            actual = ns_cont.GetIllustId(url_s)
+            self.assertEqual(expect, actual)
+
+            # 作品詳細ページURL
+            url_s = "http://nijie.info/view_popup.php?id={}".format(r)
+            expect = int(r)
+            actual = ns_cont.GetIllustId(url_s)
+            self.assertEqual(expect, actual)
+
+            # サフィックスエラー
+            url_s = "http://nijie.info/view.php?id={}&rank=1".format(r)
+            expect = -1
+            actual = ns_cont.GetIllustId(url_s)
+            self.assertEqual(expect, actual)
 
     def test_GetIllustURLs(self):
         """nijie作品ページURLからイラストへの直リンクを取得する機能をチェック
