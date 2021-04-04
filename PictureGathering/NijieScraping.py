@@ -346,7 +346,7 @@ class NijieController:
         Returns:
             str: 成功時 保存先ディレクトリパス、失敗時 空文字列
         """
-        if author_name == "" or author_id == -1 or illust_name == "" or illust_id == "" :
+        if author_name == "" or author_id == -1 or illust_name == "" or illust_id == "":
             return ""
 
         # パスに使えない文字をサニタイズする
