@@ -9,7 +9,6 @@ import zipfile
 from logging import INFO, getLogger
 from pathlib import Path
 from time import sleep
-from typing import List
 
 import requests
 from bs4 import BeautifulSoup
@@ -312,6 +311,11 @@ class NijieController:
                     break
             if img_url != "":
                 urls.append(img_url)
+
+        # 取得失敗した場合はエラー値を返す
+        if urls == []:
+            logger.error("DetailPageAnalysis error")
+            return ([], "", -1, "")
 
         # 作者IDは1枚目の画像ファイル名に含まれている
         author_id = int(Path(urls[0]).name.split("_")[0])

@@ -12,7 +12,6 @@ from logging import WARNING, getLogger
 from mock import MagicMock, PropertyMock, mock_open, patch
 from pathlib import Path
 from time import sleep
-from typing import List
 
 from PictureGathering import NijieScraping
 
@@ -59,23 +58,23 @@ class TestNijieController(unittest.TestCase):
         urls = {
             "251267": ["http://pic.nijie.net/05/nijie_picture/21030_20180226022216_0.jpg"],
             "251197": ["http://pic.nijie.net/05/nijie_picture/21030_20180225212822_0.jpg",
-                        "http://pic.nijie.net/02/nijie_picture/diff/main/21030_20180225212823_0.jpg",
-                        "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212824_1.jpg",
-                        "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212824_2.jpg",
-                        "http://pic.nijie.net/02/nijie_picture/diff/main/21030_20180225212824_3.jpg",
-                        "http://pic.nijie.net/04/nijie_picture/diff/main/21030_20180225212825_4.jpg",
-                        "http://pic.nijie.net/01/nijie_picture/diff/main/21030_20180225212827_5.jpg",
-                        "http://pic.nijie.net/01/nijie_picture/diff/main/21030_20180225212828_6.jpg",
-                        "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212828_7.jpg",
-                        "http://pic.nijie.net/04/nijie_picture/diff/main/21030_20180225212828_8.jpg"],
+                       "http://pic.nijie.net/02/nijie_picture/diff/main/21030_20180225212823_0.jpg",
+                       "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212824_1.jpg",
+                       "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212824_2.jpg",
+                       "http://pic.nijie.net/02/nijie_picture/diff/main/21030_20180225212824_3.jpg",
+                       "http://pic.nijie.net/04/nijie_picture/diff/main/21030_20180225212825_4.jpg",
+                       "http://pic.nijie.net/01/nijie_picture/diff/main/21030_20180225212827_5.jpg",
+                       "http://pic.nijie.net/01/nijie_picture/diff/main/21030_20180225212828_6.jpg",
+                       "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212828_7.jpg",
+                       "http://pic.nijie.net/04/nijie_picture/diff/main/21030_20180225212828_8.jpg"],
             "414793": ["http://pic.nijie.net/06/nijie_picture/4112_20210207002919_0.mp4"],
             "409587": ["http://pic.nijie.net/06/nijie_picture/317190_20210107221003_0.gif",
-                        "http://pic.nijie.net/01/nijie_picture/diff/main/409587_317190_20210107221005_0.mp4",
-                        "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221006_1.gif",
-                        "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221006_2.gif",
-                        "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221007_3.gif",
-                        "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221007_4.gif",
-                        "http://pic.nijie.net/06/nijie_picture/diff/main/409587_5_317190_20210108181522.gif"]
+                       "http://pic.nijie.net/01/nijie_picture/diff/main/409587_317190_20210107221005_0.mp4",
+                       "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221006_1.gif",
+                       "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221006_2.gif",
+                       "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221007_3.gif",
+                       "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221007_4.gif",
+                       "http://pic.nijie.net/06/nijie_picture/diff/main/409587_5_317190_20210108181522.gif"]
         }
         cols = ["illust_id", "urls", "author_name", "author_id", "illust_name"]
         data = {
@@ -83,8 +82,9 @@ class TestNijieController(unittest.TestCase):
             "251197": [urls["251197"], "author_name_1", 21030, "漫画"],
             "414793": [urls["414793"], "author_name_2", 4112, "うごイラ一枚"],
             "409587": [urls["409587"], "author_name_3", 317190, "うごイラ複数"]
-        }
-        return data[str(illust_id)]
+        } 
+        res = data.get(str(illust_id), [[], "", -1, ""])
+        return res
 
     def __MakeSoupMock(self) -> MagicMock:
         """html構造解析時のbs4モックを作成する
@@ -604,7 +604,58 @@ class TestNijieController(unittest.TestCase):
     def test_DetailPageAnalysis(self):
         """html構造解析機能をチェック
         """
-        pass
+        with ExitStack() as stack:
+            # モック置き換え
+            mocklogger = stack.enter_context(patch.object(logger, "error"))
+            mocknslogin = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.Login"))
+            mocknslogin = self.__MakeLoginMock(mocknslogin)
+            ns_cont = NijieScraping.NijieController(self.email, self.password)
+
+            # BeautifulSoupのモックを返す
+            def ReturnBeautifulSoup(illust_id, url_s=""):
+                data = self.__GetIllustData(int(illust_id))
+                response = MagicMock()
+            
+                def ReturnFindAll(s, name=None, attrs={}, recursive=True, text=None, limit=None, **kwargs):
+                    res = []
+                    url = url_s
+                    if name == "div" and kwargs.get("id") == "img_filter":
+                        for urls_element in data[0]:
+                            res.append(ReturnBeautifulSoup(illust_id, urls_element))
+                    elif name == "video":
+                        if ".mp4" in url or ".gif" in url:
+                            url = url.split(":")[1]
+                            res.append({"src": url})
+                    elif name == "a":
+                        aimg_mock = MagicMock()
+                        url = url.split(":")[1]
+                        type(aimg_mock).img = {"src": url}
+                        type(aimg_mock).get = lambda s, name: {"href": url}
+                        res.append(aimg_mock)
+                    return res
+
+                type(response).find_all = ReturnFindAll
+                
+                def ReturnFind(s, name=None, attrs={}, recursive=True, text=None, **kwargs):
+                    res = None
+                    if name == "title":
+                        title_mock = MagicMock()
+                        title_text = data[3] + " | " + data[1]
+                        type(title_mock).text = str(title_text)
+                        res = title_mock
+                    return res
+
+                type(response).find = ReturnFind
+                return response
+            
+            # 一枚絵, 漫画, うごイラ一枚, うごイラ複数, エラー値 をチェック
+            illust_ids = [251267, 251197, 414793, 409587, -1]
+            for illust_id in illust_ids:
+                soup_mock = ReturnBeautifulSoup(illust_id)
+                urls, author_name, author_id, illust_name = ns_cont.DetailPageAnalysis(soup_mock)
+                expect_data = self.__GetIllustData(illust_id)
+                actual_data = [urls, author_name, author_id, illust_name]
+                self.assertEqual(expect_data, actual_data)
 
     def test_MakeSaveDirectoryPath(self):
         """保存先ディレクトリパスを生成する機能をチェック
