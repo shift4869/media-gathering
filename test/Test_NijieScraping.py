@@ -611,7 +611,7 @@ class TestNijieController(unittest.TestCase):
             mocknslogin = self.__MakeLoginMock(mocknslogin)
             ns_cont = NijieScraping.NijieController(self.email, self.password)
 
-            # BeautifulSoupのモックを返す
+            # BeautifulSoupのモック
             def ReturnBeautifulSoup(illust_id, url_s=""):
                 data = self.__GetIllustData(int(illust_id))
                 response = MagicMock()
@@ -660,7 +660,48 @@ class TestNijieController(unittest.TestCase):
     def test_MakeSaveDirectoryPath(self):
         """保存先ディレクトリパスを生成する機能をチェック
         """
-        pass
+        with ExitStack() as stack:
+            mocknslogin = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.Login"))
+            mocknslogin = self.__MakeLoginMock(mocknslogin)
+            ns_cont = NijieScraping.NijieController(self.email, self.password)
+
+            # 一枚絵, 漫画, うごイラ一枚, うごイラ複数 をチェック
+            illust_ids = [251267, 251197, 414793, 409587]
+            for illust_id in illust_ids:
+                data = self.__GetIllustData(int(illust_id))
+
+                author_name = data[1]
+                author_id = data[2]
+                illust_name = data[3]
+                base_path = str(self.TBP)
+                expect = self.TBP / "./{}({})/{}({})/".format(author_name, author_id, illust_name, illust_id)
+
+                # 想定保存先ディレクトリが存在する場合は削除する
+                if expect.is_dir():
+                    shutil.rmtree(expect)
+
+                # 保存先ディレクトリが存在しない場合の実行
+                actual = Path(ns_cont.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path))
+                self.assertEqual(expect, actual)
+
+                # 保存先ディレクトリを作成する
+                actual.mkdir(parents=True, exist_ok=True)
+
+                # 保存先ディレクトリが存在する場合の実行
+                actual = Path(ns_cont.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path))
+                self.assertEqual(expect, actual)
+
+            # エラー値をチェック
+            illust_id = -1
+            data = self.__GetIllustData(int(illust_id))
+
+            author_name = data[1]
+            author_id = data[2]
+            illust_name = data[3]
+            base_path = str(self.TBP)
+            expect = ""
+            actual = ns_cont.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path)
+            self.assertEqual(expect, actual)
 
 
 if __name__ == "__main__":

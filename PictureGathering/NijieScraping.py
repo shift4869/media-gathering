@@ -346,6 +346,9 @@ class NijieController:
         Returns:
             str: 成功時 保存先ディレクトリパス、失敗時 空文字列
         """
+        if author_name == "" or author_id == -1 or illust_name == "" or illust_id == "" :
+            return ""
+
         # パスに使えない文字をサニタイズする
         # TODO::サニタイズを厳密に行う
         regex = re.compile(r'[\\/:*?"<>|]')
@@ -371,7 +374,7 @@ class NijieController:
                     if ai == str(author_id):
                         sd_path = "./{}/{}({})/".format(dir_name, illust_title, illust_id)
                         break
-        
+
         if sd_path == "":
             sd_path = "./{}({})/{}({})/".format(author_name, author_id, illust_title, illust_id)
 
