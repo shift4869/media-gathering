@@ -3,7 +3,6 @@
 
 GoogleDrive APIの各種機能をテストする
 設定ファイルとして ./config/credentials.json を使用する
-各種機能、テストの中でもGoogleDrive APIを実際に呼び出してテストする
 """
 
 import hashlib
