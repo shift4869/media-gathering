@@ -432,7 +432,6 @@ class TestPixivAPIController(unittest.TestCase):
             # ダミーファイルがある場合は削除しておく
             if not tmp_path.is_file() and rt_path.stat().st_size == 0:
                 rt_path.unlink()
-            pass
 
     def test_IsPixivURL(self):
         """pixivのURLかどうか判定する機能をチェック
