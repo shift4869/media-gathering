@@ -560,11 +560,7 @@ class TestNijieController(unittest.TestCase):
             if self.TBP.is_dir():
                 shutil.rmtree(self.TBP)
 
-            # 一枚絵、漫画形式、うごイラ一枚、うごイラ複数のそれぞれについてチェック
-            # illust_id = 251267  # 一枚絵
-            # illust_id = 251197  # 漫画
-            # illust_id = 414793  # うごイラ一枚
-            # illust_id = 409587  # うごイラ複数
+            # 一枚絵, 漫画, うごイラ一枚, うごイラ複数 をそれぞれチェック
             illust_ids = [251267, 251197, 414793, 409587]
             for illust_id in illust_ids:
                 illust_url = "http://nijie.info/view.php?id={}".format(illust_id)
