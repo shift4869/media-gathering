@@ -31,7 +31,7 @@
 
 
 ## 前提として必要なもの
-- Pythonの実行環境(3.7以上)
+- Pythonの実行環境(3.9以上)
 - twitterアカウントのAPIトークン
     - TwitterAPIを使用するためのAPIトークン。以下の4つのキーが必要
         - コンシューマーキー (Consumer Key)
