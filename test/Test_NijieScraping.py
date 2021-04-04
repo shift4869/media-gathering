@@ -366,7 +366,6 @@ class TestNijieController(unittest.TestCase):
             # ダミーファイルがある場合は削除しておく
             if not tmp_path.is_file() and nc_path.stat().st_size == 0:
                 nc_path.unlink()
-            pass
 
     def test_IsValidCookies(self):
         """クッキーが正しいかどうか判定する機能をチェック
