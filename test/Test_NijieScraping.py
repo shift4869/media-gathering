@@ -82,7 +82,7 @@ class TestNijieController(unittest.TestCase):
             "251197": [urls["251197"], "author_name_1", 21030, "漫画"],
             "414793": [urls["414793"], "author_name_2", 4112, "うごイラ一枚"],
             "409587": [urls["409587"], "author_name_3", 317190, "うごイラ複数"]
-        } 
+        }
         res = data.get(str(illust_id), [[], "", -1, ""])
         return res
 
