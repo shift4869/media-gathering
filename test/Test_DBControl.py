@@ -242,7 +242,7 @@ class TestDBController(unittest.TestCase):
                 fout.write(b"abcde")
 
             tca = tweet_s["created_at"]
-            dst = datetime.strptime(tca, td_format_s)
+            dst = datetime.strptime(tca, td_format_s) + timedelta(hours=9)
             regex = re.compile(r"<[^>]*?>")
             via = regex.sub("", tweet_s["source"])
             expect = {
@@ -272,7 +272,7 @@ class TestDBController(unittest.TestCase):
             del_num = int(re.findall(pattern, text)[1])
 
             tca = del_tweet_s["created_at"]
-            dst = datetime.strptime(tca, td_format_s)
+            dst = datetime.strptime(tca, td_format_s) + timedelta(hours=9)
             expect = {
                 "tweet_id": del_tweet_s["id_str"],
                 "delete_done": False,

@@ -53,7 +53,7 @@ class DBController:
         td_format = "%a %b %d %H:%M:%S +0000 %Y"
         dts_format = "%Y-%m-%d %H:%M:%S"
         tca = tweet["created_at"]
-        dst = datetime.strptime(tca, td_format)
+        dst = datetime.strptime(tca, td_format) + timedelta(hours=9)
         text = tweet["text"] if "text" in tweet else tweet["full_text"]
         regex = re.compile(r"<[^>]*?>")
         via = regex.sub("", tweet["source"])
@@ -97,7 +97,7 @@ class DBController:
         dts_format = "%Y-%m-%d %H:%M:%S"
 
         tca = tweet["created_at"]
-        dst = datetime.strptime(tca, td_format)
+        dst = datetime.strptime(tca, td_format) + timedelta(hours=9)
         # tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num
         return {
             "tweet_id": tweet["id_str"],

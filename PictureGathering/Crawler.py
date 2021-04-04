@@ -521,22 +521,34 @@ class Crawler(metaclass=ABCMeta):
             if not media_tweets:
                 continue
 
-            # 画像つきツイートが投稿された日時を取得する
-            # 引用RTなどのツリーで関係ツイートが複数ある場合は最新の日時を一律付与する
-            # もしcreated_atが不正な形式だった場合、strptimeはValueErrorを返す
-            # ex) tweet["created_at"] = "Tue Sep 04 15:55:52 +0000 2012"
-            td_format = "%a %b %d %H:%M:%S +0000 %Y"
-            mt = media_tweets[0]
-            created_time = time.strptime(mt["created_at"], td_format)
-            atime = mtime = time.mktime(
-                (created_time.tm_year,
-                    created_time.tm_mon,
-                    created_time.tm_mday,
-                    created_time.tm_hour + 9,
-                    created_time.tm_min,
-                    created_time.tm_sec,
-                    0, 0, -1)
-            )
+            """タイムスタンプについて
+                https://srbrnote.work/archives/4054
+                作成日時:ctime, 更新日時:mtime, アクセス日時:atimeがある
+                ctimeはOS依存のため設定には外部ライブラリが必要
+                ここでは atime=mtime=収集時の時刻 とする
+                収集されたツイートの投稿日時はDBのcreated_at項目に保持される
+
+                引用RTなどのツリーで関係ツイートが複数ある場合は最新の日時を一律付与する
+                もしcreated_atが不正な形式だった場合、strptimeはValueErrorを返す
+                ex) tweet["created_at"] = "Tue Sep 04 15:55:52 +0000 2012"
+            """
+            IS_APPLY_NOW_TIMESTAMP = True
+            atime = mtime = -1
+            if IS_APPLY_NOW_TIMESTAMP:
+                atime = mtime = time.time()
+            else:
+                td_format = "%a %b %d %H:%M:%S +0000 %Y"
+                mt = media_tweets[0]
+                created_time = time.strptime(mt["created_at"], td_format)
+                atime = mtime = time.mktime(
+                    (created_time.tm_year,
+                     created_time.tm_mon,
+                     created_time.tm_mday,
+                     created_time.tm_hour + 9,
+                     created_time.tm_min,
+                     created_time.tm_sec,
+                     0, 0, -1)
+                )
 
             # 取得したメディアツイートツリー（複数想定）
             for media_tweet in media_tweets:
@@ -784,21 +796,8 @@ class Crawler(metaclass=ABCMeta):
             logger.error("Error code: {0}".format(response.status_code))
             return None
 
-        # 時刻調整
         tweet = json.loads(response.text)
-        td_format = "%a %b %d %H:%M:%S +0000 %Y"
-        created_time = time.strptime(tweet["created_at"], td_format)
-        mktuple = (created_time.tm_year,
-                   created_time.tm_mon,
-                   created_time.tm_mday,
-                   created_time.tm_hour + 9,
-                   created_time.tm_min,
-                   created_time.tm_sec,
-                   created_time.tm_wday,
-                   created_time.tm_yday,
-                   created_time.tm_isdst)
-        created_at_str = time.strftime(td_format, mktuple)
-        tweet["created_at"] = created_at_str
+
         logger.debug(tweet)
         self.db_cont.DBDelUpsert(tweet)
 

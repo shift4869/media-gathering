@@ -891,18 +891,23 @@ class TestCrawler(unittest.TestCase):
                 if not media_tweets:
                     continue
 
-                td_format = "%a %b %d %H:%M:%S +0000 %Y"
-                mt = media_tweets[0]
-                created_time = time.strptime(mt["created_at"], td_format)
-                atime = mtime = time.mktime(
-                    (created_time.tm_year,
-                        created_time.tm_mon,
-                        created_time.tm_mday,
-                        created_time.tm_hour + 9,
-                        created_time.tm_min,
-                        created_time.tm_sec,
-                        0, 0, -1)
-                )
+                IS_APPLY_NOW_TIMESTAMP = True
+                atime = mtime = -1
+                if IS_APPLY_NOW_TIMESTAMP:
+                    atime = mtime = time.time()
+                else:
+                    td_format = "%a %b %d %H:%M:%S +0000 %Y"
+                    mt = media_tweets[0]
+                    created_time = time.strptime(mt["created_at"], td_format)
+                    atime = mtime = time.mktime(
+                        (created_time.tm_year,
+                         created_time.tm_mon,
+                         created_time.tm_mday,
+                         created_time.tm_hour + 9,
+                         created_time.tm_min,
+                         created_time.tm_sec,
+                         0, 0, -1)
+                    )
 
                 for media_tweet in media_tweets:
                     if "extended_entities" not in media_tweet:
@@ -962,7 +967,10 @@ class TestCrawler(unittest.TestCase):
                 actual_called_arg.append(called_arg[0])
 
             self.assertEqual(len(expect_called_arg), len(actual_called_arg))
-            self.assertEqual(expect_called_arg, actual_called_arg)
+            for e, a in zip(expect_called_arg, actual_called_arg):
+                self.assertEqual(e[:-2], a[:-2])  # 時刻はミリ秒以下で誤差が出るので除外
+                self.assertAlmostEqual(e[2], a[2], delta=1.0)  # 時刻比較
+                self.assertAlmostEqual(e[3], a[3], delta=1.0)  # 時刻比較
 
     def test_GetExistFilelist(self):
         """save_pathにあるファイル名一覧取得処理をチェックする
