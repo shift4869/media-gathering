@@ -566,7 +566,8 @@ class TestNijieController(unittest.TestCase):
             # illust_id = 251197  # 漫画
             # illust_id = 414793  # うごイラ一枚
             # illust_id = 409587  # うごイラ複数
-            for illust_id in [251267, 251197, 414793, 409587]:
+            illust_ids = [251267, 251197, 414793, 409587]
+            for illust_id in illust_ids:
                 illust_url = "http://nijie.info/view.php?id={}".format(illust_id)
                 res = ns_cont.DownloadIllusts(illust_url, str(self.TBP))
                 self.assertEqual(0, res)  # どれも初めてDLしたはずなので返り値は0
@@ -595,7 +596,10 @@ class TestNijieController(unittest.TestCase):
                     self.assertTrue(False)
             
             # 2回目のDLをシミュレート
-        pass
+            for illust_id in illust_ids:
+                illust_url = "http://nijie.info/view.php?id={}".format(illust_id)
+                res = ns_cont.DownloadIllusts(illust_url, str(self.TBP))
+                self.assertEqual(1, res)  # 2回目のDLなので返り値は1
 
     def test_DetailPageAnalysis(self):
         """html構造解析機能をチェック
