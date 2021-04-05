@@ -72,6 +72,11 @@
 
 ## 外部ライブラリのライセンス表記
 
+@waylan / beautifulsoup beautifulsoup4 4.9.3  
+スクレイピングに使用。  
+Beautiful Soup is made available under the MIT license:  
+MIT License  
+
 @pyca pyca / cryptography 3.2.1  
 CIのためのファイル暗号化-復号に使用。  
 LICENSE（※訳）  
