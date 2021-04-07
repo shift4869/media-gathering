@@ -26,7 +26,7 @@ import requests
 import slackweb
 from requests_oauthlib import OAuth1Session
 
-from PictureGathering import DBController, WriteHTML, Archiver, GoogleDrive, PixivAPIController
+from PictureGathering import DBController, WriteHTML, Archiver, GoogleDrive, PixivAPIController, NijieScraping
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 logger = getLogger("root")
@@ -396,12 +396,13 @@ class Crawler(metaclass=ABCMeta):
                 if tweet["quoted_status"]["retweeted_status"].get("extended_entities"):
                     result = result + self.GetMediaTweet(tweet["quoted_status"], id_str_list)
 
-        # ツイートにpixivのリンクがある場合
+        # ツイートにpixiv, nijieのリンクがある場合
         if tweet.get("entities"):
             if tweet["entities"].get("urls"):
                 url = tweet["entities"]["urls"][0].get("expanded_url")
                 IsPixivURL = PixivAPIController.PixivAPIController.IsPixivURL
-                if IsPixivURL(url):
+                IsNijieURL = NijieScraping.NijieController.IsNijieURL
+                if IsPixivURL(url) or IsNijieURL(url):
                     if tweet["id_str"] not in id_str_list:
                         result.append(tweet)
                         id_str_list.append(tweet["id_str"])
@@ -514,6 +515,15 @@ class Crawler(metaclass=ABCMeta):
             pa_cont = PixivAPIController.PixivAPIController(username, password)
             IsPixivURL = PixivAPIController.PixivAPIController.IsPixivURL
 
+        ns_cont = None
+        IsNijieURL = None
+        if self.config["nijie"].getboolean("is_nijie_trace"):
+            email = self.config["nijie"]["email"]
+            password = self.config["nijie"]["password"]
+            save_nijie_base_path = Path(self.config["nijie"]["save_base_path"])
+            ns_cont = NijieScraping.NijieController(email, password)
+            IsNijieURL = NijieScraping.NijieController.IsNijieURL
+
         for tweet in tweets:
             # メディアツイートツリーを取得
             media_tweets = self.GetMediaTweet(tweet)
@@ -564,7 +574,15 @@ class Crawler(metaclass=ABCMeta):
                                 urls = pa_cont.GetIllustURLs(url)
                                 save_directory_path = Path(pa_cont.MakeSaveDirectoryPath(url, str(save_pixiv_base_path)))
                                 pa_cont.DownloadIllusts(urls, str(save_directory_path))
-                    # continue
+
+                # nijieリンクが含まれているか
+                if ns_cont and tweet.get("entities"):
+                    if tweet["entities"].get("urls"):
+                        e_urls = tweet["entities"]["urls"]
+                        for element in e_urls:
+                            url = element.get("expanded_url")
+                            if IsNijieURL(url):
+                                ns_cont.DownloadIllusts(url, str(save_nijie_base_path))
 
                 if "extended_entities" not in media_tweet:
                     logger.debug("メディアを含んでいないツイートです。")
