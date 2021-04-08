@@ -1,0 +1,54 @@
+@startuml
+title クラス図
+
+' クローラークラス
+abstract class Crawler
+class FavCrawler
+class RTCrawler
+Crawler <|.. FavCrawler
+Crawler <|.. RTCrawler
+
+' DBクラス
+abstract class DBControllerBase 
+class FavDBController 
+class RTDBController 
+DBControllerBase <|-- FavDBController
+DBControllerBase <|-- RTDBController
+
+' SQLalchemy関連クラス
+class Base{
+    SQLalchemy Base
+}
+class Favorite{
+    Model
+}
+class Retweet{
+    Model
+}
+class DeleteTarget{
+    Model
+}
+Base <|-- Favorite
+Base <|-- Retweet
+Base <|-- DeleteTarget
+
+' 外部リンク探索ベース
+abstract class LinkSearchBase
+' pixivクラス
+class PixivAPIController
+' nijieクラス
+class NijieController
+LinkSearchBase <|-- PixivAPIController
+LinkSearchBase <|-- NijieController
+
+' 関連追加
+FavDBController *-- Favorite
+FavDBController *-- DeleteTarget
+RTDBController *-- Retweet
+RTDBController *-- DeleteTarget
+FavCrawler -- Favorite
+RTCrawler -- Retweet
+LinkSearchBase *-- Crawler
+DBControllerBase *-- Crawler
+
+@enduml
