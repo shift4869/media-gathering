@@ -26,7 +26,7 @@ import requests
 import slackweb
 from requests_oauthlib import OAuth1Session
 
-from PictureGathering import DBController, WriteHTML, Archiver, GoogleDrive, PixivAPIController, NijieScraping
+from PictureGathering import WriteHTML, Archiver, GoogleDrive, PixivAPIController, NijieScraping
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 logger = getLogger("root")
@@ -47,7 +47,7 @@ class Crawler(metaclass=ABCMeta):
     Attributes:
         CONFIG_FILE_NAME (str): 設定ファイルパス
         config (ConfigParser): 設定ini構造体
-        db_cont (DBController): DB操作用クラス実体
+        db_cont (DBControllerBase): DB操作用クラス（実態はCrawler派生クラスで規定）
         TW_CONSUMER_KEY (str): TwitterAPI利用キー
         TW_CONSUMER_SECRET (str): TwitterAPI利用シークレットキー
         TW_ACCESS_TOKEN_KEY (str): TwitterAPIアクセストークンキー
@@ -73,14 +73,6 @@ class Crawler(metaclass=ABCMeta):
             if not self.config.read(self.CONFIG_FILE_NAME, encoding="utf8"):
                 raise IOError
 
-            config = self.config["db"]
-            save_path = Path(config["save_path"])
-            save_path.mkdir(parents=True, exist_ok=True)
-            db_fullpath = save_path / config["save_file_name"]
-            self.db_cont = DBController.DBController(db_fullpath)
-            if config.getboolean("save_permanent_image_flag"):
-                Path(config["save_permanent_image_path"]).mkdir(parents=True, exist_ok=True)
-
             config = self.config["save_directory"]
             Path(config["save_fav_path"]).mkdir(parents=True, exist_ok=True)
             Path(config["save_retweet_path"]).mkdir(parents=True, exist_ok=True)
@@ -105,11 +97,12 @@ class Crawler(metaclass=ABCMeta):
 
             self.save_path = Path()
             self.type = ""
+            self.db_cont = None
         except IOError:
             logger.exception(self.CONFIG_FILE_NAME + " is not exist or cannot be opened.")
             exit(-1)
         except KeyError:
-            logger.exception("invalid config file eeror.")
+            logger.exception("invalid config file error.")
             exit(-1)
         except Exception:
             logger.exception("unknown error.")
@@ -742,7 +735,7 @@ class Crawler(metaclass=ABCMeta):
         # 古い通知リプライを消す
         config = self.config["notification"]
         if config.getboolean("is_post_fav_done_reply") or config.getboolean("is_post_retweet_done_reply"):
-            targets = self.db_cont.DBDelSelect()
+            targets = self.db_cont.DelSelect()
             url = "https://api.twitter.com/1.1/statuses/destroy/{}.json"
             for target in targets:
                 response = self.oath.post(url.format(target["tweet_id"]))  # tweet_id
@@ -819,7 +812,7 @@ class Crawler(metaclass=ABCMeta):
         tweet = json.loads(response.text)
 
         logger.debug(tweet)
-        self.db_cont.DBDelUpsert(tweet)
+        self.db_cont.DelUpsert(tweet)
 
         return 0
 

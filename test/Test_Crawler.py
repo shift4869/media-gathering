@@ -25,7 +25,7 @@ import requests
 from mock import MagicMock, PropertyMock, patch
 from requests_oauthlib import OAuth1Session
 
-from PictureGathering import Crawler
+from PictureGathering import Crawler, FavDBController
 
 logger = getLogger("root")
 logger.setLevel(WARNING)
@@ -43,6 +43,13 @@ class ConcreteCrawler(Crawler.Crawler):
 
     def __init__(self):
         super().__init__()
+
+        config = self.config["db"]
+        save_path = Path(config["save_path"])
+        save_path.mkdir(parents=True, exist_ok=True)
+        db_fullpath = save_path / config["save_file_name"]
+        self.db_cont = FavDBController.FavDBController(db_fullpath)
+
         self.save_path = Path("./test")
         self.type = "Fav"  # Favorite取得としておく
 
@@ -811,7 +818,7 @@ class TestCrawler(unittest.TestCase):
             mockurllib = stack.enter_context(patch("PictureGathering.Crawler.urllib.request.urlopen"))
             mocksystem = stack.enter_context(patch("PictureGathering.Crawler.os.system"))
             mockshutil = stack.enter_context(patch("PictureGathering.Crawler.shutil"))
-            mocksql = stack.enter_context(patch("PictureGathering.DBController.DBController.DBFavUpsert"))
+            mocksql = stack.enter_context(patch("PictureGathering.FavDBController.FavDBController.Upsert"))
 
             # mock設定
             mocksystem.return_value = 0
@@ -1052,7 +1059,7 @@ class TestCrawler(unittest.TestCase):
             mockcpdnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.PostDiscordNotify"))
             mockamzf = stack.enter_context(patch("PictureGathering.Archiver.MakeZipFile"))
             mockgdutgd = stack.enter_context(patch("PictureGathering.GoogleDrive.UploadToGoogleDrive"))
-            mocksql = stack.enter_context(patch("PictureGathering.DBController.DBController.DBDelSelect"))
+            mocksql = stack.enter_context(patch("PictureGathering.FavDBController.FavDBController.Select"))
             mockoauth = stack.enter_context(patch("requests_oauthlib.OAuth1Session.post"))
 
             # mock設定
@@ -1080,7 +1087,7 @@ class TestCrawler(unittest.TestCase):
         with ExitStack() as stack:
             mockctapi = stack.enter_context(patch("PictureGathering.Crawler.Crawler.TwitterAPIRequest"))
             mockoauth = stack.enter_context(patch("requests_oauthlib.OAuth1Session.post"))
-            mocksql = stack.enter_context(patch("PictureGathering.DBController.DBController.DBDelUpsert"))
+            mocksql = stack.enter_context(patch("PictureGathering.FavDBController.FavDBController.DelUpsert"))
 
             # mock設定
             mockctapi.return_value = {"id_str": "12345_id_str_sample"}
