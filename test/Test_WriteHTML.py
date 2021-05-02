@@ -10,7 +10,7 @@ from pathlib import Path
 
 from mock import MagicMock, PropertyMock, mock_open, patch
 
-from PictureGathering import DBController, WriteHTML
+from PictureGathering import FavDBController, RetweetDBController, WriteHTML
 
 logger = getLogger("root")
 logger.setLevel(WARNING)
@@ -89,7 +89,6 @@ class TestWriteHTML(unittest.TestCase):
             self.assertTrue(config_path.is_file())
             config.read(config_path, encoding="utf8")
             db_path = Path(config["db"]["save_path"]) / config["db"]["save_file_name"]
-            db_cont = DBController.DBController(str(db_path), False)
 
             # Select時にデフォルトではキリが良い数しか取得しない
             # 全分岐を通るために中途半端な数を要求する
@@ -113,35 +112,37 @@ class TestWriteHTML(unittest.TestCase):
                 return res
 
             # Fav
-            s_db = db_cont.DBFavSelect(limit_s)
+            db_cont = FavDBController.FavDBController(str(db_path), False)
+            s_db = db_cont.Select(limit_s)
             s_save_path = self.FAV_HTML_PATH
             res = MakeResultHTML(s_db)
             expect = self.template.format(table_content=res)
             expect = re.sub("\n *", "\n", expect)
 
             res = WriteHTML.WriteResultHTML("Fav", db_cont, limit_s)
-            # print(mockfout.mock_calls)
+
             actual = mockfout().write.call_args[0][0]
             actual = re.sub("\n *", "\n", actual)
             self.assertEqual(0, res)
             self.assertEqual(expect, actual)
 
             # Retweet
-            s_db = db_cont.DBRetweetSelect(limit_s)
+            db_cont = RetweetDBController.RetweetDBController(str(db_path), False)
+            s_db = db_cont.Select(limit_s)
             s_save_path = self.RETWEET_HTML_PATH
             res = MakeResultHTML(s_db)
             expect = self.template.format(table_content=res)
             expect = re.sub("\n *", "\n", expect)
 
             res = WriteHTML.WriteResultHTML("RT", db_cont, limit_s)
-            # print(mockfout.mock_calls)
+
             actual = mockfout().write.call_args[0][0]
             actual = re.sub("\n *", "\n", actual)
             self.assertEqual(0, res)
             self.assertEqual(expect, actual)
 
             # エラー処理チェック
-            res = WriteHTML.WriteResultHTML("error", db_cont, limit_s)
+            res = WriteHTML.WriteResultHTML("error", None, limit_s)
             self.assertEqual(-1, res)
 
 

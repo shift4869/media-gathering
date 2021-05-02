@@ -1,5 +1,5 @@
 # coding: utf-8
-from PictureGathering import DBController
+from PictureGathering import FavDBController
 
 template = '''<!DOCTYPE html>
 <html>
@@ -44,10 +44,10 @@ def WriteResultHTML(op_type, db_controller, limit=300):
     save_path = ""
     db = []
     if op_type == "Fav":
-        db = db_controller.DBFavSelect(limit)
+        db = db_controller.Select(limit)
         save_path = FAV_HTML_PATH
     elif op_type == "RT":
-        db = db_controller.DBRetweetSelect(limit)
+        db = db_controller.Select(limit)
         save_path = RETWEET_HTML_PATH
     else:
         return -1
@@ -76,5 +76,5 @@ def WriteResultHTML(op_type, db_controller, limit=300):
 
 
 if __name__ == "__main__":
-    db_controller = DBController.DBController()
+    db_controller = FavDBController.FavDBController()
     WriteResultHTML("Fav", db_controller)
