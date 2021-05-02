@@ -27,6 +27,9 @@ class DBControllerBase(metaclass=ABCMeta):
         self.operatefile = None
         if save_operation and not DEBUG:
             self.operatefile = Path("./archive").absolute() / "operatefile.txt"  # 操作履歴保存ファイル
+            
+            if not self.operatefile.parent.is_dir():
+                self.operatefile.parent.mkdir(parents=True, exist_ok=True)
             with self.operatefile.open(mode="w", encoding="utf_8") as fout:
                 fout.write("")
 
