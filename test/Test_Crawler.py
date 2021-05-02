@@ -56,7 +56,7 @@ class ConcreteCrawler(Crawler.Crawler):
     def UpdateDBExistMark(self, file_name):
         return "DBExistMark updated"
 
-    def GetVideoURL(self, file_name):
+    def GetMediaURL(self, file_name):
         video_base_url = "https://video.twimg.com/ext_tw_video/1144527536388337664/pu/vid/626x882/{}"
         return video_base_url.format(file_name)
 
@@ -268,7 +268,7 @@ class TestCrawler(unittest.TestCase):
 
         filename = "video_sample.mp4"
         video_base_url = "https://video.twimg.com/ext_tw_video/1144527536388337664/pu/vid/626x882/{}"
-        self.assertEqual(video_base_url.format(filename), crawler.GetVideoURL(filename))
+        self.assertEqual(video_base_url.format(filename), crawler.GetMediaURL(filename))
         self.assertEqual("Crawler Test : done", crawler.MakeDoneMessage())
         self.assertEqual(0, crawler.Crawl())
 
