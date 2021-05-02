@@ -19,6 +19,7 @@ from PictureGathering.Model import *
 
 logger = getLogger("root")
 logger.setLevel(WARNING)
+TEST_DB_FULLPATH = "./test/test.db"
 
 
 class ConcreteDBControllerBase(DBControllerBase.DBControllerBase):
@@ -27,7 +28,7 @@ class ConcreteDBControllerBase(DBControllerBase.DBControllerBase):
     DBControllerBase.DBControllerBase()の抽象クラスメソッドを最低限実装したテスト用の派生クラス
     """
 
-    def __init__(self, db_fullpath="test.db", save_operation=True):
+    def __init__(self, db_fullpath=TEST_DB_FULLPATH, save_operation=True):
         super().__init__(db_fullpath, save_operation)
 
     def Upsert(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob):
@@ -60,6 +61,9 @@ class TestDBController(unittest.TestCase):
         self.session.close()
         if self.engine.url.database == ":memory:":
             Base.metadata.drop_all(self.engine)
+
+        if Path(TEST_DB_FULLPATH).is_file():
+            Path(TEST_DB_FULLPATH).unlink()
 
     def GetTweetSample(self, img_url_s: str) -> dict:
         """ツイートオブジェクトのサンプルを生成する

@@ -142,7 +142,7 @@ class TestWriteHTML(unittest.TestCase):
             self.assertEqual(expect, actual)
 
             # エラー処理チェック
-            res = WriteHTML.WriteResultHTML("error", None, limit_s)
+            res = WriteHTML.WriteResultHTML("error", db_cont, limit_s)
             self.assertEqual(-1, res)
 
 

@@ -19,6 +19,7 @@ from PictureGathering.Model import *
 
 logger = getLogger("root")
 logger.setLevel(WARNING)
+TEST_DB_FULLPATH = "./test/test.db"
 
 
 class TestDBController(unittest.TestCase):
@@ -55,6 +56,9 @@ class TestDBController(unittest.TestCase):
         self.session.close()
         if self.engine.url.database == ":memory:":
             Base.metadata.drop_all(self.engine)
+
+        if Path(TEST_DB_FULLPATH).is_file():
+            Path(TEST_DB_FULLPATH).unlink()
 
     def RetweetSampleFactory(self, img_url: str) -> Retweet:
         """Retweetオブジェクトを生成する
@@ -167,7 +171,7 @@ class TestDBController(unittest.TestCase):
         """RetweetへのUPSERTをチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
-        controlar = RetweetDBController.RetweetDBController()
+        controlar = RetweetDBController.RetweetDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
 
         # 1回目（INSERT）
@@ -198,7 +202,7 @@ class TestDBController(unittest.TestCase):
         """RetweetからのSELECTをチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
-        controlar = RetweetDBController.RetweetDBController()
+        controlar = RetweetDBController.RetweetDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
 
         # SELECT
@@ -212,7 +216,7 @@ class TestDBController(unittest.TestCase):
         """Retweetからfilenameを条件としてのSELECTをチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
-        controlar = RetweetDBController.RetweetDBController()
+        controlar = RetweetDBController.RetweetDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
 
         # サンプル生成
@@ -231,7 +235,7 @@ class TestDBController(unittest.TestCase):
         """Retweetのis_exist_saved_fileフラグ更新をチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
-        controlar = RetweetDBController.RetweetDBController()
+        controlar = RetweetDBController.RetweetDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
 
         # 1回目（r1,r2を追加して両方ともTrueに更新）
@@ -268,7 +272,7 @@ class TestDBController(unittest.TestCase):
         """Retweetのis_exist_saved_fileフラグクリア機能をチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
-        controlar = RetweetDBController.RetweetDBController()
+        controlar = RetweetDBController.RetweetDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
 
         # サンプル生成
