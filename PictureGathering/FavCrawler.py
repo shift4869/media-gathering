@@ -54,17 +54,6 @@ class FavCrawler(Crawler):
 
         return self.TwitterAPIRequest(url, params)
 
-    def UpdateDBExistMark(self, add_img_filename):
-        # 存在マーキングを更新する
-        self.db_cont.FlagClear()
-        self.db_cont.FlagUpdate(add_img_filename, 1)
-
-    def GetVideoURL(self, filename):
-        # 'https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/b0ZDq8zG_HppFWb6.mp4?tag=10'
-        response = self.db_cont.SelectFromMediaURL(filename)
-        url = response[0]["url"] if len(response) == 1 else ""
-        return url
-
     def MakeDoneMessage(self):
         now_str = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
         done_msg = "Fav PictureGathering run.\n"

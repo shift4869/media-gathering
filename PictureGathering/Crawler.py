@@ -95,9 +95,9 @@ class Crawler(metaclass=ABCMeta):
             self.user_name = self.config["tweet_timeline"]["user_name"]
             self.count = int(self.config["tweet_timeline"]["count"])
 
+            self.db_cont = None
             self.save_path = Path()
             self.type = ""
-            self.db_cont = None
         except IOError:
             logger.exception(self.CONFIG_FILE_NAME + " is not exist or cannot be opened.")
             exit(-1)
@@ -453,10 +453,7 @@ class Crawler(metaclass=ABCMeta):
 
             # DB操作 TODO::typeで判別しないで派生先クラスでそれぞれ担当させる
             include_blob = self.config["db"].getboolean("save_blob")
-            if self.type == "Fav":
-                self.db_cont.Upsert(file_name, url_orig, url_thumbnail, tweet, str(save_file_fullpath), include_blob)
-            elif self.type == "RT":
-                self.db_cont.Upsert(file_name, url_orig, url_thumbnail, tweet, str(save_file_fullpath), include_blob)
+            self.db_cont.Upsert(file_name, url_orig, url_thumbnail, tweet, str(save_file_fullpath), include_blob)
 
             # image magickで画像変換
             if media_type == "photo":
@@ -632,7 +629,7 @@ class Crawler(metaclass=ABCMeta):
             file_path = Path(file)
 
             if ".mp4" == file_path.suffix:  # media_type == "video":
-                url = self.GetVideoURL(file_path.name)
+                url = self.GetMediaURL(file_path.name)
             else:  # media_type == "photo":
                 image_base_url = "http://pbs.twimg.com/media/{}:orig"
                 url = image_base_url.format(file_path.name)
@@ -650,26 +647,16 @@ class Crawler(metaclass=ABCMeta):
 
         return 0
 
-    @abstractmethod
-    def UpdateDBExistMark(self, add_img_filename: list):
-        """存在マーキングを更新する
+    def UpdateDBExistMark(self, add_img_filename):
+        # 存在マーキングを更新する
+        self.db_cont.FlagClear()
+        self.db_cont.FlagUpdate(add_img_filename, 1)
 
-        Args:
-            add_img_filename (list): 保存したメディアのアドレスリスト
-        """
-        pass
-
-    @abstractmethod
-    def GetVideoURL(self, file_name: str) -> str:
-        """動画ファイルのURLをDBに問い合わせる
-
-        Args:
-            file_name (str): 動画ファイル名
-
-        Returns:
-            str: 成功時動画ファイルURL、失敗時空文字列
-        """
-        pass
+    def GetMediaURL(self, filename):
+        # 'https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/b0ZDq8zG_HppFWb6.mp4?tag=10'
+        response = self.db_cont.SelectFromMediaURL(filename)
+        url = response[0]["url"] if len(response) == 1 else ""
+        return url
 
     @abstractmethod
     def MakeDoneMessage(self) -> str:

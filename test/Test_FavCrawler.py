@@ -160,7 +160,7 @@ class TestFavCrawler(unittest.TestCase):
 
         fc = FavCrawler.FavCrawler()
 
-        def MakeVideoURL(filename):
+        def MakeMediaURL(filename):
             dic = {"url": "https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/{0}?tag=10".format(filename)}
             return [dic]
 
@@ -169,15 +169,15 @@ class TestFavCrawler(unittest.TestCase):
             s_filename = "sample.mp4"
 
             # 正常系
-            mockdbcv.side_effect = MakeVideoURL
-            expect = MakeVideoURL(s_filename)[0]["url"]
-            actual = fc.GetVideoURL(s_filename)
+            mockdbcv.side_effect = MakeMediaURL
+            expect = MakeMediaURL(s_filename)[0]["url"]
+            actual = fc.GetMediaURL(s_filename)
             self.assertEqual(expect, actual)
 
             # エラーケース
             mockdbcv.side_effect = None
             expect = ""
-            actual = fc.GetVideoURL(s_filename)
+            actual = fc.GetMediaURL(s_filename)
             self.assertEqual(expect, actual)
 
     def test_MakeDoneMessage(self):

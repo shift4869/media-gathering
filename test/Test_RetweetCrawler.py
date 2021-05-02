@@ -367,7 +367,7 @@ class TestRetweetCrawler(unittest.TestCase):
 
         rc = RetweetCrawler.RetweetCrawler()
 
-        def MakeVideoURL(filename):
+        def MakeMediaURL(filename):
             dic = {"url": "https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/{0}?tag=10".format(filename)}
             return [dic]
 
@@ -376,15 +376,15 @@ class TestRetweetCrawler(unittest.TestCase):
             s_filename = "sample.mp4"
 
             # 正常系
-            mockdbcv.side_effect = MakeVideoURL
-            expect = MakeVideoURL(s_filename)[0]["url"]
-            actual = rc.GetVideoURL(s_filename)
+            mockdbcv.side_effect = MakeMediaURL
+            expect = MakeMediaURL(s_filename)[0]["url"]
+            actual = rc.GetMediaURL(s_filename)
             self.assertEqual(expect, actual)
 
             # エラーケース
             mockdbcv.side_effect = None
             expect = ""
-            actual = rc.GetVideoURL(s_filename)
+            actual = rc.GetMediaURL(s_filename)
             self.assertEqual(expect, actual)
 
     def test_MakeDoneMessage(self):
