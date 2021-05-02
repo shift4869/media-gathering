@@ -239,8 +239,8 @@ class TestRetweetCrawler(unittest.TestCase):
         rc = RetweetCrawler.RetweetCrawler()
 
         with ExitStack() as stack:
-            mockdbrfc = stack.enter_context(patch("PictureGathering.DBController.DBController.DBRetweetFlagClear"))
-            mockdbrfu = stack.enter_context(patch("PictureGathering.DBController.DBController.DBRetweetFlagUpdate"))
+            mockdbrfc = stack.enter_context(patch("PictureGathering.RetweetDBController.RetweetDBController.FlagClear"))
+            mockdbrfu = stack.enter_context(patch("PictureGathering.RetweetDBController.RetweetDBController.FlagUpdate"))
             mockapireq = stack.enter_context(patch("PictureGathering.Crawler.Crawler.TwitterAPIRequest"))
             
             # GetExistFilelistはrc本来のものを使うが結果を保持して比較するためにモックにしておく
@@ -352,8 +352,8 @@ class TestRetweetCrawler(unittest.TestCase):
         rc = RetweetCrawler.RetweetCrawler()
 
         with ExitStack() as stack:
-            mockdbcc = stack.enter_context(patch("PictureGathering.DBController.DBController.DBRetweetFlagClear"))
-            mockdbcu = stack.enter_context(patch("PictureGathering.DBController.DBController.DBRetweetFlagUpdate"))
+            mockdbcc = stack.enter_context(patch("PictureGathering.RetweetDBController.RetweetDBController.FlagClear"))
+            mockdbcu = stack.enter_context(patch("PictureGathering.RetweetDBController.RetweetDBController.FlagUpdate"))
 
             s_add_img_filename = ["sample1.jpg", "sample2.jpg", "sample3.jpg"]
             rc.UpdateDBExistMark(s_add_img_filename)
@@ -372,7 +372,7 @@ class TestRetweetCrawler(unittest.TestCase):
             return [dic]
 
         with ExitStack() as stack:
-            mockdbcv = stack.enter_context(patch("PictureGathering.DBController.DBController.DBRetweetVideoURLSelect"))
+            mockdbcv = stack.enter_context(patch("PictureGathering.RetweetDBController.RetweetDBController.SelectFromMediaURL"))
             s_filename = "sample.mp4"
 
             # 正常系

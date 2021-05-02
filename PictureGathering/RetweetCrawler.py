@@ -5,7 +5,10 @@ from datetime import datetime
 from logging import DEBUG, INFO, getLogger
 from pathlib import Path
 
-from PictureGathering.Crawler import Crawler, PixivAPIController
+from PictureGathering.Crawler import Crawler
+from PictureGathering.PixivAPIController import PixivAPIController
+from PictureGathering.NijieScraping import NijieController
+from PictureGathering.RetweetDBController import RetweetDBController
 
 logger = getLogger("root")
 logger.setLevel(INFO)
@@ -15,13 +18,21 @@ class RetweetCrawler(Crawler):
     def __init__(self):
         super().__init__()
         try:
+            config = self.config["db"]
+            save_path = Path(config["save_path"])
+            save_path.mkdir(parents=True, exist_ok=True)
+            db_fullpath = save_path / config["save_file_name"]
+            self.db_cont = RetweetDBController(db_fullpath)  # テーブルはRetweetを使用
+            if config.getboolean("save_permanent_image_flag"):
+                Path(config["save_permanent_image_path"]).mkdir(parents=True, exist_ok=True)
+
             self.retweet_get_max_loop = int(self.config["tweet_timeline"]["retweet_get_max_loop"])
+            self.max_id = None
             self.save_path = Path(self.config["save_directory"]["save_retweet_path"])
+            self.type = "RT"
         except KeyError:
             logger.exception("invalid config file eeror.")
             exit(-1)
-        self.max_id = None
-        self.type = "RT"
 
     def RetweetsGet(self):
         url = "https://api.twitter.com/1.1/statuses/user_timeline.json"
@@ -29,7 +40,7 @@ class RetweetCrawler(Crawler):
         holding_num = int(self.config["holding"]["holding_file_num"])
 
         # 存在マーキングをクリアする
-        self.db_cont.DBRetweetFlagClear()
+        self.db_cont.FlagClear()
 
         # 既存ファイル一覧を取得する
         exist_filepaths = self.GetExistFilelist()
@@ -42,7 +53,7 @@ class RetweetCrawler(Crawler):
             exist_oldest_filename = ""
 
         # 存在マーキングを更新する
-        self.db_cont.DBRetweetFlagUpdate(exist_filenames, 1)
+        self.db_cont.FlagUpdate(exist_filenames, 1)
 
         get_cnt = 0
         end_flag = False
@@ -80,13 +91,14 @@ class RetweetCrawler(Crawler):
                     entities = media_tweet.get("extended_entities")
                     include_new_flag = False
                     if not entities:
-                        # pixivリンクが含まれているか
+                        # pixivリンク、nijieリンクが含まれているか
                         if media_tweet.get("entities").get("urls"):
                             e_urls = media_tweet["entities"]["urls"]
-                            IsPixivURL = PixivAPIController.PixivAPIController.IsPixivURL
+                            IsPixivURL = PixivAPIController.IsPixivURL
+                            IsNijieURL = NijieController.IsNijieURL
                             for element in e_urls:
                                 expanded_url = element.get("expanded_url")
-                                if IsPixivURL(expanded_url):
+                                if IsPixivURL(expanded_url) or IsNijieURL(expanded_url):
                                     include_new_flag = True
                         pass
                     else:
@@ -141,12 +153,12 @@ class RetweetCrawler(Crawler):
 
     def UpdateDBExistMark(self, add_img_filename):
         # 存在マーキングを更新する
-        self.db_cont.DBRetweetFlagClear()
-        self.db_cont.DBRetweetFlagUpdate(add_img_filename, 1)
+        self.db_cont.FlagClear()
+        self.db_cont.FlagUpdate(add_img_filename, 1)
 
     def GetVideoURL(self, filename):
         # 'https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/b0ZDq8zG_HppFWb6.mp4?tag=10'
-        response = self.db_cont.DBRetweetVideoURLSelect(filename)
+        response = self.db_cont.SelectFromMediaURL(filename)
         url = response[0]["url"] if len(response) == 1 else ""
         return url
 

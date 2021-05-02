@@ -6,6 +6,7 @@ from logging import DEBUG, INFO, getLogger
 from pathlib import Path
 
 from PictureGathering.Crawler import Crawler
+from PictureGathering.FavDBController import FavDBController
 
 logger = getLogger("root")
 logger.setLevel(INFO)
@@ -15,11 +16,19 @@ class FavCrawler(Crawler):
     def __init__(self):
         super().__init__()
         try:
+            config = self.config["db"]
+            save_path = Path(config["save_path"])
+            save_path.mkdir(parents=True, exist_ok=True)
+            db_fullpath = save_path / config["save_file_name"]
+            self.db_cont = FavDBController(db_fullpath)  # テーブルはFavoriteを使用
+            if config.getboolean("save_permanent_image_flag"):
+                Path(config["save_permanent_image_path"]).mkdir(parents=True, exist_ok=True)
+
             self.save_path = Path(self.config["save_directory"]["save_fav_path"])
+            self.type = "Fav"
         except KeyError:
-            logger.exception("save_directory/save_fav_path is invalid.")
+            logger.exception("invalid config file error.")
             exit(-1)
-        self.type = "Fav"
 
     def FavTweetsGet(self, page):
         kind_of_api = self.config["tweet_timeline"]["kind_of_timeline"]
@@ -47,12 +56,12 @@ class FavCrawler(Crawler):
 
     def UpdateDBExistMark(self, add_img_filename):
         # 存在マーキングを更新する
-        self.db_cont.DBFavFlagClear()
-        self.db_cont.DBFavFlagUpdate(add_img_filename, 1)
+        self.db_cont.FlagClear()
+        self.db_cont.FlagUpdate(add_img_filename, 1)
 
     def GetVideoURL(self, filename):
         # 'https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/b0ZDq8zG_HppFWb6.mp4?tag=10'
-        response = self.db_cont.DBFavVideoURLSelect(filename)
+        response = self.db_cont.SelectFromMediaURL(filename)
         url = response[0]["url"] if len(response) == 1 else ""
         return url
 

@@ -120,4 +120,4 @@ log*.txt*
 *.gif
 *.xcf
 *.pdf
-.gitkeep
+*.gitkeep

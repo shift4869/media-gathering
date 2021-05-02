@@ -461,9 +461,9 @@ class Crawler(metaclass=ABCMeta):
             # DB操作 TODO::typeで判別しないで派生先クラスでそれぞれ担当させる
             include_blob = self.config["db"].getboolean("save_blob")
             if self.type == "Fav":
-                self.db_cont.DBFavUpsert(file_name, url_orig, url_thumbnail, tweet, str(save_file_fullpath), include_blob)
+                self.db_cont.Upsert(file_name, url_orig, url_thumbnail, tweet, str(save_file_fullpath), include_blob)
             elif self.type == "RT":
-                self.db_cont.DBRetweetUpsert(file_name, url_orig, url_thumbnail, tweet, str(save_file_fullpath), include_blob)
+                self.db_cont.Upsert(file_name, url_orig, url_thumbnail, tweet, str(save_file_fullpath), include_blob)
 
             # image magickで画像変換
             if media_type == "photo":
