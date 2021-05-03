@@ -9,6 +9,7 @@ from pathlib import Path
 from time import sleep
 from typing import List
 
+import emoji
 from PIL import Image
 from pixivpy3 import *
 
@@ -180,8 +181,10 @@ class PixivAPIController:
         # TODO::サニタイズを厳密に行う
         regex = re.compile(r'[\\/:*?"<>|]')
         author_name = regex.sub("", work.user.name)
+        author_name = emoji.get_emoji_regexp().sub("", author_name)
         author_id = int(work.user.id)
         illust_title = regex.sub("", work.title)
+        illust_title = emoji.get_emoji_regexp().sub("", illust_title)
 
         # 既に{作者pixivID}が一致するディレクトリがあるか調べる
         IS_SEARCH_AUTHOR_ID = True
@@ -305,8 +308,10 @@ class PixivAPIController:
         # サニタイズ
         regex = re.compile(r'[\\/:*?"<>|]')
         author_name = regex.sub("", work.user.name)
+        author_name = emoji.get_emoji_regexp().sub("", author_name)
         author_id = int(work.user.id)
         illust_title = regex.sub("", work.title)
+        illust_title = emoji.get_emoji_regexp().sub("", illust_title)
 
         # うごイラの各フレームを保存するディレクトリを生成
         sd_path = Path(base_path) / "./{}({})/".format(illust_title, illust_id)

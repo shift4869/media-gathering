@@ -10,6 +10,7 @@ from logging import INFO, getLogger
 from pathlib import Path
 from time import sleep
 
+import emoji
 import requests
 from bs4 import BeautifulSoup
 
@@ -353,8 +354,10 @@ class NijieController:
         # TODO::サニタイズを厳密に行う
         regex = re.compile(r'[\\/:*?"<>|]')
         author_name = regex.sub("", author_name)
+        author_name = emoji.get_emoji_regexp().sub("", author_name)
         author_id = int(author_id)
         illust_title = regex.sub("", illust_name)
+        illust_title = emoji.get_emoji_regexp().sub("", illust_title)
 
         # 既に{作者nijieID}が一致するディレクトリがあるか調べる
         IS_SEARCH_AUTHOR_ID = True
