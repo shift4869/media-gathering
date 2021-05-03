@@ -6,8 +6,6 @@ from logging import DEBUG, INFO, getLogger
 from pathlib import Path
 
 from PictureGathering.Crawler import Crawler
-from PictureGathering.PixivAPIController import PixivAPIController
-from PictureGathering.NijieScraping import NijieController
 from PictureGathering.RetweetDBController import RetweetDBController
 
 logger = getLogger("root")
@@ -94,11 +92,12 @@ class RetweetCrawler(Crawler):
                         # pixivリンク、nijieリンクが含まれているか
                         if media_tweet.get("entities").get("urls"):
                             e_urls = media_tweet["entities"]["urls"]
-                            IsPixivURL = PixivAPIController.IsPixivURL
-                            IsNijieURL = NijieController.IsNijieURL
+                            # IsPixivURL = PixivAPIController.IsPixivURL
+                            # IsNijieURL = NijieController.IsNijieURL
                             for element in e_urls:
                                 expanded_url = element.get("expanded_url")
-                                if IsPixivURL(expanded_url) or IsNijieURL(expanded_url):
+                                # if IsPixivURL(expanded_url) or IsNijieURL(expanded_url):
+                                if self.lsb.CoRProcessCheck(expanded_url):
                                     include_new_flag = True
                         pass
                     else:
