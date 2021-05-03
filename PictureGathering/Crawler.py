@@ -526,15 +526,17 @@ class Crawler(metaclass=ABCMeta):
                 作成日時:ctime, 更新日時:mtime, アクセス日時:atimeがある
                 ctimeはOS依存のため設定には外部ライブラリが必要
                 ここでは
-                    Favならばatime=mtime=収集時の時刻 とする
-                    RTならばatime=mtime=ツイート投稿日時 とする（TODO）
+                    Favならばatime=mtime=ツイート投稿日時 とする
+                    RTならばatime=mtime=ツイート投稿日時 とする
+                    （THINK is_apply_now_timestamp == Trueならば収集時の時刻 となる）
                 収集されたツイートの投稿日時はDBのcreated_at項目に保持される
 
                 引用RTなどのツリーで関係ツイートが複数ある場合は最新の日時を一律付与する
                 もしcreated_atが不正な形式だった場合、strptimeはValueErrorを返す
                 ex) tweet["created_at"] = "Tue Sep 04 15:55:52 +0000 2012"
             """
-            is_apply_now_timestamp = (self.type == "Fav")
+            # is_apply_now_timestamp = (self.type == "Fav")
+            is_apply_now_timestamp = False
             atime = mtime = -1
             if is_apply_now_timestamp:
                 atime = mtime = time.time()
