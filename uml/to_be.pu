@@ -26,7 +26,7 @@ class DeleteTarget #LightBlue{
 }
 
 ' 外部リンク探索ベース
-abstract class LinkSearchBase
+class LinkSearchBase
 ' pixivクラス
 class PixivAPIController
 ' nijieクラス
@@ -60,8 +60,8 @@ FavDBController --- DeleteTarget
 RetweetDBController --- Retweet
 RetweetDBController --- DeleteTarget
 
-LinkSearchBase <|.. PixivAPIController
-LinkSearchBase <|.. NijieController
+LinkSearchBase <|-- PixivAPIController
+LinkSearchBase <|-- NijieController
 'DBControllerBase *-- Crawler
 
 @enduml
