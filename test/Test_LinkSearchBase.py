@@ -61,7 +61,7 @@ class TestLinkSearchBase(unittest.TestCase):
         res = ls_cont.Register(lsc)
         self.assertEqual(-1, res)
 
-        # 異常系？
+        # 正常系？
         # THINK::LinkSearchBaseの派生クラスでないがインターフェイスは整っている
         # 処理もできるので一応OKとする
         class LSImitation():

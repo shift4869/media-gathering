@@ -133,6 +133,8 @@ class LinkSearchBase():
 
 
 class LSConcrete_0(LinkSearchBase):
+    """具体的な担当者その0
+    """
     def __init__(self):
         super().__init__()
 
@@ -150,6 +152,8 @@ class LSConcrete_0(LinkSearchBase):
 
 
 class LSConcrete_1(LinkSearchBase):
+    """具体的な担当者その1
+    """
     def __init__(self):
         super().__init__()
 
@@ -167,6 +171,11 @@ class LSConcrete_1(LinkSearchBase):
 
 
 class LSConcrete_2(LinkSearchBase):
+    """具体的な担当者その2
+
+    Notes:
+        このクラスは担当処理を必ず失敗する
+    """
     def __init__(self):
         super().__init__()
 
