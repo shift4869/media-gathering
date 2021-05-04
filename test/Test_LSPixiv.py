@@ -94,72 +94,47 @@ class TestLSPixiv(unittest.TestCase):
         """
         def ReturnWorks(illust_id):
             r_works = MagicMock()
-            p_status = PropertyMock()
             s = {}
             if 0 < illust_id and illust_id < 99999999:
-                p_status.return_value = "success"
+                type(r_works).status = "success"
                 s = self.__GetIllustData(illust_id)
             else:
-                p_status.return_value = "failed"
-            type(r_works).status = p_status
+                type(r_works).status = "failed"
 
             def ReturnResponse():
                 r_response = MagicMock()
-                p_type = PropertyMock()
-                p_type.return_value = s["type"]
-                type(r_response).type = p_type
 
-                p_is_manga = PropertyMock()
-                p_is_manga.return_value = s["is_manga"]
-                type(r_response).is_manga = p_is_manga
+                # イラストデータ設定
+                type(r_response).type = s["type"]
+                type(r_response).is_manga = s["is_manga"]
+                type(r_response).title = s["title"]
 
                 r_name_id = MagicMock()
-                p_name = PropertyMock()
-                p_name.return_value = s["author_name"]
-                type(r_name_id).name = p_name
-                p_id = PropertyMock()
-                p_id.return_value = s["author_id"]
-                type(r_name_id).id = p_id
-                p_user = PropertyMock()
-                p_user.return_value = r_name_id
-                type(r_response).user = p_user
+                type(r_name_id).name = s["author_name"]
+                type(r_name_id).id = s["author_id"]
 
-                p_title = PropertyMock()
-                p_title.return_value = s["title"]
-                type(r_response).title = p_title
+                type(r_response).user = r_name_id
 
                 def ReturnLarge(url):
                     r_large = MagicMock()
-                    p_large = PropertyMock()
-
-                    p_large.return_value = url
-                    type(r_large).large = p_large
+                    type(r_large).large = url
                     return r_large
 
                 def ReturnImageurls(url):
                     r_imageurls = MagicMock()
-                    p_imageurls = PropertyMock()
-                    p_imageurls.return_value = ReturnLarge(url)
-                    type(r_imageurls).image_urls = p_imageurls
+                    type(r_imageurls).image_urls = ReturnLarge(url)
                     return r_imageurls
 
                 def ReturnPages():
                     r_pages = MagicMock()
-                    p_pages = PropertyMock()
-
                     # 漫画形式のreturn_value設定
-                    p_pages.return_value = [ReturnImageurls(url) for url in s["image_urls"]]
-                    type(r_pages).pages = p_pages
+                    type(r_pages).pages = [ReturnImageurls(url) for url in s["image_urls"]]
                     return r_pages
 
-                p_metadata = PropertyMock()
-                p_metadata.return_value = ReturnPages()
-                type(r_response).metadata = p_metadata
+                type(r_response).metadata = ReturnPages()
 
                 # 一枚絵のreturn_value設定
-                p_image_urls = PropertyMock()
-                p_image_urls.return_value = ReturnLarge(s["image_url"])
-                type(r_response).image_urls = p_image_urls
+                type(r_response).image_urls = ReturnLarge(s["image_url"])
 
                 return r_response
 
@@ -173,10 +148,7 @@ class TestLSPixiv(unittest.TestCase):
         p_works = PropertyMock()
         p_works.return_value = ReturnWorks
         type(api_response).works = p_works
-
-        p_access_token = PropertyMock()
-        p_access_token.return_value = "ok"
-        type(api_response).access_token = p_access_token
+        type(api_response).access_token = "ok"
 
         return api_response
 
@@ -200,9 +172,7 @@ class TestLSPixiv(unittest.TestCase):
             MagicMock: aapi_response
         """
         aapi_response = MagicMock()
-        p_access_token = PropertyMock()
-        p_access_token.return_value = "ok"
-        type(aapi_response).access_token = p_access_token
+        type(aapi_response).access_token = "ok"
 
         def ReturnDownload(url, path, name=""):
             if name == "":
@@ -224,19 +194,13 @@ class TestLSPixiv(unittest.TestCase):
                 s = self.__GetIllustData(illust_id)
 
             r_original_image_url = MagicMock()
-            p_original_image_url = PropertyMock()
-            p_original_image_url.return_value = s["image_url"]
-            type(r_original_image_url).original_image_url = p_original_image_url
+            type(r_original_image_url).original_image_url = s["image_url"]
 
             r_meta_single_page = MagicMock()
-            p_meta_single_page = PropertyMock()
-            p_meta_single_page.return_value = r_original_image_url
-            type(r_meta_single_page).meta_single_page = p_meta_single_page
+            type(r_meta_single_page).meta_single_page = r_original_image_url
 
             r_illust = MagicMock()
-            p_illust = PropertyMock()
-            p_illust.return_value = r_meta_single_page
-            type(r_illust).illust = p_illust
+            type(r_illust).illust = r_meta_single_page
 
             return r_illust
 
@@ -254,14 +218,10 @@ class TestLSPixiv(unittest.TestCase):
             frames = [{"delay": DEFAULT_DELAY} for i in range(frames_len)]
 
             r_frames = MagicMock()
-            p_frames = PropertyMock()
-            p_frames.return_value = frames
-            type(r_frames).frames = p_frames
+            type(r_frames).frames = frames
 
             r_ugoira_metadata2 = MagicMock()
-            p_ugoira_metadata2 = PropertyMock()
-            p_ugoira_metadata2.return_value = r_frames
-            type(r_ugoira_metadata2).ugoira_metadata = p_ugoira_metadata2
+            type(r_ugoira_metadata2).ugoira_metadata = r_frames
 
             return r_ugoira_metadata2
 
