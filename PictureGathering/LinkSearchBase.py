@@ -205,9 +205,11 @@ if __name__ == "__main__":
 
     for i in range(0, 4):
         res = ls_base.CoRProcessDo(url.format(i))
-        if res == 1:
-            logger.info("any LSConcrete cannot Process")
+        if res == 0:
+            pass
         elif res == -1:
             logger.info("LSConcrete Process called but failed")
+        elif res == 1:
+            logger.info("any LSConcrete cannot Process")
 
     pass

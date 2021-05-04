@@ -77,12 +77,67 @@ class TestLinkSearchBase(unittest.TestCase):
         res = ls_cont.Register(lsc)
         self.assertEqual(0, res)
 
+    def test_CoRProcessDo(self):
+        """処理実行メインをチェック
+        """
+        ls_cont = LinkSearchBase.LinkSearchBase()
+        url = "https://www.anyurl/sample/index_{}.html"
+
+        # 具体的な担当者を登録
+        lsc = LinkSearchBase.LSConcrete_0()
+        ls_cont.Register(lsc)
+        lsc = LinkSearchBase.LSConcrete_1()
+        ls_cont.Register(lsc)
+        lsc = LinkSearchBase.LSConcrete_2()
+        ls_cont.Register(lsc)
+
+        # CoR実行
+        for i in range(0, 4):
+            res = ls_cont.CoRProcessDo(url.format(i))
+            if res == 0:
+                self.assertIn(i, [0, 1])
+            elif res == -1:
+                self.assertEqual(2, i)
+            elif res == 1:
+                self.assertEqual(3, i)
+        pass
+
+    def test_CoRProcessCheck(self):
+        """処理実行メインをチェック
+        """
+        ls_cont = LinkSearchBase.LinkSearchBase()
+        url = "https://www.anyurl/sample/index_{}.html"
+
+        # 具体的な担当者を登録
+        lsc = LinkSearchBase.LSConcrete_0()
+        ls_cont.Register(lsc)
+        lsc = LinkSearchBase.LSConcrete_1()
+        ls_cont.Register(lsc)
+        lsc = LinkSearchBase.LSConcrete_2()
+        ls_cont.Register(lsc)
+
+        # CoR実行
+        for i in range(0, 4):
+            res = ls_cont.CoRProcessCheck(url.format(i))
+            if res:
+                self.assertIn(i, [0, 1, 2])
+            else:
+                self.assertEqual(3, i)
+        pass
+
     def test_IsTargetUrl(self):
         """自分（担当者）が処理できるurlかどうか判定する機能をチェック
         """
         ls_cont = LinkSearchBase.LinkSearchBase()
         url = "https://www.google.co.jp/"
         self.assertEqual(False, ls_cont.IsTargetUrl(url))  # 基底クラスなので常にFalse
+
+    def Process(self, url: str) -> int:
+        """自分（担当者）が担当する処理をチェック
+        """
+        ls_cont = LinkSearchBase.LinkSearchBase()
+        url = "https://www.google.co.jp/"
+        self.assertEqual(-1, ls_cont.IsTargetUrl(url))  # 基底クラスなので常に失敗
 
 
 if __name__ == "__main__":
