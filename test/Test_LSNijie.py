@@ -13,14 +13,14 @@ from mock import MagicMock, PropertyMock, mock_open, patch
 from pathlib import Path
 from time import sleep
 
-from PictureGathering import NijieScraping
+from PictureGathering import LSNijie
 
 
 logger = getLogger("root")
 logger.setLevel(WARNING)
 
 
-class TestNijieController(unittest.TestCase):
+class TestLSNijie(unittest.TestCase):
 
     def setUp(self):
         """コンフィグファイルからパスワードを取得する
@@ -91,7 +91,7 @@ class TestNijieController(unittest.TestCase):
 
         Note:
             ID/PWが一致すればOKとする
-            対象のmockは "PictureGathering.NijieScraping.NijieController.Login" にpatchする
+            対象のmockは "PictureGathering.LSNijie.LSNijie.Login" にpatchする
 
         Returns:
             MagicMock: ログイン機能のside_effectを持つモック
@@ -106,24 +106,24 @@ class TestNijieController(unittest.TestCase):
         mock.side_effect = LoginSideeffect
         return mock
 
-    def test_NijieController(self):
+    def test_LSNijie(self):
         """nijieページ取得初期状態チェック
         """
         with ExitStack() as stack:
-            mocknslogin = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.Login"))
+            mocknslogin = stack.enter_context(patch("PictureGathering.LSNijie.LSNijie.Login"))
             mocknslogin = self.__MakeLoginMock(mocknslogin)
 
             # 正常系
-            ns_cont = NijieScraping.NijieController(self.email, self.password)
+            lsn_cont = LSNijie.LSNijie(self.email, self.password, self.TEST_BASE_PATH)
             expect_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"}
 
-            self.assertEqual(expect_headers, ns_cont.headers)
-            self.assertIsNotNone(ns_cont.cookies)
-            self.assertTrue(ns_cont.auth_success)
+            self.assertEqual(expect_headers, lsn_cont.headers)
+            self.assertIsNotNone(lsn_cont.cookies)
+            self.assertTrue(lsn_cont.auth_success)
 
             # 異常系
             with self.assertRaises(SystemExit):
-                ns_cont = NijieScraping.NijieController("invalid email", "invalid password")
+                lsn_cont = LSNijie.LSNijie("invalid email", "invalid password", self.TEST_BASE_PATH)
 
     def test_Login(self):
         """nijieページスクレイピングのインスタンス生成とログインをチェック
@@ -138,10 +138,10 @@ class TestNijieController(unittest.TestCase):
             mockfp = stack.enter_context(patch("pathlib.Path.open", mockfout))
 
             # モック置き換え
-            mocknsreqget = stack.enter_context(patch("PictureGathering.NijieScraping.requests.get"))
-            mocknsreqpost = stack.enter_context(patch("PictureGathering.NijieScraping.requests.post"))
-            mocknsreqcj = stack.enter_context(patch("PictureGathering.NijieScraping.requests.cookies.RequestsCookieJar"))
-            mocknsisvalidcookies = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.IsValidCookies"))
+            mocknsreqget = stack.enter_context(patch("PictureGathering.LSNijie.requests.get"))
+            mocknsreqpost = stack.enter_context(patch("PictureGathering.LSNijie.requests.post"))
+            mocknsreqcj = stack.enter_context(patch("PictureGathering.LSNijie.requests.cookies.RequestsCookieJar"))
+            mocknsisvalidcookies = stack.enter_context(patch("PictureGathering.LSNijie.LSNijie.IsValidCookies"))
 
             # requests.getで取得する内容のモックを返す
             def ReturnGet(url, headers):
@@ -219,9 +219,9 @@ class TestNijieController(unittest.TestCase):
                 "domain": "domain",
             }
             # インスタンス生成時にLoginが呼ばれる
-            ns_cont = NijieScraping.NijieController(self.email, self.password)
-            self.assertEqual(1, len(ns_cont.cookies))
-            res_cookies = ns_cont.cookies[0]
+            lsn_cont = LSNijie.LSNijie(self.email, self.password, self.TEST_BASE_PATH)
+            self.assertEqual(1, len(lsn_cont.cookies))
+            res_cookies = lsn_cont.cookies[0]
             actual_cookies = {
                 "name": res_cookies.name,
                 "value": res_cookies.value,
@@ -230,7 +230,7 @@ class TestNijieController(unittest.TestCase):
                 "domain": res_cookies.domain,
             }
             self.assertEqual(expect_cookies, actual_cookies)
-            self.assertTrue(ns_cont.auth_success)
+            self.assertTrue(lsn_cont.auth_success)
             self.assertEqual(1, mocknsreqget.call_count)
             self.assertEqual(1, mocknsreqpost.call_count)
             self.assertEqual(1, mocknsreqcj.call_count)
@@ -249,9 +249,9 @@ class TestNijieController(unittest.TestCase):
 
             # クッキーファイルが存在する場合のテスト
             # インスタンス生成時にLoginが呼ばれる
-            ns_cont = NijieScraping.NijieController(self.email, self.password)
+            lsn_cont = LSNijie.LSNijie(self.email, self.password, self.TEST_BASE_PATH)
             self.assertEqual(expect_cookies, actual_read_cookies)
-            self.assertTrue(ns_cont.auth_success)
+            self.assertTrue(lsn_cont.auth_success)
             self.assertEqual(0, mocknsreqget.call_count)
             self.assertEqual(0, mocknsreqpost.call_count)
             self.assertEqual(1, mocknsreqcj.call_count)
@@ -269,11 +269,11 @@ class TestNijieController(unittest.TestCase):
         """クッキーが正しいかどうか判定する機能をチェック
         """
         with ExitStack() as stack:
-            mocknslogin = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.Login"))
+            mocknslogin = stack.enter_context(patch("PictureGathering.LSNijie.LSNijie.Login"))
             mocknslogin = self.__MakeLoginMock(mocknslogin)
-            ns_cont = NijieScraping.NijieController(self.email, self.password)
+            lsn_cont = LSNijie.LSNijie(self.email, self.password, self.TEST_BASE_PATH)
 
-            mocknsreqget = stack.enter_context(patch("PictureGathering.NijieScraping.requests.get"))
+            mocknsreqget = stack.enter_context(patch("PictureGathering.LSNijie.requests.get"))
 
             # requests.getで取得する内容のモックを返す
             def ReturnGet(url, headers, cookies):
@@ -296,81 +296,83 @@ class TestNijieController(unittest.TestCase):
             mocknsreqget.side_effect = ReturnGet
 
             # 正常系
-            res = ns_cont.IsValidCookies(ns_cont.headers, ns_cont.cookies)
+            res = lsn_cont.IsValidCookies(lsn_cont.headers, lsn_cont.cookies)
             self.assertTrue(res)
 
             # 異常系
-            res = ns_cont.IsValidCookies(None, None)
+            res = lsn_cont.IsValidCookies(None, None)
             self.assertFalse(res)
-            res = ns_cont.IsValidCookies(ns_cont.headers, "invalid cookies")
+            res = lsn_cont.IsValidCookies(lsn_cont.headers, "invalid cookies")
             self.assertFalse(res)
 
-    def test_IsNijieURL(self):
-        """nijieのURLかどうか判定する機能をチェック
+    def test_IsTargetUrl(self):
+        """URLがnijieのURLかどうか判定する機能をチェック
         """
-        # クラスメソッドなのでインスタンス無しで呼べる
-        IsNijieURL = NijieScraping.NijieController.IsNijieURL
+        with ExitStack() as stack:
+            mocknslogin = stack.enter_context(patch("PictureGathering.LSNijie.LSNijie.Login"))
+            mocknslogin = self.__MakeLoginMock(mocknslogin)
+            lsn_cont = LSNijie.LSNijie(self.email, self.password, self.TEST_BASE_PATH)
 
-        # 正常系
-        # 作品ページURL
-        url_s = "http://nijie.info/view.php?id=251267"
-        self.assertEqual(True, IsNijieURL(url_s))
+            # 正常系
+            # 作品ページURL
+            url_s = "http://nijie.info/view.php?id=251267"
+            self.assertEqual(True, lsn_cont.IsTargetUrl(url_s))
 
-        # 作品詳細ページURL
-        url_s = "http://nijie.info/view_popup.php?id=251267"
-        self.assertEqual(True, IsNijieURL(url_s))
+            # 作品詳細ページURL
+            url_s = "http://nijie.info/view_popup.php?id=251267"
+            self.assertEqual(True, lsn_cont.IsTargetUrl(url_s))
 
-        # 異常系
-        # 全く関係ないアドレス(Google)
-        url_s = "https://www.google.co.jp/"
-        self.assertEqual(False, IsNijieURL(url_s))
+            # 異常系
+            # 全く関係ないアドレス(Google)
+            url_s = "https://www.google.co.jp/"
+            self.assertEqual(False, lsn_cont.IsTargetUrl(url_s))
 
-        # 全く関係ないアドレス(pixiv)
-        url_s = "https://www.pixiv.net/artworks/24010650"
-        self.assertEqual(False, IsNijieURL(url_s))
+            # 全く関係ないアドレス(pixiv)
+            url_s = "https://www.pixiv.net/artworks/24010650"
+            self.assertEqual(False, lsn_cont.IsTargetUrl(url_s))
 
-        # httpでなくhttps
-        url_s = "https://nijie.info/view_popup.php?id=251267"
-        self.assertEqual(False, IsNijieURL(url_s))
+            # httpでなくhttps
+            url_s = "https://nijie.info/view_popup.php?id=251267"
+            self.assertEqual(False, lsn_cont.IsTargetUrl(url_s))
 
-        # nijieの別ページ
-        url_s = "http://nijie.info/user_like_illust_view.php?id=21030"
-        self.assertEqual(False, IsNijieURL(url_s))
+            # nijieの別ページ
+            url_s = "http://nijie.info/user_like_illust_view.php?id=21030"
+            self.assertEqual(False, lsn_cont.IsTargetUrl(url_s))
 
-        # プリフィックスエラー
-        url_s = "ftp://nijie.info/view.php?id=251267"
-        self.assertEqual(False, IsNijieURL(url_s))
+            # プリフィックスエラー
+            url_s = "ftp://nijie.info/view.php?id=251267"
+            self.assertEqual(False, lsn_cont.IsTargetUrl(url_s))
 
-        # サフィックスエラー
-        url_s = "http://nijie.info/view.php?id=251267&rank=1"
-        self.assertEqual(False, IsNijieURL(url_s))
+            # サフィックスエラー
+            url_s = "http://nijie.info/view.php?id=251267&rank=1"
+            self.assertEqual(False, lsn_cont.IsTargetUrl(url_s))
 
     def test_GetIllustId(self):
         """nijie作品ページURLからイラストIDを取得する機能をチェック
         """
         with ExitStack() as stack:
-            mocknslogin = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.Login"))
+            mocknslogin = stack.enter_context(patch("PictureGathering.LSNijie.LSNijie.Login"))
             mocknslogin = self.__MakeLoginMock(mocknslogin)
-            ns_cont = NijieScraping.NijieController(self.email, self.password)
+            lsn_cont = LSNijie.LSNijie(self.email, self.password, self.TEST_BASE_PATH)
 
             # 正常系
             r = "{:0>6}".format(random.randint(0, 999999))
             # 作品ページURL
             url_s = "http://nijie.info/view.php?id={}".format(r)
             expect = int(r)
-            actual = ns_cont.GetIllustId(url_s)
+            actual = lsn_cont.GetIllustId(url_s)
             self.assertEqual(expect, actual)
 
             # 作品詳細ページURL
             url_s = "http://nijie.info/view_popup.php?id={}".format(r)
             expect = int(r)
-            actual = ns_cont.GetIllustId(url_s)
+            actual = lsn_cont.GetIllustId(url_s)
             self.assertEqual(expect, actual)
 
             # サフィックスエラー
             url_s = "http://nijie.info/view.php?id={}&rank=1".format(r)
             expect = -1
-            actual = ns_cont.GetIllustId(url_s)
+            actual = lsn_cont.GetIllustId(url_s)
             self.assertEqual(expect, actual)
 
     def test_DownloadIllusts(self):
@@ -378,14 +380,14 @@ class TestNijieController(unittest.TestCase):
         """
         with ExitStack() as stack:
             # モック置き換え
-            mocknsreqget = stack.enter_context(patch("PictureGathering.NijieScraping.requests.get"))
-            mocknsbs = stack.enter_context(patch("PictureGathering.NijieScraping.BeautifulSoup"))
-            mocknsdpa = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.DetailPageAnalysis"))
-            mocknsmsdp = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.MakeSaveDirectoryPath"))
+            mocknsreqget = stack.enter_context(patch("PictureGathering.LSNijie.requests.get"))
+            mocknsbs = stack.enter_context(patch("PictureGathering.LSNijie.BeautifulSoup"))
+            mocknsdpa = stack.enter_context(patch("PictureGathering.LSNijie.LSNijie.DetailPageAnalysis"))
+            mocknsmsdp = stack.enter_context(patch("PictureGathering.LSNijie.LSNijie.MakeSaveDirectoryPath"))
 
-            mocknslogin = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.Login"))
+            mocknslogin = stack.enter_context(patch("PictureGathering.LSNijie.LSNijie.Login"))
             mocknslogin = self.__MakeLoginMock(mocknslogin)
-            ns_cont = NijieScraping.NijieController(self.email, self.password)
+            lsn_cont = LSNijie.LSNijie(self.email, self.password, self.TEST_BASE_PATH)
 
             # requests.getで取得する内容のモックを返す
             def ReturnGet(url, headers, cookies):
@@ -462,7 +464,7 @@ class TestNijieController(unittest.TestCase):
             illust_ids = [251267, 251197, 414793, 409587]
             for illust_id in illust_ids:
                 illust_url = "http://nijie.info/view.php?id={}".format(illust_id)
-                res = ns_cont.DownloadIllusts(illust_url, str(self.TBP))
+                res = lsn_cont.DownloadIllusts(illust_url, str(self.TBP))
                 self.assertEqual(0, res)  # どれも初めてDLしたはずなので返り値は0
 
                 urls, author_name, author_id, illust_name = self.__GetIllustData(illust_id)
@@ -491,7 +493,7 @@ class TestNijieController(unittest.TestCase):
             # 2回目のDLをシミュレート
             for illust_id in illust_ids:
                 illust_url = "http://nijie.info/view.php?id={}".format(illust_id)
-                res = ns_cont.DownloadIllusts(illust_url, str(self.TBP))
+                res = lsn_cont.DownloadIllusts(illust_url, str(self.TBP))
                 self.assertEqual(1, res)  # 2回目のDLなので返り値は1
 
     def test_DetailPageAnalysis(self):
@@ -500,9 +502,9 @@ class TestNijieController(unittest.TestCase):
         with ExitStack() as stack:
             # モック置き換え
             mocklogger = stack.enter_context(patch.object(logger, "error"))
-            mocknslogin = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.Login"))
+            mocknslogin = stack.enter_context(patch("PictureGathering.LSNijie.LSNijie.Login"))
             mocknslogin = self.__MakeLoginMock(mocknslogin)
-            ns_cont = NijieScraping.NijieController(self.email, self.password)
+            lsn_cont = LSNijie.LSNijie(self.email, self.password, self.TEST_BASE_PATH)
 
             # BeautifulSoupのモック
             def ReturnBeautifulSoup(illust_id, url_s=""):
@@ -545,7 +547,7 @@ class TestNijieController(unittest.TestCase):
             illust_ids = [251267, 251197, 414793, 409587, -1]
             for illust_id in illust_ids:
                 soup_mock = ReturnBeautifulSoup(illust_id)
-                urls, author_name, author_id, illust_name = ns_cont.DetailPageAnalysis(soup_mock)
+                urls, author_name, author_id, illust_name = lsn_cont.DetailPageAnalysis(soup_mock)
                 expect_data = self.__GetIllustData(illust_id)
                 actual_data = [urls, author_name, author_id, illust_name]
                 self.assertEqual(expect_data, actual_data)
@@ -554,9 +556,9 @@ class TestNijieController(unittest.TestCase):
         """保存先ディレクトリパスを生成する機能をチェック
         """
         with ExitStack() as stack:
-            mocknslogin = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.Login"))
+            mocknslogin = stack.enter_context(patch("PictureGathering.LSNijie.LSNijie.Login"))
             mocknslogin = self.__MakeLoginMock(mocknslogin)
-            ns_cont = NijieScraping.NijieController(self.email, self.password)
+            lsn_cont = LSNijie.LSNijie(self.email, self.password, self.TEST_BASE_PATH)
 
             # 一枚絵, 漫画, うごイラ一枚, うごイラ複数 をチェック
             illust_ids = [251267, 251197, 414793, 409587]
@@ -574,14 +576,14 @@ class TestNijieController(unittest.TestCase):
                     shutil.rmtree(expect)
 
                 # 保存先ディレクトリが存在しない場合の実行
-                actual = Path(ns_cont.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path))
+                actual = Path(lsn_cont.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path))
                 self.assertEqual(expect, actual)
 
                 # 保存先ディレクトリを作成する
                 actual.mkdir(parents=True, exist_ok=True)
 
                 # 保存先ディレクトリが存在する場合の実行
-                actual = Path(ns_cont.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path))
+                actual = Path(lsn_cont.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path))
                 self.assertEqual(expect, actual)
 
             # エラー値をチェック
@@ -593,7 +595,7 @@ class TestNijieController(unittest.TestCase):
             illust_name = data[3]
             base_path = str(self.TBP)
             expect = ""
-            actual = ns_cont.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path)
+            actual = lsn_cont.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path)
             self.assertEqual(expect, actual)
 
 

@@ -26,7 +26,8 @@ import requests
 import slackweb
 from requests_oauthlib import OAuth1Session
 
-from PictureGathering import WriteHTML, Archiver, GoogleDrive, LinkSearchBase
+from PictureGathering import WriteHTML, Archiver, GoogleDrive
+from PictureGathering import LinkSearchBase, LSPixiv, LSNijie
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 logger = getLogger("root")
@@ -106,13 +107,11 @@ class Crawler(metaclass=ABCMeta):
             # pixivURLを処理する担当者を登録
             config = self.config["pixiv"]
             if config.getboolean("is_pixiv_trace"):
-                from PictureGathering import LSPixiv
                 lsp = LSPixiv.LSPixiv(config["username"], config["password"], config["save_base_path"])
                 self.lsb.Register(lsp)
             # nijieURLを処理する担当者を登録
             config = self.config["nijie"]
             if config.getboolean("is_nijie_trace"):
-                from PictureGathering import LSNijie
                 lsn = LSNijie.LSNijie(config["email"], config["password"], config["save_base_path"])
                 self.lsb.Register(lsn)
 

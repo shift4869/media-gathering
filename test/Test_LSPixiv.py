@@ -12,14 +12,14 @@ from pathlib import Path
 from time import sleep
 from typing import List
 
-from PictureGathering import PixivAPIController
+from PictureGathering import LSPixiv
 
 
 logger = getLogger("root")
 logger.setLevel(WARNING)
 
 
-class TestPixivAPIController(unittest.TestCase):
+class TestLSPixiv(unittest.TestCase):
 
     def setUp(self):
         """コンフィグファイルからパスワードを取得する
@@ -276,7 +276,7 @@ class TestPixivAPIController(unittest.TestCase):
 
         Note:
             ID/PWが一致すればOKとする
-            対象のmockは "PictureGathering.PixivAPIController.PixivAPIController.Login" にpatchする
+            対象のmockは "PictureGathering.LSPixiv.LSPixiv.Login" にpatchする
 
         Returns:
             MagicMock: ログイン機能のside_effectを持つモック
@@ -335,24 +335,24 @@ class TestPixivAPIController(unittest.TestCase):
         type(mock).open = p_open
         return mock
     
-    def test_PixivAPIController(self):
+    def test_LSPixiv(self):
         """非公式pixivAPI利用クラス初期状態チェック
         """
         with ExitStack() as stack:
-            mockpalogin = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.Login"))
+            mockpalogin = stack.enter_context(patch("PictureGathering.LSPixiv.LSPixiv.Login"))
             mockpalogin = self.__MakeLoginMock(mockpalogin)
 
             # 正常系
-            pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
-            self.assertIsNotNone(pa_cont.api)
-            self.assertIsNotNone(pa_cont.aapi)
-            self.assertTrue(pa_cont.auth_success)
-            self.assertIsNotNone(pa_cont.api.access_token)
-            self.assertIsNotNone(pa_cont.aapi.access_token)
+            lsp_cont = LSPixiv.LSPixiv(self.username, self.password, self.TEST_BASE_PATH)
+            self.assertIsNotNone(lsp_cont.api)
+            self.assertIsNotNone(lsp_cont.aapi)
+            self.assertTrue(lsp_cont.auth_success)
+            self.assertIsNotNone(lsp_cont.api.access_token)
+            self.assertIsNotNone(lsp_cont.aapi.access_token)
 
             # 異常系
             with self.assertRaises(SystemExit):
-                pa_cont = PixivAPIController.PixivAPIController("invalid user", "invalid password")
+                lsp_cont = LSPixiv.LSPixiv("invalid user", "invalid password", self.TEST_BASE_PATH)
 
     def test_Login(self):
         """非公式pixivAPIインスタンス生成とログインをチェック
@@ -384,9 +384,9 @@ class TestPixivAPIController(unittest.TestCase):
             mockfout = mock_open()
             mockfp = stack.enter_context(patch("pathlib.Path.open", mockfout))
 
-            # mockpalogin = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.Login"))
-            mockpapub = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPI"))
-            mockpaapp = stack.enter_context(patch("PictureGathering.PixivAPIController.AppPixivAPI"))
+            # mockpalogin = stack.enter_context(patch("PictureGathering.LSPixiv.LSPixiv.Login"))
+            mockpapub = stack.enter_context(patch("PictureGathering.LSPixiv.PixivAPI"))
+            mockpaapp = stack.enter_context(patch("PictureGathering.LSPixiv.AppPixivAPI"))
 
             mockpapub.side_effect = lambda: response_factory("ok_access_token", "ok_refresh_token")
             mockpaapp.side_effect = lambda: response_factory("ok_access_token", "ok_refresh_token")
@@ -401,8 +401,8 @@ class TestPixivAPIController(unittest.TestCase):
             # refresh_tokenファイルが存在しない場合のテスト
             expect = (mockpapub.side_effect(), mockpaapp.side_effect(), True)
             # インスタンス生成時にLoginが呼ばれる
-            pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
-            actual = (pa_cont.api, pa_cont.aapi, pa_cont.auth_success)
+            lsp_cont = LSPixiv.LSPixiv(self.username, self.password, self.TEST_BASE_PATH)
+            actual = (lsp_cont.api, lsp_cont.aapi, lsp_cont.auth_success)
 
             self.assertEqual(mockpapub.call_count, 1)
             self.assertEqual(mockpaapp.call_count, 1)
@@ -420,8 +420,8 @@ class TestPixivAPIController(unittest.TestCase):
             # refresh_tokenファイルが存在する場合のテスト
             expect = (mockpapub.side_effect(), mockpaapp.side_effect(), True)
             # インスタンス生成時にLoginが呼ばれる
-            pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
-            actual = (pa_cont.api, pa_cont.aapi, pa_cont.auth_success)
+            lsp_cont = LSPixiv.LSPixiv(self.username, self.password, self.TEST_BASE_PATH)
+            actual = (lsp_cont.api, lsp_cont.aapi, lsp_cont.auth_success)
 
             self.assertEqual(mockpapub.call_count, 1)
             self.assertEqual(mockpaapp.call_count, 1)
@@ -433,101 +433,102 @@ class TestPixivAPIController(unittest.TestCase):
             if not tmp_path.is_file() and rt_path.stat().st_size == 0:
                 rt_path.unlink()
 
-    def test_IsPixivURL(self):
-        """pixivのURLかどうか判定する機能をチェック
+    def test_IsTargetUrl(self):
+        """URLがpixivのURLかどうか判定する機能をチェック
         """
-        # pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
-        # クラスメソッドなのでインスタンス無しで呼べる
-        IsPixivURL = PixivAPIController.PixivAPIController.IsPixivURL
+        with ExitStack() as stack:
+            mockpalogin = stack.enter_context(patch("PictureGathering.LSPixiv.LSPixiv.Login"))
+            mockpalogin = self.__MakeLoginMock(mockpalogin)
+            lsp_cont = LSPixiv.LSPixiv(self.username, self.password, self.TEST_BASE_PATH)
 
-        # 正常系
-        url_s = "https://www.pixiv.net/artworks/24010650"
-        self.assertEqual(True, IsPixivURL(url_s))
+            # 正常系
+            url_s = "https://www.pixiv.net/artworks/24010650"
+            self.assertEqual(True, lsp_cont.IsTargetUrl(url_s))
 
-        # 全く関係ないアドレス(Google)
-        url_s = "https://www.google.co.jp/"
-        self.assertEqual(False, IsPixivURL(url_s))
+            # 全く関係ないアドレス(Google)
+            url_s = "https://www.google.co.jp/"
+            self.assertEqual(False, lsp_cont.IsTargetUrl(url_s))
 
-        # 全く関係ないアドレス(nijie)
-        url_s = "http://nijie.info/view.php?id=402197"
-        self.assertEqual(False, IsPixivURL(url_s))
+            # 全く関係ないアドレス(nijie)
+            url_s = "http://nijie.info/view.php?id=402197"
+            self.assertEqual(False, lsp_cont.IsTargetUrl(url_s))
 
-        # httpsでなくhttp
-        url_s = "http://www.pixiv.net/artworks/24010650"
-        self.assertEqual(False, IsPixivURL(url_s))
+            # httpsでなくhttp
+            url_s = "http://www.pixiv.net/artworks/24010650"
+            self.assertEqual(False, lsp_cont.IsTargetUrl(url_s))
 
-        # pixivの別ページ
-        url_s = "https://www.pixiv.net/bookmark_new_illust.php"
-        self.assertEqual(False, IsPixivURL(url_s))
+            # pixivの別ページ
+            url_s = "https://www.pixiv.net/bookmark_new_illust.php"
+            self.assertEqual(False, lsp_cont.IsTargetUrl(url_s))
 
-        # プリフィックスエラー
-        url_s = "ftp:https://www.pixiv.net/artworks/24010650"
-        self.assertEqual(False, IsPixivURL(url_s))
+            # プリフィックスエラー
+            url_s = "ftp:https://www.pixiv.net/artworks/24010650"
+            self.assertEqual(False, lsp_cont.IsTargetUrl(url_s))
 
-        # サフィックスエラー
-        url_s = "https://www.pixiv.net/artworks/24010650?rank=1"
-        self.assertEqual(False, IsPixivURL(url_s))
+            # サフィックスエラー
+            url_s = "https://www.pixiv.net/artworks/24010650?rank=1"
+            self.assertEqual(False, lsp_cont.IsTargetUrl(url_s))
 
     def test_GetIllustId(self):
         """pixiv作品ページURLからイラストIDを取得する機能をチェック
         """
         with ExitStack() as stack:
-            mockpalogin = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.Login"))
+            mockpalogin = stack.enter_context(patch("PictureGathering.LSPixiv.LSPixiv.Login"))
             mockpalogin = self.__MakeLoginMock(mockpalogin)
-            pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
+            lsp_cont = LSPixiv.LSPixiv(self.username, self.password, self.TEST_BASE_PATH)
 
             # 正常系
             r = "{:0>8}".format(random.randint(0, 99999999))
             url_s = "https://www.pixiv.net/artworks/" + r
             expect = int(r)
-            actual = pa_cont.GetIllustId(url_s)
+            actual = lsp_cont.GetIllustId(url_s)
             self.assertEqual(expect, actual)
 
             # サフィックスエラー
             url_s = "https://www.pixiv.net/artworks/{}?rank=1".format(r)
             expect = -1
-            actual = pa_cont.GetIllustId(url_s)
+            actual = lsp_cont.GetIllustId(url_s)
             self.assertEqual(expect, actual)
 
     def test_GetIllustURLs(self):
         """pixiv作品ページURLからイラストへの直リンクを取得する機能をチェック
         """
         with ExitStack() as stack:
-            mockpalogin = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.Login"))
+            mockpalogin = stack.enter_context(patch("PictureGathering.LSPixiv.LSPixiv.Login"))
             mockpalogin = self.__MakeLoginMock(mockpalogin)
-            pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
+            lsp_cont = LSPixiv.LSPixiv(self.username, self.password, self.TEST_BASE_PATH)
 
             # 一枚絵
             url_s = "https://www.pixiv.net/artworks/59580629"
             expect = ["https://i.pximg.net/img-original/img/2016/10/22/10/11/37/59580629_p0.jpg"]
-            actual = pa_cont.GetIllustURLs(url_s)
+            actual = lsp_cont.GetIllustURLs(url_s)
             self.assertEqual(expect, actual)
 
             # 漫画形式
             url_s = "https://www.pixiv.net/artworks/24010650"
             expect = ["https://i.pximg.net/img-original/img/2011/12/30/23/52/44/24010650_p{}.png".format(i) for i in range(5)]
-            actual = pa_cont.GetIllustURLs(url_s)
+            actual = lsp_cont.GetIllustURLs(url_s)
             self.assertEqual(expect, actual)
 
             # サフィックスエラー
             url_s = "https://www.pixiv.net/artworks/24010650?rank=1"
             expect = []
-            actual = pa_cont.GetIllustURLs(url_s)
+            actual = lsp_cont.GetIllustURLs(url_s)
             self.assertEqual(expect, actual)
 
             # 不正なイラストID
             url_s = "https://www.pixiv.net/artworks/00000000"
             expect = []
-            actual = pa_cont.GetIllustURLs(url_s)
+            actual = lsp_cont.GetIllustURLs(url_s)
             self.assertEqual(expect, actual)
 
     def test_MakeSaveDirectoryPath(self):
         """保存先ディレクトリパスを生成する機能をチェック
         """
         with ExitStack() as stack:
-            mockpalogin = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.Login"))
+            mockpalogin = stack.enter_context(patch("PictureGathering.LSPixiv.LSPixiv.Login"))
             mockpalogin = self.__MakeLoginMock(mockpalogin)
-            pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
+            lsp_cont = LSPixiv.LSPixiv(self.username, self.password, self.TEST_BASE_PATH)
 
             url_s = "https://www.pixiv.net/artworks/24010650"
             expect = Path(self.TEST_BASE_PATH) / "./shift(149176)/フランの羽[アイコン用](24010650)/"
@@ -537,26 +538,26 @@ class TestPixivAPIController(unittest.TestCase):
                 shutil.rmtree(expect)
 
             # 保存先ディレクトリが存在しない場合の実行
-            actual = Path(pa_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH))
+            actual = Path(lsp_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH))
             self.assertEqual(expect, actual)
 
             # 保存先ディレクトリを作成する
             actual.mkdir(parents=True, exist_ok=True)
 
             # 保存先ディレクトリが存在する場合の実行
-            actual = Path(pa_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH))
+            actual = Path(lsp_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH))
             self.assertEqual(expect, actual)
 
             # サフィックスエラー
             url_s = "https://www.pixiv.net/artworks/24010650?rank=1"
             expect = ""
-            actual = pa_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH)
+            actual = lsp_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH)
             self.assertEqual(expect, actual)
 
             # 不正なイラストID
             url_s = "https://www.pixiv.net/artworks/00000000"
             expect = ""
-            actual = pa_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH)
+            actual = lsp_cont.MakeSaveDirectoryPath(url_s, self.TEST_BASE_PATH)
             self.assertEqual(expect, actual)
 
     def test_DownloadIllusts(self):
@@ -564,15 +565,15 @@ class TestPixivAPIController(unittest.TestCase):
             実際に非公式pixivAPIを通してDLはしない
         """
         with ExitStack() as stack:
-            mockgu = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.DownloadUgoira"))
-            mocksleep = stack.enter_context(patch("PictureGathering.PixivAPIController.sleep"))
-            mockpalogin = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.Login"))
+            mockgu = stack.enter_context(patch("PictureGathering.LSPixiv.LSPixiv.DownloadUgoira"))
+            mocksleep = stack.enter_context(patch("PictureGathering.LSPixiv.sleep"))
+            mockpalogin = stack.enter_context(patch("PictureGathering.LSPixiv.LSPixiv.Login"))
             mockpalogin = self.__MakeLoginMock(mockpalogin)
-            pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
+            lsp_cont = LSPixiv.LSPixiv(self.username, self.password, self.TEST_BASE_PATH)
 
             work_url_s = "https://www.pixiv.net/artworks/24010650"
-            urls_s = pa_cont.GetIllustURLs(work_url_s)
-            save_directory_path_s = Path(pa_cont.MakeSaveDirectoryPath(work_url_s, self.TEST_BASE_PATH))
+            urls_s = lsp_cont.GetIllustURLs(work_url_s)
+            save_directory_path_s = Path(lsp_cont.MakeSaveDirectoryPath(work_url_s, self.TEST_BASE_PATH))
 
             # 一枚絵
             # 予想される保存先ディレクトリとファイル名を取得
@@ -581,7 +582,7 @@ class TestPixivAPIController(unittest.TestCase):
             name_s = "{}{}".format(save_directory_path_s.name, Path(url_s).suffix)
 
             # 1回目の実行
-            res = pa_cont.DownloadIllusts([url_s], str(save_directory_path_s))
+            res = lsp_cont.DownloadIllusts([url_s], str(save_directory_path_s))
             self.assertEqual(0, res)  # 新規DL成功想定（実際にDLする）
             mockgu.assert_called_once()
             mockgu.reset_mock()
@@ -592,7 +593,7 @@ class TestPixivAPIController(unittest.TestCase):
             self.assertTrue((save_directory_path_cache / name_s).is_file())
 
             # 2回目の実行
-            res = pa_cont.DownloadIllusts([url_s], str(save_directory_path_s))
+            res = lsp_cont.DownloadIllusts([url_s], str(save_directory_path_s))
             self.assertEqual(1, res)  # 2回目は既にDL済なのでスキップされる想定
             mockgu.assert_not_called()
             mockgu.reset_mock()
@@ -609,7 +610,7 @@ class TestPixivAPIController(unittest.TestCase):
                 expect_names.append(name_s)
 
             # 1回目の実行
-            res = pa_cont.DownloadIllusts(urls_s, str(save_directory_path_s))
+            res = lsp_cont.DownloadIllusts(urls_s, str(save_directory_path_s))
             self.assertEqual(0, res)  # 新規DL成功想定（実際にDLする）
             mockgu.assert_not_called()
             mockgu.reset_mock()
@@ -623,13 +624,13 @@ class TestPixivAPIController(unittest.TestCase):
                 self.assertTrue((save_directory_path_s / name_s).is_file())
 
             # 2回目の実行
-            res = pa_cont.DownloadIllusts(urls_s, str(save_directory_path_s))
+            res = lsp_cont.DownloadIllusts(urls_s, str(save_directory_path_s))
             self.assertEqual(1, res)  # 2回目は既にDL済なのでスキップされる想定
             mockgu.assert_not_called()
             mockgu.reset_mock()
 
             # urls指定エラー（空リスト）
-            res = pa_cont.DownloadIllusts([], str(save_directory_path_s))
+            res = lsp_cont.DownloadIllusts([], str(save_directory_path_s))
             self.assertEqual(-1, res)
 
     def test_DownloadUgoira(self):
@@ -637,25 +638,25 @@ class TestPixivAPIController(unittest.TestCase):
             実際に非公式pixivAPIを通してDLはしない
         """
         with ExitStack() as stack:
-            mocksleep = stack.enter_context(patch("PictureGathering.PixivAPIController.sleep"))
-            mockpalogin = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.Login"))
-            mockimage = stack.enter_context(patch("PictureGathering.PixivAPIController.Image"))
+            mocksleep = stack.enter_context(patch("PictureGathering.LSPixiv.sleep"))
+            mockpalogin = stack.enter_context(patch("PictureGathering.LSPixiv.LSPixiv.Login"))
+            mockimage = stack.enter_context(patch("PictureGathering.LSPixiv.Image"))
 
             mockpalogin = self.__MakeLoginMock(mockpalogin)
             mockimage = self.__MakeImageMock(mockimage)
 
-            pa_cont = PixivAPIController.PixivAPIController(self.username, self.password)
+            lsp_cont = LSPixiv.LSPixiv(self.username, self.password, self.TEST_BASE_PATH)
 
             # サンプル画像：おみくじ(86704541)
             work_url_s = "https://www.pixiv.net/artworks/86704541"
-            illust_id_s = pa_cont.GetIllustId(work_url_s)
+            illust_id_s = lsp_cont.GetIllustId(work_url_s)
             expect_path = self.TBP / "おみくじ(86704541)"
             expect_gif_path = expect_path.parent / "{}{}".format(expect_path.name, ".gif")
             EXPECT_FRAME_NUM = 14
             expect_frames = [str(expect_path / "{}_ugoira{}.jpg".format(illust_id_s, i)) for i in range(0, EXPECT_FRAME_NUM)]
 
             # うごイラDL
-            res = pa_cont.DownloadUgoira(illust_id_s, self.TEST_BASE_PATH)
+            res = lsp_cont.DownloadUgoira(illust_id_s, self.TEST_BASE_PATH)
 
             # DL後のディレクトリ構成とファイルの存在チェック
             self.assertTrue(self.TBP.is_dir())
@@ -672,14 +673,14 @@ class TestPixivAPIController(unittest.TestCase):
 
             # うごイラでないイラストIDを入力
             work_url_s = "https://www.pixiv.net/artworks/24010650"
-            illust_id_s = pa_cont.GetIllustId(work_url_s)
-            res = pa_cont.DownloadUgoira(illust_id_s, self.TEST_BASE_PATH)
+            illust_id_s = lsp_cont.GetIllustId(work_url_s)
+            res = lsp_cont.DownloadUgoira(illust_id_s, self.TEST_BASE_PATH)
             self.assertEqual(1, res)  # うごイラではなかった
 
             # 不正なイラストIDを入力
             work_url_s = "https://www.pixiv.net/artworks/00000000"
-            illust_id_s = pa_cont.GetIllustId(work_url_s)
-            res = pa_cont.DownloadUgoira(illust_id_s, self.TEST_BASE_PATH)
+            illust_id_s = lsp_cont.GetIllustId(work_url_s)
+            res = lsp_cont.DownloadUgoira(illust_id_s, self.TEST_BASE_PATH)
             self.assertEqual(-1, res)  # 不正なイラストID
 
 

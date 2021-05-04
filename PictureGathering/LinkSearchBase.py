@@ -5,26 +5,30 @@ import os
 import re
 
 from abc import ABCMeta, abstractmethod
-from logging import DEBUG, getLogger
+from logging import INFO, getLogger
 from pathlib import Path
 
 
+logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 logger = getLogger("root")
-logger.setLevel(DEBUG)
+logger.setLevel(INFO)
 
 
 class LinkSearchBase():
-    """リンク探索処理を担うクラス
+    """外部リンク探索処理を担うクラスの基底クラス
 
     Notes:
-        Chain of Responsibilityパターン
+        CoR = Chain of Responsibilityパターン
+        この基底クラスのインスタンスを作成し、
+        派生クラスにて機能を実装した担当者をRegisterで登録する。
+        CoRProcessCheck/CoRProcessDoにて登録した担当者に仕事を発注する。
+        派生クラスはIsTargetUrlとProcessをオーバーライドして実装する必要がある。
 
     Attributes:
         processer_list (LinkSearchBase[]): 処理担当者リスト
     """
     def __init__(self):
         self.processer_list = []
-        pass
 
     def Register(self, processer) -> int:
         """担当者登録
@@ -41,12 +45,12 @@ class LinkSearchBase():
         self.processer_list.append(processer)
         return 0
 
-    def CoRProcessDo(self, url) -> int:
+    def CoRProcessDo(self, url: str) -> int:
         """処理実行メイン
 
         Notes:
-            大元のLinkSearchBaseからのみ呼ばれる想定
-            self.processer_listに担当者が登録されていないと処理されない
+            大元のLinkSearchBaseからのみ呼ばれる想定。
+            self.processer_listに担当者が登録されていないと処理されない。
 
         Args:
             url (str): 処理対象url
@@ -96,12 +100,12 @@ class LinkSearchBase():
         # 返り値の意味はReturns参照
         return (cor_result == 0)
 
-    def IsTargetUrl(self, url) -> bool:
+    def IsTargetUrl(self, url: str) -> bool:
         """自分（担当者）が処理できるurlかどうか返す関数
 
         Notes:
-            派生クラスでオーバーライドする
-            基底クラスでは常にFalseを返す
+            派生クラスでオーバーライドする。
+            基底クラスでは常にFalseを返す。
 
         Args:
             url (str): 処理対象url
@@ -115,8 +119,8 @@ class LinkSearchBase():
         """自分（担当者）が担当する処理
 
         Notes:
-            派生クラスでオーバーライドする
-            基底クラスでは常に何もせず、失敗扱いとする
+            派生クラスでオーバーライドする。
+            基底クラスでは常に何もせず、失敗扱いとする。
 
         Args:
             url (str): 処理対象url
@@ -128,47 +132,82 @@ class LinkSearchBase():
         return -1
 
 
-class ConcreteLinkSearch(LinkSearchBase):
+class LSConcrete_0(LinkSearchBase):
     def __init__(self):
         super().__init__()
-        pass
-    
-    def IsTargetUrl(self, url) -> bool:
-        logger.debug("ConcreteLinkSearch IsTargetUrl called")
-        return False
+
+    def IsTargetUrl(self, url: str) -> bool:
+        pattern = r"^https://www.anyurl/sample/index_0.html$"
+        regex = re.compile(pattern)
+        is_target = not (regex.findall(url) == [])
+        if is_target:
+            logger.info("LSConcrete_0.IsTargetUrl catch")
+        return is_target
 
     def Process(self, url: str) -> int:
-        logger.debug("ConcreteLinkSearch Process called")
+        logger.info("LSConcrete_0.Process called")
         return 0
 
 
+class LSConcrete_1(LinkSearchBase):
+    def __init__(self):
+        super().__init__()
+
+    def IsTargetUrl(self, url: str) -> bool:
+        pattern = r"^https://www.anyurl/sample/index_1.html$"
+        regex = re.compile(pattern)
+        is_target = not (regex.findall(url) == [])
+        if is_target:
+            logger.info("LSConcrete_1.IsTargetUrl catch")
+        return is_target
+
+    def Process(self, url: str) -> int:
+        logger.info("LSConcrete_1.Process called")
+        return 0
+
+
+class LSConcrete_2(LinkSearchBase):
+    def __init__(self):
+        super().__init__()
+
+    def IsTargetUrl(self, url: str) -> bool:
+        pattern = r"^https://www.anyurl/sample/index_2.html$"
+        regex = re.compile(pattern)
+        is_target = not (regex.findall(url) == [])
+        if is_target:
+            logger.info("LSConcrete_2.IsTargetUrl catch")
+        return is_target
+
+    def Process(self, url: str) -> int:
+        logger.info("LSConcrete_2.Process called")
+        return -1  # 常に処理失敗するものとする
+
+
 if __name__ == "__main__":
-    lsb = LinkSearchBase()
-    url = "https://www.pixiv.net/artworks/86704541"
-    url = "http://nijie.info/view_popup.php?id=409587"
+    ls_base = LinkSearchBase()
+    # url = "https://www.pixiv.net/artworks/86704541"
+    # url = "http://nijie.info/view_popup.php?id=409587"
+    url = "https://www.anyurl/sample/index_{}.html"
 
-    # 最低限実装した担当者を登録（何も処理しない）
-    pls = ConcreteLinkSearch()
-    lsb.Register(pls)
-
-    CONFIG_FILE_NAME = "./config/config.ini"
-    config = configparser.ConfigParser()
-    config.read(CONFIG_FILE_NAME, encoding="utf8")
-
-    # pixivURLを処理する担当者を登録
-    if config["pixiv"].getboolean("is_pixiv_trace"):
-        from PictureGathering import LSPixiv
-        lsp = LSPixiv.LSPixiv(config["pixiv"]["username"], config["pixiv"]["password"], config["pixiv"]["save_base_path"])
-        lsb.Register(lsp)
-
-    # nijieURLを処理する担当者を登録
-    if config["nijie"].getboolean("is_nijie_trace"):
-        from PictureGathering import LSNijie
-        lsn = LSNijie.LSNijie(config["nijie"]["email"], config["nijie"]["password"], config["nijie"]["save_base_path"])
-        lsb.Register(lsn)
+    # 具体的な担当者を登録
+    lsc = LSConcrete_0()
+    ls_base.Register(lsc)
+    lsc = LSConcrete_1()
+    ls_base.Register(lsc)
+    lsc = LSConcrete_2()
+    ls_base.Register(lsc)
 
     # CoR実行
-    res = lsb.CoRProcessCheck(url)
-    res = lsb.CoRProcessDo(url)
-    pass
+    for i in range(0, 4):
+        res = ls_base.CoRProcessCheck(url.format(i))
+        if not res:
+            logger.info("any LSConcrete cannot catch")
+
+    for i in range(0, 4):
+        res = ls_base.CoRProcessDo(url.format(i))
+        if res == 1:
+            logger.info("any LSConcrete cannot Process")
+        elif res == -1:
+            logger.info("LSConcrete Process called but failed")
+
     pass

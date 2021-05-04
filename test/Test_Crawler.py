@@ -793,10 +793,7 @@ class TestCrawler(unittest.TestCase):
             if tweet.get("entities"):
                 if tweet["entities"].get("urls"):
                     url = tweet["entities"]["urls"][0].get("expanded_url")
-                    from PictureGathering import PixivAPIController, NijieScraping
-                    IsPixivURL = PixivAPIController.PixivAPIController.IsPixivURL
-                    IsNijieURL = NijieScraping.NijieController.IsNijieURL
-                    if IsPixivURL(url) or IsNijieURL(url):
+                    if crawler.lsb.CoRProcessCheck(url):
                         if tweet["id_str"] not in id_str_list:
                             result.append(tweet)
                             id_str_list.append(tweet["id_str"])
@@ -948,19 +945,10 @@ class TestCrawler(unittest.TestCase):
 
         with ExitStack() as stack:
             mockms = stack.enter_context(patch("PictureGathering.Crawler.Crawler.TweetMediaSaver"))
-            mockpa = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.__init__"))
-            mockpagiurls = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.GetIllustURLs"))
-            mockpamsdp = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.MakeSaveDirectoryPath"))
-            mockpadi = stack.enter_context(patch("PictureGathering.PixivAPIController.PixivAPIController.DownloadIllusts"))
-            mockns = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.__init__"))
-            mocknsdi = stack.enter_context(patch("PictureGathering.NijieScraping.NijieController.DownloadIllusts"))
+            mocklspd = stack.enter_context(patch("PictureGathering.LinkSearchBase.LinkSearchBase.CoRProcessDo"))
 
             mockms.return_value = 0
-            mockpa.return_value = None
-            mockns.return_value = None
-
-            mockpadi.return_value = 0
-            mocknsdi.return_value = 0
+            mocklspd.return_value = 0
 
             expect_called_arg = GetTweetMediaSaverCalledArg(s_tweet_list)
 

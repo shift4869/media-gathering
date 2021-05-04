@@ -17,7 +17,7 @@ from pathlib import Path
 
 from mock import MagicMock, PropertyMock, patch
 
-from PictureGathering import RetweetCrawler, PixivAPIController
+from PictureGathering import RetweetCrawler
 
 logger = getLogger("root")
 logger.setLevel(WARNING)
@@ -314,10 +314,9 @@ class TestRetweetCrawler(unittest.TestCase):
                     if not entities:
                         if media_tweet.get("entities").get("urls"):
                             e_urls = media_tweet["entities"]["urls"]
-                            IsPixivURL = PixivAPIController.PixivAPIController.IsPixivURL
                             for element in e_urls:
                                 expanded_url = element.get("expanded_url")
-                                if IsPixivURL(expanded_url):
+                                if rc.lsb.CoRProcessCheck(expanded_url):
                                     include_new_flag = True
                         pass
                     else:
