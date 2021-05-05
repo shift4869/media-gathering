@@ -102,19 +102,8 @@ class Crawler(metaclass=ABCMeta):
             # 情報保持DBコントローラー（派生クラスで実体が代入される）
             self.db_cont = None
 
-            # 外部リンク探索
-            self.lsb = LinkSearchBase.LinkSearchBase()
-            # pixivURLを処理する担当者を登録
-            config = self.config["pixiv"]
-            if config.getboolean("is_pixiv_trace"):
-                lsp = LSPixiv.LSPixiv(config["username"], config["password"], config["save_base_path"])
-                self.lsb.Register(lsp)
-            # nijieURLを処理する担当者を登録
-            config = self.config["nijie"]
-            if config.getboolean("is_nijie_trace"):
-                lsn = LSNijie.LSNijie(config["email"], config["password"], config["save_base_path"])
-                self.lsb.Register(lsn)
-
+            # 外部リンク探索機構のセットアップ
+            self.LinkSearchRegister()
         except IOError:
             logger.exception(self.CONFIG_FILE_NAME + " is not exist or cannot be opened.")
             exit(-1)
@@ -137,6 +126,28 @@ class Crawler(metaclass=ABCMeta):
 
         self.add_url_list = []
         self.del_url_list = []
+
+    def LinkSearchRegister(self) -> int:
+        """外部リンク探索機構のセットアップ
+
+        Notes:
+            self.lsbに設定する
+
+        Returns:
+            int: 成功時0
+        """
+        # 外部リンク探索を登録
+        self.lsb = LinkSearchBase.LinkSearchBase()
+        # pixivURLを処理する担当者を登録
+        config = self.config["pixiv"]
+        if config.getboolean("is_pixiv_trace"):
+            lsp = LSPixiv.LSPixiv(config["username"], config["password"], config["save_base_path"])
+            self.lsb.Register(lsp)
+        # nijieURLを処理する担当者を登録
+        config = self.config["nijie"]
+        if config.getboolean("is_nijie_trace"):
+            lsn = LSNijie.LSNijie(config["email"], config["password"], config["save_base_path"])
+            self.lsb.Register(lsn)
 
     def GetTwitterAPIResourceType(self, url: str) -> str:
         """使用するTwitterAPIのAPIリソースタイプを返す
@@ -410,10 +421,7 @@ class Crawler(metaclass=ABCMeta):
         if tweet.get("entities"):
             if tweet["entities"].get("urls"):
                 url = tweet["entities"]["urls"][0].get("expanded_url")
-
-                # IsPixivURL = PixivAPIController.PixivAPIController.IsPixivURL
-                # IsNijieURL = NijieScraping.NijieController.IsNijieURL
-                # if IsPixivURL(url) or IsNijieURL(url):
+                # 外部リンク探索が登録されている場合CoRで調べる
                 if self.lsb.CoRProcessCheck(url):
                     if tweet["id_str"] not in id_str_list:
                         result.append(tweet)
@@ -515,24 +523,6 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             int: 0(成功)
         """
-        # pa_cont = None
-        # IsPixivURL = None
-        # if self.config["pixiv"].getboolean("is_pixiv_trace"):
-        #     username = self.config["pixiv"]["username"]
-        #     password = self.config["pixiv"]["password"]
-        #     save_pixiv_base_path = Path(self.config["pixiv"]["save_base_path"])
-        #     pa_cont = PixivAPIController.PixivAPIController(username, password)
-        #     IsPixivURL = PixivAPIController.PixivAPIController.IsPixivURL
-
-        # ns_cont = None
-        # IsNijieURL = None
-        # if self.config["nijie"].getboolean("is_nijie_trace"):
-        #     email = self.config["nijie"]["email"]
-        #     password = self.config["nijie"]["password"]
-        #     save_nijie_base_path = Path(self.config["nijie"]["save_base_path"])
-        #     ns_cont = NijieScraping.NijieController(email, password)
-        #     IsNijieURL = NijieScraping.NijieController.IsNijieURL
-
         for tweet in tweets:
             # メディアツイートツリーを取得
             media_tweets = self.GetMediaTweet(tweet)
@@ -582,26 +572,6 @@ class Crawler(metaclass=ABCMeta):
                         for element in e_urls:
                             url = element.get("expanded_url")
                             res = self.lsb.CoRProcessDo(url)
-
-                # pixivリンクが含まれているか
-                # if pa_cont and tweet.get("entities"):
-                #     if tweet["entities"].get("urls"):
-                #         e_urls = tweet["entities"]["urls"]
-                #         for element in e_urls:
-                #             url = element.get("expanded_url")
-                #             if IsPixivURL(url):
-                #                 urls = pa_cont.GetIllustURLs(url)
-                #                 save_directory_path = Path(pa_cont.MakeSaveDirectoryPath(url, str(save_pixiv_base_path)))
-                #                 pa_cont.DownloadIllusts(urls, str(save_directory_path))
-
-                # nijieリンクが含まれているか
-                # if ns_cont and tweet.get("entities"):
-                #     if tweet["entities"].get("urls"):
-                #         e_urls = tweet["entities"]["urls"]
-                #         for element in e_urls:
-                #             url = element.get("expanded_url")
-                #             if IsNijieURL(url):
-                #                 ns_cont.DownloadIllusts(url, str(save_nijie_base_path))
 
                 if "extended_entities" not in media_tweet:
                     logger.debug("メディアを含んでいないツイートです。")
