@@ -8,6 +8,7 @@ import configparser
 import freezegun
 import json
 import random
+import re
 import sys
 import unittest
 from contextlib import ExitStack
@@ -198,6 +199,38 @@ class TestRetweetCrawler(unittest.TestCase):
 
         return tweet
 
+    def __CoRProcessCheck(self, url: str) -> bool:
+        """CoRProcessCheckの模倣
+        
+        Notes:
+            LSが増えた場合はIsTargetUrlの内容を追加する
+
+        Args:
+            url (str): 判定対象url
+
+        Returns:
+            bool: 外部リンクならTrue、そうでないならFalse
+        """
+
+        # LSPixiv
+        pattern = r"^https://www.pixiv.net/artworks/[0-9]*$"
+        regex = re.compile(pattern)
+        if not (regex.findall(url) == []):
+            return True
+
+        # LSNijie
+        pattern = r"^http://nijie.info/view.php\?id=[0-9]*$"
+        regex = re.compile(pattern)
+        f1 = not (regex.findall(url) == [])
+
+        pattern = r"^http://nijie.info/view_popup.php\?id=[0-9]*$"
+        regex = re.compile(pattern)
+        f2 = not (regex.findall(url) == [])
+        if f1 or f2:
+            return True
+
+        return False
+
     def test_RetweetCrawlerInit(self):
         """RetweetCrawlerの初期状態のテスト
         
@@ -206,43 +239,50 @@ class TestRetweetCrawler(unittest.TestCase):
             どちらのconfigも設定元は"./config/config.ini"である
             RetweetCrawlerで利用する設定値のみテストする（基底クラスのテストは別ファイル）
         """
+        with ExitStack() as stack:
+            mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+            rc = RetweetCrawler.RetweetCrawler()
 
-        rc = RetweetCrawler.RetweetCrawler()
+            # expect_config読み込みテスト
+            CONFIG_FILE_NAME = "./config/config.ini"
+            expect_config = configparser.ConfigParser()
+            self.assertTrue(Path(CONFIG_FILE_NAME).is_file())
+            self.assertFalse(expect_config.read("ERROR_PATH" + CONFIG_FILE_NAME, encoding="utf8"))
+            expect_config.read(CONFIG_FILE_NAME, encoding="utf8")
 
-        # expect_config読み込みテスト
-        CONFIG_FILE_NAME = "./config/config.ini"
-        expect_config = configparser.ConfigParser()
-        self.assertTrue(Path(CONFIG_FILE_NAME).is_file())
-        self.assertFalse(expect_config.read("ERROR_PATH" + CONFIG_FILE_NAME, encoding="utf8"))
-        expect_config.read(CONFIG_FILE_NAME, encoding="utf8")
+            # 存在しないキーを指定するテスト
+            with self.assertRaises(KeyError):
+                print(expect_config["ERROR_KEY1"]["ERROR_KEY2"])
 
-        # 存在しないキーを指定するテスト
-        with self.assertRaises(KeyError):
-            print(expect_config["ERROR_KEY1"]["ERROR_KEY2"])
+            # 設定値比較
+            expect = int(expect_config["tweet_timeline"]["retweet_get_max_loop"])
+            actual = rc.retweet_get_max_loop
+            self.assertEqual(expect, actual)
 
-        # 設定値比較
-        expect = int(expect_config["tweet_timeline"]["retweet_get_max_loop"])
-        actual = rc.retweet_get_max_loop
-        self.assertEqual(expect, actual)
+            expect = Path(expect_config["save_directory"]["save_retweet_path"])
+            actual = rc.save_path
+            self.assertEqual(expect, actual)
 
-        expect = Path(expect_config["save_directory"]["save_retweet_path"])
-        actual = rc.save_path
-        self.assertEqual(expect, actual)
-
-        self.assertIsNone(rc.max_id)
-        self.assertEqual("RT", rc.type)
+            self.assertIsNone(rc.max_id)
+            self.assertEqual("RT", rc.type)
 
     def test_RetweetsGet(self):
         """RT取得機能をチェックする
         """
-
-        rc = RetweetCrawler.RetweetCrawler()
-
         with ExitStack() as stack:
             mockdbrfc = stack.enter_context(patch("PictureGathering.RetweetDBController.RetweetDBController.FlagClear"))
             mockdbrfu = stack.enter_context(patch("PictureGathering.RetweetDBController.RetweetDBController.FlagUpdate"))
             mockapireq = stack.enter_context(patch("PictureGathering.Crawler.Crawler.TwitterAPIRequest"))
-            
+            mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+
+            rc = RetweetCrawler.RetweetCrawler()
+
+            # モック設定
+            rc.lsb = MagicMock()
+            p_cor_pc = PropertyMock()
+            p_cor_pc.return_value = self.__CoRProcessCheck
+            type(rc.lsb).CoRProcessCheck = p_cor_pc
+
             # GetExistFilelistはrc本来のものを使うが結果を保持して比較するためにモックにしておく
             s_exist_filepaths = rc.GetExistFilelist()
             mockdgefl = stack.enter_context(patch("PictureGathering.Crawler.Crawler.GetExistFilelist"))
@@ -347,13 +387,12 @@ class TestRetweetCrawler(unittest.TestCase):
     def test_UpdateDBExistMark(self):
         """存在マーキング更新機能呼び出しをチェックする
         """
-
-        rc = RetweetCrawler.RetweetCrawler()
-
         with ExitStack() as stack:
             mockdbcc = stack.enter_context(patch("PictureGathering.RetweetDBController.RetweetDBController.FlagClear"))
             mockdbcu = stack.enter_context(patch("PictureGathering.RetweetDBController.RetweetDBController.FlagUpdate"))
+            mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
 
+            rc = RetweetCrawler.RetweetCrawler()
             s_add_img_filename = ["sample1.jpg", "sample2.jpg", "sample3.jpg"]
             rc.UpdateDBExistMark(s_add_img_filename)
 
@@ -363,15 +402,15 @@ class TestRetweetCrawler(unittest.TestCase):
     def test_GetVideoURL(self):
         """動画URL取得機能をチェックする
         """
-
-        rc = RetweetCrawler.RetweetCrawler()
-
         def MakeMediaURL(filename):
             dic = {"url": "https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/{0}?tag=10".format(filename)}
             return [dic]
 
         with ExitStack() as stack:
             mockdbcv = stack.enter_context(patch("PictureGathering.RetweetDBController.RetweetDBController.SelectFromMediaURL"))
+            mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+
+            rc = RetweetCrawler.RetweetCrawler()
             s_filename = "sample.mp4"
 
             # 正常系
@@ -389,11 +428,12 @@ class TestRetweetCrawler(unittest.TestCase):
     def test_MakeDoneMessage(self):
         """終了メッセージ作成機能をチェックする
         """
-
-        rc = RetweetCrawler.RetweetCrawler()
-
         with freezegun.freeze_time("2020-10-28 15:32:58"):
             with ExitStack() as stack:
+                mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+
+                rc = RetweetCrawler.RetweetCrawler()
+
                 s_add_url_list = ["http://pbs.twimg.com/media/add_sample{0}.jpg:orig".format(i) for i in range(5)]
                 s_del_url_list = ["http://pbs.twimg.com/media/del_sample{0}.jpg:orig".format(i) for i in range(5)]
                 s_pickup_url_list = random.sample(s_add_url_list, min(4, len(s_add_url_list)))
@@ -426,15 +466,15 @@ class TestRetweetCrawler(unittest.TestCase):
     def test_Crawl(self):
         """全体クロールの呼び出しをチェックする
         """
-
-        rc = RetweetCrawler.RetweetCrawler()
-
         with ExitStack() as stack:
             mocklogger = stack.enter_context(patch.object(logger, "info"))
             mockrtg = stack.enter_context(patch("PictureGathering.RetweetCrawler.RetweetCrawler.RetweetsGet"))
             mockimgsv = stack.enter_context(patch("PictureGathering.Crawler.Crawler.InterpretTweets"))
             mockshfol = stack.enter_context(patch("PictureGathering.Crawler.Crawler.ShrinkFolder"))
             mockeop = stack.enter_context(patch("PictureGathering.Crawler.Crawler.EndOfProcess"))
+            mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+
+            rc = RetweetCrawler.RetweetCrawler()
         
             s_holding_file_num = 300
             s_media_url_list = ["http://pbs.twimg.com/media/sample{0}.jpg:orig".format(i) for i in range(6)]
