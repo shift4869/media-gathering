@@ -72,36 +72,38 @@ class TestFavCrawler(unittest.TestCase):
             どちらのconfigも設定元は"./config/config.ini"である
             FavCrawlerで利用する設定値のみテストする（基底クラスのテストは別ファイル）
         """
+        with ExitStack() as stack:
+            mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
 
-        fc = FavCrawler.FavCrawler()
+            fc = FavCrawler.FavCrawler()
 
-        # expect_config読み込みテスト
-        CONFIG_FILE_NAME = "./config/config.ini"
-        expect_config = configparser.ConfigParser()
-        self.assertTrue(Path(CONFIG_FILE_NAME).is_file())
-        self.assertFalse(expect_config.read("ERROR_PATH" + CONFIG_FILE_NAME, encoding="utf8"))
-        expect_config.read(CONFIG_FILE_NAME, encoding="utf8")
+            # expect_config読み込みテスト
+            CONFIG_FILE_NAME = "./config/config.ini"
+            expect_config = configparser.ConfigParser()
+            self.assertTrue(Path(CONFIG_FILE_NAME).is_file())
+            self.assertFalse(expect_config.read("ERROR_PATH" + CONFIG_FILE_NAME, encoding="utf8"))
+            expect_config.read(CONFIG_FILE_NAME, encoding="utf8")
 
-        # 存在しないキーを指定するテスト
-        with self.assertRaises(KeyError):
-            print(expect_config["ERROR_KEY1"]["ERROR_KEY2"])
+            # 存在しないキーを指定するテスト
+            with self.assertRaises(KeyError):
+                print(expect_config["ERROR_KEY1"]["ERROR_KEY2"])
 
-        # 設定値比較
-        expect = Path(expect_config["save_directory"]["save_fav_path"])
-        actual = fc.save_path
-        self.assertEqual(expect, actual)
+            # 設定値比較
+            expect = Path(expect_config["save_directory"]["save_fav_path"])
+            actual = fc.save_path
+            self.assertEqual(expect, actual)
 
-        self.assertEqual("Fav", fc.type)
+            self.assertEqual("Fav", fc.type)
 
     def test_FavTweetsGet(self):
         """Favリスト取得機能をチェックする
         """
-
-        fc = FavCrawler.FavCrawler()
-
         with ExitStack() as stack:
             mockapireq = stack.enter_context(patch("PictureGathering.Crawler.Crawler.TwitterAPIRequest"))
+            mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
             mocklogger = stack.enter_context(patch.object(logger, "error"))
+
+            fc = FavCrawler.FavCrawler()
 
             # favorite
             page = 1
@@ -141,12 +143,12 @@ class TestFavCrawler(unittest.TestCase):
     def test_UpdateDBExistMark(self):
         """存在マーキング更新機能呼び出しをチェックする
         """
-
-        fc = FavCrawler.FavCrawler()
-
         with ExitStack() as stack:
             mockdbcc = stack.enter_context(patch("PictureGathering.FavDBController.FavDBController.FlagClear"))
             mockdbcu = stack.enter_context(patch("PictureGathering.FavDBController.FavDBController.FlagUpdate"))
+            mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+
+            fc = FavCrawler.FavCrawler()
 
             s_add_img_filename = ["sample1.jpg", "sample2.jpg", "sample3.jpg"]
             fc.UpdateDBExistMark(s_add_img_filename)
@@ -154,18 +156,18 @@ class TestFavCrawler(unittest.TestCase):
             mockdbcc.assert_called_once_with()
             mockdbcu.assert_called_once_with(s_add_img_filename, 1)
 
-    def test_GetVideoURL(self):
-        """動画URL取得機能をチェックする
+    def test_GetMediaURL(self):
+        """メディアURL取得機能をチェックする
         """
-
-        fc = FavCrawler.FavCrawler()
-
         def MakeMediaURL(filename):
             dic = {"url": "https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/{0}?tag=10".format(filename)}
             return [dic]
 
         with ExitStack() as stack:
             mockdbcv = stack.enter_context(patch("PictureGathering.FavDBController.FavDBController.SelectFromMediaURL"))
+            mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+
+            fc = FavCrawler.FavCrawler()
             s_filename = "sample.mp4"
 
             # 正常系
@@ -183,11 +185,12 @@ class TestFavCrawler(unittest.TestCase):
     def test_MakeDoneMessage(self):
         """終了メッセージ作成機能をチェックする
         """
-
-        fc = FavCrawler.FavCrawler()
-
         with freezegun.freeze_time("2020-10-28 15:32:58"):
             with ExitStack() as stack:
+                mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+
+                fc = FavCrawler.FavCrawler()
+
                 s_add_url_list = ["http://pbs.twimg.com/media/add_sample{0}.jpg:orig".format(i) for i in range(5)]
                 s_del_url_list = ["http://pbs.twimg.com/media/del_sample{0}.jpg:orig".format(i) for i in range(5)]
                 s_pickup_url_list = random.sample(s_add_url_list, min(4, len(s_add_url_list)))
@@ -220,15 +223,15 @@ class TestFavCrawler(unittest.TestCase):
     def test_Crawl(self):
         """全体クロールの呼び出しをチェックする
         """
-
-        fc = FavCrawler.FavCrawler()
-
         with ExitStack() as stack:
             mocklogger = stack.enter_context(patch.object(logger, "info"))
             mockftg = stack.enter_context(patch("PictureGathering.FavCrawler.FavCrawler.FavTweetsGet"))
             mockimgsv = stack.enter_context(patch("PictureGathering.Crawler.Crawler.InterpretTweets"))
             mockshfol = stack.enter_context(patch("PictureGathering.Crawler.Crawler.ShrinkFolder"))
             mockeop = stack.enter_context(patch("PictureGathering.Crawler.Crawler.EndOfProcess"))
+            mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+
+            fc = FavCrawler.FavCrawler()
 
             s_fav_get_max_loop = 3
             s_holding_file_num = 300

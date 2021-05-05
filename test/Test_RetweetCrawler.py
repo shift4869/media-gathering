@@ -399,8 +399,8 @@ class TestRetweetCrawler(unittest.TestCase):
             mockdbcc.assert_called_once_with()
             mockdbcu.assert_called_once_with(s_add_img_filename, 1)
 
-    def test_GetVideoURL(self):
-        """動画URL取得機能をチェックする
+    def test_GetMediaURL(self):
+        """メディアURL取得機能をチェックする
         """
         def MakeMediaURL(filename):
             dic = {"url": "https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/{0}?tag=10".format(filename)}
