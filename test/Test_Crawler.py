@@ -42,17 +42,31 @@ class ConcreteCrawler(Crawler.Crawler):
         type (str): 継承先を表すタイプ識別
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, error_occur=""):
+        with ExitStack() as stack:
+            # Crawler.__init__()で意図的にエラーを起こすための設定
+            if error_occur == "IOError":
+                # configファイルのパスエラーは変数置き換えで自動的に処理される
+                self.CONFIG_FILE_NAME = "error_file_path"
+            elif error_occur == "KeyError":
+                # LinkSearchRegister呼び出しを利用して例外を送出するモックを設定する
+                mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+                mockLSR.side_effect = KeyError()
+            elif error_occur == "Exception":
+                # LinkSearchRegister呼び出しを利用して例外を送出するモックを設定する
+                mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+                mockLSR.side_effect = Exception()
 
-        config = self.config["db"]
-        save_path = Path(config["save_path"])
-        save_path.mkdir(parents=True, exist_ok=True)
-        db_fullpath = save_path / config["save_file_name"]
-        self.db_cont = FavDBController.FavDBController(db_fullpath)
+            super().__init__()
 
-        self.save_path = Path("./test")
-        self.type = "Fav"  # Favorite取得としておく
+            config = self.config["db"]
+            save_path = Path(config["save_path"])
+            save_path.mkdir(parents=True, exist_ok=True)
+            db_fullpath = save_path / config["save_file_name"]
+            self.db_cont = FavDBController.FavDBController(db_fullpath)
+
+            self.save_path = Path("./test")
+            self.type = "Fav"  # Favorite取得としておく
 
     def UpdateDBExistMark(self, file_name):
         return "DBExistMark updated"
@@ -80,7 +94,7 @@ class TestCrawler(unittest.TestCase):
         """ツイートオブジェクトのサンプルの一部を生成する
 
         Args:
-            media_url (str): 画像URLサンプル
+            media_url (str): メディアURLサンプル
             media_type (str): メディアタイプ{"None", "photo", "video", "animated_gif"}
 
         Returns:
@@ -156,11 +170,29 @@ class TestCrawler(unittest.TestCase):
         else:
             return {}
 
+    def __GetEntitiesSample(self, url: str = "") -> dict:
+        """ツイートオブジェクトのサンプルの一部を生成する
+
+        Args:
+            url (str): サンプルURL
+
+        Returns:
+            dict: ツイートオブジェクトのentities部分（サンプル）
+        """
+        tweet_json = f'''{{
+            "entities": {{
+                "urls": [{{
+                    "expanded_url": "{url}"
+                }}]
+            }}
+        }}'''
+        return json.loads(tweet_json)
+
     def __GetTweetSample(self, media_url: str = "", media_type: str = "None", is_retweeted: bool = False, is_quoted: bool = False, is_pixiv: bool = False, is_nijie: bool = False) -> dict:
         """ツイートオブジェクトのサンプルを生成する
 
         Args:
-            media_url (str): 画像URLサンプル
+            media_url (str): メディアURLサンプル
             media_type (str): メディアタイプ{"None", "photo", "video", "animated_gif"}
             is_retweeted (bool): RTフラグ
             is_quoted (bool): 引用RTフラグ
@@ -197,7 +229,7 @@ class TestCrawler(unittest.TestCase):
                 tweet["extended_entities"] = extended_entities["extended_entities"]
             else:
                 return {}
-        
+
         # RTフラグ, 引用RTフラグ
         extended_entities = self.__GetExtendedEntitiesSample(media_url, "photo")
         media_tweet = dict(tweet)
@@ -230,30 +262,26 @@ class TestCrawler(unittest.TestCase):
 
         # pixivリンク
         if is_pixiv:
-            pixiv_url = "https://www.pixiv.net/artworks/24010650"
+            r = "{:0>8}".format(random.randint(0, 99999999))
+            pixiv_url = f"https://www.pixiv.net/artworks/{r}"
             tweet["text"] = tweet["text"] + " " + pixiv_url
-            tweet_json = f'''{{
-                "entities": {{
-                    "urls": [{{
-                        "expanded_url": "{pixiv_url}"
-                    }}]
-                }}
-            }}'''
-            entities = json.loads(tweet_json)
+            entities = self.__GetEntitiesSample(pixiv_url)
             tweet["entities"] = entities["entities"]
 
         # nijieリンク
         if is_nijie:
-            nijie_url = "http://nijie.info/view.php?id=251267"
+            r = "{:0>6}".format(random.randint(0, 999999))
+            nijie_url = f"http://nijie.info/view.php?id={r}"
             tweet["text"] = tweet["text"] + " " + nijie_url
-            tweet_json = f'''{{
-                "entities": {{
-                    "urls": [{{
-                        "expanded_url": "{nijie_url}"
-                    }}]
-                }}
-            }}'''
-            entities = json.loads(tweet_json)
+            entities = self.__GetEntitiesSample(nijie_url)
+            tweet["entities"] = entities["entities"]
+
+        # 外部リンクが一つも設定されていない場合、確率でサンプルURLを設定
+        if "entities" in tweet and random.randint(0, 100) < 30:
+            r = "{:0>3}".format(random.randint(0, 999))
+            dummy_url = f"https://www.anyurl/sample/index_{r}.html"
+            tweet["text"] = tweet["text"] + " " + dummy_url
+            entities = self.__GetEntitiesSample(dummy_url)
             tweet["entities"] = entities["entities"]
 
         return tweet
@@ -307,6 +335,11 @@ class TestCrawler(unittest.TestCase):
             self.assertEqual("Crawler Test : done", crawler.MakeDoneMessage())
             self.assertEqual(0, crawler.Crawl())
 
+            # 内部関数の異常系テスト
+            self.assertEqual({}, self.__GetExtendedEntitiesSample(video_base_url.format(filename), "None"))
+            self.assertEqual({}, self.__GetExtendedEntitiesSample(video_base_url.format(filename), "error_type"))
+            self.assertEqual({}, self.__GetTweetSample(video_base_url.format(filename), "error_type"))
+
     def test_CrawlerInit(self):
         """Crawlerの初期状態のテスト
 
@@ -317,6 +350,15 @@ class TestCrawler(unittest.TestCase):
         """
         with ExitStack() as stack:
             mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+            mocklogger = stack.enter_context(patch.object(logger, "exception"))
+
+            # 例外発生テスト
+            with self.assertRaises(SystemExit):
+                crawler = ConcreteCrawler("IOError")
+            with self.assertRaises(SystemExit):
+                crawler = ConcreteCrawler("KeyError")
+            with self.assertRaises(SystemExit):
+                crawler = ConcreteCrawler("Exception")
 
             crawler = ConcreteCrawler()
 
@@ -423,10 +465,10 @@ class TestCrawler(unittest.TestCase):
                     pass
 
                 def IsTargetUrl(self, url: str) -> bool:
-                    return False
+                    return True  # 常に処理担当とする
 
                 def Process(self, url: str) -> int:
-                    return -1
+                    return -1  # 常に処理失敗するとする
             LS_KIND_NUM = 2  # 外部リンク探索担当者数
             mockLSP.return_value = LSImitation()
             mockLSN.return_value = LSImitation()
@@ -436,6 +478,9 @@ class TestCrawler(unittest.TestCase):
             self.assertIsNotNone(crawler.lsb)
             self.assertNotEqual([], crawler.lsb.processer_list)
             self.assertEqual(LS_KIND_NUM, len(crawler.lsb.processer_list))
+
+            res = crawler.lsb.CoRProcessDo("")
+            self.assertEqual(-1, res)  # 担当者は見つかったが処理が失敗した扱いになる想定
 
     def test_GetTwitterAPIResourceType(self):
         """使用するTwitterAPIのAPIリソースタイプ取得をチェックする
@@ -998,7 +1043,7 @@ class TestCrawler(unittest.TestCase):
                     if not media_tweets:
                         continue
 
-                    IS_APPLY_NOW_TIMESTAMP = True
+                    IS_APPLY_NOW_TIMESTAMP = False
                     atime = mtime = -1
                     if IS_APPLY_NOW_TIMESTAMP:
                         atime = mtime = time.time()
@@ -1121,7 +1166,6 @@ class TestCrawler(unittest.TestCase):
         """取得後処理をチェックする
         """
         with ExitStack() as stack:
-            mocklogger = stack.enter_context(patch.object(logger, "info"))
             mockwhtml = stack.enter_context(patch("PictureGathering.WriteHTML.WriteResultHTML"))
             mockcptweet = stack.enter_context(patch("PictureGathering.Crawler.Crawler.PostTweet"))
             mockcplnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.PostLineNotify"))
