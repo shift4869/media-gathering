@@ -111,7 +111,7 @@ class TestRetweetCrawler(unittest.TestCase):
         else:
             return {}
 
-    def __GetTweetSample(self, media_url: str = "", media_type: str = "None", is_retweeted: bool = False, is_quoted: bool = False, is_pixiv: bool = False) -> dict:
+    def __GetTweetSample(self, media_url: str = "", media_type: str = "None", is_retweeted: bool = False, is_quoted: bool = False, is_pixiv: bool = False, is_nijie: bool = False) -> dict:
         """ツイートオブジェクトのサンプルを生成する
 
         Args:
@@ -120,6 +120,7 @@ class TestRetweetCrawler(unittest.TestCase):
             is_retweeted (bool): RTフラグ
             is_quoted (bool): 引用RTフラグ
             is_pixiv (bool): 本文中にpixivリンクを含めるか
+            is_nijie (bool): 本文中にnijieリンクを含めるか
 
         Returns:
             dict: ツイートオブジェクト（サンプル）
@@ -184,13 +185,26 @@ class TestRetweetCrawler(unittest.TestCase):
 
         # pixivリンク
         if is_pixiv:
-            r = "{:0>8}".format(random.randint(0, 99999999))
-            pixiv_url = "https://www.pixiv.net/artworks/{}".format(r)
+            pixiv_url = "https://www.pixiv.net/artworks/24010650"
             tweet["text"] = tweet["text"] + " " + pixiv_url
             tweet_json = f'''{{
                 "entities": {{
                     "urls": [{{
                         "expanded_url": "{pixiv_url}"
+                    }}]
+                }}
+            }}'''
+            entities = json.loads(tweet_json)
+            tweet["entities"] = entities["entities"]
+
+        # nijieリンク
+        if is_nijie:
+            nijie_url = "http://nijie.info/view.php?id=251267"
+            tweet["text"] = tweet["text"] + " " + nijie_url
+            tweet_json = f'''{{
+                "entities": {{
+                    "urls": [{{
+                        "expanded_url": "{nijie_url}"
                     }}]
                 }}
             }}'''
@@ -304,8 +318,9 @@ class TestRetweetCrawler(unittest.TestCase):
             s_rt_t = [self.__GetTweetSample(s_media_url.format(i), "photo", True) for i in range(3)]
             s_quote_t = [self.__GetTweetSample(s_media_url.format(i), "photo", False, True) for i in range(3)]
             s_rt_quote_t = [self.__GetTweetSample(s_media_url.format(i), "photo", True, True) for i in range(3)]
-            s_rt_pixiv_t = [self.__GetTweetSample(s_media_url.format(i), "None", True, False, True) for i in range(3)]
-            s_t = s_nrt_t + s_nm_t + s_rt_t + s_quote_t + s_rt_quote_t + s_rt_pixiv_t
+            s_rt_pixiv_t = [self.__GetTweetSample(s_media_url.format(i), "None", True, False, True, False) for i in range(3)]
+            s_rt_nijie_t = [self.__GetTweetSample(s_media_url.format(i), "None", True, False, False, True) for i in range(3)]
+            s_t = s_nrt_t + s_nm_t + s_rt_t + s_quote_t + s_rt_quote_t + s_rt_pixiv_t + s_rt_nijie_t
             random.shuffle(s_t)
             import copy
             s_t_expect = copy.deepcopy(s_t)
@@ -315,7 +330,8 @@ class TestRetweetCrawler(unittest.TestCase):
                     [s_t[6], s_t[7], s_t[8]],
                     [s_t[9], s_t[10], s_t[11]],
                     [s_t[12], s_t[13], s_t[14]],
-                    [s_t[15], s_t[16], s_t[17]]]
+                    [s_t[15], s_t[16], s_t[17]],
+                    [s_t[18], s_t[19], s_t[20]]]
             mockapireq.side_effect = s_se
 
             # 変数設定
