@@ -77,26 +77,23 @@ class RetweetCrawler(Crawler):
 
                 # メディアを保持しているツイート部分を取得
                 media_tweets = self.GetMediaTweet(t)
-                
+
                 if not media_tweets:
                     continue
 
                 # 取得したメディアツイートツリー（複数想定）
                 for media_tweet in media_tweets:
                     # 引用RTなどのツリーで関係ツイートが複数ある場合は最新の日時を一律付与する
-                    media_tweet["created_at"] = media_tweets[0]["created_at"]
+                    media_tweet["created_at"] = media_tweets[-1]["created_at"]
 
                     entities = media_tweet.get("extended_entities")
                     include_new_flag = False
                     if not entities:
-                        # pixivリンク、nijieリンクが含まれているか
-                        if media_tweet.get("entities").get("urls"):
-                            e_urls = media_tweet["entities"]["urls"]
-                            # IsPixivURL = PixivAPIController.IsPixivURL
-                            # IsNijieURL = NijieController.IsNijieURL
+                        # 外部リンクが含まれているか
+                        if media_tweet.get("entities"):
+                            e_urls = media_tweet["entities"].get("urls")
                             for element in e_urls:
                                 expanded_url = element.get("expanded_url")
-                                # if IsPixivURL(expanded_url) or IsNijieURL(expanded_url):
                                 if self.lsb.CoRProcessCheck(expanded_url):
                                     include_new_flag = True
                         pass
@@ -124,13 +121,15 @@ class RetweetCrawler(Crawler):
                         # ツイートオブジェクトの階層を加味して既に取得しているので、
                         # 収集時にはRT,引用RTフラグを消しておく
                         # これによりCrawlerでの解釈時に重複して階層取得することを防ぐ
-                        if media_tweet.get("retweeted") and media_tweet.get("retweeted_status"):
+                        if media_tweet.get("retweeted"):
                             media_tweet["retweeted"] = False
-                            media_tweet["retweeted_status"] = {"modified_by_crawler": True}
-                        if media_tweet.get("is_quote_status") and media_tweet.get("quoted_status"):
+                            if media_tweet.get("retweeted_status"):
+                                media_tweet["retweeted_status"] = {"modified_by_crawler": True}
+                        if media_tweet.get("is_quote_status"):
                             media_tweet["is_quote_status"] = False
-                            media_tweet["quoted_status"] = {"modified_by_crawler": True}
-                        
+                            if media_tweet.get("quoted_status"):
+                                media_tweet["quoted_status"] = {"modified_by_crawler": True}
+
                         rt_tweets.append(media_tweet)
                         get_cnt = get_cnt + 1
 

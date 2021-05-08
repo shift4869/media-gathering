@@ -111,11 +111,29 @@ class TestRetweetCrawler(unittest.TestCase):
         else:
             return {}
 
+    def __GetEntitiesSample(self, url: str = "") -> dict:
+        """ツイートオブジェクトのサンプルの一部を生成する
+
+        Args:
+            url (str): サンプルURL
+
+        Returns:
+            dict: ツイートオブジェクトのentities部分（サンプル）
+        """
+        tweet_json = f'''{{
+            "entities": {{
+                "urls": [{{
+                    "expanded_url": "{url}"
+                }}]
+            }}
+        }}'''
+        return json.loads(tweet_json)
+
     def __GetTweetSample(self, media_url: str = "", media_type: str = "None", is_retweeted: bool = False, is_quoted: bool = False, is_pixiv: bool = False, is_nijie: bool = False) -> dict:
         """ツイートオブジェクトのサンプルを生成する
 
         Args:
-            media_url (str): 画像URLサンプル
+            media_url (str): メディアURLサンプル
             media_type (str): メディアタイプ{"None", "photo", "video", "animated_gif"}
             is_retweeted (bool): RTフラグ
             is_quoted (bool): 引用RTフラグ
@@ -152,7 +170,7 @@ class TestRetweetCrawler(unittest.TestCase):
                 tweet["extended_entities"] = extended_entities["extended_entities"]
             else:
                 return {}
-        
+
         # RTフラグ, 引用RTフラグ
         extended_entities = self.__GetExtendedEntitiesSample(media_url, "photo")
         media_tweet = dict(tweet)
@@ -185,30 +203,26 @@ class TestRetweetCrawler(unittest.TestCase):
 
         # pixivリンク
         if is_pixiv:
-            pixiv_url = "https://www.pixiv.net/artworks/24010650"
+            r = "{:0>8}".format(random.randint(0, 99999999))
+            pixiv_url = f"https://www.pixiv.net/artworks/{r}"
             tweet["text"] = tweet["text"] + " " + pixiv_url
-            tweet_json = f'''{{
-                "entities": {{
-                    "urls": [{{
-                        "expanded_url": "{pixiv_url}"
-                    }}]
-                }}
-            }}'''
-            entities = json.loads(tweet_json)
+            entities = self.__GetEntitiesSample(pixiv_url)
             tweet["entities"] = entities["entities"]
 
         # nijieリンク
         if is_nijie:
-            nijie_url = "http://nijie.info/view.php?id=251267"
+            r = "{:0>6}".format(random.randint(0, 999999))
+            nijie_url = f"http://nijie.info/view.php?id={r}"
             tweet["text"] = tweet["text"] + " " + nijie_url
-            tweet_json = f'''{{
-                "entities": {{
-                    "urls": [{{
-                        "expanded_url": "{nijie_url}"
-                    }}]
-                }}
-            }}'''
-            entities = json.loads(tweet_json)
+            entities = self.__GetEntitiesSample(nijie_url)
+            tweet["entities"] = entities["entities"]
+
+        # 外部リンクが一つも設定されていない場合、確率でサンプルURLを設定
+        if "entities" in tweet and random.randint(0, 100) < 30:
+            r = "{:0>3}".format(random.randint(0, 999))
+            dummy_url = f"https://www.anyurl/sample/index_{r}.html"
+            tweet["text"] = tweet["text"] + " " + dummy_url
+            entities = self.__GetEntitiesSample(dummy_url)
             tweet["entities"] = entities["entities"]
 
         return tweet
@@ -320,6 +334,7 @@ class TestRetweetCrawler(unittest.TestCase):
             s_rt_quote_t = [self.__GetTweetSample(s_media_url.format(i), "photo", True, True) for i in range(3)]
             s_rt_pixiv_t = [self.__GetTweetSample(s_media_url.format(i), "None", True, False, True, False) for i in range(3)]
             s_rt_nijie_t = [self.__GetTweetSample(s_media_url.format(i), "None", True, False, False, True) for i in range(3)]
+            # s_t = s_rt_quote_t
             s_t = s_nrt_t + s_nm_t + s_rt_t + s_quote_t + s_rt_quote_t + s_rt_pixiv_t + s_rt_nijie_t
             random.shuffle(s_t)
             import copy
@@ -363,13 +378,13 @@ class TestRetweetCrawler(unittest.TestCase):
                     continue
 
                 for media_tweet in media_tweets:
-                    media_tweet["created_at"] = media_tweets[0]["created_at"]
+                    media_tweet["created_at"] = media_tweets[-1]["created_at"]
 
                     entities = media_tweet.get("extended_entities")
                     include_new_flag = False
                     if not entities:
-                        if media_tweet.get("entities").get("urls"):
-                            e_urls = media_tweet["entities"]["urls"]
+                        if media_tweet.get("entities"):
+                            e_urls = media_tweet["entities"].get("urls")
                             for element in e_urls:
                                 expanded_url = element.get("expanded_url")
                                 if rc.lsb.CoRProcessCheck(expanded_url):
@@ -386,12 +401,14 @@ class TestRetweetCrawler(unittest.TestCase):
                                     s_expect_filenames.append(filename)
 
                     if include_new_flag:
-                        if media_tweet.get("retweeted") and media_tweet.get("retweeted_status"):
+                        if media_tweet.get("retweeted"):
                             media_tweet["retweeted"] = False
-                            media_tweet["retweeted_status"] = {"modified_by_crawler": True}
-                        if media_tweet.get("is_quote_status") and media_tweet.get("quoted_status"):
+                            if media_tweet.get("retweeted_status"):
+                                media_tweet["retweeted_status"] = {"modified_by_crawler": True}
+                        if media_tweet.get("is_quote_status"):
                             media_tweet["is_quote_status"] = False
-                            media_tweet["quoted_status"] = {"modified_by_crawler": True}
+                            if media_tweet.get("quoted_status"):
+                                media_tweet["quoted_status"] = {"modified_by_crawler": True}
                         
                         expect.append(media_tweet)
 
