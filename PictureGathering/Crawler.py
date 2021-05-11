@@ -48,7 +48,6 @@ class Crawler(metaclass=ABCMeta):
     Attributes:
         CONFIG_FILE_NAME (str): 設定ファイルパス
         config (ConfigParser): 設定ini構造体
-        db_cont (DBControllerBase): DB操作用クラス（実態はCrawler派生クラスで規定）
         TW_CONSUMER_KEY (str): TwitterAPI利用キー
         TW_CONSUMER_SECRET (str): TwitterAPI利用シークレットキー
         TW_ACCESS_TOKEN_KEY (str): TwitterAPIアクセストークンキー
@@ -60,6 +59,8 @@ class Crawler(metaclass=ABCMeta):
         count (int): 一度に取得するFav/Retweetの数
         save_path (str): 画像保存先パス
         type (str): 継承先を表すタイプ識別{Fav, RT}
+        db_cont (DBControllerBase): DB操作用クラス（実態はCrawler派生クラスで規定）
+        lsb (LinkSearchBase): 外部リンク探索機構ベースクラス
         oath (OAuth1Session): TwitterAPI利用セッション
         add_cnt (int): 新規追加した画像の数
         del_cnt (int): 削除した画像の数
@@ -498,7 +499,8 @@ class Crawler(metaclass=ABCMeta):
                 f.write(data)
             self.add_url_list.append(url_orig)
 
-            # DB操作 TODO::typeで判別しないで派生先クラスでそれぞれ担当させる
+            # DB操作
+            # db_cont.Upsert派生クラスによって呼び分けられる（ポリモーフィズム）
             include_blob = self.config["db"].getboolean("save_blob")
             self.db_cont.Upsert(file_name, url_orig, url_thumbnail, tweet, str(save_file_fullpath), include_blob)
 
@@ -535,7 +537,7 @@ class Crawler(metaclass=ABCMeta):
 
         Note:
             ツイートオブジェクトのメディアを保存する機能はTweetMediaSaverが担う
-            pixivのリンクが含まれている場合の処理はPixivAPIControllerが担う
+            外部リンクが含まれている場合の処理はself.lsbが担う
 
         Args:
             tweets (list[dict]): メディアを含んでいる可能性があるツイートオブジェクト辞書配列
