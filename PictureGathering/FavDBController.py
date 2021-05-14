@@ -1,10 +1,5 @@
 # coding: utf-8
-import configparser
 import pickle
-import re
-import sqlite3
-from contextlib import closing
-from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from sqlalchemy import *

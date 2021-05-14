@@ -14,7 +14,6 @@ import random
 import shutil
 import sys
 import time
-import traceback
 import urllib
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta, timezone
@@ -170,7 +169,7 @@ class Crawler(metaclass=ABCMeta):
             resources.append("favorites")
         return ",".join(resources)
 
-    def GetTwitterAPILimitContext(self, res_text: dict, params: dict) -> (int, int):
+    def GetTwitterAPILimitContext(self, res_text: dict, params: dict) -> tuple[int, int]:
         """Limitを取得するAPIの返り値を解釈して残数と開放時間を取得する
 
         Note:
@@ -904,6 +903,6 @@ class Crawler(metaclass=ABCMeta):
 
 
 if __name__ == "__main__":
-    import FavCrawler as FavCrawler
+    import PictureGathering.FavCrawler as FavCrawler
     c = FavCrawler.FavCrawler()
     c.Crawl()

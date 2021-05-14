@@ -7,19 +7,16 @@ GoogleDrive APIの各種機能をテストする
 
 import hashlib
 import re
-import random
 import sys
-import time
 import unittest
 import warnings
 import zipfile
 from contextlib import ExitStack
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from logging import WARNING, getLogger
 from pathlib import Path
 from typing import List
 
-import requests
 from mock import MagicMock, PropertyMock, patch
 
 from PictureGathering import GoogleDrive

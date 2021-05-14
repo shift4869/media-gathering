@@ -1,9 +1,7 @@
 # coding: utf-8
 import configparser
 import logging.config
-import os
 import re
-import zipfile
 from logging import INFO, getLogger
 from pathlib import Path
 from time import sleep
@@ -43,7 +41,7 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
 
         self.base_path = base_path
 
-    def Login(self, username: str, password: str) -> (PixivAPI, AppPixivAPI, bool):
+    def Login(self, username: str, password: str) -> tuple[PixivAPI, AppPixivAPI, bool]:
         """非公式pixivAPIインスタンスを生成し、ログインする
 
         Note:
@@ -380,7 +378,5 @@ if __name__ == "__main__":
     if config["pixiv"].getboolean("is_pixiv_trace"):
         pa_cont = LSPixiv(config["pixiv"]["username"], config["pixiv"]["password"], config["pixiv"]["save_base_path"])
         work_url = "https://www.pixiv.net/artworks/86704541"
-        urls = pa_cont.GetIllustURLs(work_url)
-        save_directory_path = pa_cont.MakeSaveDirectoryPath(work_url, config["pixiv"]["save_base_path"])
-        pa_cont.DownloadIllusts(urls, save_directory_path)
+        pa_cont.Process(work_url)
     pass

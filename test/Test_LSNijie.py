@@ -6,12 +6,10 @@ import shutil
 import sys
 import unittest
 import urllib.parse
-import warnings
 from contextlib import ExitStack
 from logging import WARNING, getLogger
 from mock import MagicMock, PropertyMock, mock_open, patch
 from pathlib import Path
-from time import sleep
 
 from PictureGathering import LSNijie
 
@@ -42,7 +40,7 @@ class TestLSNijie(unittest.TestCase):
         if self.TBP.is_dir():
             shutil.rmtree(self.TBP)
 
-    def __GetIllustData(self, illust_id: int) -> (list[str], str, int, str):
+    def __GetIllustData(self, illust_id: int) -> tuple[list[str], str, int, str]:
         """テスト用のイラスト情報を作成する
 
         Args:

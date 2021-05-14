@@ -1,6 +1,5 @@
 # coding: utf-8
 import random
-import sys
 from datetime import datetime
 from logging import DEBUG, INFO, getLogger
 from pathlib import Path

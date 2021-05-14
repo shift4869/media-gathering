@@ -1,5 +1,4 @@
 # coding: utf-8
-from PictureGathering import FavDBController
 
 template = '''<!DOCTYPE html>
 <html>
@@ -74,5 +73,6 @@ def WriteResultHTML(op_type, db_controller, limit=300):
 
 
 if __name__ == "__main__":
+    from PictureGathering import FavDBController
     db_controller = FavDBController.FavDBController()
     WriteResultHTML("Fav", db_controller)

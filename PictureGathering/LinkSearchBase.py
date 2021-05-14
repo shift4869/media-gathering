@@ -1,15 +1,8 @@
 # coding: utf-8
-import configparser
-import logging.config
-import os
 import re
-
-from abc import ABCMeta, abstractmethod
 from logging import INFO, getLogger
-from pathlib import Path
 
 
-logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 logger = getLogger("root")
 logger.setLevel(INFO)
 

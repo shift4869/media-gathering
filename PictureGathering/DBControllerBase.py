@@ -1,9 +1,6 @@
 # coding: utf-8
-import configparser
 import pickle
 import re
-import sqlite3
-from contextlib import closing
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -315,7 +312,8 @@ class DBControllerBase(metaclass=ABCMeta):
 
 
 if __name__ == "__main__":
+    import PictureGathering.FavDBController
     DEBUG = True
     db_fullpath = Path("J:\\twitter") / "PG_DB.db"
-    db_cont = DBController(db_fullpath=str(db_fullpath), save_operation=True)
+    db_cont = PictureGathering.FavDBController(db_fullpath=str(db_fullpath), save_operation=True)
     # db_cont.DBReflectFromFile("./archive/operatefile.txt")

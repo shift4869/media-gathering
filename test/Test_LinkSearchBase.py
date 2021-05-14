@@ -1,16 +1,9 @@
 # coding: utf-8
-import configparser
-import random
-import shutil
 import sys
 import unittest
-import warnings
 from contextlib import ExitStack
 from logging import WARNING, getLogger
 from mock import MagicMock, PropertyMock, mock_open, patch
-from pathlib import Path
-from time import sleep
-from typing import List
 
 from PictureGathering import LinkSearchBase
 

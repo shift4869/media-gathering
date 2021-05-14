@@ -1,13 +1,11 @@
 # coding: utf-8
-import os
-import time
 import warnings
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
-from apiclient.http import MediaFileUpload
+from googleapiclient.http import MediaFileUpload
 
 
 def GetAPIService(credentials_path: str):

@@ -9,12 +9,11 @@ from logging import WARNING, getLogger
 from mock import MagicMock, PropertyMock, patch
 from pathlib import Path
 
-import freezegun
 from sqlalchemy import *
 from sqlalchemy.orm import *
 from sqlalchemy.orm.exc import *
 
-from PictureGathering import FavDBController, Model
+from PictureGathering import FavDBController
 from PictureGathering.Model import *
 
 logger = getLogger("root")

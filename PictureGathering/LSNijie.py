@@ -1,11 +1,8 @@
 # coding: utf-8
 import configparser
 import logging.config
-import os
 import re
-import traceback
 import urllib.parse
-import zipfile
 from logging import INFO, getLogger
 from pathlib import Path
 from time import sleep
@@ -45,7 +42,7 @@ class LSNijie(LinkSearchBase.LinkSearchBase):
 
         self.base_path = base_path
     
-    def Login(self, email: str, password: str) -> (requests.cookies.RequestsCookieJar, bool):
+    def Login(self, email: str, password: str) -> tuple[requests.cookies.RequestsCookieJar, bool]:
         """nijieページにログインし、ログイン情報を保持したクッキーを返す
 
         Args:
@@ -270,7 +267,7 @@ class LSNijie(LinkSearchBase.LinkSearchBase):
 
         return 0
 
-    def DetailPageAnalysis(self, soup: BeautifulSoup) -> (list[str], str, int, str):
+    def DetailPageAnalysis(self, soup: BeautifulSoup) -> tuple[list[str], str, int, str]:
         """nijie作品詳細ページを解析する
 
         Notes:
@@ -399,13 +396,13 @@ if __name__ == "__main__":
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE_NAME, encoding="utf8")
 
-    nc = NijieController(config["nijie"]["email"], config["nijie"]["password"])
+    nc = LSNijie(config["nijie"]["email"], config["nijie"]["password"], config["nijie"]["save_base_path"])
     # illust_id = 251267  # 一枚絵
     # illust_id = 251197  # 漫画
     # illust_id = 414793  # うごイラ一枚
     illust_id = 409587  # うごイラ複数
 
     illust_url = "http://nijie.info/view_popup.php?id={}".format(illust_id)
-    nc.DownloadIllusts(illust_url, config["nijie"]["save_base_path"])
+    nc.Process(illust_url)
 
     pass
