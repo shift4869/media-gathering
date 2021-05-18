@@ -68,6 +68,16 @@
 	- GPLとは異なり、PSFはコピーレフトのライセンスではない。
 	- そのため、コードをオープンソースにせずに元のソースコードの変更をすることが許されている。
 
+- HPND License
+	- HPND=Historical Permission Notice and Disclaimer（歴史的な許可告知と断り書き）
+	- 以下は許可される
+		- 使用、コピー、修正、頒布
+	- 以下は禁止される
+		- 書面による事前の許可を得ずに著作権所有者の名前を広告や宣伝に使用すること
+		- 保証要求、賠償責任要求
+	- 以下の記述が必須
+		- 著作権表示をすべてのコピーに含めること
+
 ---
 
 ## 外部ライブラリのライセンス表記
@@ -93,6 +103,10 @@ OSのランダムエンジンで使われているコードはCPythonから派�
 - LICENSE.PSF
 	- PSF License
 
+@carpedm20 / emoji 1.2.0  
+パスに使えない絵文字を検出するために使用。  
+BSD
+
 @spulec spulec / freezegun 1.0.0  
 単体テストの時刻を固定するために使用。  
 Apache License 2.0
@@ -105,6 +119,10 @@ Apache License 2.0
 単体テストのモック機能利用のために使用。  
 BSD 2-Clause "Simplified" License  
 =2条項BSD
+
+@python-pillow / Pillow Pillow 8.1.2  
+外部リンク先のgif保存時に使用。
+HPND License
 
 @upbit upbit / pixivpy 3.5.10  
 PixivAPIを利用するために使用。  
@@ -166,4 +184,4 @@ MIT License
 
 以上（情報更新され次第追記）
 
-2021/01/26 [shift](https://twitter.com/_shift4869)
+2021/05/18 [shift](https://twitter.com/_shift4869)

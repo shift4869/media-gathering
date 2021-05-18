@@ -14,7 +14,10 @@
 - 収集対象は以下の通り。  
     - fav/RTしたメディア含みツイートに含まれるメディア。  
     - fav/RTしたツイートのRT先、引用RT先がメディア含みツイートだった場合も収集する。  
-    - 本文内にpixivリンクがあった場合、リンク先をたどり一枚絵/漫画形式の作品を全て収集する。（任意）  
+    - 本文内に特定の画像投稿サイトへのリンクがあった場合、リンク先をたどり一枚絵/漫画形式の作品を全て収集する。（任意）  
+        - 対応しているアドレスは次の通り
+            - pixiv - https://www.pixiv.net/artworks/xxxxxxxx
+            - nijie - http://nijie.info/view_popup.php?id=xxxxxx
 - 収集したメディアの情報をDBに蓄積する。  
     - 元ツイートURLなど。  
 - 収集したメディアを一覧で見ることができるhtmlを出力する。  
@@ -34,8 +37,8 @@
 - Pythonの実行環境(3.9以上)
 - twitterアカウントのAPIトークン
     - TwitterAPIを使用するためのAPIトークン。以下の4つのキーが必要
-        - コンシューマーキー (Consumer Key)
-        - コンシューマーシークレット (Consumer Secret)
+        - APIキー (API Key)
+        - APIキーシークレット (API Key Secret)
         - アクセストークン (Access Token)
         - アクセストークンシークレット (Access Token Secret)
     - 自分のtwitterアカウントも必要
@@ -57,7 +60,7 @@
     - ローカルの保存先パスを設定する（必須）
     - image magickをインストールしておく（任意）
 1. PictureGathering.pyを実行する（以下は一例）
-    - ※自動実行しないで手動で実行するならパスが通っている環境で以下でOK
+    - ※手動で実行するならパスが通っている環境で以下でOK
     ```
     python PictureGathering.py --type="Fav"
     ```
