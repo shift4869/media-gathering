@@ -58,6 +58,12 @@ class TestDBController(unittest.TestCase):
         if Path(TEST_DB_FULLPATH).is_file():
             Path(TEST_DB_FULLPATH).unlink()
 
+        # 操作履歴削除
+        sd_archive = Path("./archive")
+        op_files = [s for s in sd_archive.glob("**/*") if ".gitkeep" not in str(s)]
+        for op_file in op_files:
+            op_file.unlink()
+
     def RetweetSampleFactory(self, img_url: str) -> Retweet:
         """Retweetオブジェクトを生成する
 
