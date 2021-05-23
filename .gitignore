@@ -114,6 +114,7 @@ log*.txt*
 *.db-journal
 *.vbs
 /drawio
+/archive
 *credentials*.json
 *.jpg
 *.gif
