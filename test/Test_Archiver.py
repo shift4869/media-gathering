@@ -65,8 +65,8 @@ class TestArchiver(unittest.TestCase):
                 f.unlink()
 
             # 対象ファイルリストを設定
-            # zipファイル以外を対象とする
-            target_list = [sp for sp in expect_tsd.glob("**/*") if re.search("^(?!.*zip).*$", str(sp))]
+            # zipファイル以外、かつ、ファイルサイズが0でないものを対象とする
+            target_list = [p for p in expect_tsd.glob("**/*") if re.search("^(?!.*zip).*$", str(p)) and p.stat().st_size > 0]
 
             # zip圧縮する
             if target_list:

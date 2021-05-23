@@ -25,8 +25,8 @@ def MakeZipFile(target_directory: str, type_str: str) -> str:
         f.unlink()
 
     # 対象ファイルリストを設定
-    # zipファイル以外を対象とする
-    target_list = [p for p in target_sd.glob("**/*") if re.search("^(?!.*zip).*$", str(p))]
+    # zipファイル以外、かつ、ファイルサイズが0でないものを対象とする
+    target_list = [p for p in target_sd.glob("**/*") if re.search("^(?!.*zip).*$", str(p)) and p.stat().st_size > 0]
 
     # zip圧縮する
     if target_list:
