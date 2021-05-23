@@ -357,14 +357,16 @@ class TestLSPixiv(unittest.TestCase):
                 rt_path.rename(tmp_path)
 
             # refresh_tokenファイルが存在しない場合のテスト
-            expect = (mockpapub.side_effect(), mockpaapp.side_effect(), True)
-            # インスタンス生成時にLoginが呼ばれる
-            lsp_cont = LSPixiv.LSPixiv(self.username, self.password, self.TEST_BASE_PATH)
-            actual = (lsp_cont.api, lsp_cont.aapi, lsp_cont.auth_success)
+            # 現在は新規ログインはできないため常に失敗する
+            with self.assertRaises(SystemExit):
+                expect = (mockpapub.side_effect(), mockpaapp.side_effect(), True)
+                # インスタンス生成時にLoginが呼ばれる
+                lsp_cont = LSPixiv.LSPixiv(self.username, self.password, self.TEST_BASE_PATH)
+                actual = (lsp_cont.api, lsp_cont.aapi, lsp_cont.auth_success)
 
-            self.assertEqual(mockpapub.call_count, 1)
-            self.assertEqual(mockpaapp.call_count, 1)
-            self.assertEqual(expect[2], actual[2])
+                self.assertEqual(mockpapub.call_count, 1)
+                self.assertEqual(mockpaapp.call_count, 1)
+                self.assertEqual(expect[2], actual[2])
             mockpapub.reset_mock()
             mockpaapp.reset_mock()
 

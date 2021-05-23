@@ -50,7 +50,7 @@ class LSNijie(LinkSearchBase.LinkSearchBase):
             password (str): nijieユーザーIDのパスワード
 
         Returns:
-            cookies (RequestsCookieJar): ログイン情報を保持したクッキー
+            cookies, auth_success (RequestsCookieJar, boolean): ログイン情報を保持したクッキーと認証結果の組
         """
         # ログイン情報を保持するクッキーファイル置き場
         NIJIE_COOKIE_PATH = "./config/nijie_cookie.ini"
@@ -159,11 +159,11 @@ class LSNijie(LinkSearchBase.LinkSearchBase):
         Returns:
             boolean: nijie作品ページURLならTrue、そうでなければFalse
         """
-        pattern = r"^http://nijie.info/view.php\?id=[0-9]*$"
+        pattern = r"^http://nijie.info/view.php\?id=[0-9]+$"
         regex = re.compile(pattern)
         f1 = not (regex.findall(url) == [])
 
-        pattern = r"^http://nijie.info/view_popup.php\?id=[0-9]*$"
+        pattern = r"^http://nijie.info/view_popup.php\?id=[0-9]+$"
         regex = re.compile(pattern)
         f2 = not (regex.findall(url) == [])
 
@@ -386,8 +386,8 @@ class LSNijie(LinkSearchBase.LinkSearchBase):
         return str(save_directory_path)
 
     def Process(self, url: str) -> int:
-        self.DownloadIllusts(url, self.base_path)
-        return 0
+        res = self.DownloadIllusts(url, self.base_path)
+        return 0 if (res in [0, 1]) else -1
 
 
 if __name__ == "__main__":

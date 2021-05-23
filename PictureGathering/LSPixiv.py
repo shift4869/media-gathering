@@ -73,10 +73,21 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
                 pass
 
         if not auth_success:
+            # refresh_tokenが存在していない場合、または有効なトークンではなかった場合
             try:
-                api.login(username, password)
-                aapi.login(username, password)
-                auth_success = (api.access_token is not None) and (aapi.access_token is not None)
+                # api.login(username, password)
+                # aapi.login(username, password)
+                # auth_success = (api.access_token is not None) and (aapi.access_token is not None)
+                # 2021/05/20現在PixivPyで新規ログインができない
+                # https://gist.github.com/ZipFile/c9ebedb224406f4f11845ab700124362
+                # https://gist.github.com/upbit/6edda27cb1644e94183291109b8a5fde
+                logger.info(f"not found {REFRESH_TOKEN_PATH}")
+                logger.info("please access to make refresh_token.ini for below way:")
+                logger.info("https://gist.github.com/ZipFile/c9ebedb224406f4f11845ab700124362")
+                logger.info(" or ")
+                logger.info("https://gist.github.com/upbit/6edda27cb1644e94183291109b8a5fde")
+                logger.info("process abort")
+                return (None, None, False)
 
                 # refresh_tokenを保存
                 refresh_token = api.refresh_token
@@ -99,7 +110,7 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
         Returns:
             boolean: pixiv作品ページURLならTrue、そうでなければFalse
         """
-        pattern = r"^https://www.pixiv.net/artworks/[0-9]*$"
+        pattern = r"^https://www.pixiv.net/artworks/[0-9]+$"
         regex = re.compile(pattern)
         return not (regex.findall(url) == [])
 
@@ -365,8 +376,8 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
     def Process(self, url: str) -> int:
         urls = self.GetIllustURLs(url)
         save_directory_path = self.MakeSaveDirectoryPath(url, self.base_path)
-        self.DownloadIllusts(urls, save_directory_path)
-        return 0
+        res = self.DownloadIllusts(urls, save_directory_path)
+        return 0 if (res in [0, 1]) else -1
 
 
 if __name__ == "__main__":
