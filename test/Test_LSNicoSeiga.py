@@ -11,6 +11,9 @@ from logging import WARNING, getLogger
 from mock import MagicMock, PropertyMock, mock_open, patch
 from pathlib import Path
 
+from requests import adapters
+from requests.models import HTTPError
+
 from PictureGathering import LSNicoSeiga
 
 
@@ -71,7 +74,33 @@ class TestLSNicoSeiga(unittest.TestCase):
     def __MakeSessionMock(self) -> MagicMock:
         """セッションのモックを作成する
         """
-        pass
+        session = MagicMock()
+        type(session).mount = lambda s, prefix, adapter: str(prefix) + str(adapter)
+
+        # session.postで取得する内容のモックを返す
+        def ReturnPost(s, url, data={}, headers={}):
+            response = MagicMock()
+
+            def IsValid(s):
+                # ログイン時に使用するエンドポイント
+                NS_LOGIN_ENDPOINT = "https://account.nicovideo.jp/api/v1/login?show_button_twitter=1&site=niconico&show_button_facebook=1&next_url=&mail_or_tel=1"
+                # ログインページのURLか
+                f_url = (url == NS_LOGIN_ENDPOINT)
+                # ログイン情報は正しいか
+                f_outh = (data.get("mail_tel") == self.email) and (data.get("password") == self.password)
+                # ヘッダーは正しいか
+                f_headers = (headers == self.headers)
+
+                is_valid = (f_url and f_outh and f_headers)
+                if not is_valid:
+                    raise HTTPError
+                return is_valid
+
+            type(response).raise_for_status = IsValid
+            return response
+
+        type(session).post = ReturnPost
+        return session
 
     def __MakeLoginMock(self, mock: MagicMock) -> MagicMock:
         """セッション開始とログイン機能のモックを作成する
@@ -85,7 +114,7 @@ class TestLSNicoSeiga(unittest.TestCase):
         """
         def LoginSideeffect(email, password):
             if self.email == email and self.password == password:
-                session = ""
+                session = self.__MakeSessionMock()
                 return (session, True)
             else:
                 return (None, False)
@@ -102,12 +131,11 @@ class TestLSNicoSeiga(unittest.TestCase):
 
             # 正常系
             lsns_cont = LSNicoSeiga.LSNicoSeiga(self.email, self.password, self.TEST_BASE_PATH)
-            expect_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"}
 
-            self.assertEqual(expect_headers, lsns_cont.headers)
+            self.assertEqual(self.headers, lsns_cont.headers)
             self.assertIsNotNone(lsns_cont.session)
             self.assertTrue(lsns_cont.auth_success)
-            self.assertEqual(lsns_cont.base_path, self.TEST_BASE_PATH)
+            self.assertEqual(self.TEST_BASE_PATH, lsns_cont.base_path)
 
             # 異常系
             with self.assertRaises(SystemExit):
@@ -116,148 +144,20 @@ class TestLSNicoSeiga(unittest.TestCase):
     def test_Login(self):
         """セッション開始とログイン機能をチェック
         """
-        return
-
         with ExitStack() as stack:
-            r = "{:0>8}".format(random.randint(0, 99999999))
-            c = 'name="name", value="{}:{}", expires="expires", path={}, domain="domain"\n'.format(self.email, self.password, r)
-
-            # open()をモックに置き換える
-            mockfout = mock_open(read_data=c)
-            mockfp = stack.enter_context(patch("pathlib.Path.open", mockfout))
-
             # モック置き換え
-            mocknsreqget = stack.enter_context(patch("PictureGathering.LSNicoSeiga.requests.get"))
-            mocknsreqpost = stack.enter_context(patch("PictureGathering.LSNicoSeiga.requests.post"))
-            mocknsreqcj = stack.enter_context(patch("PictureGathering.LSNicoSeiga.requests.cookies.RequestsCookieJar"))
-            mocknsisvalidcookies = stack.enter_context(patch("PictureGathering.LSNicoSeiga.LSNicoSeiga.IsValidCookies"))
+            mocksession = stack.enter_context(patch("PictureGathering.LSNicoSeiga.requests.session"))
+            mocksession.side_effect = self.__MakeSessionMock
 
-            # requests.getで取得する内容のモックを返す
-            def ReturnGet(url, headers):
-                response = MagicMock()
-                type(response).url = "test_url.html?url={}".format(r)
-
-                def IsValid(s):
-                    # 年齢確認で「はい」を選択したあとのURLか
-                    return (url == "https://seiga.info/age_jump.php?url=")
-
-                type(response).raise_for_status = IsValid
-
-                return response
-
-            # requests.postで取得する内容のモックを返す
-            def ReturnPost(url, data):
-                response = MagicMock()
-
-                dict_cookies = MagicMock()
-                type(dict_cookies).name = "name"
-                type(dict_cookies).value = data["email"] + ":" + data["password"]
-                type(dict_cookies).expires = "expires"
-                type(dict_cookies).path = data["url"]
-                type(dict_cookies).domain = "domain"
-
-                type(response).cookies = [dict_cookies]
-
-                def IsValid(s):
-                    # ログインページのURLか
-                    f_url = (url == "https://seiga.info/login_int.php")
-                    # ログイン情報は正しいか
-                    f_outh = (data["email"] == self.email) and (data["password"] == self.password)
-                    return f_url and f_outh
-
-                type(response).raise_for_status = IsValid
-
-                return response
-
-            actual_read_cookies = {}
-
-            # requests.cookies.RequestsCookieJar()で取得する内容のモックを返す
-            def ReturnCookieJar():
-                response = MagicMock()
-
-                def ReturnSet(s, name, value, expires="", path="", domain=""):
-                    actual_read_cookies["name"] = name
-                    actual_read_cookies["value"] = value
-                    actual_read_cookies["expires"] = expires
-                    actual_read_cookies["path"] = path
-                    actual_read_cookies["domain"] = domain
-                    return actual_read_cookies
-
-                type(response).set = ReturnSet
-
-                return response
-
-            mocknsreqget.side_effect = ReturnGet
-            mocknsreqpost.side_effect = ReturnPost
-            mocknsreqcj.side_effect = ReturnCookieJar
-            mocknsisvalidcookies.return_value = True
-
-            # クッキーファイルが存在する場合、一時的にリネームする
-            NIJIE_COOKIE_PATH = "./config/seiga_cookie.ini"
-            nc_path = Path(NIJIE_COOKIE_PATH)
-            tmp_path = nc_path.parent / "tmp.ini"
-            if nc_path.is_file():
-                nc_path.rename(tmp_path)
-
-            # クッキーファイルが存在しない場合のテスト
-            expect_cookies = {
-                "name": "name",
-                "value": self.email + ":" + self.password,
-                "expires": "expires",
-                "path": r,
-                "domain": "domain",
-            }
-            # インスタンス生成時にLoginが呼ばれる
             lsns_cont = LSNicoSeiga.LSNicoSeiga(self.email, self.password, self.TEST_BASE_PATH)
-            self.assertEqual(1, len(lsns_cont.cookies))
-            res_cookies = lsns_cont.cookies[0]
-            actual_cookies = {
-                "name": res_cookies.name,
-                "value": res_cookies.value,
-                "expires": res_cookies.expires,
-                "path": res_cookies.path,
-                "domain": res_cookies.domain,
-            }
-            self.assertEqual(expect_cookies, actual_cookies)
+            self.assertEqual(self.headers, lsns_cont.headers)
+            self.assertIsNotNone(lsns_cont.session)
             self.assertTrue(lsns_cont.auth_success)
-            self.assertEqual(1, mocknsreqget.call_count)
-            self.assertEqual(1, mocknsreqpost.call_count)
-            self.assertEqual(1, mocknsreqcj.call_count)
-            self.assertEqual(1, mocknsisvalidcookies.call_count)
-            mocknsreqget.reset_mock()
-            mocknsreqpost.reset_mock()
-            mocknsreqcj.reset_mock()
-            mocknsisvalidcookies.reset_mock()
-
-            # 一時的にリネームしていた場合は復元する
-            # そうでない場合はダミーのファイルを作っておく
-            if tmp_path.is_file():
-                tmp_path.rename(nc_path)
-            else:
-                nc_path.touch()
-
-            # クッキーファイルが存在する場合のテスト
-            # インスタンス生成時にLoginが呼ばれる
-            lsns_cont = LSNicoSeiga.LSNicoSeiga(self.email, self.password, self.TEST_BASE_PATH)
-            self.assertEqual(expect_cookies, actual_read_cookies)
-            self.assertTrue(lsns_cont.auth_success)
-            self.assertEqual(0, mocknsreqget.call_count)
-            self.assertEqual(0, mocknsreqpost.call_count)
-            self.assertEqual(1, mocknsreqcj.call_count)
-            self.assertEqual(1, mocknsisvalidcookies.call_count)
-            mocknsreqget.reset_mock()
-            mocknsreqpost.reset_mock()
-            mocknsreqcj.reset_mock()
-            mocknsisvalidcookies.reset_mock()
-
-            # ダミーファイルがある場合は削除しておく
-            if not tmp_path.is_file() and nc_path.stat().st_size == 0:
-                nc_path.unlink()
+            self.assertEqual(self.TEST_BASE_PATH, lsns_cont.base_path)
 
     def test_IsTargetUrl(self):
         """URLがニコニコ静画のURLかどうか判定する機能をチェック
         """
-        return
         with ExitStack() as stack:
             mocknslogin = stack.enter_context(patch("PictureGathering.LSNicoSeiga.LSNicoSeiga.Login"))
             mocknslogin = self.__MakeLoginMock(mocknslogin)
@@ -265,11 +165,11 @@ class TestLSNicoSeiga(unittest.TestCase):
 
             # 正常系
             # 作品ページURL
-            url_s = "http://seiga.info/view.php?id=251267"
+            url_s = "https://seiga.nicovideo.jp/seiga/im5360137"
             self.assertEqual(True, lsns_cont.IsTargetUrl(url_s))
 
-            # 作品詳細ページURL
-            url_s = "http://seiga.info/view_popup.php?id=251267"
+            # 作品ページURL（クエリつき）
+            url_s = "https://seiga.nicovideo.jp/seiga/im5360137?track=ranking"
             self.assertEqual(True, lsns_cont.IsTargetUrl(url_s))
 
             # 異常系
@@ -281,50 +181,58 @@ class TestLSNicoSeiga(unittest.TestCase):
             url_s = "https://www.pixiv.net/artworks/24010650"
             self.assertEqual(False, lsns_cont.IsTargetUrl(url_s))
 
-            # httpでなくhttps
-            url_s = "https://seiga.info/view_popup.php?id=251267"
+            # 漫画ページ
+            url_s = "https://seiga.nicovideo.jp/watch/mg558273"
             self.assertEqual(False, lsns_cont.IsTargetUrl(url_s))
 
-            # seigaの別ページ
-            url_s = "http://seiga.info/user_like_illust_view.php?id=21030"
+            # httpsでなくhttp
+            url_s = "http://seiga.nicovideo.jp/seiga/im5360137"
+            self.assertEqual(False, lsns_cont.IsTargetUrl(url_s))
+
+            # 静画の別ページ
+            url_s = "https://seiga.nicovideo.jp/illust/ranking/point/hourly?save=1"
             self.assertEqual(False, lsns_cont.IsTargetUrl(url_s))
 
             # プリフィックスエラー
-            url_s = "ftp://seiga.info/view.php?id=251267"
-            self.assertEqual(False, lsns_cont.IsTargetUrl(url_s))
-
-            # サフィックスエラー
-            url_s = "http://seiga.info/view.php?id=251267&rank=1"
+            url_s = "ftp://seiga.nicovideo.jp/seiga/im5360137"
             self.assertEqual(False, lsns_cont.IsTargetUrl(url_s))
 
     def test_GetIllustId(self):
-        """静画作品ページURLからイラストIDを取得する機能をチェック
+        """ニコニコ静画作品ページURLからイラストIDを取得する機能をチェック
         """
-        return
         with ExitStack() as stack:
             mocknslogin = stack.enter_context(patch("PictureGathering.LSNicoSeiga.LSNicoSeiga.Login"))
             mocknslogin = self.__MakeLoginMock(mocknslogin)
             lsns_cont = LSNicoSeiga.LSNicoSeiga(self.email, self.password, self.TEST_BASE_PATH)
 
             # 正常系
-            r = "{:0>6}".format(random.randint(0, 999999))
+            r = "{:0>7}".format(random.randint(0, 9999999))
             # 作品ページURL
-            url_s = "http://seiga.info/view.php?id={}".format(r)
+            url_s = "https://seiga.nicovideo.jp/seiga/im{}".format(r)
             expect = int(r)
             actual = lsns_cont.GetIllustId(url_s)
             self.assertEqual(expect, actual)
 
-            # 作品詳細ページURL
-            url_s = "http://seiga.info/view_popup.php?id={}".format(r)
-            expect = int(r)
-            actual = lsns_cont.GetIllustId(url_s)
-            self.assertEqual(expect, actual)
-
-            # サフィックスエラー
-            url_s = "http://seiga.info/view.php?id={}&rank=1".format(r)
+            # 異常系
+            # 漫画ページ
+            url_s = "https://seiga.nicovideo.jp/watch/mg{}".format(r)
             expect = -1
             actual = lsns_cont.GetIllustId(url_s)
             self.assertEqual(expect, actual)
+
+    def test_GetIllustInfo(self):
+        """ニコニコ静画情報を取得する機能をチェック
+        """
+        pass
+
+    def test_GetAuthorName(self):
+        pass
+
+    def test_GetSourceURL(self):
+        pass
+
+    def test_GetExtFromBytes(self):
+        pass
 
     def test_DownloadIllusts(self):
         """ニコニコ静画作品ページURLからダウンロードする機能をチェック
@@ -495,6 +403,8 @@ class TestLSNicoSeiga(unittest.TestCase):
             actual = lsns_cont.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path)
             self.assertEqual(expect, actual)
 
+    def test_Process(self):
+        pass
 
 if __name__ == "__main__":
     if sys.argv:
