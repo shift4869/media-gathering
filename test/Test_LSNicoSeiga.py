@@ -97,9 +97,42 @@ class TestLSNicoSeiga(unittest.TestCase):
                 return is_valid
 
             type(response).raise_for_status = IsValid
+
             return response
 
         type(session).post = ReturnPost
+
+        # session.getで取得する内容のモックを返す
+        def ReturnGet(s, url, headers={}):
+            response = MagicMock()
+
+            # クエリを取得する
+            qs = urllib.parse.urlparse(url).query
+            qd = urllib.parse.parse_qs(qs)
+            illust_id = int(qd["id"][0])
+
+            # 不正値でない場合のみ設定
+            if illust_id != -1:
+                # 静画情報取得APIエンドポイント
+                NS_IMAGE_INFO_API_ENDPOINT = "http://seiga.nicovideo.jp/api/illust/info?id="
+                info_url = NS_IMAGE_INFO_API_ENDPOINT + str(illust_id)
+                if url == info_url:
+                    info = self.__GetIllustData(illust_id)
+                    author_id = info["author_id"]
+                    illust_name = info["illust_name"]
+                    type(response).text = f"<image><user_id>{author_id}</user_id><title>{illust_name}</title></image>"
+
+            def IsValid(s):
+                # ヘッダーは正しいか
+                f_headers = (headers == self.headers)
+                if not f_headers:
+                    raise HTTPError
+                return f_headers
+
+            type(response).raise_for_status = IsValid
+            return response
+
+        type(session).get = ReturnGet
         return session
 
     def __MakeLoginMock(self, mock: MagicMock) -> MagicMock:
@@ -223,7 +256,23 @@ class TestLSNicoSeiga(unittest.TestCase):
     def test_GetIllustInfo(self):
         """ニコニコ静画情報を取得する機能をチェック
         """
-        pass
+        with ExitStack() as stack:
+            mocknslogin = stack.enter_context(patch("PictureGathering.LSNicoSeiga.LSNicoSeiga.Login"))
+            mocknslogin = self.__MakeLoginMock(mocknslogin)
+            lsns_cont = LSNicoSeiga.LSNicoSeiga(self.email, self.password, self.TEST_BASE_PATH)
+
+            # 正常系
+            illust_id = 5360137
+            expect_info = self.__GetIllustData(illust_id)
+            expect = (int(expect_info["author_id"]), expect_info["illust_name"])
+            actual = lsns_cont.GetIllustInfo(illust_id)
+            self.assertEqual(expect, actual)
+
+            # 異常系
+            illust_id = -1
+            expect = (-1, "")
+            actual = lsns_cont.GetIllustInfo(illust_id)
+            self.assertEqual(expect, actual)
 
     def test_GetAuthorName(self):
         pass

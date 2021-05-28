@@ -117,7 +117,7 @@ class LSNicoSeiga(LinkSearchBase.LinkSearchBase):
             illust_id (int): 対象作品ID
 
         Returns:
-            author_id, illust_title (str, str): 作者IDと作品タイトルの組
+            author_id, illust_title (int, str): 作者IDと作品タイトルの組
         """
         # 静画情報取得APIエンドポイント
         NS_IMAGE_INFO_API_ENDPOINT = "http://seiga.nicovideo.jp/api/illust/info?id="
