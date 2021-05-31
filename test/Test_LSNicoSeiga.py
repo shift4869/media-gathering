@@ -430,13 +430,6 @@ class TestLSNicoSeiga(unittest.TestCase):
             illust_id = 5360137
             info = self.__GetIllustData(illust_id)
 
-            # MakeSaveDirectoryPathのモック
-            def ReturnMakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path):
-                # 既存のディレクトリの存在は調べずに単純に結合して返す
-                sd_path = "./{}({})/{}({})/".format(author_name, author_id, illust_name, illust_id)
-                save_directory_path = Path(base_path) / sd_path
-                return str(save_directory_path)
-
             # テスト用ディレクトリが存在しているならば削除する
             # shutil.rmtree()で再帰的に全て削除する ※指定パス注意
             if self.TBP.is_dir():
@@ -449,7 +442,8 @@ class TestLSNicoSeiga(unittest.TestCase):
             author_name = info.get("author_name", "")
             author_id = info.get("author_id", -1)
             illust_name = info.get("illust_name", "")
-            save_directory_path = ReturnMakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, str(self.TBP))
+            sd_path_str = "./{}({})/{}({})/".format(author_name, author_id, illust_name, illust_id)
+            save_directory_path = self.TBP / sd_path_str
             sd_path = Path(save_directory_path)
             
             # DL後のディレクトリ構成とファイルの存在チェック
