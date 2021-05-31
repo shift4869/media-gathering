@@ -89,7 +89,13 @@ class LSNicoSeiga(LinkSearchBase.LinkSearchBase):
 
         pattern = r"^https://seiga.nicovideo.jp/seiga/(im)[0-9]+$"
         regex = re.compile(pattern)
-        return not (regex.findall(url) == [])
+        f1 = not (regex.findall(url) == [])
+                
+        pattern = r"^http://nico.ms/(im)[0-9]+$"
+        regex = re.compile(pattern)
+        f2 = not (regex.findall(url) == [])
+
+        return f1 or f2
 
     def GetIllustId(self, url: str) -> int:
         """ニコニコ静画作品ページURLからイラストIDを取得する
