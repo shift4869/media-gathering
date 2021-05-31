@@ -56,6 +56,7 @@ class TestLSNicoSeiga(unittest.TestCase):
                 author_id (int): 作者ID
                 illust_name (str): イラスト名
                 ext (str): 拡張子（'.xxx'）
+            illust_idが不正値の場合は空辞書を返す
         """
         idstr = str(illust_id)
         cols = ["illust_id", "url", "author_name", "author_id", "illust_name", "ext"]
@@ -64,12 +65,31 @@ class TestLSNicoSeiga(unittest.TestCase):
             "5360137": "https://lohas.nicoseiga.jp/priv/718eac68eb1946a1eec1c887fbaa555bba98f160/1621735446/5360137",
         }
         data = {
-            "5360137": [5360137, urls["5360137"], "author_name", 5360137, "title", ".jpg"],
+            "5360137": [5360137, urls["5360137"], "author_name", 22907347, "title", ".jpg"],
         }
         res = {}
+
+        # 不正値の場合は空辞書を返す
+        if not data.get(idstr):
+            return {}
+
         for c, d in zip(cols, data[idstr]):
             res[c] = d
         return res
+
+    def __GetAuthorName(self, author_id: int) -> tuple[list[str], str, int, str]:
+        """テスト用の作者名を取得する
+
+        Args:
+            author_id (int): 作者ID
+
+        Returns:
+            author_name (str): 作者名、author_idが不正値の場合は空文字列を返す
+        """
+        data = {
+            "22907347": "author_name"
+        }
+        return data.get(str(author_id), "")
 
     def __MakeSessionMock(self) -> MagicMock:
         """セッションのモックを作成する
@@ -106,21 +126,60 @@ class TestLSNicoSeiga(unittest.TestCase):
         def ReturnGet(s, url, headers={}):
             response = MagicMock()
 
-            # クエリを取得する
-            qs = urllib.parse.urlparse(url).query
-            qd = urllib.parse.parse_qs(qs)
-            illust_id = int(qd["id"][0])
+            # 静画情報取得APIエンドポイント
+            NS_IMAGE_INFO_API_ENDPOINT = "http://seiga.nicovideo.jp/api/illust/info?id="
+            if NS_IMAGE_INFO_API_ENDPOINT in url:
+                # クエリを取得する
+                qs = urllib.parse.urlparse(url).query
+                qd = urllib.parse.parse_qs(qs)
+                illust_id = int(qd["id"][0])
 
-            # 不正値でない場合のみ設定
-            if illust_id != -1:
-                # 静画情報取得APIエンドポイント
-                NS_IMAGE_INFO_API_ENDPOINT = "http://seiga.nicovideo.jp/api/illust/info?id="
+                # 静画情報
+                info = self.__GetIllustData(illust_id)
                 info_url = NS_IMAGE_INFO_API_ENDPOINT + str(illust_id)
-                if url == info_url:
-                    info = self.__GetIllustData(illust_id)
+                if url == info_url and info:
                     author_id = info["author_id"]
                     illust_name = info["illust_name"]
                     type(response).text = f"<image><user_id>{author_id}</user_id><title>{illust_name}</title></image>"
+
+            # 作者情報取得APIエンドポイント
+            NS_USERNAME_API_ENDPOINT = "https://seiga.nicovideo.jp/api/user/info?id="
+            if NS_USERNAME_API_ENDPOINT in url:
+                # クエリを取得する
+                qs = urllib.parse.urlparse(url).query
+                qd = urllib.parse.parse_qs(qs)
+                author_id = int(qd["id"][0])
+
+                # 作者情報
+                author_name = self.__GetAuthorName(author_id)
+                username_info_url = NS_USERNAME_API_ENDPOINT + str(author_id)
+                if url == username_info_url and author_name:
+                    type(response).text = f"<user><user_id>{author_id}</user_id><nickname>{author_name}</nickname></user>"
+
+            # ニコニコ静画ページ取得APIエンドポイント
+            NS_IMAGE_SOUECE_API_ENDPOINT = "http://seiga.nicovideo.jp/image/source?id="
+            if NS_IMAGE_SOUECE_API_ENDPOINT in url:
+                # クエリを取得する
+                qs = urllib.parse.urlparse(url).query
+                qd = urllib.parse.parse_qs(qs)
+                illust_id = int(qd["id"][0])
+
+                # 画像直リンク
+                info = self.__GetIllustData(illust_id)
+                source_page_url = NS_IMAGE_SOUECE_API_ENDPOINT + str(illust_id)
+                if url == source_page_url and info:
+                    source_url = info["url"]
+                    type(response).text = f'''
+                        <div id="content" class="illust_big">
+                            <div class="controll">
+                                <ul><li class="close"><img src="/img/btn_close.png" alt="閉じる"></li></ul>
+                            </div>
+                            <div class="illust_view_big"
+                                 data-src="{source_url}"
+                                 data-watch_url="https://seiga.nicovideo.jp/seiga/im{illust_id}">
+                            </div>
+                        </div>
+                    '''
 
             def IsValid(s):
                 # ヘッダーは正しいか
@@ -275,13 +334,77 @@ class TestLSNicoSeiga(unittest.TestCase):
             self.assertEqual(expect, actual)
 
     def test_GetAuthorName(self):
-        pass
+        """ニコニコ静画の作者名を取得する機能をチェック
+        """
+        with ExitStack() as stack:
+            mocknslogin = stack.enter_context(patch("PictureGathering.LSNicoSeiga.LSNicoSeiga.Login"))
+            mocknslogin = self.__MakeLoginMock(mocknslogin)
+            lsns_cont = LSNicoSeiga.LSNicoSeiga(self.email, self.password, self.TEST_BASE_PATH)
+
+            # 正常系
+            illust_id = 5360137
+            author_id = 22907347
+            expect_info = self.__GetIllustData(illust_id)
+            expect = expect_info["author_name"]
+            actual = lsns_cont.GetAuthorName(author_id)
+            self.assertEqual(expect, actual)
+
+            # 異常系
+            author_id = -1
+            expect = ""
+            actual = lsns_cont.GetAuthorName(author_id)
+            self.assertEqual(expect, actual)
 
     def test_GetSourceURL(self):
-        pass
+        """ニコニコ静画の画像直リンクを取得する機能をチェック
+        """
+        with ExitStack() as stack:
+            mocknslogin = stack.enter_context(patch("PictureGathering.LSNicoSeiga.LSNicoSeiga.Login"))
+            mocknslogin = self.__MakeLoginMock(mocknslogin)
+            lsns_cont = LSNicoSeiga.LSNicoSeiga(self.email, self.password, self.TEST_BASE_PATH)
+
+            # 正常系
+            illust_id = 5360137
+            expect_info = self.__GetIllustData(illust_id)
+            expect = expect_info["url"]
+            actual = lsns_cont.GetSourceURL(illust_id)
+            self.assertEqual(expect, actual)
+
+            # 異常系
+            illust_id = -1
+            expect = ""
+            actual = lsns_cont.GetSourceURL(illust_id)
+            self.assertEqual(expect, actual)
 
     def test_GetExtFromBytes(self):
-        pass
+        """バイナリデータ配列から拡張子を判別する機能をチェック
+        """
+        with ExitStack() as stack:
+            mocknslogin = stack.enter_context(patch("PictureGathering.LSNicoSeiga.LSNicoSeiga.Login"))
+            mocknslogin = self.__MakeLoginMock(mocknslogin)
+            lsns_cont = LSNicoSeiga.LSNicoSeiga(self.email, self.password, self.TEST_BASE_PATH)
+
+            # 正常系
+            # .jpg
+            data = b"\xff\xd8\xff\xff\xff\xff\xff\xff"
+            self.assertEqual(".jpg", lsns_cont.GetExtFromBytes(data))
+
+            # .png
+            data = b"\x89\x50\x4e\x47\x0d\x0a\x1a\x0a"
+            self.assertEqual(".png", lsns_cont.GetExtFromBytes(data))
+
+            # .gif
+            data = b"\x47\x49\x46\x38\xff\xff\xff\xff"
+            self.assertEqual(".gif", lsns_cont.GetExtFromBytes(data))
+
+            # 異常系
+            # 全く関係ないバイナリ
+            data = b"\xff\xff\xff\xff\xff\xff\xff\xff"
+            self.assertEqual(".invalid", lsns_cont.GetExtFromBytes(data))
+
+            # 短いバイナリ
+            data = b"\xff\xff\xff\xff"
+            self.assertEqual(".invalid", lsns_cont.GetExtFromBytes(data))
 
     def test_DownloadIllusts(self):
         """ニコニコ静画作品ページURLからダウンロードする機能をチェック
