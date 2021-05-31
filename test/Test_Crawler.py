@@ -188,7 +188,7 @@ class TestCrawler(unittest.TestCase):
         }}'''
         return json.loads(tweet_json)
 
-    def __GetTweetSample(self, media_url: str = "", media_type: str = "None", is_retweeted: bool = False, is_quoted: bool = False, is_pixiv: bool = False, is_nijie: bool = False) -> dict:
+    def __GetTweetSample(self, media_url: str = "", media_type: str = "None", is_retweeted: bool = False, is_quoted: bool = False, is_pixiv: bool = False, is_nijie: bool = False, is_seiga: bool = False) -> dict:
         """ツイートオブジェクトのサンプルを生成する
 
         Args:
@@ -198,6 +198,7 @@ class TestCrawler(unittest.TestCase):
             is_quoted (bool): 引用RTフラグ
             is_pixiv (bool): 本文中にpixivリンクを含めるか
             is_nijie (bool): 本文中にnijieリンクを含めるか
+            is_seiga (bool): 本文中にニコニコ静画リンクを含めるか
 
         Returns:
             dict: ツイートオブジェクト（サンプル）
@@ -274,6 +275,14 @@ class TestCrawler(unittest.TestCase):
             nijie_url = f"http://nijie.info/view.php?id={r}"
             tweet["text"] = tweet["text"] + " " + nijie_url
             entities = self.__GetEntitiesSample(nijie_url)
+            tweet["entities"] = entities["entities"]
+
+        # ニコニコ静画リンク
+        if is_seiga:
+            r = "{:0>7}".format(random.randint(0, 9999999))
+            seiga_url = f"https://seiga.nicovideo.jp/seiga/im{r}"
+            tweet["text"] = tweet["text"] + " " + seiga_url
+            entities = self.__GetEntitiesSample(seiga_url)
             tweet["entities"] = entities["entities"]
 
         # 外部リンクが一つも設定されていない場合、確率でサンプルURLを設定
@@ -458,6 +467,7 @@ class TestCrawler(unittest.TestCase):
         with ExitStack() as stack:
             mockLSP = stack.enter_context(patch("PictureGathering.LSPixiv.LSPixiv"))
             mockLSN = stack.enter_context(patch("PictureGathering.LSNijie.LSNijie"))
+            mockLSNS = stack.enter_context(patch("PictureGathering.LSNicoSeiga.LSNicoSeiga"))
 
             # 外部リンク探索クラスのインターフェイスのみ模倣したクラス
             class LSImitation():
@@ -469,9 +479,10 @@ class TestCrawler(unittest.TestCase):
 
                 def Process(self, url: str) -> int:
                     return -1  # 常に処理失敗するとする
-            LS_KIND_NUM = 2  # 外部リンク探索担当者数
+            LS_KIND_NUM = 3  # 外部リンク探索担当者数
             mockLSP.return_value = LSImitation()
             mockLSN.return_value = LSImitation()
+            mockLSNS.return_value = LSImitation()
 
             crawler = ConcreteCrawler()
 
@@ -871,12 +882,13 @@ class TestCrawler(unittest.TestCase):
             s_media_url = "http://pbs.twimg.com/media/add_sample{}.jpg:orig"
             s_nrt_t = [self.__GetTweetSample(s_media_url.format(i), "photo") for i in range(3)]
             s_nm_t = [self.__GetTweetSample("", "None") for i in range(3)]
-            s_nm_with_pixiv_t = [self.__GetTweetSample("", "None", False, False, True, False) for i in range(3)]
-            s_nm_with_nijie_t = [self.__GetTweetSample("", "None", False, False, False, True) for i in range(3)]
-            s_rt_t = [self.__GetTweetSample(s_media_url.format(i), "None", True, False, False, False) for i in range(3)]
-            s_quote_t = [self.__GetTweetSample(s_media_url.format(i), "None", False, True, False, False) for i in range(3)]
-            s_rt_quote_t = [self.__GetTweetSample(s_media_url.format(i), "None", True, True, False, False) for i in range(3)]
-            s_tweet_list = s_nrt_t + s_nm_t + s_nm_with_pixiv_t + s_nm_with_nijie_t + s_rt_t + s_quote_t + s_rt_quote_t
+            s_nm_with_pixiv_t = [self.__GetTweetSample("", "None", False, False, True, False, False) for i in range(3)]
+            s_nm_with_nijie_t = [self.__GetTweetSample("", "None", False, False, False, True, False) for i in range(3)]
+            s_nm_with_seiga_t = [self.__GetTweetSample("", "None", False, False, False, False, True) for i in range(3)]
+            s_rt_t = [self.__GetTweetSample(s_media_url.format(i), "None", True, False, False, False, False) for i in range(3)]
+            s_quote_t = [self.__GetTweetSample(s_media_url.format(i), "None", False, True, False, False, False) for i in range(3)]
+            s_rt_quote_t = [self.__GetTweetSample(s_media_url.format(i), "None", True, True, False, False, False) for i in range(3)]
+            s_tweet_list = s_nrt_t + s_nm_t + s_nm_with_pixiv_t + s_nm_with_nijie_t + s_nm_with_seiga_t + s_rt_t + s_quote_t + s_rt_quote_t
             random.shuffle(s_tweet_list)
 
             # 予想値取得用
@@ -1036,12 +1048,13 @@ class TestCrawler(unittest.TestCase):
             s_media_url = "http://pbs.twimg.com/media/add_sample{}.jpg:orig"
             s_nrt_t = [self.__GetTweetSample(s_media_url.format(i), "photo") for i in range(3)]
             s_nm_t = [self.__GetTweetSample("", "None") for i in range(3)]
-            s_nm_with_pixiv_t = [self.__GetTweetSample("", "None", False, False, True, False) for i in range(3)]
-            s_nm_with_nijie_t = [self.__GetTweetSample("", "None", False, False, False, True) for i in range(3)]
-            s_rt_t = [self.__GetTweetSample(s_media_url.format(i), "None", True, False, False, False) for i in range(3)]
-            s_quote_t = [self.__GetTweetSample(s_media_url.format(i), "None", False, True, False, False) for i in range(3)]
-            s_rt_quote_t = [self.__GetTweetSample(s_media_url.format(i), "None", True, True, False, False) for i in range(3)]
-            s_tweet_list = s_nrt_t + s_nm_t + s_nm_with_pixiv_t + s_nm_with_nijie_t + s_rt_t + s_quote_t + s_rt_quote_t
+            s_nm_with_pixiv_t = [self.__GetTweetSample("", "None", False, False, True, False, False) for i in range(3)]
+            s_nm_with_nijie_t = [self.__GetTweetSample("", "None", False, False, False, True, False) for i in range(3)]
+            s_nm_with_seiga_t = [self.__GetTweetSample("", "None", False, False, False, False, True) for i in range(3)]
+            s_rt_t = [self.__GetTweetSample(s_media_url.format(i), "None", True, False, False, False, False) for i in range(3)]
+            s_quote_t = [self.__GetTweetSample(s_media_url.format(i), "None", False, True, False, False, False) for i in range(3)]
+            s_rt_quote_t = [self.__GetTweetSample(s_media_url.format(i), "None", True, True, False, False, False) for i in range(3)]
+            s_tweet_list = s_nrt_t + s_nm_t + s_nm_with_pixiv_t + s_nm_with_nijie_t + s_nm_with_seiga_t + s_rt_t + s_quote_t + s_rt_quote_t
             random.shuffle(s_tweet_list)
 
             # TweetMediaSaverを呼び出すまでのツイートオブジェクト解釈結果を収集
