@@ -532,9 +532,6 @@ class TestLSNicoSeiga(unittest.TestCase):
             self.assertEqual(-1, res)
 
 
-
-
-
 if __name__ == "__main__":
     if sys.argv:
         del sys.argv[1:]
