@@ -522,14 +522,20 @@ class TestLSNicoSeiga(unittest.TestCase):
 
             illust_id = 5360137
             url = "https://seiga.nicovideo.jp/seiga/im{}".format(illust_id)
-            res = lsns_cont.Process(url)
+            url_with_query = "https://seiga.nicovideo.jp/seiga/im{}?track=ranking".format(illust_id)
+            res = lsns_cont.Process(url_with_query)
             self.assertEqual(0, res)
 
-            res = lsns_cont.Process(url)
+            res = lsns_cont.Process(url_with_query)
             self.assertEqual(0, res)
 
-            res = lsns_cont.Process(url)
+            res = lsns_cont.Process(url_with_query)
             self.assertEqual(-1, res)
+
+            # クエリが除去されて呼び出しされていることを確認
+            for c in mocknsdl.call_args_list:
+                self.assertEqual(c.args[0], url)
+                self.assertEqual(c.args[1], self.TEST_BASE_PATH)
 
 
 if __name__ == "__main__":
