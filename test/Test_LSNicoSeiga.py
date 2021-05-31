@@ -10,6 +10,7 @@ from contextlib import ExitStack
 from logging import WARNING, getLogger
 from mock import MagicMock, PropertyMock, mock_open, patch
 from pathlib import Path
+import mock
 
 from requests import adapters
 from requests.models import HTTPError
@@ -181,6 +182,17 @@ class TestLSNicoSeiga(unittest.TestCase):
                         </div>
                     '''
 
+            # ダウンロード模倣時
+            NS_DL_URL_BASE = "https://lohas.nicoseiga.jp/priv/"
+            if NS_DL_URL_BASE in url:
+                # メディアDLを模倣
+                # contentにバイナリデータを設定（.jpg識別バイナリつき）
+                type(response).content = b"\xff\xd8" + str(url).encode("utf-8")
+                type(response).status_code = 200
+                type(response).url = url
+                type(response).text = url
+
+            # raise_for_status
             def IsValid(s):
                 # ヘッダーは正しいか
                 f_headers = (headers == self.headers)
@@ -409,71 +421,14 @@ class TestLSNicoSeiga(unittest.TestCase):
     def test_DownloadIllusts(self):
         """ニコニコ静画作品ページURLからダウンロードする機能をチェック
         """
-        return
         with ExitStack() as stack:
             # モック置き換え
-            mocknsreqget = stack.enter_context(patch("PictureGathering.LSNicoSeiga.requests.get"))
-            mocknsbs = stack.enter_context(patch("PictureGathering.LSNicoSeiga.BeautifulSoup"))
-            mocknsdpa = stack.enter_context(patch("PictureGathering.LSNicoSeiga.LSNicoSeiga.DetailPageAnalysis"))
-            mocknsmsdp = stack.enter_context(patch("PictureGathering.LSNicoSeiga.LSNicoSeiga.MakeSaveDirectoryPath"))
-
             mocknslogin = stack.enter_context(patch("PictureGathering.LSNicoSeiga.LSNicoSeiga.Login"))
             mocknslogin = self.__MakeLoginMock(mocknslogin)
             lsns_cont = LSNicoSeiga.LSNicoSeiga(self.email, self.password, self.TEST_BASE_PATH)
 
-            # requests.getで取得する内容のモックを返す
-            def ReturnGet(url, headers, cookies):
-                response = MagicMock()
-
-                # メディアDL時
-                pattern = r"^http://pic.seiga.net/[^$]*$"
-                regex = re.compile(pattern)
-                f1 = not (regex.findall(url) == [])
-
-                # 作品詳細ページをGET時
-                pattern = r"^http://seiga.info/view_popup.php\?id=[0-9]*$"
-                regex = re.compile(pattern)
-                f2 = not (regex.findall(url) == [])
-
-                if f1 and headers == self.headers and cookies == "valid cookies":
-                    # メディアDLを模倣
-                    # contentにバイナリデータを設定
-                    type(response).content = str(url).encode("utf-8")
-                    type(response).status_code = 200
-                    type(response).url = url
-                    type(response).text = url
-                elif f2 and headers == self.headers and cookies == "valid cookies":
-                    # 作品詳細ページをGET時
-                    type(response).status_code = 200
-                    type(response).url = url
-                    type(response).text = "ニジエ - seiga ," + url  # イラストID伝達用
-                else:
-                    # エラー
-                    type(response).status_code = 401
-                    type(response).url = "invalid_url.php"
-                    type(response).text = "invalid text"
-
-                type(response).raise_for_status = lambda s: True
-
-                return response
-
-            # BeautifulSoupのモック
-            def ReturnBeautifulSoup(markup, features):
-                # ここでは実際に解析はしない（test_DetailPageAnalysisが担当する）
-                # 識別に必要なイラストIDのみ伝達する
-                url = str(markup).split(",")[1]
-                qs = urllib.parse.urlparse(url).query
-                qd = urllib.parse.parse_qs(qs)
-                illust_id = int(qd["id"][0])
-
-                return illust_id
-
-            # DetailPageAnalysisのモック
-            def ReturnDetailPageAnalysis(soup):
-                # ここでは実際に解析はしない（test_DetailPageAnalysisが担当する）
-                # 伝達されたイラストIDを識別子として情報を返す
-                illust_id = str(soup)
-                return self.__GetIllustData(int(illust_id))
+            illust_id = 5360137
+            info = self.__GetIllustData(illust_id)
 
             # MakeSaveDirectoryPathのモック
             def ReturnMakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path):
@@ -482,101 +437,103 @@ class TestLSNicoSeiga(unittest.TestCase):
                 save_directory_path = Path(base_path) / sd_path
                 return str(save_directory_path)
 
-            mocknsreqget.side_effect = ReturnGet
-            mocknsbs.side_effect = ReturnBeautifulSoup
-            mocknsdpa.side_effect = ReturnDetailPageAnalysis
-            mocknsmsdp.side_effect = ReturnMakeSaveDirectoryPath
-
             # テスト用ディレクトリが存在しているならば削除する
             # shutil.rmtree()で再帰的に全て削除する ※指定パス注意
             if self.TBP.is_dir():
                 shutil.rmtree(self.TBP)
 
-            # 一枚絵, 漫画, うごイラ一枚, うごイラ複数 をそれぞれチェック
-            illust_ids = [251267, 251197, 414793, 409587]
-            for illust_id in illust_ids:
-                illust_url = "http://seiga.info/view.php?id={}".format(illust_id)
-                res = lsns_cont.DownloadIllusts(illust_url, str(self.TBP))
-                self.assertEqual(0, res)  # どれも初めてDLしたはずなので返り値は0
+            illust_url = "https://seiga.nicovideo.jp/seiga/im{}".format(illust_id)
+            res = lsns_cont.DownloadIllusts(illust_url, str(self.TBP))
+            self.assertEqual(0, res)  # 初めてDLしたはずなので返り値は0
 
-                urls, author_name, author_id, illust_name = self.__GetIllustData(illust_id)
-                save_directory_path = ReturnMakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, str(self.TBP))
-                sd_path = Path(save_directory_path)
-                
-                # DL後のディレクトリ構成とファイルの存在チェック
-                pages = len(urls)
-                if pages > 1:  # 漫画形式、うごイラ複数
-                    self.assertTrue(self.TBP.is_dir())
-                    self.assertTrue(sd_path.is_dir())
-                    for i, url in enumerate(urls):
-                        ext = Path(url).suffix
-                        file_name = "{:03}{}".format(i, ext)
-                        self.assertTrue((sd_path / file_name).is_file())
-                elif pages == 1:  # 一枚絵、うごイラ一枚
-                    url = urls[0]
-                    ext = Path(url).suffix
-                    name = "{}{}".format(sd_path.name, ext)
-                    self.assertTrue(self.TBP.is_dir())
-                    self.assertTrue(sd_path.parent.is_dir())
-                    self.assertTrue((sd_path.parent / name).is_file())
-                else:  # エラーならばテスト結果を失敗とする
-                    self.assertTrue(False)
+            author_name = info.get("author_name", "")
+            author_id = info.get("author_id", -1)
+            illust_name = info.get("illust_name", "")
+            save_directory_path = ReturnMakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, str(self.TBP))
+            sd_path = Path(save_directory_path)
+            
+            # DL後のディレクトリ構成とファイルの存在チェック
+            ext = ".jpg"
+            name = "{}{}".format(sd_path.name, ext)
+            self.assertTrue(self.TBP.is_dir())
+            self.assertTrue(sd_path.parent.is_dir())
+            self.assertTrue((sd_path.parent / name).is_file())
             
             # 2回目のDLをシミュレート
-            for illust_id in illust_ids:
-                illust_url = "http://seiga.info/view.php?id={}".format(illust_id)
-                res = lsns_cont.DownloadIllusts(illust_url, str(self.TBP))
-                self.assertEqual(1, res)  # 2回目のDLなので返り値は1
+            illust_url = "https://seiga.nicovideo.jp/seiga/im{}".format(illust_id)
+            res = lsns_cont.DownloadIllusts(illust_url, str(self.TBP))
+            self.assertEqual(1, res)  # 2回目のDLなので返り値は1
 
     def test_MakeSaveDirectoryPath(self):
         """保存先ディレクトリパスを生成する機能をチェック
         """
-        return
         with ExitStack() as stack:
             mocknslogin = stack.enter_context(patch("PictureGathering.LSNicoSeiga.LSNicoSeiga.Login"))
             mocknslogin = self.__MakeLoginMock(mocknslogin)
             lsns_cont = LSNicoSeiga.LSNicoSeiga(self.email, self.password, self.TEST_BASE_PATH)
 
-            # 一枚絵, 漫画, うごイラ一枚, うごイラ複数 をチェック
-            illust_ids = [251267, 251197, 414793, 409587]
-            for illust_id in illust_ids:
-                data = self.__GetIllustData(int(illust_id))
+            # テスト対象illust_id
+            illust_id = 5360137
+            info = self.__GetIllustData(int(illust_id))
 
-                author_name = data[1]
-                author_id = data[2]
-                illust_name = data[3]
-                base_path = str(self.TBP)
-                expect = self.TBP / "./{}({})/{}({})/".format(author_name, author_id, illust_name, illust_id)
+            author_name = info.get("author_name", "")
+            author_id = info.get("author_id", -1)
+            illust_name = info.get("illust_name", "")
+            base_path = str(self.TBP)
+            expect = self.TBP / "./{}({})/{}({})/".format(author_name, author_id, illust_name, illust_id)
 
-                # 想定保存先ディレクトリが存在する場合は削除する
-                if expect.is_dir():
-                    shutil.rmtree(expect)
+            # 想定保存先ディレクトリが存在する場合は削除する
+            if expect.is_dir():
+                shutil.rmtree(expect)
 
-                # 保存先ディレクトリが存在しない場合の実行
-                actual = Path(lsns_cont.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path))
-                self.assertEqual(expect, actual)
+            # 保存先ディレクトリが存在しない場合の実行
+            actual = Path(lsns_cont.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path))
+            self.assertEqual(expect, actual)
 
-                # 保存先ディレクトリを作成する
-                actual.mkdir(parents=True, exist_ok=True)
+            # 保存先ディレクトリを作成する
+            actual.mkdir(parents=True, exist_ok=True)
 
-                # 保存先ディレクトリが存在する場合の実行
-                actual = Path(lsns_cont.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path))
-                self.assertEqual(expect, actual)
+            # 保存先ディレクトリが存在する場合の実行
+            actual = Path(lsns_cont.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path))
+            self.assertEqual(expect, actual)
 
             # エラー値をチェック
             illust_id = -1
-            data = self.__GetIllustData(int(illust_id))
+            info = self.__GetIllustData(int(illust_id))
 
-            author_name = data[1]
-            author_id = data[2]
-            illust_name = data[3]
+            author_name = info.get("author_name", "")
+            author_id = info.get("author_id", -1)
+            illust_name = info.get("illust_name", "")
             base_path = str(self.TBP)
             expect = ""
             actual = lsns_cont.MakeSaveDirectoryPath(author_name, author_id, illust_name, illust_id, base_path)
             self.assertEqual(expect, actual)
 
     def test_Process(self):
-        pass
+        """全体プロセスをチェック
+        """
+        with ExitStack() as stack:
+            mocknslogin = stack.enter_context(patch("PictureGathering.LSNicoSeiga.LSNicoSeiga.Login"))
+            mocknslogin = self.__MakeLoginMock(mocknslogin)
+            lsns_cont = LSNicoSeiga.LSNicoSeiga(self.email, self.password, self.TEST_BASE_PATH)
+
+            mocknsdl = stack.enter_context(patch("PictureGathering.LSNicoSeiga.LSNicoSeiga.DownloadIllusts"))
+            mocknsdl.side_effect = [0, 1, -1]
+
+            illust_id = 5360137
+            url = "https://seiga.nicovideo.jp/seiga/im{}".format(illust_id)
+            res = lsns_cont.Process(url)
+            self.assertEqual(0, res)
+
+            res = lsns_cont.Process(url)
+            self.assertEqual(0, res)
+
+            res = lsns_cont.Process(url)
+            self.assertEqual(-1, res)
+
+
+
+
 
 if __name__ == "__main__":
     if sys.argv:
