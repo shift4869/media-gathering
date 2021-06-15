@@ -57,11 +57,14 @@ class LinkSearchBase():
         proc_result = -1  # 処理成功フラグ
 
         # CoR
-        for p in self.processer_list:
-            if p.IsTargetUrl(url):
-                cor_result = 0
-                proc_result = p.Process(url)
-                break  # 初めに見つかった担当者でのみ処理する
+        try:
+            for p in self.processer_list:
+                if p.IsTargetUrl(url):
+                    cor_result = 0
+                    proc_result = p.Process(url)
+                    break  # 初めに見つかった担当者でのみ処理する
+        except Exception:
+            proc_result = -1
         
         # 返り値の意味はReturns参照
         return 1 if (cor_result == 1) else proc_result
