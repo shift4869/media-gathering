@@ -90,7 +90,7 @@ class LSNicoSeiga(LinkSearchBase.LinkSearchBase):
         pattern = r"^https://seiga.nicovideo.jp/seiga/(im)[0-9]+$"
         regex = re.compile(pattern)
         f1 = not (regex.findall(url) == [])
-                
+
         pattern = r"^http://nico.ms/(im)[0-9]+$"
         regex = re.compile(pattern)
         f2 = not (regex.findall(url) == [])

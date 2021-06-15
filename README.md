@@ -18,6 +18,7 @@
         - 対応しているアドレスは次の通り
             - pixiv - https://www.pixiv.net/artworks/xxxxxxxx
             - nijie - http://nijie.info/view_popup.php?id=xxxxxx
+            - ニコニコ静画 - http://nico.ms/imxxxxxxxx
 - 収集したメディアの情報をDBに蓄積する。  
     - 元ツイートURLなど。  
 - 収集したメディアを一覧で見ることができるhtmlを出力する。  
