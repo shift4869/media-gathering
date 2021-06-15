@@ -8,6 +8,7 @@ from time import sleep
 from typing import List
 
 import emoji
+import requests
 from PIL import Image
 from pixivpy3 import *
 
@@ -66,8 +67,27 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
             with rt_path.open(mode="r") as fin:
                 refresh_token = str(fin.read())
             try:
+                # 2021/06/15 reCAPTCHAを回避する
+                # https://github.com/upbit/pixivpy/issues/171#issuecomment-860264788
+                class CustomAdapter(requests.adapters.HTTPAdapter):
+                    def init_poolmanager(self, *args, **kwargs):
+                        # When urllib3 hand-rolls a SSLContext, it sets 'options |= OP_NO_TICKET'
+                        # and CloudFlare really does not like this. We cannot control this behavior
+                        # in urllib3, but we can just pass our own standard context instead.
+                        import ssl
+                        ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+                        ctx.load_default_certs()
+                        ctx.set_alpn_protocols(["http/1.1"])
+                        return super().init_poolmanager(*args, **kwargs, ssl_context=ctx)
+
+                api.requests = requests.Session()
+                api.requests.mount("https://", CustomAdapter())
                 api.auth(refresh_token=refresh_token)
+
+                aapi.requests = requests.Session()
+                aapi.requests.mount("https://", CustomAdapter())
                 aapi.auth(refresh_token=refresh_token)
+
                 auth_success = (api.access_token is not None) and (aapi.access_token is not None)
             except Exception:
                 pass
@@ -78,7 +98,7 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
                 # api.login(username, password)
                 # aapi.login(username, password)
                 # auth_success = (api.access_token is not None) and (aapi.access_token is not None)
-                # 2021/05/20現在PixivPyで新規ログインができない
+                # 2021/05/20 現在PixivPyで新規ログインができない
                 # https://gist.github.com/ZipFile/c9ebedb224406f4f11845ab700124362
                 # https://gist.github.com/upbit/6edda27cb1644e94183291109b8a5fde
                 logger.info(f"not found {REFRESH_TOKEN_PATH}")

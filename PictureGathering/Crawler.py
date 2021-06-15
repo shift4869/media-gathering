@@ -139,10 +139,10 @@ class Crawler(metaclass=ABCMeta):
         # 外部リンク探索を登録
         self.lsb = LinkSearchBase.LinkSearchBase()
         # pixivURLを処理する担当者を登録
-        # config = self.config["pixiv"]
-        # if config.getboolean("is_pixiv_trace"):
-        #     lsp = LSPixiv.LSPixiv(config["username"], config["password"], config["save_base_path"])
-        #     self.lsb.Register(lsp)
+        config = self.config["pixiv"]
+        if config.getboolean("is_pixiv_trace"):
+            lsp = LSPixiv.LSPixiv(config["username"], config["password"], config["save_base_path"])
+            self.lsb.Register(lsp)
 
         # nijieURLを処理する担当者を登録
         config = self.config["nijie"]
