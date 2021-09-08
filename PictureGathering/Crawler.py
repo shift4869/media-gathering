@@ -497,12 +497,18 @@ class Crawler(metaclass=ABCMeta):
             return -1
 
         if not save_file_fullpath.is_file():
-            # URLから画像を取得してローカルに保存
+            # URLからメディアを取得してローカルに保存
             # タイムアウトを設定するためにurlopenを利用
             # urllib.request.urlretrieve(url_orig, save_file_fullpath)
-            data = urllib.request.urlopen(url_orig, timeout=60).read()
-            with save_file_fullpath.open(mode="wb") as f:
-                f.write(data)
+            try:
+                data = urllib.request.urlopen(url_orig, timeout=60).read()
+                with save_file_fullpath.open(mode="wb") as f:
+                    f.write(data)
+            except Exception:
+                # URLからのメディア取得に失敗
+                # 削除されていた場合など
+                logger.info(save_file_fullpath.name + " -> failed.")
+                return -1
             self.add_url_list.append(url_orig)
 
             # DB操作
@@ -510,7 +516,7 @@ class Crawler(metaclass=ABCMeta):
             include_blob = self.config["db"].getboolean("save_blob")
             self.db_cont.Upsert(file_name, url_orig, url_thumbnail, tweet, str(save_file_fullpath), include_blob)
 
-            # image magickで画像変換
+            # 画像ならばimage magickで画像変換
             if media_type == "photo":
                 img_magick_path = Path(self.config["processes"]["image_magick"])
                 if img_magick_path.is_file():
@@ -524,12 +530,12 @@ class Crawler(metaclass=ABCMeta):
             logger.info(save_file_fullpath.name + " -> done!")
             self.add_cnt += 1
 
-            # 画像を常に保存する設定の場合はコピーする
+            # 常に保存する設定の場合はコピーする
             config = self.config["db"]
             if config.getboolean("save_permanent_image_flag"):
                 shutil.copy2(save_file_fullpath, config["save_permanent_image_path"])
 
-            # 画像をアーカイブする設定の場合
+            # アーカイブする設定の場合
             config = self.config["archive"]
             if config.getboolean("is_archive"):
                 shutil.copy2(save_file_fullpath, config["archive_temp_path"])
