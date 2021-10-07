@@ -56,8 +56,8 @@ class TestLSPixiv(unittest.TestCase):
         cols = ["id", "type", "is_manga", "author_name", "author_id", "title", "image_url", "image_urls"]
         data = {
             "59580629": [59580629, "illust", False, "author_name", 0, "title",
-                         url_base["59580629"].format(illust_id), []],
-            "24010650": [24010650, "illust", True, "shift", 149176, "フランの羽[アイコン用]",
+                         url_base["59580629"].format(illust_id), [url_base["59580629"].format(illust_id)]],
+            "24010650": [24010650, "manga", True, "shift", 149176, "フランの羽[アイコン用]",
                          "", [url_base["24010650"].format(illust_id, i) for i in range(5)]],
             "86704541": [86704541, "ugoira", False, "author_name", 0, "おみくじ",
                          url_base["86704541"].format(illust_id, 0), [url_base["86704541"].format(illust_id, i) for i in range(14)]]
@@ -67,88 +67,82 @@ class TestLSPixiv(unittest.TestCase):
             res[c] = d
         return res
 
-    def __MakePublicApiMock(self) -> MagicMock:
+    def __ReturnIllustDetail(self, illust_id) -> MagicMock:
         """非公式pixivAPIの全体操作機能のモックを作成する
 
         Note:
             以下のプロパティ、メソッドを模倣する
-            api_response
-                access_token
-                works[0]
-                    type
-                    is_manga
-                    user
-                        name
-                        is
-                    metadata
-                        pages[]
-                            image_urls
-                                large
+            illust
+                type
+                page_count
+                title
+                user
+                    name
+                    id
+                meta_pages[]
                     image_urls
                         large
+                image_urls
+                    large
+                meta_single_page
+                    original_image_url
+            error
 
         Returns:
-            MagicMock: api_response
+            MagicMock: illust_response
         """
-        def ReturnWorks(illust_id):
-            r_works = MagicMock()
-            s = {}
-            if 0 < illust_id and illust_id < 99999999:
-                type(r_works).status = "success"
-                s = self.__GetIllustData(illust_id)
-            else:
-                type(r_works).status = "failed"
+        illust_response = MagicMock()
+        s = {}
+        if 0 < illust_id and illust_id < 99999999:
+            s = self.__GetIllustData(illust_id)
+            type(illust_response).error = None
+        else:
+            type(illust_response).error = "error"
+            type(illust_response).illust = None
+            return illust_response
 
-            def ReturnResponse():
-                r_response = MagicMock()
+        def ReturnResponse():
+            r_response = MagicMock()
 
-                # イラストデータ設定
-                type(r_response).type = s["type"]
-                type(r_response).is_manga = s["is_manga"]
-                type(r_response).title = s["title"]
+            # イラストデータ設定
+            type(r_response).type = s["type"]
+            type(r_response).page_count = len(s["image_urls"])
+            type(r_response).title = s["title"]
 
-                r_name_id = MagicMock()
-                type(r_name_id).name = s["author_name"]
-                type(r_name_id).id = s["author_id"]
+            r_name_id = MagicMock()
+            type(r_name_id).name = s["author_name"]
+            type(r_name_id).id = s["author_id"]
 
-                type(r_response).user = r_name_id
+            type(r_response).user = r_name_id
 
-                def ReturnLarge(url):
-                    r_large = MagicMock()
-                    type(r_large).large = url
-                    return r_large
+            def ReturnLarge(url):
+                r_large = MagicMock()
+                type(r_large).large = url
+                return r_large
 
-                def ReturnImageurls(url):
-                    r_imageurls = MagicMock()
-                    type(r_imageurls).image_urls = ReturnLarge(url)
-                    return r_imageurls
+            def ReturnImageurls(url):
+                r_imageurls = MagicMock()
+                type(r_imageurls).image_urls = ReturnLarge(url)
+                return r_imageurls
 
-                def ReturnPages():
-                    r_pages = MagicMock()
-                    # 漫画形式のreturn_value設定
-                    type(r_pages).pages = [ReturnImageurls(url) for url in s["image_urls"]]
-                    return r_pages
+            type(r_response).meta_pages = [ReturnImageurls(url) for url in s["image_urls"]]
 
-                type(r_response).metadata = ReturnPages()
+            # 一枚絵のreturn_value設定
+            type(r_response).image_urls = ReturnLarge(s["image_url"])
 
-                # 一枚絵のreturn_value設定
-                type(r_response).image_urls = ReturnLarge(s["image_url"])
+            r_original_image_url = MagicMock()
+            type(r_original_image_url).original_image_url = s["image_url"]
 
-                return r_response
+            r_meta_single_page = MagicMock()
+            type(r_response).meta_single_page = r_original_image_url
 
-            p_response = PropertyMock()
-            p_response.side_effect = lambda: [ReturnResponse()]
-            type(r_works).response = p_response
+            return r_response
 
-            return r_works
+        p_response = PropertyMock()
+        p_response.return_value = ReturnResponse()
+        type(illust_response).illust = p_response
 
-        api_response = MagicMock()
-        p_works = PropertyMock()
-        p_works.return_value = ReturnWorks
-        type(api_response).works = p_works
-        type(api_response).access_token = "ok"
-
-        return api_response
+        return illust_response
 
     def __MakeAppApiMock(self) -> MagicMock:
         """非公式pixivAPIの詳細操作機能のモックを作成する
@@ -159,9 +153,7 @@ class TestLSPixiv(unittest.TestCase):
                 access_token
                 download(url, path, name="")
                 illust_detail(illust_id)
-                    illust
-                        meta_single_page
-                            original_image_url
+                    ※self.__ReturnIllustDetail参照
                 ugoira_metadata(illust_id)
                     ugoira_metadata
                         frames[]
@@ -186,24 +178,8 @@ class TestLSPixiv(unittest.TestCase):
         p_download.return_value = ReturnDownload
         type(aapi_response).download = p_download
 
-        def ReturnIllustDetail(illust_id):
-            s = {}
-            if 0 < illust_id and illust_id < 99999999:
-                s = self.__GetIllustData(illust_id)
-
-            r_original_image_url = MagicMock()
-            type(r_original_image_url).original_image_url = s["image_url"]
-
-            r_meta_single_page = MagicMock()
-            type(r_meta_single_page).meta_single_page = r_original_image_url
-
-            r_illust = MagicMock()
-            type(r_illust).illust = r_meta_single_page
-
-            return r_illust
-
         p_illust_detail = PropertyMock()
-        p_illust_detail.return_value = ReturnIllustDetail
+        p_illust_detail.return_value = self.__ReturnIllustDetail
         type(aapi_response).illust_detail = p_illust_detail
 
         def ReturnUgoiraMetadata(illust_id):
@@ -241,12 +217,11 @@ class TestLSPixiv(unittest.TestCase):
         """
         def LoginSideeffect(username, password):
             if self.username == username and self.password == password:
-                api_response = self.__MakePublicApiMock()
                 aapi_response = self.__MakeAppApiMock()
 
-                return (api_response, aapi_response, True)
+                return (aapi_response, True)
             else:
-                return (None, None, False)
+                return (None, False)
 
         mock.side_effect = LoginSideeffect
         return mock
@@ -302,10 +277,10 @@ class TestLSPixiv(unittest.TestCase):
 
             # 正常系
             lsp_cont = LSPixiv.LSPixiv(self.username, self.password, self.TEST_BASE_PATH)
-            self.assertIsNotNone(lsp_cont.api)
+            # self.assertIsNotNone(lsp_cont.api)
             self.assertIsNotNone(lsp_cont.aapi)
             self.assertTrue(lsp_cont.auth_success)
-            self.assertIsNotNone(lsp_cont.api.access_token)
+            # self.assertIsNotNone(lsp_cont.api.access_token)
             self.assertIsNotNone(lsp_cont.aapi.access_token)
 
             # 異常系
@@ -343,10 +318,8 @@ class TestLSPixiv(unittest.TestCase):
             mockfp = stack.enter_context(patch("pathlib.Path.open", mockfout))
 
             # mockpalogin = stack.enter_context(patch("PictureGathering.LSPixiv.LSPixiv.Login"))
-            mockpapub = stack.enter_context(patch("PictureGathering.LSPixiv.PixivAPI"))
             mockpaapp = stack.enter_context(patch("PictureGathering.LSPixiv.AppPixivAPI"))
 
-            mockpapub.side_effect = lambda: response_factory("ok_access_token", "ok_refresh_token")
             mockpaapp.side_effect = lambda: response_factory("ok_access_token", "ok_refresh_token")
 
             # refresh_tokenファイルが存在する場合、一時的にリネームする
@@ -359,15 +332,13 @@ class TestLSPixiv(unittest.TestCase):
             # refresh_tokenファイルが存在しない場合のテスト
             # 現在は新規ログインはできないため常に失敗する
             with self.assertRaises(SystemExit):
-                expect = (mockpapub.side_effect(), mockpaapp.side_effect(), True)
+                expect = (mockpaapp.side_effect(), True)
                 # インスタンス生成時にLoginが呼ばれる
                 lsp_cont = LSPixiv.LSPixiv(self.username, self.password, self.TEST_BASE_PATH)
-                actual = (lsp_cont.api, lsp_cont.aapi, lsp_cont.auth_success)
+                actual = (lsp_cont.aapi, lsp_cont.auth_success)
 
-                self.assertEqual(mockpapub.call_count, 1)
                 self.assertEqual(mockpaapp.call_count, 1)
-                self.assertEqual(expect[2], actual[2])
-            mockpapub.reset_mock()
+                self.assertEqual(expect[1], actual[1])
             mockpaapp.reset_mock()
 
             # 一時的にリネームしていた場合は復元する
@@ -378,15 +349,13 @@ class TestLSPixiv(unittest.TestCase):
                 rt_path.touch()
 
             # refresh_tokenファイルが存在する場合のテスト
-            expect = (mockpapub.side_effect(), mockpaapp.side_effect(), True)
+            expect = (mockpaapp.side_effect(), True)
             # インスタンス生成時にLoginが呼ばれる
             lsp_cont = LSPixiv.LSPixiv(self.username, self.password, self.TEST_BASE_PATH)
-            actual = (lsp_cont.api, lsp_cont.aapi, lsp_cont.auth_success)
+            actual = (lsp_cont.aapi, lsp_cont.auth_success)
 
-            self.assertEqual(mockpapub.call_count, 1)
             self.assertEqual(mockpaapp.call_count, 1)
-            self.assertEqual(expect[2], actual[2])
-            mockpapub.reset_mock()
+            self.assertEqual(expect[1], actual[1])
             mockpaapp.reset_mock()
 
             # ダミーファイルがある場合は削除しておく

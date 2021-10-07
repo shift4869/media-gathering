@@ -27,22 +27,20 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
             password (str): APIを利用するpixivユーザーIDのパスワード
 
         Attributes:
-            api (PixivAPI): 非公式pixivAPI（全体操作）
             aapi (AppPixivAPI): 非公式pixivAPI（詳細操作）
             auth_success (boolean): API認証が正常に完了したかどうか
         """
         super().__init__()
-        self.api = None
         self.aapi = None
         self.auth_success = False
-        self.api, self.aapi, self.auth_success = self.Login(username, password)
+        self.aapi, self.auth_success = self.Login(username, password)
 
         if not self.auth_success:
             exit(-1)
 
         self.base_path = base_path
 
-    def Login(self, username: str, password: str) -> tuple[PixivAPI, AppPixivAPI, bool]:
+    def Login(self, username: str, password: str) -> tuple[AppPixivAPI, bool]:
         """非公式pixivAPIインスタンスを生成し、ログインする
 
         Note:
@@ -55,7 +53,6 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
         Returns:
             (api, aapi, auth_success) (PixivAPI, AppPixivAPI, boolean): 非公式pixivAPI（全体操作, 詳細操作, 認証結果）
         """
-        api = PixivAPI()
         aapi = AppPixivAPI()
 
         # 前回ログインからのrefresh_tokenが残っているか調べる
@@ -80,15 +77,11 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
                         ctx.set_alpn_protocols(["http/1.1"])
                         return super().init_poolmanager(*args, **kwargs, ssl_context=ctx)
 
-                api.requests = requests.Session()
-                api.requests.mount("https://", CustomAdapter())
-                api.auth(refresh_token=refresh_token)
-
                 aapi.requests = requests.Session()
                 aapi.requests.mount("https://", CustomAdapter())
                 aapi.auth(refresh_token=refresh_token)
 
-                auth_success = (api.access_token is not None) and (aapi.access_token is not None)
+                auth_success = (aapi.access_token is not None)
             except Exception:
                 pass
 
@@ -107,16 +100,16 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
                 logger.info(" or ")
                 logger.info("https://gist.github.com/upbit/6edda27cb1644e94183291109b8a5fde")
                 logger.info("process abort")
-                return (None, None, False)
+                return (None, False)
 
                 # refresh_tokenを保存
                 refresh_token = api.refresh_token
                 with rt_path.open(mode="w") as fout:
                     fout.write(refresh_token)
             except Exception:
-                return (None, None, False)
+                return (None, False)
 
-        return (api, aapi, auth_success)
+        return (aapi, auth_success)
 
     def IsTargetUrl(self, url: str) -> bool:
         """URLがpixivのURLかどうか判定する
@@ -168,16 +161,14 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
             return []
 
         # イラスト情報取得
-        # json_result = aapi.illust_detail(illust_id)
-        # illust = json_result.illust
-        works = self.api.works(illust_id)
-        if works.status != "success":
+        works = self.aapi.illust_detail(illust_id)
+        if works.error or (works.illust is None):
             return []
-        work = works.response[0]
+        work = works.illust
 
         illust_urls = []
-        if work.is_manga:  # 漫画形式
-            for page_info in work.metadata.pages:
+        if work.page_count > 1:  # 漫画形式
+            for page_info in work.meta_pages:
                 illust_urls.append(page_info.image_urls.large)
         else:  # 一枚絵
             illust_urls.append(work.image_urls.large)
@@ -205,10 +196,10 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
         if illust_id == -1:
             return ""
 
-        works = self.api.works(illust_id)
-        if works.status != "success":
+        works = self.aapi.illust_detail(illust_id)
+        if works.error or (works.illust is None):
             return ""
-        work = works.response[0]
+        work = works.illust
 
         # パスに使えない文字をサニタイズする
         # TODO::サニタイズを厳密に行う
@@ -328,10 +319,10 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
         Returns:
             int: DL成功時0、スキップされた場合1、エラー時-1
         """
-        works = self.api.works(illust_id)
-        if works.status != "success":
+        works = self.aapi.illust_detail(illust_id)
+        if works.error or (works.illust is None):
             return -1
-        work = works.response[0]
+        work = works.illust
 
         if work.type != "ugoira":
             return 1  # うごイラではなかった
@@ -353,9 +344,9 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
         # うごイラの情報をaapiから取得する
         # アドレスは以下の形になっている
         # https://{...}/{イラストID}_ugoira{画像の番号}.jpg
-        illust = self.aapi.illust_detail(illust_id)
+        # illust = self.aapi.illust_detail(illust_id)
         ugoira = self.aapi.ugoira_metadata(illust_id)
-        ugoira_url = illust.illust.meta_single_page.original_image_url.rsplit("0", 1)
+        ugoira_url = work.meta_single_page.original_image_url.rsplit("0", 1)
         frames_len = len(ugoira.ugoira_metadata.frames)
         delays = [f["delay"] for f in ugoira.ugoira_metadata.frames]
 
