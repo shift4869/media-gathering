@@ -64,6 +64,9 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
             with rt_path.open(mode="r") as fin:
                 refresh_token = str(fin.read())
             try:
+                '''
+                # 2021/10/14 python 3.10にてOpenSSL 1.1.1以降が必須になった影響？のためこの回避は使えなくなった
+                # また、PixivPy側でデフォルトのユーザーエージェントが修正されたためreCAPTCHAも気にしなくて良くなった
                 # 2021/06/15 reCAPTCHAを回避する
                 # https://github.com/upbit/pixivpy/issues/171#issuecomment-860264788
                 class CustomAdapter(requests.adapters.HTTPAdapter):
@@ -79,6 +82,7 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
 
                 aapi.requests = requests.Session()
                 aapi.requests.mount("https://", CustomAdapter())
+                '''
                 aapi.auth(refresh_token=refresh_token)
 
                 auth_success = (aapi.access_token is not None)
