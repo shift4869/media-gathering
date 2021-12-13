@@ -535,7 +535,7 @@ class TestLSPixiv(unittest.TestCase):
 
             expect_names = []
             for i, url_s in enumerate(urls_s):
-                name_s = "{:03}{}".format(i + 1, Path(url_s).suffix)
+                name_s = "{}_{:03}{}".format(dirname_s, i + 1, Path(url_s).suffix)
                 expect_names.append(name_s)
 
             # 1回目の実行

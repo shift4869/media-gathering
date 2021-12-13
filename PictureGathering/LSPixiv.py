@@ -248,14 +248,14 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
             {base_path}/{作者名}({作者pixivID})/{イラストタイトル}({イラストID})/の形を想定している
             漫画形式の場合：
                 save_directory_pathを使用し
-                /{作者名}({作者pixivID})/{イラストタイトル}({イラストID})/{3ケタの連番}.{拡張子}の形式で保存
+                /{作者名}({作者pixivID})/{イラストタイトル}({イラストID})/{イラストタイトル}({イラストID})_{3ケタの連番}.{拡張子}の形式で保存
             イラスト一枚絵の場合：
                 save_directory_pathからイラストタイトルとイラストIDを取得し
                 /{作者名}({作者pixivID})/{イラストタイトル}({イラストID}).{拡張子}の形式で保存
             うごイラの場合：
                 save_directory_pathからイラストタイトルとイラストIDを取得し
                 /{作者名}({作者pixivID})/{イラストタイトル}({イラストID}).{拡張子}の形式で扉絵（1枚目）を保存
-                /{作者名}({作者pixivID})/{イラストタイトル}({イラストID})/{3ケタの連番}.{拡張子}の形式で各フレームを保存
+                /{作者名}({作者pixivID})/{イラストタイトル}({イラストID})/{イラストID}_ugoira{*}.{拡張子}の形式で各フレームを保存
                 /{作者名}({作者pixivID})/{イラストタイトル}({イラストID}).gifとしてアニメーションgifを保存
 
         Args:
@@ -280,7 +280,7 @@ class LSPixiv(LinkSearchBase.LinkSearchBase):
             sd_path.mkdir(parents=True, exist_ok=True)
             for i, url in enumerate(urls):
                 ext = Path(url).suffix
-                name = "{:03}{}".format(i + 1, ext)
+                name = "{}_{:03}{}".format(sd_path.name, i + 1, ext)
                 self.aapi.download(url, path=str(sd_path), name=name)
                 logger.info("\t\t: " + name + " -> done({}/{})".format(i + 1, pages))
                 sleep(0.5)
@@ -404,5 +404,6 @@ if __name__ == "__main__":
     if config["pixiv"].getboolean("is_pixiv_trace"):
         pa_cont = LSPixiv(config["pixiv"]["username"], config["pixiv"]["password"], config["pixiv"]["save_base_path"])
         work_url = "https://www.pixiv.net/artworks/86704541"
+        work_url = "https://www.pixiv.net/artworks/24010650"
         pa_cont.Process(work_url)
     pass
