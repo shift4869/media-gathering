@@ -227,13 +227,13 @@ class LSNijie(LinkSearchBase.LinkSearchBase):
             sd_path.mkdir(parents=True, exist_ok=True)
 
             # 画像をDLする
-            # ファイル名は3桁の連番
+            # ファイル名は{イラストタイトル}({イラストID})_{3ケタの連番}.{拡張子}
             for i, url in enumerate(urls):
                 res = requests.get(url, headers=self.headers, cookies=self.cookies)
                 res.raise_for_status()
 
                 ext = Path(url).suffix
-                file_name = "{:03}{}".format(i, ext)
+                file_name = "{}_{:03}{}".format(sd_path.name, i, ext)
                 with Path(sd_path / file_name).open(mode="wb") as fout:
                     fout.write(res.content)
 
