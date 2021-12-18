@@ -19,6 +19,7 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta, timezone
 from logging import DEBUG, INFO, getLogger
 from pathlib import Path
+from plyer import notification
 from typing import List
 
 import requests
@@ -106,12 +107,30 @@ class Crawler(metaclass=ABCMeta):
             self.LinkSearchRegister()
         except IOError:
             logger.exception(self.CONFIG_FILE_NAME + " is not exist or cannot be opened.")
+            notification.notify(
+                title="Picture Gathering 実行エラー",
+                message=self.CONFIG_FILE_NAME + " is not exist or cannot be opened.",
+                app_name="Picture Gathering",
+                timeout=10
+            )
             exit(-1)
         except KeyError:
             logger.exception("invalid config file error.")
+            notification.notify(
+                title="Picture Gathering 実行エラー",
+                message="invalid config file error.",
+                app_name="Picture Gathering",
+                timeout=10
+            )
             exit(-1)
         except Exception:
             logger.exception("unknown error.")
+            notification.notify(
+                title="Picture Gathering 実行エラー",
+                message="unknown error.",
+                app_name="Picture Gathering",
+                timeout=10
+            )
             exit(-1)
 
         self.oath = OAuth1Session(
