@@ -44,6 +44,7 @@ class ConcreteCrawler(Crawler.Crawler):
 
     def __init__(self, error_occur=""):
         with ExitStack() as stack:
+            mock = stack.enter_context(patch("PictureGathering.Crawler.notification"))
             # Crawler.__init__()で意図的にエラーを起こすための設定
             if error_occur == "IOError":
                 # configファイルのパスエラーは変数置き換えで自動的に処理される
@@ -466,6 +467,7 @@ class TestCrawler(unittest.TestCase):
         """
         with ExitStack() as stack:
             mockLSP = stack.enter_context(patch("PictureGathering.LSPixiv.LSPixiv"))
+            mockLSPN = stack.enter_context(patch("PictureGathering.LSPixivNovel.LSPixivNovel"))
             mockLSN = stack.enter_context(patch("PictureGathering.LSNijie.LSNijie"))
             mockLSNS = stack.enter_context(patch("PictureGathering.LSNicoSeiga.LSNicoSeiga"))
 
@@ -479,10 +481,11 @@ class TestCrawler(unittest.TestCase):
 
                 def Process(self, url: str) -> int:
                     return -1  # 常に処理失敗するとする
-            LS_KIND_NUM = 3  # 外部リンク探索担当者数
+            LS_KIND_NUM = 4  # 外部リンク探索担当者数
             mockLSP.return_value = LSImitation()
             mockLSN.return_value = LSImitation()
             mockLSNS.return_value = LSImitation()
+            mockLSPN.return_value = LSImitation()
 
             crawler = ConcreteCrawler()
 
