@@ -470,6 +470,7 @@ class TestCrawler(unittest.TestCase):
             mockLSPN = stack.enter_context(patch("PictureGathering.LSPixivNovel.LSPixivNovel"))
             mockLSN = stack.enter_context(patch("PictureGathering.LSNijie.LSNijie"))
             mockLSNS = stack.enter_context(patch("PictureGathering.LSNicoSeiga.LSNicoSeiga"))
+            mockLSSK = stack.enter_context(patch("PictureGathering.LSSkeb.LSSkeb"))
 
             # 外部リンク探索クラスのインターフェイスのみ模倣したクラス
             class LSImitation():
@@ -481,11 +482,12 @@ class TestCrawler(unittest.TestCase):
 
                 def Process(self, url: str) -> int:
                     return -1  # 常に処理失敗するとする
-            LS_KIND_NUM = 4  # 外部リンク探索担当者数
+            LS_KIND_NUM = 5  # 外部リンク探索担当者数
             mockLSP.return_value = LSImitation()
             mockLSN.return_value = LSImitation()
             mockLSNS.return_value = LSImitation()
             mockLSPN.return_value = LSImitation()
+            mockLSSK.return_value = LSImitation()
 
             crawler = ConcreteCrawler()
 

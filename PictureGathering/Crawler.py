@@ -27,7 +27,7 @@ import slackweb
 from requests_oauthlib import OAuth1Session
 
 from PictureGathering import WriteHTML, Archiver, GoogleDrive
-from PictureGathering import LinkSearchBase, LSPixiv, LSPixivNovel, LSNijie, LSNicoSeiga
+from PictureGathering import LinkSearchBase, LSPixiv, LSPixivNovel, LSNijie, LSNicoSeiga, LSSkeb
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 logger = getLogger("root")
@@ -176,6 +176,12 @@ class Crawler(metaclass=ABCMeta):
         if config.getboolean("is_seiga_trace"):
             lsns = LSNicoSeiga.LSNicoSeiga(config["email"], config["password"], config["save_base_path"])
             self.lsb.Register(lsns)
+
+        # ニコニコ静画のURLを処理する担当者を登録
+        config = self.config["skeb"]
+        if config.getboolean("is_skeb_trace"):
+            lssk = LSSkeb.LSSkeb(config["twitter_id"], config["twitter_password"], config["save_base_path"])
+            self.lsb.Register(lssk)
 
     def GetTwitterAPIResourceType(self, url: str) -> str:
         """使用するTwitterAPIのAPIリソースタイプを返す
