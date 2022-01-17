@@ -16,3 +16,4 @@ requests-html == 0.10.0
 slackweb==1.0.5
 SQLAlchemy==1.4.25
 urllib3==1.26.7
+websockets==10.0
