@@ -27,7 +27,6 @@ oauthlib==3.1.1; python_version >= "3.6" and python_full_version < "3.0.0" or py
 parse==1.19.0; python_full_version >= "3.6.0"
 pillow==9.0.0; python_version >= "3.7"
 pixivpy==3.6.2
->>>>>>> feature/ci
 plyer==2.0.0
 protobuf==3.19.3; python_version >= "3.5"
 pyasn1-modules==0.2.8; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.6.0" and python_version >= "3.6"
