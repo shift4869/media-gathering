@@ -5,7 +5,7 @@ freezegun==1.1.0
 google_api_python_client==2.28.0
 lxml==4.6.5
 mock==4.0.3
-Pillow==8.4.0
+Pillow==9.0.0
 PixivPy==3.6.0
 plyer==2.0.0
 protobuf==3.19.0
