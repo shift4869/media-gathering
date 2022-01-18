@@ -16,9 +16,13 @@
     - fav/RTしたツイートのRT先、引用RT先がメディア含みツイートだった場合も収集する。  
     - 本文内に特定の画像投稿サイトへのリンクがあった場合、リンク先をたどり一枚絵/漫画形式の作品を全て収集する。（任意）  
         - 対応しているアドレスは次の通り
-            - pixiv - https://www.pixiv.net/artworks/xxxxxxxx
-            - nijie - http://nijie.info/view_popup.php?id=xxxxxx
-            - ニコニコ静画 - http://nico.ms/imxxxxxxxx
+            ```
+            "pixiv pic/manga": "https://www.pixiv.net/artworks/xxxxxxxx",
+            "pixiv novel": "https://www.pixiv.net/novel/show.php?id=xxxxxxxx",
+            "nijie": "http://nijie.info/view_popup.php?id=xxxxxx",
+            "seiga": "https://seiga.nicovideo.jp/seiga/imxxxxxxx",
+            "skeb": "https://skeb.jp/@xxxxxxxx/works/xx",
+            ```
 - 収集したメディアの情報をDBに蓄積する。  
     - 元ツイートURLなど。  
 - 収集したメディアを一覧で見ることができるhtmlを出力する。  
