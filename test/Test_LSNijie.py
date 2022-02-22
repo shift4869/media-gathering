@@ -72,7 +72,8 @@ class TestLSNijie(unittest.TestCase):
                        "http://pic.nijie.net/04/nijie/21/90/317190/illust/409587_0_cc566cefc4610854_95eb20.mp4",
                        "http://pic.nijie.net/05/nijie/21/90/317190/illust/409587_3_bf531ab4782e9563_6d8309.gif",
                        "http://pic.nijie.net/03/nijie/21/90/317190/illust/409587_4_4ada8109042eb838_7a3e61.gif",
-                       "http://pic.nijie.net/06/nijie/21/90/317190/illust/409587_5_dc7f138c8c76338b_9f97cf.gif"]        }
+                       "http://pic.nijie.net/06/nijie/21/90/317190/illust/409587_5_dc7f138c8c76338b_9f97cf.gif"]
+        }
         cols = ["illust_id", "urls", "author_name", "author_id", "illust_name"]
         data = {
             "251267": [urls["251267"], "author_name_1", 21030, "一枚絵"],
