@@ -312,11 +312,11 @@ class TestLSNijie(unittest.TestCase):
 
             # 正常系
             # 作品ページURL
-            url_s = "http://nijie.info/view.php?id=251267"
+            url_s = "https://nijie.info/view.php?id=251267"
             self.assertEqual(True, lsn_cont.IsTargetUrl(url_s))
 
             # 作品詳細ページURL
-            url_s = "http://nijie.info/view_popup.php?id=251267"
+            url_s = "https://nijie.info/view_popup.php?id=251267"
             self.assertEqual(True, lsn_cont.IsTargetUrl(url_s))
 
             # 異常系
@@ -328,12 +328,12 @@ class TestLSNijie(unittest.TestCase):
             url_s = "https://www.pixiv.net/artworks/24010650"
             self.assertEqual(False, lsn_cont.IsTargetUrl(url_s))
 
-            # httpでなくhttps
-            url_s = "https://nijie.info/view_popup.php?id=251267"
+            # httpsでなくhttp
+            url_s = "http://nijie.info/view_popup.php?id=251267"
             self.assertEqual(False, lsn_cont.IsTargetUrl(url_s))
 
             # nijieの別ページ
-            url_s = "http://nijie.info/user_like_illust_view.php?id=21030"
+            url_s = "https://nijie.info/user_like_illust_view.php?id=21030"
             self.assertEqual(False, lsn_cont.IsTargetUrl(url_s))
 
             # プリフィックスエラー
@@ -355,19 +355,19 @@ class TestLSNijie(unittest.TestCase):
             # 正常系
             r = "{:0>6}".format(random.randint(0, 999999))
             # 作品ページURL
-            url_s = "http://nijie.info/view.php?id={}".format(r)
+            url_s = "https://nijie.info/view.php?id={}".format(r)
             expect = int(r)
             actual = lsn_cont.GetIllustId(url_s)
             self.assertEqual(expect, actual)
 
             # 作品詳細ページURL
-            url_s = "http://nijie.info/view_popup.php?id={}".format(r)
+            url_s = "https://nijie.info/view_popup.php?id={}".format(r)
             expect = int(r)
             actual = lsn_cont.GetIllustId(url_s)
             self.assertEqual(expect, actual)
 
             # サフィックスエラー
-            url_s = "http://nijie.info/view.php?id={}&rank=1".format(r)
+            url_s = "https://nijie.info/view.php?id={}&rank=1".format(r)
             expect = -1
             actual = lsn_cont.GetIllustId(url_s)
             self.assertEqual(expect, actual)
@@ -460,7 +460,7 @@ class TestLSNijie(unittest.TestCase):
             # 一枚絵, 漫画, うごイラ一枚, うごイラ複数 をそれぞれチェック
             illust_ids = [251267, 251197, 414793, 409587]
             for illust_id in illust_ids:
-                illust_url = "http://nijie.info/view.php?id={}".format(illust_id)
+                illust_url = "https://nijie.info/view.php?id={}".format(illust_id)
                 res = lsn_cont.DownloadIllusts(illust_url, str(self.TBP))
                 self.assertEqual(0, res)  # どれも初めてDLしたはずなので返り値は0
 
@@ -489,7 +489,7 @@ class TestLSNijie(unittest.TestCase):
             
             # 2回目のDLをシミュレート
             for illust_id in illust_ids:
-                illust_url = "http://nijie.info/view.php?id={}".format(illust_id)
+                illust_url = "https://nijie.info/view.php?id={}".format(illust_id)
                 res = lsn_cont.DownloadIllusts(illust_url, str(self.TBP))
                 self.assertEqual(1, res)  # 2回目のDLなので返り値は1
 
