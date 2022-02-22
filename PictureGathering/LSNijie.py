@@ -319,8 +319,10 @@ class LSNijie(LinkSearchBase.LinkSearchBase):
             logger.error("DetailPageAnalysis error")
             return ([], "", -1, "")
 
-        # 作者IDは1枚目の画像ファイル名に含まれている
-        author_id = int(Path(urls[0]).name.split("_")[0])
+        # 作者IDを1枚目の直リンクから取得する
+        ps = urllib.parse.urlparse(urls[0]).path
+        pt = ps.split("/")[-3]
+        author_id = int(pt)
 
         # 作品タイトル、作者名はページタイトルから取得する
         title_tag = soup.find("title")

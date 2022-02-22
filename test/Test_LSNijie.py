@@ -54,26 +54,25 @@ class TestLSNijie(unittest.TestCase):
             illust_name (str): イラスト名
         """
         urls = {
-            "251267": ["http://pic.nijie.net/05/nijie_picture/21030_20180226022216_0.jpg"],
-            "251197": ["http://pic.nijie.net/05/nijie_picture/21030_20180225212822_0.jpg",
-                       "http://pic.nijie.net/02/nijie_picture/diff/main/21030_20180225212823_0.jpg",
-                       "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212824_1.jpg",
-                       "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212824_2.jpg",
-                       "http://pic.nijie.net/02/nijie_picture/diff/main/21030_20180225212824_3.jpg",
-                       "http://pic.nijie.net/04/nijie_picture/diff/main/21030_20180225212825_4.jpg",
-                       "http://pic.nijie.net/01/nijie_picture/diff/main/21030_20180225212827_5.jpg",
-                       "http://pic.nijie.net/01/nijie_picture/diff/main/21030_20180225212828_6.jpg",
-                       "http://pic.nijie.net/05/nijie_picture/diff/main/21030_20180225212828_7.jpg",
-                       "http://pic.nijie.net/04/nijie_picture/diff/main/21030_20180225212828_8.jpg"],
-            "414793": ["http://pic.nijie.net/06/nijie_picture/4112_20210207002919_0.mp4"],
-            "409587": ["http://pic.nijie.net/06/nijie_picture/317190_20210107221003_0.gif",
-                       "http://pic.nijie.net/01/nijie_picture/diff/main/409587_317190_20210107221005_0.mp4",
-                       "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221006_1.gif",
-                       "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221006_2.gif",
-                       "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221007_3.gif",
-                       "http://pic.nijie.net/06/nijie_picture/diff/main/409587_317190_20210107221007_4.gif",
-                       "http://pic.nijie.net/06/nijie_picture/diff/main/409587_5_317190_20210108181522.gif"]
-        }
+            "251267": ["http://pic.nijie.net/02/nijie/18/30/21030/illust/0_0_aadcf2ddf1b24ec1_27436f.jpg"],
+            "251197": ["http://pic.nijie.net/04/nijie/18/30/21030/illust/0_0_f3a05ba40da77873_1e5108.jpg",
+                       "http://pic.nijie.net/02/nijie/18/30/21030/illust/251197_0_61e4cc9ff488f539_ff500b.jpg",
+                       "http://pic.nijie.net/02/nijie/18/30/21030/illust/251197_1_d15b069661da1e90_99b04d.jpg",
+                       "http://pic.nijie.net/02/nijie/18/30/21030/illust/251197_2_922a9f211aeda3ad_c6dd7d.jpg",
+                       "http://pic.nijie.net/05/nijie/18/30/21030/illust/251197_3_a415cdb83be3cbb2_b95ac5.jpg",
+                       "http://pic.nijie.net/02/nijie/18/30/21030/illust/251197_4_b67e46da22829b5f_8cd1a6.jpg",
+                       "http://pic.nijie.net/02/nijie/18/30/21030/illust/251197_5_604330bb9efe6c4a_5b5153.jpg",
+                       "http://pic.nijie.net/01/nijie/18/30/21030/illust/251197_6_c08214f63c465e95_3770c9.jpg",
+                       "http://pic.nijie.net/04/nijie/18/30/21030/illust/251197_7_12c18a1ab3035fdf_8fdf81.jpg",
+                       "http://pic.nijie.net/06/nijie/18/30/21030/illust/251197_8_4e959a4eaf40e12f_36a31b.jpg"],
+            "414793": ["http://pic.nijie.net/02/nijie/21/12/4112/illust/0_0_7b961718be635818_8749ce.mp4"],
+            "409587": ["http://pic.nijie.net/03/nijie/21/90/317190/illust/0_0_41ceff3011c776b5_110325.gif",
+                       "http://pic.nijie.net/03/nijie/21/90/317190/illust/409587_1_216c24162ce6f7ba_618464.gif",
+                       "http://pic.nijie.net/08/nijie/21/90/317190/illust/409587_2_b069a13911b8e8e6_e02a06.gif",
+                       "http://pic.nijie.net/04/nijie/21/90/317190/illust/409587_0_cc566cefc4610854_95eb20.mp4",
+                       "http://pic.nijie.net/05/nijie/21/90/317190/illust/409587_3_bf531ab4782e9563_6d8309.gif",
+                       "http://pic.nijie.net/03/nijie/21/90/317190/illust/409587_4_4ada8109042eb838_7a3e61.gif",
+                       "http://pic.nijie.net/06/nijie/21/90/317190/illust/409587_5_dc7f138c8c76338b_9f97cf.gif"]        }
         cols = ["illust_id", "urls", "author_name", "author_id", "illust_name"]
         data = {
             "251267": [urls["251267"], "author_name_1", 21030, "一枚絵"],
