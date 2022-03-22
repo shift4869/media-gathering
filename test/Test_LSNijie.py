@@ -312,11 +312,19 @@ class TestLSNijie(unittest.TestCase):
             lsn_cont = LSNijie.LSNijie(self.email, self.password, self.TEST_BASE_PATH)
 
             # 正常系
-            # 作品ページURL
+            # 作品ページURL(http)
+            url_s = "http://nijie.info/view.php?id=251267"
+            self.assertEqual(True, lsn_cont.IsTargetUrl(url_s))
+
+            # 作品詳細ページURL(http)
+            url_s = "http://nijie.info/view_popup.php?id=251267"
+            self.assertEqual(True, lsn_cont.IsTargetUrl(url_s))
+
+            # 作品ページURL(https)
             url_s = "https://nijie.info/view.php?id=251267"
             self.assertEqual(True, lsn_cont.IsTargetUrl(url_s))
 
-            # 作品詳細ページURL
+            # 作品詳細ページURL(https)
             url_s = "https://nijie.info/view_popup.php?id=251267"
             self.assertEqual(True, lsn_cont.IsTargetUrl(url_s))
 
@@ -327,10 +335,6 @@ class TestLSNijie(unittest.TestCase):
 
             # 全く関係ないアドレス(pixiv)
             url_s = "https://www.pixiv.net/artworks/24010650"
-            self.assertEqual(False, lsn_cont.IsTargetUrl(url_s))
-
-            # httpsでなくhttp
-            url_s = "http://nijie.info/view_popup.php?id=251267"
             self.assertEqual(False, lsn_cont.IsTargetUrl(url_s))
 
             # nijieの別ページ
