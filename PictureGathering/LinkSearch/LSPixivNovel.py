@@ -5,8 +5,6 @@ import urllib
 import re
 from logging import INFO, getLogger
 from pathlib import Path
-from time import sleep
-from typing import List
 
 import emoji
 from bs4 import BeautifulSoup
