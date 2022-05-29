@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import emoji
 from pixivpy3 import AppPixivAPI
 
-from PictureGathering.LinkSearch.PixivNovelURL import PixivNovelURL
+from PictureGathering.LinkSearch.PixivNovel.PixivNovelURL import PixivNovelURL
 
 
 @dataclass(frozen=True)

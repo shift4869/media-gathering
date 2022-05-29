@@ -6,11 +6,11 @@ from logging import INFO, getLogger
 from pixivpy3 import AppPixivAPI
 
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase
-from PictureGathering.LinkSearch.PixivIllustDownloader import PixivIllustDownloader
-from PictureGathering.LinkSearch.PixivSaveDirectoryPath import PixivSaveDirectoryPath
+from PictureGathering.LinkSearch.Pixiv.PixivIllustDownloader import PixivIllustDownloader
+from PictureGathering.LinkSearch.Pixiv.PixivSaveDirectoryPath import PixivSaveDirectoryPath
 from PictureGathering.LinkSearch.URL import URL
-from PictureGathering.LinkSearch.PixivWorkURL import PixivWorkURL
-from PictureGathering.LinkSearch.PixivIllustURLList import PixivIllustURLList
+from PictureGathering.LinkSearch.Pixiv.PixivWorkURL import PixivWorkURL
+from PictureGathering.LinkSearch.Pixiv.PixivIllustURLList import PixivIllustURLList
 from PictureGathering.LinkSearch.Username import Username
 from PictureGathering.LinkSearch.Password import Password
 

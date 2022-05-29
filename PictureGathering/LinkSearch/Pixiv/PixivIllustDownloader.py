@@ -9,9 +9,9 @@ from typing import ClassVar
 
 from pixivpy3 import AppPixivAPI
 
-from PictureGathering.LinkSearch.PixivIllustURLList import PixivIllustURLList
-from PictureGathering.LinkSearch.PixivSaveDirectoryPath import PixivSaveDirectoryPath
-from PictureGathering.LinkSearch.PixivUgoiraDownloader import PixivUgoiraDownloader
+from PictureGathering.LinkSearch.Pixiv.PixivIllustURLList import PixivIllustURLList
+from PictureGathering.LinkSearch.Pixiv.PixivSaveDirectoryPath import PixivSaveDirectoryPath
+from PictureGathering.LinkSearch.Pixiv.PixivUgoiraDownloader import PixivUgoiraDownloader
 
 logger = getLogger("root")
 logger.setLevel(INFO)

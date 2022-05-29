@@ -7,9 +7,9 @@ from pixivpy3 import AppPixivAPI
 
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase
 from PictureGathering.LinkSearch.Password import Password
-from PictureGathering.LinkSearch.PixivNovelDownloader import PixivNovelDownloader
-from PictureGathering.LinkSearch.PixivNovelSaveDirectoryPath import PixivNovelSaveDirectoryPath
-from PictureGathering.LinkSearch.PixivNovelURL import PixivNovelURL
+from PictureGathering.LinkSearch.PixivNovel.PixivNovelDownloader import PixivNovelDownloader
+from PictureGathering.LinkSearch.PixivNovel.PixivNovelSaveDirectoryPath import PixivNovelSaveDirectoryPath
+from PictureGathering.LinkSearch.PixivNovel.PixivNovelURL import PixivNovelURL
 from PictureGathering.LinkSearch.URL import URL
 from PictureGathering.LinkSearch.Username import Username
 
@@ -114,6 +114,6 @@ if __name__ == "__main__":
 
     base_path = Path("./PictureGathering/LinkSearch/")
     if config["pixiv"].getboolean("is_pixiv_trace"):
-        pa_cont = PixivFetcher(Username(config["pixiv"]["username"]), Password(config["pixiv"]["password"]), base_path)
+        pa_cont = PixivNovelFetcher(Username(config["pixiv"]["username"]), Password(config["pixiv"]["password"]), base_path)
         work_url = "https://www.pixiv.net/artworks/86704541"
         pa_cont.run(work_url)

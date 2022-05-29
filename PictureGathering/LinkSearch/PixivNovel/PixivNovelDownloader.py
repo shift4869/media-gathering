@@ -7,9 +7,9 @@ from typing import ClassVar
 from bs4 import BeautifulSoup
 from pixivpy3 import AppPixivAPI
 
-from PictureGathering.LinkSearch.PixivNovelSaveDirectoryPath import PixivNovelSaveDirectoryPath
-from PictureGathering.LinkSearch.PixivNovelURL import PixivNovelURL
-from PictureGathering.LinkSearch.PixivSaveDirectoryPath import PixivSaveDirectoryPath
+from PictureGathering.LinkSearch.PixivNovel.PixivNovelSaveDirectoryPath import PixivNovelSaveDirectoryPath
+from PictureGathering.LinkSearch.PixivNovel.PixivNovelURL import PixivNovelURL
+from PictureGathering.LinkSearch.Pixiv.PixivSaveDirectoryPath import PixivSaveDirectoryPath
 
 logger = getLogger("root")
 logger.setLevel(INFO)
