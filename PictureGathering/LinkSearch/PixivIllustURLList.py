@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from typing import Iterable
 
-from pixivpy3 import PixivAPI
+from pixivpy3 import AppPixivAPI
 
 from PictureGathering.LinkSearch.PixivURL import PixivURL
 from PictureGathering.LinkSearch.URL import URL
@@ -33,15 +33,13 @@ class PixivIllustURLList(Iterable):
         return self._list.__getitem__(i)
 
     @classmethod
-    def create(cls, aapi: PixivAPI, pixiv_url: PixivURL) -> "PixivIllustURLList":
+    def create(cls, aapi: AppPixivAPI, pixiv_url: PixivURL) -> "PixivIllustURLList":
         illust_id = pixiv_url.illust_id
-        if illust_id == -1:
-            return []
 
         # イラスト情報取得
         works = aapi.illust_detail(illust_id)
         if works.error or (works.illust is None):
-            return []
+            raise ValueError("PixivIllustURLList create failed.")
         work = works.illust
 
         illust_url_list = []

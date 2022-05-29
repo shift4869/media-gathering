@@ -18,7 +18,7 @@ class LinkSearcher():
     def register(self, fetcher) -> None:
         interface_check = hasattr(fetcher, "is_target_url") and hasattr(fetcher, "run")
         if not interface_check:
-            raise ValueError("Invalid fetcher.")
+            raise TypeError("Invalid fetcher.")
         self.fetcher_list.append(fetcher)
 
     def fetch(self, url: str) -> None:

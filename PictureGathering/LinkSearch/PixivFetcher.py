@@ -1,4 +1,5 @@
 # coding: utf-8
+from dataclasses import dataclass
 from pathlib import Path
 
 from logging import INFO, getLogger
@@ -17,12 +18,23 @@ logger = getLogger("root")
 logger.setLevel(INFO)
 
 
+@dataclass(frozen=True)
 class PixivFetcher(FetcherBase):
+    aapi: AppPixivAPI
+    base_path = Path
+
     def __init__(self, username: Username, password: Password, base_path: Path):
         super().__init__()
-        # self.pixiv_url = pixiv_url
-        self.aapi = self.login(username, password)
-        self.base_path = base_path
+
+        if not isinstance(username, Username):
+            raise TypeError("username is not Username.")
+        if not isinstance(password, Password):
+            raise TypeError("password is not Password.")
+        if not isinstance(base_path, Path):
+            raise TypeError("base_path is not Path.")
+
+        object.__setattr__(self, "aapi", self.login(username, password))
+        object.__setattr__(self, "base_path", base_path)
 
     def login(self, username: Username, password: Password) -> AppPixivAPI:
         aapi = AppPixivAPI()

@@ -7,7 +7,7 @@ from logging import INFO, getLogger
 from time import sleep
 from typing import ClassVar
 
-from pixivpy3 import *
+from pixivpy3 import AppPixivAPI
 
 from PictureGathering.LinkSearch.PixivIllustURLList import PixivIllustURLList
 from PictureGathering.LinkSearch.PixivSaveDirectoryPath import PixivSaveDirectoryPath
@@ -17,22 +17,32 @@ logger = getLogger("root")
 logger.setLevel(INFO)
 
 
-@dataclass
+@dataclass(frozen=True)
 class DownloadResult(enum.Enum):
     SUCCESS = enum.auto()
     PASSED = enum.auto()
     FAILED = enum.auto()
 
 
-@dataclass
+@dataclass(frozen=True)
 class PixivIllustDownloader():
-    aapi: PixivAPI
+    aapi: AppPixivAPI
     urls: PixivIllustURLList
     save_directory_path: PixivSaveDirectoryPath
     result: ClassVar[DownloadResult]
 
     def __post_init__(self):
-        self.result = self.download_illusts()
+        self._is_valid()
+        object.__setattr__(self, "result", self.download_illusts())
+
+    def _is_valid(self):
+        if not isinstance(self.aapi, AppPixivAPI):
+            raise TypeError("aapi is not AppPixivAPI.")
+        if not isinstance(self.urls, PixivIllustURLList):
+            raise TypeError("urls is not PixivIllustURLList.")
+        if not isinstance(self.save_directory_path, PixivSaveDirectoryPath):
+            raise TypeError("save_directory_path is not PixivSaveDirectoryPath.")
+        return True
 
     def download_illusts(self) -> DownloadResult:
         """pixiv作品ページURLからダウンロードする

@@ -8,29 +8,39 @@ from time import sleep
 from typing import ClassVar
 
 import emoji
-from pixivpy3 import *
+from pixivpy3 import AppPixivAPI
 from PIL import Image
 
 logger = getLogger("root")
 logger.setLevel(INFO)
 
 
-@dataclass
+@dataclass(frozen=True)
 class DownloadResult(enum.Enum):
     SUCCESS = enum.auto()
     PASSED = enum.auto()
     FAILED = enum.auto()
 
 
-@dataclass
+@dataclass(frozen=True)
 class PixivUgoiraDownloader():
-    aapi: PixivAPI
+    aapi: AppPixivAPI
     illust_id: int
     base_path: Path
     result: ClassVar[DownloadResult]
 
     def __post_init__(self):
-        self.result = self.download_ugoira()
+        self._is_valid()
+        object.__setattr__(self, "result", self.download_ugoira())
+
+    def _is_valid(self):
+        if not isinstance(self.aapi, AppPixivAPI):
+            raise TypeError("aapi is not AppPixivAPI.")
+        if not isinstance(self.illust_id, int):
+            raise TypeError("illust_id is not int.")
+        if not isinstance(self.base_path, Path):
+            raise TypeError("base_path is not Path.")
+        return True
 
     def download_ugoira(self) -> DownloadResult:
         works = self.aapi.illust_detail(self.illust_id)

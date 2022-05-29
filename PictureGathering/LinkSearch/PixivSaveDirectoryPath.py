@@ -4,25 +4,30 @@ from pathlib import Path
 from dataclasses import dataclass
 
 import emoji
-from pixivpy3 import *
+from pixivpy3 import AppPixivAPI
 
 from PictureGathering.LinkSearch.PixivURL import PixivURL
 
 
-@dataclass
+@dataclass(frozen=True)
 class PixivSaveDirectoryPath():
     path: Path
 
+    def __post_init__(self):
+        self._is_valid()
+
+    def _is_valid(self):
+        if not isinstance(self.path, Path):
+            raise TypeError("path is not Path.")
+        return True
+
     @classmethod
-    def create(cls, aapi: PixivAPI, pixiv_url: PixivURL, base_path: Path) -> "PixivSaveDirectoryPath":
-        
+    def create(cls, aapi: AppPixivAPI, pixiv_url: PixivURL, base_path: Path) -> "PixivSaveDirectoryPath":
         illust_id = pixiv_url.illust_id
-        if illust_id == -1:
-            return ""
 
         works = aapi.illust_detail(illust_id)
         if works.error or (works.illust is None):
-            return ""
+            raise ValueError("PixivSaveDirectoryPath create failed.")
         work = works.illust
 
         # パスに使えない文字をサニタイズする

@@ -1,17 +1,18 @@
 # coding: utf-8
+from dataclasses import dataclass
 import re
 from abc import ABCMeta, abstractmethod
 
 from PictureGathering.LinkSearch.URL import URL
 
 
+@dataclass(frozen=True)
 class FetcherBase(metaclass=ABCMeta):
     """外部リンク探索処理を担うクラスの基底クラス
 
     派生クラスはis_target_urlとrunをオーバーライドして実装する必要がある
     """
     def __init__(self):
-        # self.url = url
         pass
 
     @abstractmethod
