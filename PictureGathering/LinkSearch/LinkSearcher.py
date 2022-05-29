@@ -7,7 +7,7 @@ from PictureGathering.LinkSearch.Password import Password
 from PictureGathering.LinkSearch.PixivFetcher import PixivFetcher
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase
 from PictureGathering.LinkSearch.URL import URL
-from PictureGathering.LinkSearch.PixivURL import PixivURL
+from PictureGathering.LinkSearch.PixivWorkURL import PixivWorkURL
 from PictureGathering.LinkSearch.Username import Username
 
 

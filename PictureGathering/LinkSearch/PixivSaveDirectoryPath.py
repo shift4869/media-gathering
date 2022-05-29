@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import emoji
 from pixivpy3 import AppPixivAPI
 
-from PictureGathering.LinkSearch.PixivURL import PixivURL
+from PictureGathering.LinkSearch.PixivWorkURL import PixivWorkURL
 
 
 @dataclass(frozen=True)
@@ -22,7 +22,7 @@ class PixivSaveDirectoryPath():
         return True
 
     @classmethod
-    def create(cls, aapi: AppPixivAPI, pixiv_url: PixivURL, base_path: Path) -> "PixivSaveDirectoryPath":
+    def create(cls, aapi: AppPixivAPI, pixiv_url: PixivWorkURL, base_path: Path) -> "PixivSaveDirectoryPath":
         illust_id = pixiv_url.illust_id
 
         works = aapi.illust_detail(illust_id)

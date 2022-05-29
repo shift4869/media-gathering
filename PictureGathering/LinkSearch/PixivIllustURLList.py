@@ -4,7 +4,7 @@ from typing import Iterable
 
 from pixivpy3 import AppPixivAPI
 
-from PictureGathering.LinkSearch.PixivURL import PixivURL
+from PictureGathering.LinkSearch.PixivWorkURL import PixivWorkURL
 from PictureGathering.LinkSearch.URL import URL
 
 
@@ -33,7 +33,7 @@ class PixivIllustURLList(Iterable):
         return self._list.__getitem__(i)
 
     @classmethod
-    def create(cls, aapi: AppPixivAPI, pixiv_url: PixivURL) -> "PixivIllustURLList":
+    def create(cls, aapi: AppPixivAPI, pixiv_url: PixivWorkURL) -> "PixivIllustURLList":
         illust_id = pixiv_url.illust_id
 
         # イラスト情報取得

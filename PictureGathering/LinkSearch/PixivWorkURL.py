@@ -7,17 +7,17 @@ from PictureGathering.LinkSearch.URL import URL
 
 
 @dataclass
-class PixivURL():
-    """PixivURL
+class PixivWorkURL():
+    """PixivWorkURL
 
-    PixivURL を表す文字列を受け取る
-    引数がPIXIV_URL_PATTERN と一致する場合にPixivURL として受け入れる
+    PixivWorkURL を表す文字列を受け取る
+    引数がPIXIV_URL_PATTERN と一致する場合にPixivWorkURL として受け入れる
 
     Raises:
         ValueError: 引数がPIXIV_URL_PATTERN と一致しない文字列の場合
 
     Returns:
-        PixivURL: PixivURLを表すValueObject
+        PixivWorkURL: PixivWorkURLを表すValueObject
     """
     url: URL
 
@@ -52,33 +52,33 @@ class PixivURL():
 
     @classmethod
     def is_valid(cls, estimated_url: str) -> bool:
-        """PixivURLのパターンかどうかを返す
+        """PixivWorkURLのパターンかどうかを返す
 
-        このメソッドがTrueならばPixivURL インスタンスが作成できる
-        また、このメソッドがTrueならば引数のestimated_url が真にPixivURL の形式であることが判別できる
+        このメソッドがTrueならばPixivWorkURL インスタンスが作成できる
+        また、このメソッドがTrueならば引数のestimated_url が真にPixivWorkURL の形式であることが判別できる
         (v.v.)
 
         Args:
             estimated_url (str): チェック対象の候補URLを表す文字列
 
         Returns:
-            bool: 引数がPixivURL.PIXIV_URL_PATTERN パターンに則っているならばTrue,
+            bool: 引数がPixivWorkURL.PIXIV_URL_PATTERN パターンに則っているならばTrue,
                   そうでないならFalse
         """
-        return re.search(PixivURL.PIXIV_URL_PATTERN, estimated_url) is not None
+        return re.search(PixivWorkURL.PIXIV_URL_PATTERN, estimated_url) is not None
 
     @classmethod
-    def create(cls, url: str | URL) -> "PixivURL":
-        """PixivURL インスタンスを作成する
+    def create(cls, url: str | URL) -> "PixivWorkURL":
+        """PixivWorkURL インスタンスを作成する
 
         URL インスタンスを作成して
-        それをもとにしてPixivURL インスタンス作成する
+        それをもとにしてPixivWorkURL インスタンス作成する
 
         Args:
             url (str | URL): 対象URLを表す文字列 or URL
 
         Returns:
-            PixivURL: PixivURL インスタンス
+            PixivWorkURL: PixivWorkURL インスタンス
         """
         return cls(URL(url))
 
@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
     try:
         for url in urls:
-            u = PixivURL.create(url)
+            u = PixivWorkURL.create(url)
             print(u.non_query_url)
             print(u.original_url)
     except ValueError as e:

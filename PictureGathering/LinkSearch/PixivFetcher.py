@@ -9,7 +9,7 @@ from PictureGathering.LinkSearch.FetcherBase import FetcherBase
 from PictureGathering.LinkSearch.PixivIllustDownloader import PixivIllustDownloader
 from PictureGathering.LinkSearch.PixivSaveDirectoryPath import PixivSaveDirectoryPath
 from PictureGathering.LinkSearch.URL import URL
-from PictureGathering.LinkSearch.PixivURL import PixivURL
+from PictureGathering.LinkSearch.PixivWorkURL import PixivWorkURL
 from PictureGathering.LinkSearch.PixivIllustURLList import PixivIllustURLList
 from PictureGathering.LinkSearch.Username import Username
 from PictureGathering.LinkSearch.Password import Password
@@ -96,10 +96,10 @@ class PixivFetcher(FetcherBase):
         raise ValueError("pixiv auth failed.")
 
     def is_target_url(self, url: URL) -> bool:
-        return PixivURL.is_valid(url.non_query_url)
+        return PixivWorkURL.is_valid(url.non_query_url)
 
     def run(self, url: URL) -> None:
-        pixiv_url = PixivURL.create(url)
+        pixiv_url = PixivWorkURL.create(url)
         urls = PixivIllustURLList.create(self.aapi, pixiv_url)
         save_directory_path = PixivSaveDirectoryPath.create(self.aapi, pixiv_url, self.base_path)
 
