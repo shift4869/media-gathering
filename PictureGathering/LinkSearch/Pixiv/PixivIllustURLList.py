@@ -21,7 +21,7 @@ class PixivIllustURLList(Iterable):
             raise TypeError("list is not list[], invalid PixivIllustURLList.")
         if self._list:
             if not all([isinstance(r, URL) for r in self._list]):
-                raise ValueError(f"include not URL element, invalid PixivIllustURLList")
+                raise ValueError("include not URL element, invalid PixivIllustURLList")
 
     def __iter__(self):
         return self._list.__iter__()

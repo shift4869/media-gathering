@@ -3,6 +3,7 @@ import configparser
 from pathlib import Path
 
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase
+from PictureGathering.LinkSearch.Nijie.NijieFetcher import NijieFetcher
 from PictureGathering.LinkSearch.Password import Password
 from PictureGathering.LinkSearch.Pixiv.PixivFetcher import PixivFetcher
 from PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher import PixivNovelFetcher
@@ -42,13 +43,21 @@ class LinkSearcher():
 
         # pixiv登録
         c = config["pixiv"]
-        lsp = PixivFetcher(Username(c["username"]), Password(c["password"]), Path(c["save_base_path"]))
-        ls.register(lsp)
+        if c.getboolean("is_nijie_trace"):
+            fetcher = PixivFetcher(Username(c["username"]), Password(c["password"]), Path(c["save_base_path"]))
+            ls.register(fetcher)
 
         # pixivノベル登録
         c = config["pixiv"]
-        lspn = PixivNovelFetcher(Username(c["username"]), Password(c["password"]), Path(c["save_base_path"]))
-        ls.register(lspn)
+        if c.getboolean("is_nijie_trace"):
+            fetcher = PixivNovelFetcher(Username(c["username"]), Password(c["password"]), Path(c["save_base_path"]))
+            ls.register(fetcher)
+
+        # nijie登録
+        c = config["nijie"]
+        if c.getboolean("is_nijie_trace"):
+            fetcher = NijieFetcher(Username(c["email"]), Password(c["password"]), Path(c["save_base_path"]))
+            ls.register(fetcher)
 
         return ls
 
@@ -58,9 +67,9 @@ if __name__ == "__main__":
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
     CONFIG_FILE_NAME = "./config/config.ini"
 
-    url = "https://www.pixiv.net/artworks/86704541"
+    # url = "https://www.pixiv.net/artworks/86704541"
     # url = "https://www.pixiv.net/novel/show.php?id=17668373"
-    # url = "http://nijie.info/view_popup.php?id=409587"
+    url = "http://nijie.info/view_popup.php?id=251267"
     # url = "https://www.anyurl/sample/index_{}.html"
 
     CONFIG_FILE_NAME = "./config/config.ini"

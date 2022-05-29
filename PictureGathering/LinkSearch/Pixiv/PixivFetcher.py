@@ -21,7 +21,7 @@ logger.setLevel(INFO)
 @dataclass(frozen=True)
 class PixivFetcher(FetcherBase):
     aapi: AppPixivAPI
-    base_path = Path
+    base_path: Path
 
     def __init__(self, username: Username, password: Password, base_path: Path):
         super().__init__()
