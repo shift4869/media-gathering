@@ -1,14 +1,15 @@
 # coding: utf-8
 import enum
 import re
-from pathlib import Path
 from dataclasses import dataclass
 from logging import INFO, getLogger
+from pathlib import Path
 from time import sleep
 from typing import ClassVar
 
 from pixivpy3 import AppPixivAPI
 
+from PictureGathering.LinkSearch.Pixiv.Illustid import Illustid
 from PictureGathering.LinkSearch.Pixiv.PixivIllustURLList import PixivIllustURLList
 from PictureGathering.LinkSearch.Pixiv.PixivSaveDirectoryPath import PixivSaveDirectoryPath
 from PictureGathering.LinkSearch.Pixiv.PixivUgoiraDownloader import PixivUgoiraDownloader
@@ -100,7 +101,7 @@ class PixivIllustDownloader():
             regex = re.compile(r'.*\(([0-9]*)\)$')
             result = regex.match(sd_path.name)
             if result:
-                illust_id = int(result.group(1))
+                illust_id = Illustid(int(result.group(1))).id
                 res = PixivUgoiraDownloader(self.aapi, illust_id, sd_path.parent).result
         else:  # エラー
             raise ValueError("download pixiv illust failed.")

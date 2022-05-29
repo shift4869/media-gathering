@@ -1,11 +1,13 @@
 # coding: utf-8
 import re
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 
-import emoji
 from pixivpy3 import AppPixivAPI
 
+from PictureGathering.LinkSearch.Pixiv.Authorid import Authorid
+from PictureGathering.LinkSearch.Pixiv.Authorname import Authorname
+from PictureGathering.LinkSearch.Pixiv.Illustname import Illustname
 from PictureGathering.LinkSearch.Pixiv.PixivWorkURL import PixivWorkURL
 
 
@@ -23,7 +25,7 @@ class PixivSaveDirectoryPath():
 
     @classmethod
     def create(cls, aapi: AppPixivAPI, pixiv_url: PixivWorkURL, base_path: Path) -> "PixivSaveDirectoryPath":
-        illust_id = pixiv_url.illust_id
+        illust_id = pixiv_url.illust_id.id
 
         works = aapi.illust_detail(illust_id)
         if works.error or (works.illust is None):
@@ -31,13 +33,9 @@ class PixivSaveDirectoryPath():
         work = works.illust
 
         # パスに使えない文字をサニタイズする
-        # TODO::サニタイズを厳密に行う
-        regex = re.compile(r'[\\/:*?"<>|]')
-        author_name = regex.sub("", work.user.name)
-        author_name = emoji.get_emoji_regexp().sub("", author_name)
-        author_id = int(work.user.id)
-        illust_title = regex.sub("", work.title)
-        illust_title = emoji.get_emoji_regexp().sub("", illust_title)
+        author_name = Authorname(work.user.name).name
+        author_id = Authorid(int(work.user.id)).id
+        illust_title = Illustname(work.title).name
 
         # 既に{作者pixivID}が一致するディレクトリがあるか調べる
         IS_SEARCH_AUTHOR_ID = True

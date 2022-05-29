@@ -1,15 +1,15 @@
 # coding: utf-8
 import enum
 import re
-from pathlib import Path
 from dataclasses import dataclass
 from logging import INFO, getLogger
+from pathlib import Path
 from time import sleep
 from typing import ClassVar
 
 import emoji
-from pixivpy3 import AppPixivAPI
 from PIL import Image
+from pixivpy3 import AppPixivAPI
 
 logger = getLogger("root")
 logger.setLevel(INFO)

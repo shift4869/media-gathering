@@ -34,7 +34,7 @@ class PixivIllustURLList(Iterable):
 
     @classmethod
     def create(cls, aapi: AppPixivAPI, pixiv_url: PixivWorkURL) -> "PixivIllustURLList":
-        illust_id = pixiv_url.illust_id
+        illust_id = pixiv_url.illust_id.id
 
         # イラスト情報取得
         works = aapi.illust_detail(illust_id)

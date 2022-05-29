@@ -1,8 +1,9 @@
 # coding: utf-8
 import re
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 
+from PictureGathering.LinkSearch.Pixiv.Illustid import Illustid
 from PictureGathering.LinkSearch.URL import URL
 
 
@@ -33,10 +34,10 @@ class PixivWorkURL():
             raise ValueError("URL is not Pixiv URL.")
 
     @property
-    def illust_id(self) -> int:
+    def illust_id(self) -> Illustid:
         tail = Path(self.non_query_url).name
         illust_id = int(tail)
-        return illust_id
+        return Illustid(illust_id)
 
     @property
     def non_query_url(self) -> str:
