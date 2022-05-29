@@ -11,7 +11,7 @@ import emoji
 import requests
 from bs4 import BeautifulSoup
 
-from PictureGathering import LinkSearchBase
+from PictureGathering.LinkSearch import LinkSearchBase
 
 logger = getLogger("root")
 logger.setLevel(INFO)

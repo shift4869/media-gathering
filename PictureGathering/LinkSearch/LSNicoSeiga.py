@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
-from PictureGathering import LinkSearchBase
+from PictureGathering.LinkSearch import LinkSearchBase
 
 logger = getLogger("root")
 logger.setLevel(INFO)

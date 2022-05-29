@@ -27,7 +27,7 @@ import slackweb
 from requests_oauthlib import OAuth1Session
 
 from PictureGathering import WriteHTML, Archiver, GoogleDrive
-from PictureGathering import LinkSearchBase, LSPixiv, LSPixivNovel, LSNijie, LSNicoSeiga, LSSkeb
+from PictureGathering.LinkSearch import LinkSearchBase, LSPixiv, LSPixivNovel, LSNijie, LSNicoSeiga, LSSkeb
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 logger = getLogger("root")

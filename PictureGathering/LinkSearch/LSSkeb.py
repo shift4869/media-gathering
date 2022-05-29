@@ -15,7 +15,7 @@ import requests
 from PIL import Image
 from requests_html import HTMLSession
 
-from PictureGathering import LinkSearchBase
+from PictureGathering.LinkSearch import LinkSearchBase
 
 logger = getLogger("root")
 logger.setLevel(INFO)
