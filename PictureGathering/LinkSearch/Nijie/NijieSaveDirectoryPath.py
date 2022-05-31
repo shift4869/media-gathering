@@ -22,11 +22,11 @@ class NijieSaveDirectoryPath():
         return True
 
     @classmethod
-    def create(cls, novel_url: NijieURL, base_path: Path, illust_info: NijiePageInfo) -> "NijieSaveDirectoryPath":
+    def create(cls, nijie_url: NijieURL, base_path: Path, illust_info: NijiePageInfo) -> "NijieSaveDirectoryPath":
         author_name = illust_info.authorname.name
         author_id = illust_info.authorid.id
         illust_name = illust_info.illustname.name
-        illust_id = novel_url.illust_id
+        illust_id = nijie_url.illust_id.id
 
         # パスに使えない文字をサニタイズする
         # TODO::サニタイズを厳密に行う

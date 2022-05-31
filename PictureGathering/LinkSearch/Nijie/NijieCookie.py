@@ -19,7 +19,7 @@ class NijieCookie():
         if not isinstance(self._cookies, requests.cookies.RequestsCookieJar):
             raise TypeError("_cookies is not requests.cookies.RequestsCookieJar.")
         if not isinstance(self._headers, dict):
-            raise TypeError("_cookies is not requests.cookies.RequestsCookieJar.")
+            raise TypeError("_headers is not dict.")
 
         if not (self._headers and self._cookies):
             return ValueError("NijieCookie _headers or _cookies is invalid.")

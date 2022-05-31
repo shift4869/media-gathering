@@ -47,7 +47,7 @@ class NijieDownloader():
         return True
 
     def download_illusts(self) -> DownloadResult:
-        illust_id = self.nijie_url.illust_id
+        illust_id = self.nijie_url.illust_id.id
 
         # 作品詳細ページをGET
         illust_url = f"http://nijie.info/view_popup.php?id={illust_id}"

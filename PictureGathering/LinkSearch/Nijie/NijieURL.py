@@ -3,6 +3,7 @@ import re
 import urllib.parse
 from dataclasses import dataclass
 
+from PictureGathering.LinkSearch.Nijie.Illustid import Illustid
 from PictureGathering.LinkSearch.URL import URL
 
 
@@ -34,11 +35,12 @@ class NijieURL():
             raise ValueError("URL is not Nijie URL.")
 
     @property
-    def illust_id(self) -> int:
+    def illust_id(self) -> Illustid:
         original_url = self.url.original_url
         qs = urllib.parse.urlparse(original_url).query
         qd = urllib.parse.parse_qs(qs)
-        return int(qd.get("id", [-1])[0])
+        illust_id_num = int(qd.get("id", [-1])[0])
+        return Illustid(illust_id_num)
 
     @property
     def non_query_url(self) -> str:
