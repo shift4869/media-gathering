@@ -38,8 +38,8 @@ class NijieFetcher(FetcherBase):
         バリデーションとクッキー取得
 
         Args:
-            username (Username): pixivログイン用ユーザーID
-            password (Password):  pixivログイン用パスワード
+            username (Username): nijieログイン用ユーザーID
+            password (Password):  nijieログイン用パスワード
             base_path (Path): 保存ディレクトリベースパス
         """
         super().__init__()

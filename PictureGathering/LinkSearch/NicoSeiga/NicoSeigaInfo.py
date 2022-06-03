@@ -1,15 +1,10 @@
 # coding: utf-8
 from dataclasses import dataclass
-from logging import INFO, getLogger
 
 from PictureGathering.LinkSearch.NicoSeiga.Authorid import Authorid
 from PictureGathering.LinkSearch.NicoSeiga.Authorname import Authorname
 from PictureGathering.LinkSearch.NicoSeiga.Illustid import Illustid
 from PictureGathering.LinkSearch.NicoSeiga.Illustname import Illustname
-
-
-logger = getLogger("root")
-logger.setLevel(INFO)
 
 
 @dataclass(frozen=True)
@@ -19,10 +14,10 @@ class NicoSeigaInfo():
     Returns:
         NicoSeigaInfo: NicoSeigaInfoを表すValueObject
     """
-    illustid: Illustid
-    illustname: Illustname
-    authorid: Authorid
-    authorname: Authorname
+    illust_id: Illustid
+    illust_name: Illustname
+    author_id: Authorid
+    author_name: Authorname
 
     def __post_init__(self) -> None:
         """初期化処理
@@ -32,28 +27,21 @@ class NicoSeigaInfo():
         self._is_valid()
 
     def _is_valid(self) -> bool:
-        if not isinstance(self.illustid, Illustid):
-            raise TypeError("illustid must be Illustid.")
-        if not isinstance(self.illustname, Illustname):
-            raise TypeError("illustname must be Illustname.")
-        if not isinstance(self.authorid, Authorid):
-            raise TypeError("authorid must be Authorid.")
-        if not isinstance(self.authorname, Authorname):
-            raise TypeError("authorname must be Authorname.")
+        if not isinstance(self.illust_id, Illustid):
+            raise TypeError("illust_id must be Illustid.")
+        if not isinstance(self.illust_name, Illustname):
+            raise TypeError("illust_name must be Illustname.")
+        if not isinstance(self.author_id, Authorid):
+            raise TypeError("author_id must be Authorid.")
+        if not isinstance(self.author_name, Authorname):
+            raise TypeError("author_name must be Authorname.")
         return True
 
 
 if __name__ == "__main__":
-    urls = [
-        "https://www.pixiv.net/artworks/86704541",  # 投稿動画
-        "https://www.pixiv.net/artworks/86704541?some_query=1",  # 投稿動画(クエリつき)
-        "https://不正なURLアドレス/artworks/86704541",  # 不正なURLアドレス
-    ]
-
-    try:
-        for url in urls:
-            u = NicoSeigaInfo.create(url)
-            print(u.non_query_url)
-            print(u.original_url)
-    except ValueError as e:
-        print(e)
+    illust_id = Illustid(1234567)
+    illust_name = Illustname("作品名1")
+    author_id = Authorid(12345678)
+    author_name = Authorname("作者名1")
+    illust_info = NicoSeigaInfo(illust_id, illust_name, author_id, author_name)
+    print(illust_info)

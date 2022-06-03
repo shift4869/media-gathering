@@ -8,7 +8,9 @@ from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaInfo import NicoSeigaInfo
 
 @dataclass(frozen=True)
 class NicoSeigaSaveDirectoryPath():
-    path: Path
+    """ニコニコ静画作品の保存先ディレクトリパス
+    """
+    path: Path  # 保存先ディレクトリパス
 
     def __post_init__(self):
         self._is_valid()
@@ -20,29 +22,37 @@ class NicoSeigaSaveDirectoryPath():
 
     @classmethod
     def create(cls, illust_info: NicoSeigaInfo, base_path: Path) -> "NicoSeigaSaveDirectoryPath":
-        illust_id = illust_info.illustid.id
-        illust_name = illust_info.illustname.name
-        author_id = illust_info.authorid.id
-        author_name = illust_info.authorname.name
+        """ニコニコ静画作品の保存先ディレクトリパスを生成する
 
-        # 既に{作者nijieID}が一致するディレクトリがあるか調べる
-        IS_SEARCH_AUTHOR_ID = True
+        Args:
+            illust_info (NicoSeigaInfo): 対象の静画情報
+            base_path (Path): 保存ディレクトリベースパス
+
+        Returns:
+            NicoSeigaSaveDirectoryPath: 保存先ディレクトリパス
+                {base_path}/{作者名}({作者ID})/{作品タイトル}({作品ID})/の形を想定している
+        """
+        illust_id = illust_info.illust_id.id
+        illust_name = illust_info.illust_name.name
+        author_id = illust_info.author_id.id
+        author_name = illust_info.author_name.name
+
+        # 既に{作者ID}が一致するディレクトリがあるか調べる
         sd_path = ""
         save_path = Path(base_path)
-        if IS_SEARCH_AUTHOR_ID:
-            filelist = []
-            filelist_tp = [(sp.stat().st_mtime, sp.name) for sp in save_path.glob("*") if sp.is_dir()]
-            for mtime, path in sorted(filelist_tp, reverse=True):
-                filelist.append(path)
+        filelist = []
+        filelist_tp = [(sp.stat().st_mtime, sp.name) for sp in save_path.glob("*") if sp.is_dir()]
+        for mtime, path in sorted(filelist_tp, reverse=True):
+            filelist.append(path)
 
-            regex = re.compile(r'.*\(([0-9]*)\)$')
-            for dir_name in filelist:
-                result = regex.match(dir_name)
-                if result:
-                    ai = result.group(1)
-                    if ai == str(author_id):
-                        sd_path = f"./{dir_name}/{illust_name}({illust_id})/"
-                        break
+        regex = re.compile(r'.*\(([0-9]*)\)$')
+        for dir_name in filelist:
+            result = regex.match(dir_name)
+            if result:
+                ai = result.group(1)
+                if ai == str(author_id):
+                    sd_path = f"./{dir_name}/{illust_name}({illust_id})/"
+                    break
 
         if sd_path == "":
             sd_path = f"./{author_name}({author_id})/{illust_name}({illust_id})/"
@@ -52,16 +62,17 @@ class NicoSeigaSaveDirectoryPath():
 
 
 if __name__ == "__main__":
-    urls = [
-        "https://www.pixiv.net/artworks/86704541",  # 投稿動画
-        "https://www.pixiv.net/artworks/86704541?some_query=1",  # 投稿動画(クエリつき)
-        "https://不正なURLアドレス/artworks/86704541",  # 不正なURLアドレス
-    ]
+    from PictureGathering.LinkSearch.NicoSeiga.Authorid import Authorid
+    from PictureGathering.LinkSearch.NicoSeiga.Authorname import Authorname
+    from PictureGathering.LinkSearch.NicoSeiga.Illustid import Illustid
+    from PictureGathering.LinkSearch.NicoSeiga.Illustname import Illustname
 
-    try:
-        for url in urls:
-            u = NicoSeigaSaveDirectoryPath.create(url)
-            print(u.non_query_url)
-            print(u.original_url)
-    except ValueError as e:
-        print(e)
+    illust_id = Illustid(1234567)
+    illust_name = Illustname("作品名1")
+    author_id = Authorid(12345678)
+    author_name = Authorname("作者名1")
+    illust_info = NicoSeigaInfo(illust_id, illust_name, author_id, author_name)
+
+    base_path = Path("./PictureGathering/LinkSearch/")
+    save_directory_path = NicoSeigaSaveDirectoryPath.create(illust_info, base_path)
+    print(save_directory_path)

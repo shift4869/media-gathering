@@ -13,6 +13,8 @@ class Extension(enum.Enum):
 
 @dataclass(frozen=True)
 class IllustExtension():
+    """画像バイナリから拡張子を判別するクラス
+    """
     _extension: Extension
 
     def __post_init__(self) -> None:
@@ -25,11 +27,19 @@ class IllustExtension():
 
     @property
     def extension(self) -> str:
+        """拡張子を返す
+        """
         return str(self._extension.value)
 
     @classmethod
     def create(self, data: bytes) -> "IllustExtension":
+        """画像バイナリから拡張子を判別するし、IllustExtensionインスタンスを生成する
+        """
         ext = ""
+
+        if not isinstance(data, bytes):
+            raise TypeError("data is not bytes, invalid IllustExtension.")
+
         # プリフィックスを得るのに短すぎるbyte列の場合はエラー
         if len(data) < 8:
             raise ValueError("invalid IllustExtension")
@@ -48,15 +58,18 @@ class IllustExtension():
 
 
 if __name__ == "__main__":
-    names = [
-        "作成者1",
-        "",
+    datas = [
+        b"\xff\xd8\xff\xff\xff\xff\xff\xff",
+        b"\x89\x50\x4e\x47\x0d\x0a\x1a\x0a",
+        b"\x47\x49\x46\x38\xff\xff\xff\xff",
+        b"\xff\xff\xff\xff\xff\xff\xff\xff",
+        b"\xff\xff\xff\xff",
         -1,
     ]
 
-    for name in names:
+    for data in datas:
         try:
-            username = IllustExtension(name)
-            print(username)
+            ext = IllustExtension.create(data)
+            print(ext.extension)
         except (ValueError, TypeError) as e:
             print(e.args[0])

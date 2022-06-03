@@ -22,8 +22,8 @@ class NicoSeigaURL():
     """
     url: URL
 
-    NICOSEIGA_URL_PATTERN_1 = r"^https://seiga.nicovideo.jp/seiga/(im)[0-9]+$"
-    NICOSEIGA_URL_PATTERN_2 = r"^http://nico.ms/(im)[0-9]+$"
+    NICOSEIGA_URL_PATTERN_1 = r"^https://seiga.nicovideo.jp/seiga/(im)[0-9]+"
+    NICOSEIGA_URL_PATTERN_2 = r"^http://nico.ms/(im)[0-9]+"
 
     def __post_init__(self) -> None:
         """初期化処理
@@ -36,10 +36,12 @@ class NicoSeigaURL():
 
     @property
     def illust_id(self) -> Illustid:
+        """イラストIDを返す
+        """
         non_query_url = self.non_query_url
         tail = Path(non_query_url).name
         if tail[:2] != "im":
-            return -1
+            raise ValueError("URL is not NicoSeiga URL.")
 
         illust_id = int(tail[2:])
         return Illustid(illust_id)

@@ -4,7 +4,6 @@ import re
 from dataclasses import dataclass
 from logging import INFO, getLogger
 from pathlib import Path
-from typing import ClassVar
 
 from PictureGathering.LinkSearch.NicoSeiga.IllustExtension import IllustExtension
 from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaInfo import NicoSeigaInfo
@@ -21,19 +20,18 @@ logger.setLevel(INFO)
 class DownloadResult(enum.Enum):
     SUCCESS = enum.auto()
     PASSED = enum.auto()
-    FAILED = enum.auto()
 
 
 @dataclass(frozen=True)
 class NicoSeigaDownloader():
-    nicoseiga_url: NicoSeigaURL
-    base_path: Path
-    session: NicoSeigaSession
-    result: ClassVar[DownloadResult]
+    """ニコニコ静画作品をDLするクラス
+    """
+    nicoseiga_url: NicoSeigaURL  # ニコニコ静画作品ページURL
+    base_path: Path              # 保存ディレクトリベースパス
+    session: NicoSeigaSession    # 認証済セッション
 
     def __post_init__(self):
         self._is_valid()
-        object.__setattr__(self, "result", self.download_illusts())
 
     def _is_valid(self):
         if not isinstance(self.nicoseiga_url, NicoSeigaURL):
@@ -44,7 +42,9 @@ class NicoSeigaDownloader():
             raise TypeError("session is not NicoSeigaSession.")
         return True
 
-    def download_illusts(self) -> DownloadResult:
+    def download(self) -> DownloadResult:
+        """ニコニコ静画作品ページURLからダウンロードする
+        """
         # イラスト情報取得
         illust_id = self.nicoseiga_url.illust_id
         author_id = self.session.get_author_id(illust_id)
@@ -84,7 +84,7 @@ class NicoSeigaDownloader():
         ext = IllustExtension.create(content).extension
 
         # ファイル名設定
-        name = "{}{}".format(sd_path.name, ext)
+        name = f"{sd_path.name}{ext}"
 
         # {作者名}ディレクトリ直下に保存
         with Path(sd_path.parent / name).open(mode="wb") as fout:
@@ -95,16 +95,20 @@ class NicoSeigaDownloader():
 
 
 if __name__ == "__main__":
-    urls = [
-        "https://www.pixiv.net/artworks/86704541",  # 投稿動画
-        "https://www.pixiv.net/artworks/86704541?some_query=1",  # 投稿動画(クエリつき)
-        "https://不正なURLアドレス/artworks/86704541",  # 不正なURLアドレス
-    ]
+    import configparser
+    import logging.config
+    from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaFetcher import NicoSeigaFetcher
+    from PictureGathering.LinkSearch.Password import Password
+    from PictureGathering.LinkSearch.Username import Username
 
-    try:
-        for url in urls:
-            u = NicoSeigaSaveDirectoryPath.create(url)
-            print(u.non_query_url)
-            print(u.original_url)
-    except ValueError as e:
-        print(e)
+    logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
+    CONFIG_FILE_NAME = "./config/config.ini"
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE_NAME, encoding="utf8")
+
+    base_path = Path("./PictureGathering/LinkSearch/")
+    if config["nico_seiga"].getboolean("is_seiga_trace"):
+        fetcher = NicoSeigaFetcher(Username(config["nico_seiga"]["email"]), Password(config["nico_seiga"]["password"]), base_path)
+        illust_id = 5360137
+        illust_url = f"https://seiga.nicovideo.jp/seiga/im{illust_id}?query=1"
+        fetcher.fetch(illust_url)
