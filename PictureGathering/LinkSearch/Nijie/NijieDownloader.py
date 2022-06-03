@@ -3,15 +3,14 @@ import enum
 from dataclasses import dataclass
 from logging import INFO, getLogger
 from pathlib import Path
-from typing import ClassVar
 from time import sleep
 
 from bs4 import BeautifulSoup
 import requests
+
 from PictureGathering.LinkSearch.Nijie.NijieCookie import NijieCookie
 from PictureGathering.LinkSearch.Nijie.NijiePageInfo import NijiePageInfo
 from PictureGathering.LinkSearch.Nijie.NijieSaveDirectoryPath import NijieSaveDirectoryPath
-
 from PictureGathering.LinkSearch.Nijie.NijieURL import NijieURL
 
 
@@ -23,19 +22,18 @@ logger.setLevel(INFO)
 class DownloadResult(enum.Enum):
     SUCCESS = enum.auto()
     PASSED = enum.auto()
-    FAILED = enum.auto()
 
 
 @dataclass(frozen=True)
 class NijieDownloader():
-    nijie_url: NijieURL
-    base_path: Path
-    cookies: NijieCookie
-    result: ClassVar[DownloadResult]
+    """nijie作品をDLするクラス
+    """
+    nijie_url: NijieURL   # nijie作品ページURL
+    base_path: Path       # 保存ディレクトリベースパス
+    cookies: NijieCookie  # nijieのクッキー
 
     def __post_init__(self):
         self._is_valid()
-        object.__setattr__(self, "result", self.download_illusts())
 
     def _is_valid(self):
         if not isinstance(self.nijie_url, NijieURL):
@@ -46,8 +44,10 @@ class NijieDownloader():
             raise TypeError("cookies is not NijieCookie.")
         return True
 
-    def download_illusts(self) -> DownloadResult:
-        illust_id = self.nijie_url.illust_id.id
+    def download(self) -> DownloadResult:
+        """nijie作品ページURLから作品をダウンロードしてbase_path以下に保存する
+        """
+        illust_id = self.nijie_url.work_id.id
 
         # 作品詳細ページをGET
         illust_url = f"http://nijie.info/view_popup.php?id={illust_id}"
@@ -58,13 +58,13 @@ class NijieDownloader():
 
         # BeautifulSoupを用いてhtml解析を行う
         soup = BeautifulSoup(res.text, "html.parser")
-        illust_info = NijiePageInfo.create(soup)
+        page_info = NijiePageInfo.create(soup)
 
         # 保存先ディレクトリを取得
-        save_directory_path = NijieSaveDirectoryPath.create(self.nijie_url, self.base_path, illust_info)
+        save_directory_path = NijieSaveDirectoryPath.create(self.nijie_url, page_info, self.base_path)
         sd_path = save_directory_path.path
 
-        urls = illust_info.urls
+        urls = page_info.urls
         pages = len(urls)
         if pages > 1:  # 漫画形式、うごイラ複数
             dirname = sd_path.parent.name
@@ -85,11 +85,11 @@ class NijieDownloader():
                 res.raise_for_status()
 
                 ext = Path(url.original_url).suffix
-                file_name = "{}_{:03}{}".format(sd_path.name, i, ext)
+                file_name = f"{sd_path.name}_{i:03}{ext}"
                 with Path(sd_path / file_name).open(mode="wb") as fout:
                     fout.write(res.content)
 
-                logger.info("\t\t: " + file_name + " -> done({}/{})".format(i + 1, pages))
+                logger.info(f"\t\t: {file_name} -> done({i + 1}/{pages})")
                 sleep(0.5)
         elif pages == 1:  # 一枚絵、うごイラ一枚
             # {作者名}ディレクトリ作成
@@ -98,7 +98,7 @@ class NijieDownloader():
             # ファイル名設定
             url = urls[0]
             ext = Path(url.original_url).suffix
-            name = "{}{}".format(sd_path.name, ext)
+            name = f"{sd_path.name}{ext}"
 
             # 既に存在しているなら再DLしないでスキップ
             if (sd_path.parent / name).is_file():
@@ -120,16 +120,23 @@ class NijieDownloader():
 
 
 if __name__ == "__main__":
-    urls = [
-        "https://www.pixiv.net/artworks/86704541",  # 投稿動画
-        "https://www.pixiv.net/artworks/86704541?some_query=1",  # 投稿動画(クエリつき)
-        "https://不正なURLアドレス/artworks/86704541",  # 不正なURLアドレス
-    ]
+    import configparser
+    from PictureGathering.LinkSearch.Password import Password
+    from PictureGathering.LinkSearch.Nijie.NijieFetcher import NijieFetcher
+    from PictureGathering.LinkSearch.Username import Username
 
-    try:
-        for url in urls:
-            u = NijieSaveDirectoryPath.create(url)
-            print(u.non_query_url)
-            print(u.original_url)
-    except ValueError as e:
-        print(e)
+    CONFIG_FILE_NAME = "./config/config.ini"
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE_NAME, encoding="utf8")
+
+    base_path = Path("./PictureGathering/LinkSearch/")
+    if config["nijie"].getboolean("is_nijie_trace"):
+        fetcher = NijieFetcher(Username(config["nijie"]["email"]), Password(config["nijie"]["password"]), base_path)
+
+        illust_id = 251267  # 一枚絵
+        # illust_id = 251197  # 漫画
+        # illust_id = 414793  # うごイラ一枚
+        # illust_id = 409587  # うごイラ複数
+
+        illust_url = f"https://nijie.info/view_popup.php?id={illust_id}"
+        fetcher.fetch(illust_url)

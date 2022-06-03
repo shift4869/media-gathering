@@ -1,17 +1,18 @@
 # coding: utf-8
+import re
 import urllib.parse
 from dataclasses import dataclass
+from logging import INFO, getLogger
 from pathlib import Path
 
-from logging import INFO, getLogger
-import re
 import requests
+import requests.cookies
 
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase
-from PictureGathering.LinkSearch.Nijie.NijieDownloader import NijieDownloader
-from PictureGathering.LinkSearch.Password import Password
-from PictureGathering.LinkSearch.Nijie.NijieURL import NijieURL
 from PictureGathering.LinkSearch.Nijie.NijieCookie import NijieCookie
+from PictureGathering.LinkSearch.Nijie.NijieDownloader import NijieDownloader
+from PictureGathering.LinkSearch.Nijie.NijieURL import NijieURL
+from PictureGathering.LinkSearch.Password import Password
 from PictureGathering.LinkSearch.URL import URL
 from PictureGathering.LinkSearch.Username import Username
 
@@ -21,12 +22,26 @@ logger.setLevel(INFO)
 
 @dataclass(frozen=True)
 class NijieFetcher(FetcherBase):
-    cookies: NijieCookie
-    base_path: Path
+    """nijie作品を取得するクラス
+    """
+    cookies: NijieCookie  # nijieで使用するクッキー
+    base_path: Path       # 保存ディレクトリベースパス
 
+    # 接続時に使用するヘッダー
     HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"}
+    # ログイン情報を保持するクッキーファイル置き場
+    NIJIE_COOKIE_PATH = "./config/nijie_cookie.ini"
 
     def __init__(self, username: Username, password: Password, base_path: Path):
+        """初期化処理
+
+        バリデーションとクッキー取得
+
+        Args:
+            username (Username): pixivログイン用ユーザーID
+            password (Password):  pixivログイン用パスワード
+            base_path (Path): 保存ディレクトリベースパス
+        """
         super().__init__()
 
         if not isinstance(username, Username):
@@ -43,15 +58,13 @@ class NijieFetcher(FetcherBase):
         """nijieページにログインし、ログイン情報を保持したクッキーを返す
 
         Args:
-            email (str): nijieユーザーIDとして登録したemailアドレス
-            password (str): nijieユーザーIDのパスワード
+            username (Username): nijieユーザーID(登録したemailアドレス)
+            password (Password):  nijieユーザーIDのパスワード
 
         Returns:
-            cookies, auth_success (RequestsCookieJar, boolean): ログイン情報を保持したクッキーと認証結果の組
+            cookies (NijieCookie): ログイン情報を保持したクッキー
         """
-        # ログイン情報を保持するクッキーファイル置き場
-        NIJIE_COOKIE_PATH = "./config/nijie_cookie.ini"
-        ncp = Path(NIJIE_COOKIE_PATH)
+        ncp = Path(self.NIJIE_COOKIE_PATH)
 
         res = None
         cookies = requests.cookies.RequestsCookieJar()
@@ -124,11 +137,28 @@ class NijieFetcher(FetcherBase):
         return res
 
     def is_target_url(self, url: URL) -> bool:
+        """担当URLかどうか判定する
+
+        FetcherBaseオーバーライド
+
+        Args:
+            url (URL): 処理対象url
+
+        Returns:
+            bool: 担当urlだった場合True, そうでない場合False
+        """
         return NijieURL.is_valid(url.original_url)
 
-    def run(self, url: URL) -> None:
+    def fetch(self, url: URL) -> None:
+        """担当処理：nijie作品を取得する
+
+        FetcherBaseオーバーライド
+
+        Args:
+            url (URL): 処理対象url
+        """
         novel_url = NijieURL.create(url)
-        result = NijieDownloader(novel_url, self.base_path, self.cookies).result
+        NijieDownloader(novel_url, self.base_path, self.cookies).download()
 
 
 if __name__ == "__main__":
@@ -149,4 +179,4 @@ if __name__ == "__main__":
         # illust_id = 409587  # うごイラ複数
 
         illust_url = f"https://nijie.info/view_popup.php?id={illust_id}"
-        fetcher.run(illust_url)
+        fetcher.fetch(illust_url)

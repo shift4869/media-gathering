@@ -7,9 +7,12 @@ import requests.cookies
 
 @dataclass(frozen=True)
 class NijieCookie():
-    _cookies: requests.cookies.RequestsCookieJar
-    _headers: dict
+    """nijieのクッキー
+    """
+    _cookies: requests.cookies.RequestsCookieJar  # クッキー
+    _headers: dict                                # ヘッダー
 
+    # nijieトップページ
     NIJIE_TOP_URL = "http://nijie.info/index.php"
 
     def __post_init__(self) -> None:
@@ -33,3 +36,27 @@ class NijieCookie():
         if not (res.status_code == 200 and res.url == self.NIJIE_TOP_URL and "ニジエ - nijie" in res.text):
             raise ValueError("NijieCookie is invalid.")
         return True
+
+
+if __name__ == "__main__":
+    import configparser
+    from pathlib import Path
+    from PictureGathering.LinkSearch.Password import Password
+    from PictureGathering.LinkSearch.Nijie.NijieFetcher import NijieFetcher
+    from PictureGathering.LinkSearch.Username import Username
+
+    CONFIG_FILE_NAME = "./config/config.ini"
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE_NAME, encoding="utf8")
+
+    base_path = Path("./PictureGathering/LinkSearch/")
+    if config["nijie"].getboolean("is_nijie_trace"):
+        fetcher = NijieFetcher(Username(config["nijie"]["email"]), Password(config["nijie"]["password"]), base_path)
+
+        illust_id = 251267  # 一枚絵
+        # illust_id = 251197  # 漫画
+        # illust_id = 414793  # うごイラ一枚
+        # illust_id = 409587  # うごイラ複数
+
+        illust_url = f"https://nijie.info/view_popup.php?id={illust_id}"
+        print(fetcher.cookies)

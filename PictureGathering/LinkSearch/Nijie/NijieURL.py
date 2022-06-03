@@ -3,7 +3,7 @@ import re
 import urllib.parse
 from dataclasses import dataclass
 
-from PictureGathering.LinkSearch.Nijie.Illustid import Illustid
+from PictureGathering.LinkSearch.Nijie.Workid import Workid
 from PictureGathering.LinkSearch.URL import URL
 
 
@@ -22,8 +22,8 @@ class NijieURL():
     """
     url: URL
 
-    NIJIE_URL_PATTERN = r"^https?://nijie.info/view.php\?id=[0-9]+$"
-    NIJIE_URL_DETAIL_PATTERN = r"^https?://nijie.info/view_popup.php\?id=[0-9]+$"
+    NIJIE_URL_PATTERN = r"^https?://nijie.info/view.php\?id=[0-9]+"
+    NIJIE_URL_DETAIL_PATTERN = r"^https?://nijie.info/view_popup.php\?id=[0-9]+"
 
     def __post_init__(self) -> None:
         """初期化処理
@@ -35,12 +35,14 @@ class NijieURL():
             raise ValueError("URL is not Nijie URL.")
 
     @property
-    def illust_id(self) -> Illustid:
+    def work_id(self) -> Workid:
+        """作品IDを返す
+        """
         original_url = self.url.original_url
         qs = urllib.parse.urlparse(original_url).query
         qd = urllib.parse.parse_qs(qs)
-        illust_id_num = int(qd.get("id", [-1])[0])
-        return Illustid(illust_id_num)
+        work_id_num = int(qd.get("id", [-1])[0])
+        return Workid(work_id_num)
 
     @property
     def non_query_url(self) -> str:
@@ -91,15 +93,14 @@ class NijieURL():
 
 if __name__ == "__main__":
     urls = [
-        "https://www.pixiv.net/artworks/86704541",  # 投稿動画
-        "https://www.pixiv.net/artworks/86704541?some_query=1",  # 投稿動画(クエリつき)
+        "https://nijie.info/view_popup.php?id=12345678",
+        "https://nijie.info/view_popup.php?id=12345678?some_query=1",
         "https://不正なURLアドレス/artworks/86704541",  # 不正なURLアドレス
     ]
 
     try:
         for url in urls:
             u = NijieURL.create(url)
-            print(u.non_query_url)
             print(u.original_url)
     except ValueError as e:
         print(e)

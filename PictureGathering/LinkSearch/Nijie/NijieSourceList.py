@@ -6,7 +6,9 @@ from PictureGathering.LinkSearch.URL import URL
 
 
 @dataclass(frozen=True)
-class NijieIllustURLList(Iterable):
+class NijieSourceList(Iterable):
+    """nijie作品への直リンクリスト
+    """
     _list: list[URL]
 
     def __post_init__(self) -> None:
@@ -15,10 +17,10 @@ class NijieIllustURLList(Iterable):
         バリデーションのみ
         """
         if not isinstance(self._list, list):
-            raise TypeError("list is not list[], invalid NijieIllustURLList.")
+            raise TypeError("list is not list[], invalid NijieSourceList.")
         if self._list:
             if not all([isinstance(r, URL) for r in self._list]):
-                raise ValueError("include not URL element, invalid NijieIllustURLList")
+                raise ValueError("include not URL element, invalid NijieSourceList")
 
     def __iter__(self):
         return self._list.__iter__()
@@ -30,7 +32,7 @@ class NijieIllustURLList(Iterable):
         return self._list.__getitem__(i)
 
     @classmethod
-    def create(cls, nijie_url_list: list[URL] | list[str]) -> "NijieIllustURLList":
+    def create(cls, nijie_url_list: list[URL] | list[str]) -> "NijieSourceList":
         if not isinstance(nijie_url_list, list):
             raise TypeError("Args is not list.")
         if not nijie_url_list:
@@ -39,8 +41,11 @@ class NijieIllustURLList(Iterable):
             return cls(nijie_url_list)
         if isinstance(nijie_url_list[0], str):
             return cls([URL(r) for r in nijie_url_list])
-        raise ValueError("Create NijieIllustURLList failed.")
+        raise ValueError("Create NijieSourceList failed.")
 
 
 if __name__ == "__main__":
-    pass
+    url_base = "https://nijie.info/view_popup.php?id={}"
+    urls = [URL(url_base.format(i)) for i in range(10)]
+    nijie_url_list = NijieSourceList.create(urls)
+    print(nijie_url_list)
