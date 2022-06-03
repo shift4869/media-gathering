@@ -5,8 +5,8 @@ from typing import Iterable
 from requests_html import HTMLSession
 
 from PictureGathering.LinkSearch.Skeb.CallbackURL import CallbackURL
+from PictureGathering.LinkSearch.Skeb.SaveFilename import Extension
 from PictureGathering.LinkSearch.Skeb.SkebSourceInfo import SkebSourceInfo
-from PictureGathering.LinkSearch.Skeb.SkebSourceInfo import SourceType
 from PictureGathering.LinkSearch.Skeb.SkebToken import SkebToken
 from PictureGathering.LinkSearch.Skeb.SkebURL import SkebURL
 from PictureGathering.LinkSearch.URL import URL
@@ -65,7 +65,7 @@ class SkebSourceList(Iterable):
             src_url = img_tag.attrs.get("src", "")
             if "https://skeb.imgix.net/uploads/" in src_url or \
                "https://skeb.imgix.net/requests/" in src_url:
-                source = SkebSourceInfo(URL(src_url), SourceType.ILLUST)
+                source = SkebSourceInfo(URL(src_url), Extension.WEBP)
                 source_list.append(source)
 
         # gif
@@ -79,7 +79,7 @@ class SkebSourceList(Iterable):
             loop_a = src_tag.attrs.get("loop", "")
             src_url = src_tag.attrs.get("src", "")
             if preload_a == "auto" and autoplay_a == "autoplay" and muted_a == "muted" and loop_a == "loop" and src_url != "":
-                source = SkebSourceInfo(URL(src_url), SourceType.VIDEO)
+                source = SkebSourceInfo(URL(src_url), Extension.MP4)
                 source_list.append(source)
 
         # 動画
@@ -89,7 +89,7 @@ class SkebSourceList(Iterable):
             type = src_tag.attrs.get("type", "")
             src_url = src_tag.attrs.get("src", "")
             if type == "video/mp4" and src_url != "":
-                source = SkebSourceInfo(URL(src_url), SourceType.VIDEO)
+                source = SkebSourceInfo(URL(src_url), Extension.MP4)
                 source_list.append(source)
 
         if len(source_list) == 0:
