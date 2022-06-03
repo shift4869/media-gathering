@@ -1,7 +1,7 @@
 # coding: utf-8
-from dataclasses import dataclass
 import re
 from abc import ABCMeta, abstractmethod
+from dataclasses import dataclass
 
 from PictureGathering.LinkSearch.URL import URL
 
@@ -10,7 +10,7 @@ from PictureGathering.LinkSearch.URL import URL
 class FetcherBase(metaclass=ABCMeta):
     """外部リンク探索処理を担うクラスの基底クラス
 
-    派生クラスはis_target_urlとrunをオーバーライドして実装する必要がある
+    派生クラスはis_target_urlとfetchをオーバーライドして実装する必要がある
     """
     def __init__(self):
         pass
@@ -30,7 +30,7 @@ class FetcherBase(metaclass=ABCMeta):
         return False
 
     @abstractmethod
-    def run(self, url: URL) -> None:
+    def fetch(self, url: URL) -> None:
         """自分（担当者）が担当する処理
 
         派生クラスでオーバーライドする。
@@ -49,21 +49,19 @@ class ConcreteFetcher_0(FetcherBase):
 
     def is_target_url(self, url: URL) -> bool:
         pattern = r"^https://www.anyurl/sample/index_0.html$"
-        regex = re.compile(pattern)
-        is_target = not (regex.findall(url) == [])
+        is_target = re.search(pattern, url.original_url) is not None
         if is_target:
             print("ConcreteFetcher_0.is_target_url catch")
         return is_target
 
-    def run(self, url: URL) -> None:
-        print("ConcreteFetcher_0.run called")
+    def fetch(self, url: URL) -> None:
+        print("ConcreteFetcher_0.fetch called")
 
 
 if __name__ == "__main__":
-    ls_base = FetcherBase()
-    url = "https://www.pixiv.net/artworks/86704541"
-    # url = "http://nijie.info/view_popup.php?id=409587"
-    # url = "https://www.anyurl/sample/index_{}.html"
+    url = URL("https://www.anyurl/sample/index_0.html")
 
     # 具体的な担当者のインスタンスを生成
-    lsc = ConcreteFetcher_0()
+    fetcher = ConcreteFetcher_0()
+    print(fetcher.is_target_url(url))
+    print(fetcher.fetch(url))

@@ -2,14 +2,12 @@
 import enum
 from dataclasses import dataclass
 from logging import INFO, getLogger
-from typing import ClassVar
 
 from bs4 import BeautifulSoup
 from pixivpy3 import AppPixivAPI
 
 from PictureGathering.LinkSearch.PixivNovel.PixivNovelSaveDirectoryPath import PixivNovelSaveDirectoryPath
 from PictureGathering.LinkSearch.PixivNovel.PixivNovelURL import PixivNovelURL
-from PictureGathering.LinkSearch.Pixiv.PixivSaveDirectoryPath import PixivSaveDirectoryPath
 
 logger = getLogger("root")
 logger.setLevel(INFO)
@@ -19,21 +17,20 @@ logger.setLevel(INFO)
 class DownloadResult(enum.Enum):
     SUCCESS = enum.auto()
     PASSED = enum.auto()
-    FAILED = enum.auto()
 
 
 @dataclass(frozen=True)
 class PixivNovelDownloader():
-    aapi: AppPixivAPI
-    novel_url: PixivNovelURL
-    save_directory_path: PixivNovelSaveDirectoryPath
-    result: ClassVar[DownloadResult]
+    """pixiv小説作品をDLするクラス
+    """
+    aapi: AppPixivAPI                                 # 非公式pixivAPI操作インスタンス
+    novel_url: PixivNovelURL                          # ノベルURL
+    save_directory_path: PixivNovelSaveDirectoryPath  # 保存ディレクトリベースパス
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._is_valid()
-        object.__setattr__(self, "result", self.download_illusts())
 
-    def _is_valid(self):
+    def _is_valid(self) -> bool:
         if not isinstance(self.aapi, AppPixivAPI):
             raise TypeError("aapi is not AppPixivAPI.")
         if not isinstance(self.novel_url, PixivNovelURL):
@@ -42,27 +39,26 @@ class PixivNovelDownloader():
             raise TypeError("save_directory_path is not PixivNovelSaveDirectoryPath.")
         return True
 
-    def download_illusts(self) -> DownloadResult:
-        """pixiv作品ページURLからノベル作品をダウンロードする
+    def download(self) -> DownloadResult:
+        """ノベルURLから作品をダウンロードする
 
         Notes:
             非公式pixivAPIを通して保存する
             save_directory_pathは
             {base_path}/{作者名}({作者pixivID})/{ノベルタイトル}({ノベルID})/の形を想定している
-            save_directory_pathからノベルタイトルとノベルIDを取得し
+            作品は
             {base_path}/{作者名}({作者pixivID})/{ノベルタイトル}({ノベルID}).{拡張子}の形式で保存
-            ノベルテキスト全文はurlからノベルIDを取得し、非公式pixivAPIを利用して取得する
 
         Args:
             url (str): pixiv作品ページURL
             save_directory_path (str): 保存先フルパス
 
         Returns:
-            int: DL成功時0、スキップされた場合1、エラー時-1
+            DownloadResult: DL成功時SUCCESS, スキップされた場合PASSED
         """
         # ノベルID取得
         url = self.novel_url.original_url
-        novel_id = self.novel_url.novel_id
+        novel_id = self.novel_url.novel_id.id
 
         # ノベル詳細取得
         works = self.aapi.novel_detail(novel_id)
@@ -81,7 +77,7 @@ class PixivNovelDownloader():
 
         # ファイル名取得
         ext = ".txt"
-        name = "{}{}".format(sd_path.name, ext)
+        name = f"{sd_path.name}{ext}"
 
         # 既に存在しているなら再DLしないでスキップ
         if (sd_path.parent / name).is_file():
@@ -113,16 +109,20 @@ class PixivNovelDownloader():
 
 
 if __name__ == "__main__":
-    urls = [
-        "https://www.pixiv.net/artworks/86704541",  # 投稿動画
-        "https://www.pixiv.net/artworks/86704541?some_query=1",  # 投稿動画(クエリつき)
-        "https://不正なURLアドレス/artworks/86704541",  # 不正なURLアドレス
-    ]
+    import configparser
+    import logging.config
+    from pathlib import Path
+    from PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher import PixivNovelFetcher
+    from PictureGathering.LinkSearch.Username import Username
+    from PictureGathering.LinkSearch.Password import Password
 
-    try:
-        for url in urls:
-            u = PixivSaveDirectoryPath.create(url)
-            print(u.non_query_url)
-            print(u.original_url)
-    except ValueError as e:
-        print(e)
+    logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
+    CONFIG_FILE_NAME = "./config/config.ini"
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE_NAME, encoding="utf8")
+
+    base_path = Path("./PictureGathering/LinkSearch/")
+    if config["pixiv"].getboolean("is_pixiv_trace"):
+        fetcher = PixivNovelFetcher(Username(config["pixiv"]["username"]), Password(config["pixiv"]["password"]), base_path)
+        work_url = "https://www.pixiv.net/novel/show.php?id=3195243&query=1"
+        fetcher.fetch(work_url)

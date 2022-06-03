@@ -1,8 +1,9 @@
 # coding: utf-8
 import re
-import urllib
+import urllib.parse
 from dataclasses import dataclass
 
+from PictureGathering.LinkSearch.PixivNovel.Novelid import Novelid
 from PictureGathering.LinkSearch.URL import URL
 
 
@@ -21,7 +22,7 @@ class PixivNovelURL():
     """
     url: URL
 
-    PIXIV_NOVEL_URL_PATTERN = r"^https://www.pixiv.net/novel/show.php\?id=[0-9]+$"
+    PIXIV_NOVEL_URL_PATTERN = r"^https://www.pixiv.net/novel/show.php\?id=[0-9]+"
 
     def __post_init__(self) -> None:
         """初期化処理
@@ -30,14 +31,17 @@ class PixivNovelURL():
         """
         original_url = self.url.original_url
         if not self.is_valid(original_url):
-            raise ValueError("URL is not Pixiv URL.")
+            raise ValueError("URL is not pixiv novel URL.")
 
     @property
-    def novel_id(self) -> int:
+    def novel_id(self) -> Novelid:
+        """ノベルIDを返す
+        """
         original_url = self.url.original_url
         q = urllib.parse.urlparse(original_url).query
         qs = urllib.parse.parse_qs(q)
-        return int(qs.get("id", [-1])[0])
+        novel_id_num = int(qs.get("id", [-1])[0])
+        return Novelid(novel_id_num)
 
     @property
     def non_query_url(self) -> str:
@@ -86,15 +90,15 @@ class PixivNovelURL():
 
 if __name__ == "__main__":
     urls = [
-        "https://www.pixiv.net/artworks/86704541",  # 投稿動画
-        "https://www.pixiv.net/artworks/86704541?some_query=1",  # 投稿動画(クエリつき)
+        "https://www.pixiv.net/novel/show.php?id=3195243",  # 作品URL
+        "https://www.pixiv.net/novel/show.php?id=3195243&query=1",  # 作品URL（余分なクエリつき）
+        "https://www.pixiv.net/novel/show.php?id=",  # idが空白
         "https://不正なURLアドレス/artworks/86704541",  # 不正なURLアドレス
     ]
 
-    try:
-        for url in urls:
+    for url in urls:
+        try:
             u = PixivNovelURL.create(url)
-            print(u.non_query_url)
             print(u.original_url)
-    except ValueError as e:
-        print(e)
+        except ValueError as e:
+            print(e)

@@ -3,28 +3,44 @@ import re
 from pathlib import Path
 from dataclasses import dataclass
 
-import emoji
 from pixivpy3 import AppPixivAPI
 
+from PictureGathering.LinkSearch.PixivNovel.Authorid import Authorid
+from PictureGathering.LinkSearch.PixivNovel.Authorname import Authorname
+from PictureGathering.LinkSearch.PixivNovel.Noveltitle import Noveltitle
 from PictureGathering.LinkSearch.PixivNovel.PixivNovelURL import PixivNovelURL
 
 
 @dataclass(frozen=True)
 class PixivNovelSaveDirectoryPath():
-    path: Path
+    path: Path  # 保存先ディレクトリパス
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._is_valid()
 
-    def _is_valid(self):
+    def _is_valid(self) -> bool:
         if not isinstance(self.path, Path):
             raise TypeError("path is not Path.")
         return True
 
     @classmethod
     def create(cls, aapi: AppPixivAPI, novel_url: PixivNovelURL, base_path: Path) -> "PixivNovelSaveDirectoryPath":
+        """pixivノベル作品の保存先ディレクトリパスを生成する
+
+        Args:
+            aapi (AppPixivAPI): 非公式pixivAPI操作インスタンス
+            novel_url (PixivNovelURL): ノベルURL
+            base_path (Path): 保存ディレクトリベースパス
+
+        Raises:
+            ValueError: 非公式pixivAPI操作時エラー
+
+        Returns:
+            PixivNovelSaveDirectoryPath: 保存先ディレクトリパス
+                {base_path}/{作者名}({作者pixivID})/{ノベルタイトル}({ノベルID})/の形を想定している
+        """
         # ノベルID取得
-        novel_id = novel_url.novel_id
+        novel_id = novel_url.novel_id.id
 
         # ノベル詳細取得
         works = aapi.novel_detail(novel_id)
@@ -32,34 +48,28 @@ class PixivNovelSaveDirectoryPath():
             raise ValueError("PixivNovelSaveDirectoryPath create failed.")
         work = works.novel
 
-        # パスに使えない文字をサニタイズする
-        # TODO::サニタイズを厳密に行う
-        regex = re.compile(r'[\\/:*?"<>|]')
-        author_name = regex.sub("", work.user.name)
-        author_name = emoji.get_emoji_regexp().sub("", author_name)
-        author_id = int(work.user.id)
-        novel_title = regex.sub("", work.title)
-        novel_title = emoji.get_emoji_regexp().sub("", novel_title)
+        # ValueObject生成
+        author_name = Authorname(work.user.name).name
+        author_id = Authorid(int(work.user.id)).id
+        novel_title = Noveltitle(work.title).title
 
         # 既に{作者pixivID}が一致するディレクトリがあるか調べる
-        IS_SEARCH_AUTHOR_ID = True
         sd_path = ""
         save_path = Path(base_path)
-        if IS_SEARCH_AUTHOR_ID:
-            filelist = []
-            filelist_tp = [(sp.stat().st_mtime, sp.name) for sp in save_path.glob("*") if sp.is_dir()]
-            for mtime, path in sorted(filelist_tp, reverse=True):
-                filelist.append(path)
+        filelist = []
+        filelist_tp = [(sp.stat().st_mtime, sp.name) for sp in save_path.glob("*") if sp.is_dir()]
+        for mtime, path in sorted(filelist_tp, reverse=True):
+            filelist.append(path)
 
-            regex = re.compile(r'.*\(([0-9]*)\)$')
-            for dir_name in filelist:
-                result = regex.match(dir_name)
-                if result:
-                    ai = result.group(1)
-                    if ai == str(author_id):
-                        sd_path = f"./{dir_name}/{novel_title}({novel_id})/"
-                        break
-        
+        regex = re.compile(r'.*\(([0-9]*)\)$')
+        for dir_name in filelist:
+            result = regex.match(dir_name)
+            if result:
+                ai = result.group(1)
+                if ai == str(author_id):
+                    sd_path = f"./{dir_name}/{novel_title}({novel_id})/"
+                    break
+
         if sd_path == "":
             sd_path = f"./{author_name}({author_id})/{novel_title}({novel_id})/"
 
@@ -68,16 +78,21 @@ class PixivNovelSaveDirectoryPath():
 
 
 if __name__ == "__main__":
-    urls = [
-        "https://www.pixiv.net/artworks/86704541",  # 投稿動画
-        "https://www.pixiv.net/artworks/86704541?some_query=1",  # 投稿動画(クエリつき)
-        "https://不正なURLアドレス/artworks/86704541",  # 不正なURLアドレス
-    ]
+    import configparser
+    import logging.config
+    from pathlib import Path
+    from PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher import PixivNovelFetcher
+    from PictureGathering.LinkSearch.Username import Username
+    from PictureGathering.LinkSearch.Password import Password
 
-    try:
-        for url in urls:
-            u = PixivNovelSaveDirectoryPath.create(url)
-            print(u.non_query_url)
-            print(u.original_url)
-    except ValueError as e:
-        print(e)
+    logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
+    CONFIG_FILE_NAME = "./config/config.ini"
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE_NAME, encoding="utf8")
+
+    base_path = Path("./PictureGathering/LinkSearch/")
+    if config["pixiv"].getboolean("is_pixiv_trace"):
+        fetcher = PixivNovelFetcher(Username(config["pixiv"]["username"]), Password(config["pixiv"]["password"]), base_path)
+        work_url = "https://www.pixiv.net/novel/show.php?id=3195243"
+        save_directory_path = PixivNovelSaveDirectoryPath.create(fetcher.aapi, PixivNovelURL.create(work_url), base_path)
+        print(save_directory_path)
