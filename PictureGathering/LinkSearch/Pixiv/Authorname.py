@@ -1,6 +1,6 @@
 # coding: utf-8
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 from typing import ClassVar
 
 import emoji
@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
     for name in names:
         try:
-            username = Authorname(name)
-            print(username.name)
+            author_name = Authorname(name)
+            print(author_name.name)
         except (ValueError, TypeError) as e:
             print(e.args[0])

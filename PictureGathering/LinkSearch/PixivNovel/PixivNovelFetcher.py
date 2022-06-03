@@ -120,7 +120,7 @@ class PixivNovelFetcher(FetcherBase):
         """
         novel_url = PixivNovelURL.create(url)
         save_directory_path = PixivNovelSaveDirectoryPath.create(self.aapi, novel_url, self.base_path)
-        result = PixivNovelDownloader(self.aapi, novel_url, save_directory_path).download()
+        PixivNovelDownloader(self.aapi, novel_url, save_directory_path).download()
 
 
 if __name__ == "__main__":

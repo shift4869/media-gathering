@@ -9,8 +9,10 @@ from PictureGathering.LinkSearch.URL import URL
 
 
 @dataclass(frozen=True)
-class PixivIllustURLList(Iterable):
-    _list: list[URL]
+class PixivSourceList(Iterable):
+    """pixiv作品の直リンクURLリスト
+    """
+    _list: list[URL]  # URLリスト
 
     def __post_init__(self) -> None:
         """初期化後処理
@@ -18,10 +20,10 @@ class PixivIllustURLList(Iterable):
         バリデーションのみ
         """
         if not isinstance(self._list, list):
-            raise TypeError("list is not list[], invalid PixivIllustURLList.")
+            raise TypeError("list is not list[], invalid PixivSourceList.")
         if self._list:
             if not all([isinstance(r, URL) for r in self._list]):
-                raise ValueError("include not URL element, invalid PixivIllustURLList")
+                raise ValueError("include not URL element, invalid PixivSourceList")
 
     def __iter__(self):
         return self._list.__iter__()
@@ -33,25 +35,37 @@ class PixivIllustURLList(Iterable):
         return self._list.__getitem__(i)
 
     @classmethod
-    def create(cls, aapi: AppPixivAPI, pixiv_url: PixivWorkURL) -> "PixivIllustURLList":
-        illust_id = pixiv_url.illust_id.id
+    def create(cls, aapi: AppPixivAPI, pixiv_url: PixivWorkURL) -> "PixivSourceList":
+        """pixiv作品の直リンクを取得する
+
+        Args:
+            aapi (AppPixivAPI): 非公式pixivAPI操作インスタンス
+            pixiv_url (PixivWorkURL): 作品URL
+
+        Raises:
+            ValueError: 非公式pixivAPI操作時エラー
+
+        Returns:
+            PixivSourceList: pixiv作品の直リンクURLリスト
+        """
+        work_id = pixiv_url.work_id.id
 
         # イラスト情報取得
-        works = aapi.illust_detail(illust_id)
+        works = aapi.illust_detail(work_id)
         if works.error or (works.illust is None):
-            raise ValueError("PixivIllustURLList create failed.")
+            raise ValueError("PixivSourceList create failed.")
         work = works.illust
 
-        illust_url_list = []
+        source_list = []
         if work.page_count > 1:  # 漫画形式
             for page_info in work.meta_pages:
                 image_url = URL(page_info.image_urls.large)
-                illust_url_list.append(image_url)
+                source_list.append(image_url)
         else:  # 一枚絵
             image_url = URL(work.image_urls.large)
-            illust_url_list.append(image_url)
+            source_list.append(image_url)
 
-        return PixivIllustURLList(illust_url_list)
+        return PixivSourceList(source_list)
 
 
 if __name__ == "__main__":

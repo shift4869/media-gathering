@@ -42,12 +42,11 @@ class PixivNovelDownloader():
     def download(self) -> DownloadResult:
         """ノベルURLから作品をダウンロードする
 
-        Notes:
-            非公式pixivAPIを通して保存する
-            save_directory_pathは
-            {base_path}/{作者名}({作者pixivID})/{ノベルタイトル}({ノベルID})/の形を想定している
-            作品は
-            {base_path}/{作者名}({作者pixivID})/{ノベルタイトル}({ノベルID}).{拡張子}の形式で保存
+        非公式pixivAPIを通して保存する
+        save_directory_pathは
+        {base_path}/{作者名}({作者pixivID})/{ノベルタイトル}({ノベルID})/の形を想定している
+        作品は
+        {base_path}/{作者名}({作者pixivID})/{ノベルタイトル}({ノベルID}).{拡張子}の形式で保存
 
         Args:
             url (str): pixiv作品ページURL

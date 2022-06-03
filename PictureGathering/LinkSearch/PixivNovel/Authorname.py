@@ -1,6 +1,6 @@
 # coding: utf-8
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 from typing import ClassVar
 
 import emoji

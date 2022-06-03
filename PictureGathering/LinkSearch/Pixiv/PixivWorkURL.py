@@ -3,7 +3,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from PictureGathering.LinkSearch.Pixiv.Illustid import Illustid
+from PictureGathering.LinkSearch.Pixiv.Workid import Workid
 from PictureGathering.LinkSearch.URL import URL
 
 
@@ -22,7 +22,7 @@ class PixivWorkURL():
     """
     url: URL
 
-    PIXIV_URL_PATTERN = r"^https://www.pixiv.net/artworks/[0-9]+$"
+    PIXIV_URL_PATTERN = r"^https://www.pixiv.net/artworks/[0-9]+"
 
     def __post_init__(self) -> None:
         """初期化処理
@@ -34,10 +34,12 @@ class PixivWorkURL():
             raise ValueError("URL is not Pixiv URL.")
 
     @property
-    def illust_id(self) -> Illustid:
+    def work_id(self) -> Workid:
+        """作品IDを返す
+        """
         tail = Path(self.non_query_url).name
-        illust_id = int(tail)
-        return Illustid(illust_id)
+        work_id_num = int(tail)
+        return Workid(work_id_num)
 
     @property
     def non_query_url(self) -> str:

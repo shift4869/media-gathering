@@ -7,9 +7,9 @@ from pixivpy3 import AppPixivAPI
 
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase
 from PictureGathering.LinkSearch.Password import Password
-from PictureGathering.LinkSearch.Pixiv.PixivIllustDownloader import PixivIllustDownloader
-from PictureGathering.LinkSearch.Pixiv.PixivIllustURLList import PixivIllustURLList
 from PictureGathering.LinkSearch.Pixiv.PixivSaveDirectoryPath import PixivSaveDirectoryPath
+from PictureGathering.LinkSearch.Pixiv.PixivSourceList import PixivSourceList
+from PictureGathering.LinkSearch.Pixiv.PixivWorkDownloader import PixivWorkDownloader
 from PictureGathering.LinkSearch.Pixiv.PixivWorkURL import PixivWorkURL
 from PictureGathering.LinkSearch.URL import URL
 from PictureGathering.LinkSearch.Username import Username
@@ -20,10 +20,24 @@ logger.setLevel(INFO)
 
 @dataclass(frozen=True)
 class PixivFetcher(FetcherBase):
-    aapi: AppPixivAPI
-    base_path: Path
+    """pixiv作品を取得するクラス
+    """
+    aapi: AppPixivAPI  # 非公式pixivAPI操作インスタンス
+    base_path: Path    # 保存ディレクトリベースパス
 
-    def __init__(self, username: Username, password: Password, base_path: Path):
+    # refresh_tokenファイルパス
+    REFRESH_TOKEN_PATH = "./config/refresh_token.ini"
+
+    def __init__(self, username: Username, password: Password, base_path: Path) -> None:
+        """初期化処理
+
+        バリデーションと非公式pixivAPIインスタンス取得
+
+        Args:
+            username (Username): pixivログイン用ユーザーID
+            password (Password):  pixivログイン用パスワード
+            base_path (Path): 保存ディレクトリベースパス
+        """
         super().__init__()
 
         if not isinstance(username, Username):
@@ -37,37 +51,26 @@ class PixivFetcher(FetcherBase):
         object.__setattr__(self, "base_path", base_path)
 
     def login(self, username: Username, password: Password) -> AppPixivAPI:
+        """pixivログインして非公式pixivAPIインスタンスを取得する
+
+        Args:
+            username (Username): pixivログイン用ユーザーID
+            password (Password):  pixivログイン用パスワード
+
+        Returns:
+            aapi: AppPixivAPI非公式pixivAPI操作インスタンス
+        """
         aapi = AppPixivAPI()
 
         # 前回ログインからのrefresh_tokenが残っているか調べる
-        REFRESH_TOKEN_PATH = "./config/refresh_token.ini"
-        rt_path = Path(REFRESH_TOKEN_PATH)
+        rt_path = Path(self.REFRESH_TOKEN_PATH)
         if rt_path.is_file():
             refresh_token = ""
             with rt_path.open(mode="r") as fin:
                 refresh_token = str(fin.read())
             try:
-                '''
-                # 2021/10/14 python 3.10にてOpenSSL 1.1.1以降が必須になった影響？のためこの回避は使えなくなった
-                # また、PixivPy側でデフォルトのユーザーエージェントが修正されたためreCAPTCHAも気にしなくて良くなった
-                # 2021/06/15 reCAPTCHAを回避する
-                # https://github.com/upbit/pixivpy/issues/171#issuecomment-860264788
-                class CustomAdapter(requests.adapters.HTTPAdapter):
-                    def init_poolmanager(self, *args, **kwargs):
-                        # When urllib3 hand-rolls a SSLContext, it sets 'options |= OP_NO_TICKET'
-                        # and CloudFlare really does not like this. We cannot control this behavior
-                        # in urllib3, but we can just pass our own standard context instead.
-                        import ssl
-                        ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-                        ctx.load_default_certs()
-                        ctx.set_alpn_protocols(["http/1.1"])
-                        return super().init_poolmanager(*args, **kwargs, ssl_context=ctx)
-
-                aapi.requests = requests.Session()
-                aapi.requests.mount("https://", CustomAdapter())
-                '''
+                # 非公式pixivAPI認証
                 aapi.auth(refresh_token=refresh_token)
-
                 if aapi.access_token is not None:
                     return aapi
             except Exception:
@@ -80,7 +83,7 @@ class PixivFetcher(FetcherBase):
         # 2021/05/20 現在PixivPyで新規ログインができない
         # https://gist.github.com/ZipFile/c9ebedb224406f4f11845ab700124362
         # https://gist.github.com/upbit/6edda27cb1644e94183291109b8a5fde
-        logger.info(f"not found {REFRESH_TOKEN_PATH}")
+        logger.info(f"not found {self.REFRESH_TOKEN_PATH}")
         logger.info("please access to make refresh_token.ini for below way:")
         logger.info("https://gist.github.com/ZipFile/c9ebedb224406f4f11845ab700124362")
         logger.info(" or ")
@@ -96,14 +99,30 @@ class PixivFetcher(FetcherBase):
         raise ValueError("pixiv auth failed.")
 
     def is_target_url(self, url: URL) -> bool:
+        """担当URLかどうか判定する
+
+        FetcherBaseオーバーライド
+
+        Args:
+            url (URL): 処理対象url
+
+        Returns:
+            bool: 担当urlだった場合True, そうでない場合False
+        """
         return PixivWorkURL.is_valid(url.non_query_url)
 
-    def run(self, url: URL) -> None:
-        pixiv_url = PixivWorkURL.create(url)
-        urls = PixivIllustURLList.create(self.aapi, pixiv_url)
-        save_directory_path = PixivSaveDirectoryPath.create(self.aapi, pixiv_url, self.base_path)
+    def fetch(self, url: URL) -> None:
+        """担当処理：pixiv作品を取得する
 
-        result = PixivIllustDownloader(self.aapi, urls, save_directory_path).result
+        FetcherBaseオーバーライド
+
+        Args:
+            url (URL): 処理対象url
+        """
+        pixiv_url = PixivWorkURL.create(url)
+        source_list = PixivSourceList.create(self.aapi, pixiv_url)
+        save_directory_path = PixivSaveDirectoryPath.create(self.aapi, pixiv_url, self.base_path)
+        PixivWorkDownloader(self.aapi, source_list, save_directory_path).download()
 
 
 if __name__ == "__main__":
@@ -118,4 +137,4 @@ if __name__ == "__main__":
     if config["pixiv"].getboolean("is_pixiv_trace"):
         pa_cont = PixivFetcher(Username(config["pixiv"]["username"]), Password(config["pixiv"]["password"]), base_path)
         work_url = "https://www.pixiv.net/artworks/86704541"
-        pa_cont.run(work_url)
+        pa_cont.fetch(work_url)

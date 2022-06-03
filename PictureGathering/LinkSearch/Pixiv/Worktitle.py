@@ -1,15 +1,15 @@
 # coding: utf-8
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 from typing import ClassVar
 
 import emoji
 
 
 @dataclass(frozen=True)
-class Illustname():
-    _original_name: str
-    _name: ClassVar[str]
+class Worktitle():
+    _original_title: str
+    _title: ClassVar[str]
 
     def __post_init__(self) -> None:
         """初期化後処理
@@ -17,23 +17,23 @@ class Illustname():
         サニタイズを行う
         TODO::サニタイズを厳密に行う
         """
-        if not isinstance(self._original_name, str):
+        if not isinstance(self._original_title, str):
             raise TypeError("name is not string, invalid Authorname.")
-        if self._original_name == "":
+        if self._original_title == "":
             raise ValueError("empty string, invalid Authorname")
 
         regex = re.compile(r'[\\/:*?"<>|]')
-        trimed_name = regex.sub("", self._original_name)
-        non_emoji_name = emoji.get_emoji_regexp().sub("", trimed_name)
-        object.__setattr__(self, "_name", non_emoji_name)
+        trimed_title = regex.sub("", self._original_title)
+        non_emoji_title = emoji.get_emoji_regexp().sub("", trimed_title)
+        object.__setattr__(self, "_title", non_emoji_title)
 
     @property
-    def name(self) -> str:
-        return self._name
+    def title(self) -> str:
+        return self._title
 
 
 if __name__ == "__main__":
-    names = [
+    titles = [
         "作品名1",
         "作品名2?****//",
         "作品名3😀",
@@ -41,9 +41,9 @@ if __name__ == "__main__":
         -1,
     ]
 
-    for name in names:
+    for title in titles:
         try:
-            username = Illustname(name)
-            print(username.name)
+            work_title = Worktitle(title)
+            print(work_title.title)
         except (ValueError, TypeError) as e:
             print(e.args[0])

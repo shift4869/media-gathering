@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     for id_num in ids:
         try:
-            authorid = Authorid(id_num)
-            print(authorid)
+            author_id = Authorid(id_num)
+            print(author_id)
         except (ValueError, TypeError) as e:
             print(e.args[0])
