@@ -40,7 +40,7 @@ class SkebFetcher(FetcherBase):
         if not isinstance(base_path, Path):
             raise TypeError("base_path is not Path.")
 
-        object.__setattr__(self, "token", SkebToken.get(username, password, self.TOP_URL))
+        object.__setattr__(self, "token", SkebToken.get(username, password, self.TOP_URL, self.HEADERS))
         object.__setattr__(self, "base_path", base_path)
 
     def is_target_url(self, url: URL) -> bool:

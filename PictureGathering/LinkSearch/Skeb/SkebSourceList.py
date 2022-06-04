@@ -102,7 +102,7 @@ class SkebSourceList(Iterable):
                 source_list.append(source)
 
         if len(source_list) == 0:
-            ValueError("SkebSourceList: html analysis failed.")
+            raise ValueError("SkebSourceList: html analysis failed.")
 
         return SkebSourceList(source_list)
 

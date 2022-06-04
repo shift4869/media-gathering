@@ -1,11 +1,12 @@
 # coding: utf-8
 import asyncio
+import random
 import urllib.parse
 from dataclasses import dataclass
 from logging import INFO, getLogger
 from pathlib import Path
-from random import random
 
+from requests_html import HTMLSession
 import pyppeteer
 
 from PictureGathering.LinkSearch.Password import Password
@@ -40,7 +41,43 @@ class SkebToken():
         return True
 
     @classmethod
-    async def _get_token_from_oauth(cls, username: Username, password: Password, top_url: URL) -> "SkebToken":
+    def is_valid_token(self, top_url: URL, token_str: str, headers: dict) -> bool:
+        """トークンが有効かどうか判定する
+
+        tokenが有効かどうか検証する
+        実際にアクセスするため負荷がかかる
+
+        Args:
+            token_str (str): 検証対象のトークン
+
+        Returns:
+            bool: tokenが有効なトークンならTrue、有効でなければFalse
+        """
+        if token_str == "":
+            return False
+
+        # コールバックURLを取得する
+        request_url = f"{top_url.non_query_url}callback?path=/&token={token_str}"
+
+        # コールバック後のトップページを取得するリクエストを行う
+        session = HTMLSession()
+        response = session.get(request_url, headers=headers)
+        response.raise_for_status()
+        response.html.render(sleep=2)
+
+        # トークンが有効な場合はトップページからaccountページへのリンクが取得できる
+        # 右上のアイコンマウスオーバー時に展開されるリストから
+        # 「アカウント」メニューがあるかどうかを見ている
+        a_tags = response.html.find("a")
+        for a_tag in a_tags:
+            account_href = a_tag.attrs.get("href", "")
+            full_text = a_tag.full_text
+            if "/account" in account_href and "アカウント" == full_text:
+                return True
+        return False
+
+    @classmethod
+    async def get_token_from_oauth(cls, username: Username, password: Password, top_url: URL) -> "SkebToken":
         """ツイッターログインを行いSkebページで使うtokenを取得する
 
         Notes:
@@ -115,7 +152,7 @@ class SkebToken():
         return SkebToken(token)
 
     @classmethod
-    def get(cls, username: Username, password: Password, top_url: URL) -> "SkebToken":
+    def get(cls, username: Username, password: Password, top_url: URL, headers: dict) -> "SkebToken":
         """トークン取得
         """
         # アクセスに使用するトークンファイル置き場
@@ -131,15 +168,15 @@ class SkebToken():
 
             # 有効なトークンか確認する
             # 実際にアクセスして確認するので負荷を考えるとチェックするかどうかは微妙
-            # if(not self.IsValidToken(token)):
-            #     logger.error("Getting Skeb token is failed.")
-            #     return (None, False)
-            return SkebToken(token)
+            if(SkebToken.is_valid_token(top_url, token, headers)):
+                return SkebToken(token)
+            else:
+                logger.error("Getting Skeb token is failed.")
 
         # トークンファイルがない場合、または有効なトークンではなかった場合
         # 認証してtokenを取得する
         loop = asyncio.new_event_loop()
-        token = loop.run_until_complete(SkebToken._get_token_from_oauth(username, password, top_url))
+        token = loop.run_until_complete(SkebToken.get_token_from_oauth(username, password, top_url)).token
 
         logger.info(f"Getting Skeb token is success: {token}")
 
@@ -151,16 +188,27 @@ class SkebToken():
 
 
 if __name__ == "__main__":
-    urls = [
-        "https://www.pixiv.net/artworks/86704541",  # 投稿動画
-        "https://www.pixiv.net/artworks/86704541?some_query=1",  # 投稿動画(クエリつき)
-        "https://不正なURLアドレス/artworks/86704541",  # 不正なURLアドレス
-    ]
+    import configparser
+    import logging.config
+    from pathlib import Path
+    from PictureGathering.LinkSearch.Password import Password
+    from PictureGathering.LinkSearch.Skeb.SkebFetcher import SkebFetcher
+    from PictureGathering.LinkSearch.Username import Username
 
-    try:
-        for url in urls:
-            u = SkebToken.create(url)
-            print(u.non_query_url)
-            print(u.original_url)
-    except ValueError as e:
-        print(e)
+    logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
+    CONFIG_FILE_NAME = "./config/config.ini"
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE_NAME, encoding="utf8")
+
+    base_path = Path("./PictureGathering/LinkSearch/")
+    if config["skeb"].getboolean("is_skeb_trace"):
+        fetcher = SkebFetcher(Username(config["skeb"]["twitter_id"]), Password(config["skeb"]["twitter_password"]), base_path)
+
+        # イラスト（複数）
+        work_url = "https://skeb.jp/@matsukitchi12/works/25?query=1"
+        # 動画（単体）
+        # work_url = "https://skeb.jp/@wata_lemon03/works/7"
+        # gif画像（複数）
+        # work_url = "https://skeb.jp/@_sa_ya_/works/55"
+
+        fetcher.fetch(work_url)
