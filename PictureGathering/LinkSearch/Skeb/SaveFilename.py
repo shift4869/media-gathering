@@ -1,9 +1,9 @@
 # coding: utf-8
-from dataclasses import dataclass
 import enum
+from dataclasses import dataclass
 
 from PictureGathering.LinkSearch.Skeb.Authorname import Authorname
-from PictureGathering.LinkSearch.Skeb.Illustid import Illustid
+from PictureGathering.LinkSearch.Skeb.Workid import Workid
 
 
 @dataclass(frozen=True)
@@ -42,10 +42,10 @@ class SaveFilename():
         return self._name
 
     @classmethod
-    def create(cls, author_name: Authorname, illust_id: Illustid, index: int = -1, extension: Extension = Extension.UNKNOWN):
+    def create(cls, author_name: Authorname, illust_id: Workid, index: int = -1, extension: Extension = Extension.UNKNOWN):
         if not isinstance(author_name, Authorname):
             raise TypeError("author_name is not Authorname, invalid SaveFilename.")
-        if not isinstance(illust_id, Illustid):
+        if not isinstance(illust_id, Workid):
             raise TypeError("illust_id is not Illustid, invalid SaveFilename.")
         if not isinstance(index, int):
             raise TypeError("index is not int, invalid SaveFilename.")
@@ -64,9 +64,12 @@ class SaveFilename():
 
 if __name__ == "__main__":
     names = [
-        "作成者1",
-        "作成者2?****//",
-        "作成者3😀",
+        "作成者1_001.png",
+        "作成者1_001_000.png",
+        "作成者2?****//_001.png",
+        "作成者2?****//_001_000.png",
+        "作成者3😀****//_001.png",
+        "作成者3😀_001_000.png",
         "",
         -1,
     ]

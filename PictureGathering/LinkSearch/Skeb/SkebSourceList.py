@@ -14,11 +14,9 @@ from PictureGathering.LinkSearch.URL import URL
 
 @dataclass(frozen=True)
 class SkebSourceList(Iterable):
+    """skebの直リンク情報リスト
+    """
     _list: list[SkebSourceInfo]
-
-    HEADERS = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"
-    }
 
     def __post_init__(self) -> None:
         """初期化後処理
@@ -41,26 +39,37 @@ class SkebSourceList(Iterable):
         return self._list.__getitem__(i)
 
     @classmethod
-    def create(cls, skeb_url: SkebURL, top_url: URL, token: SkebToken) -> "SkebSourceList":
-        url = skeb_url.non_query_url
+    def create(cls, skeb_url: SkebURL, top_url: URL, token: SkebToken, headers: dict) -> "SkebSourceList":
+        """skebの直リンク情報を収集する
+
+        Args:
+            skeb_url (SkebURL): skeb作品URL
+            top_url (URL): skebトップページURL
+            token (SkebToken): 接続用トークン
+            headers (dict): 接続用ヘッダー
+
+        Returns:
+            SkebSourceList: skebの直リンク情報リスト
+        """
+        source_list = []
+
         # リクエスト用のURLを作成する
         # tokenを付与したコールバックURLを作成する
+        url = skeb_url.non_query_url
         work_path = url.replace(top_url.non_query_url, "")
         request_url = CallbackURL.create(top_url, work_path, token)
 
-        # 作品ページを取得して解析する
+        # コールバックURL軽油で作品ページを取得して解析する
         session = HTMLSession()
-        source_list = []
-
-        r = session.get(request_url.callback_url, headers=SkebSourceList.HEADERS)
-        r.raise_for_status()
-        r.html.render(sleep=2)
+        response = session.get(request_url.callback_url, headers=headers)
+        response.raise_for_status()
+        response.html.render(sleep=2)
 
         # イラスト
         # imgタグ、src属性のリンクURL形式が次のいずれかの場合
         # "https://skeb.imgix.net/uploads/"で始まる
         # "https://skeb.imgix.net/requests/"で始まる
-        img_tags = r.html.find("img")
+        img_tags = response.html.find("img")
         for img_tag in img_tags:
             src_url = img_tag.attrs.get("src", "")
             if "https://skeb.imgix.net/uploads/" in src_url or \
@@ -71,7 +80,7 @@ class SkebSourceList(Iterable):
         # gif
         # videoタグのsrc属性
         # 動画として保存する
-        src_tags = r.html.find("video")
+        src_tags = response.html.find("video")
         for src_tag in src_tags:
             preload_a = src_tag.attrs.get("preload", "")
             autoplay_a = src_tag.attrs.get("autoplay", "")
@@ -84,7 +93,7 @@ class SkebSourceList(Iterable):
 
         # 動画
         # type="video/mp4"属性を持つsourceタグのsrc属性
-        src_tags = r.html.find("source")
+        src_tags = response.html.find("source")
         for src_tag in src_tags:
             type = src_tag.attrs.get("type", "")
             src_url = src_tag.attrs.get("src", "")
@@ -93,10 +102,33 @@ class SkebSourceList(Iterable):
                 source_list.append(source)
 
         if len(source_list) == 0:
-            ValueError("GetWorkURLs : html analysis failed")
+            ValueError("SkebSourceList: html analysis failed.")
 
         return SkebSourceList(source_list)
 
 
 if __name__ == "__main__":
-    pass
+    import configparser
+    import logging.config
+    from pathlib import Path
+    from PictureGathering.LinkSearch.Password import Password
+    from PictureGathering.LinkSearch.Skeb.SkebFetcher import SkebFetcher
+    from PictureGathering.LinkSearch.Username import Username
+
+    logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
+    CONFIG_FILE_NAME = "./config/config.ini"
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE_NAME, encoding="utf8")
+
+    base_path = Path("./PictureGathering/LinkSearch/")
+    if config["skeb"].getboolean("is_skeb_trace"):
+        fetcher = SkebFetcher(Username(config["skeb"]["twitter_id"]), Password(config["skeb"]["twitter_password"]), base_path)
+
+        # イラスト（複数）
+        work_url = "https://skeb.jp/@matsukitchi12/works/25?query=1"
+        # 動画（単体）
+        # work_url = "https://skeb.jp/@wata_lemon03/works/7"
+        # gif画像（複数）
+        # work_url = "https://skeb.jp/@_sa_ya_/works/55"
+
+        fetcher.fetch(work_url)

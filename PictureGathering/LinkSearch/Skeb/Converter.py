@@ -7,7 +7,6 @@ from typing import ClassVar
 
 from PictureGathering.LinkSearch.Skeb.IllustConvertor import IllustConvertor
 from PictureGathering.LinkSearch.Skeb.SaveFilename import Extension
-from PictureGathering.LinkSearch.Skeb.SkebSaveDirectoryPath import SkebSaveDirectoryPath
 
 
 @dataclass(frozen=True)
@@ -18,10 +17,12 @@ class ConvertResult(enum.Enum):
 
 @dataclass()
 class Converter():
-    src_file_pathlist: list[Path]
-    dst_file_pathlist: ClassVar[list[Path]]
+    """DL後のファイルを変換するクラス
+    """
+    src_file_pathlist: list[Path]            # 変換対象ファイルのパスリスト
+    dst_file_pathlist: ClassVar[list[Path]]  # 変換完了後ファイルのパスリスト
 
-    # 変換マッピング
+    # 拡張子ごとの変換マッピング
     convert_map = {
         Extension.WEBP.value: Extension.PNG.value,
         Extension.MP4.value: Extension.MP4.value,
@@ -40,16 +41,27 @@ class Converter():
         return True
 
     def convert(self) -> ConvertResult:
+        """DL後のファイルを変換する
+   
+        src_file_pathlistに格納されているパスにあるファイルの拡張子を判別し
+        変換対象ならば変換する
+
+        Returns:
+            ConvertResult: 変換結果
+        """
         if len(self.src_file_pathlist) == 0:
             # 変換対象がなかった
             return ConvertResult.PASSED
 
         for src_path in self.src_file_pathlist:
+            if not src_path.is_file():
+                continue
             dst_path = None
             src_ext = src_path.suffix
             dst_ext = self.convert_map.get(src_ext, Extension.UNKNOWN.value)
 
             if src_ext == Extension.WEBP.value:
+                # .webpを.pngに変換
                 dst_path = IllustConvertor(src_path, dst_ext).convert()
             else:
                 dst_path = src_path.with_suffix(dst_ext)
@@ -60,16 +72,27 @@ class Converter():
 
 
 if __name__ == "__main__":
-    urls = [
-        "https://www.pixiv.net/artworks/86704541",  # 投稿動画
-        "https://www.pixiv.net/artworks/86704541?some_query=1",  # 投稿動画(クエリつき)
-        "https://不正なURLアドレス/artworks/86704541",  # 不正なURLアドレス
-    ]
+    import configparser
+    import logging.config
+    from pathlib import Path
+    from PictureGathering.LinkSearch.Password import Password
+    from PictureGathering.LinkSearch.Skeb.SkebFetcher import SkebFetcher
+    from PictureGathering.LinkSearch.Username import Username
 
-    try:
-        for url in urls:
-            u = SkebSaveDirectoryPath.create(url)
-            print(u.non_query_url)
-            print(u.original_url)
-    except ValueError as e:
-        print(e)
+    logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
+    CONFIG_FILE_NAME = "./config/config.ini"
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE_NAME, encoding="utf8")
+
+    base_path = Path("./PictureGathering/LinkSearch/")
+    if config["skeb"].getboolean("is_skeb_trace"):
+        fetcher = SkebFetcher(Username(config["skeb"]["twitter_id"]), Password(config["skeb"]["twitter_password"]), base_path)
+
+        # イラスト（複数）
+        work_url = "https://skeb.jp/@matsukitchi12/works/25?query=1"
+        # 動画（単体）
+        # work_url = "https://skeb.jp/@wata_lemon03/works/7"
+        # gif画像（複数）
+        # work_url = "https://skeb.jp/@_sa_ya_/works/55"
+
+        fetcher.fetch(work_url)

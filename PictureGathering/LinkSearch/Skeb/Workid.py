@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class Illustid():
+class Workid():
     _id: int
 
     def __post_init__(self) -> None:
@@ -12,9 +12,9 @@ class Illustid():
         バリデーションのみ
         """
         if not isinstance(self._id, int):
-            raise TypeError("id is not int, invalid Illustid.")
+            raise TypeError("id is not int, invalid Workid.")
         if self._id <= 0:
-            raise ValueError("invalid Illustid")
+            raise ValueError("invalid Workid")
 
     @property
     def id(self) -> int:
@@ -23,14 +23,15 @@ class Illustid():
 
 if __name__ == "__main__":
     ids = [
-        "作成者1",
-        "",
+        123,
+        0,
         -1,
+        "",
     ]
 
     for id in ids:
         try:
-            userid = Illustid(id)
+            userid = Workid(id)
             print(userid)
         except (ValueError, TypeError) as e:
             print(e.args[0])

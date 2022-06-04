@@ -3,7 +3,7 @@ import re
 from dataclasses import dataclass
 
 from PictureGathering.LinkSearch.Skeb.Authorname import Authorname
-from PictureGathering.LinkSearch.Skeb.Illustid import Illustid
+from PictureGathering.LinkSearch.Skeb.Workid import Workid
 from PictureGathering.LinkSearch.URL import URL
 
 
@@ -22,7 +22,7 @@ class SkebURL():
     """
     url: URL
 
-    SKEB_URL_PATTERN = r"^https://skeb.jp/\@(.+?)/works/([0-9]+)$"
+    SKEB_URL_PATTERN = r"^https://skeb.jp/\@(.+?)/works/([0-9]+)"
 
     def __post_init__(self) -> None:
         """初期化処理
@@ -34,11 +34,11 @@ class SkebURL():
             raise ValueError("URL is not Skeb URL.")
 
     @property
-    def illust_id(self) -> Illustid:
+    def work_id(self) -> Workid:
         m = re.match(SkebURL.SKEB_URL_PATTERN, self.url.non_query_url)
         if m:
-            return Illustid(int(m.group(2)))
-        raise ValueError("SkebURL illust_id parse failed.")
+            return Workid(int(m.group(2)))
+        raise ValueError("SkebURL work_id parse failed.")
 
     @property
     def author_name(self) -> Authorname:
@@ -94,15 +94,15 @@ class SkebURL():
 
 if __name__ == "__main__":
     urls = [
-        "https://www.pixiv.net/artworks/86704541",  # 投稿動画
-        "https://www.pixiv.net/artworks/86704541?some_query=1",  # 投稿動画(クエリつき)
+        "https://skeb.jp/@matsukitchi12/works/25?query=1",  # イラスト（複数）
+        "https://skeb.jp/@wata_lemon03/works/7",  # 動画（単体）
+        "https://skeb.jp/@_sa_ya_/works/55",  # gif画像（複数）
         "https://不正なURLアドレス/artworks/86704541",  # 不正なURLアドレス
     ]
 
     try:
         for url in urls:
             u = SkebURL.create(url)
-            print(u.non_query_url)
             print(u.original_url)
     except ValueError as e:
         print(e)

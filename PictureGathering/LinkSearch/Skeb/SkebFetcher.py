@@ -20,14 +20,17 @@ logger.setLevel(INFO)
 
 @dataclass(frozen=True)
 class SkebFetcher(FetcherBase):
-    token: SkebToken
-    base_path: Path
+    """skeb作品を取得するクラス
+    """
+    token: SkebToken  # アクセストークン
+    base_path: Path   # 保存ディレクトリベースパス
 
+    # 接続時に使用するヘッダー
     HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"}
-
+    # skebトップページ
     TOP_URL = URL("https://skeb.jp/")
 
-    def __init__(self, username: Username, password: Password, base_path: Path):
+    def __init__(self, username: Username, password: Password, base_path: Path) -> None:
         super().__init__()
 
         if not isinstance(username, Username):
@@ -41,11 +44,28 @@ class SkebFetcher(FetcherBase):
         object.__setattr__(self, "base_path", base_path)
 
     def is_target_url(self, url: URL) -> bool:
+        """担当URLかどうか判定する
+
+        FetcherBaseオーバーライド
+
+        Args:
+            url (URL): 処理対象url
+
+        Returns:
+            bool: 担当urlだった場合True, そうでない場合False
+        """
         return SkebURL.is_valid(url.non_query_url)
 
-    def run(self, url: URL) -> None:
+    def fetch(self, url: URL) -> None:
+        """担当処理：skeb作品を取得する
+
+        FetcherBaseオーバーライド
+
+        Args:
+            url (URL): 処理対象url
+        """
         skeb_url = SkebURL.create(url)
-        source_list = SkebSourceList.create(skeb_url, self.TOP_URL, self.token)
+        source_list = SkebSourceList.create(skeb_url, self.TOP_URL, self.token, self.HEADERS)
         save_directory_path = SkebSaveDirectoryPath.create(skeb_url, self.base_path)
         downloader = SkebDownloader(skeb_url, source_list, save_directory_path, self.HEADERS)
         downloader.download()
@@ -72,4 +92,4 @@ if __name__ == "__main__":
         # gif画像（複数）
         # work_url = "https://skeb.jp/@_sa_ya_/works/55"
 
-        fetcher.run(work_url)
+        fetcher.fetch(work_url)

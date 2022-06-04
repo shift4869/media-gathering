@@ -2,16 +2,18 @@
 import enum
 from dataclasses import dataclass
 from logging import INFO, getLogger
+from msilib.schema import Extension
 from pathlib import Path
 from time import sleep
 from typing import ClassVar
 
 import requests
 
-from PictureGathering.LinkSearch.Skeb.SaveFilename import SaveFilename
+from PictureGathering.LinkSearch.Skeb.SaveFilename import SaveFilename, Extension
 from PictureGathering.LinkSearch.Skeb.SkebSaveDirectoryPath import SkebSaveDirectoryPath
 from PictureGathering.LinkSearch.Skeb.SkebSourceList import SkebSourceList
 from PictureGathering.LinkSearch.Skeb.SkebURL import SkebURL
+from PictureGathering.LinkSearch.URL import URL
 
 
 logger = getLogger("root")
@@ -22,23 +24,23 @@ logger.setLevel(INFO)
 class DownloadResult(enum.Enum):
     SUCCESS = enum.auto()
     PASSED = enum.auto()
-    FAILED = enum.auto()
 
 
 @dataclass()
 class SkebDownloader():
-    skeb_url: SkebURL
-    source_list: SkebSourceList
-    save_directory_path: SkebSaveDirectoryPath
-    headers: dict
-    dl_file_pathlist: ClassVar[list[Path]]
+    """skeb作品をDLするクラス
+    """
+    skeb_url: SkebURL                           # skeb作品ページURL
+    source_list: SkebSourceList                 # 直リンク情報リスト
+    save_directory_path: SkebSaveDirectoryPath  # 保存先ディレクトリパス
+    headers: dict                               # 接続時ヘッダー
+    dl_file_pathlist: ClassVar[list[Path]]      # DL完了したファイルのパス
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._is_valid()
-        self.result = DownloadResult.FAILED
         self.dl_file_pathlist = []
 
-    def _is_valid(self):
+    def _is_valid(self) -> bool:
         if not isinstance(self.skeb_url, SkebURL):
             raise TypeError("skeb_url is not SkebURL.")
         if not isinstance(self.source_list, SkebSourceList):
@@ -50,10 +52,13 @@ class SkebDownloader():
         return True
 
     def download(self) -> DownloadResult:
+        """skeb作品をダウンロードしてsave_directory_pathに保存する
+        """
+        # 結果のパスリストをクリア
         self.dl_file_pathlist.clear()
 
         author_name = self.skeb_url.author_name
-        work_id = self.skeb_url.illust_id
+        work_id = self.skeb_url.work_id
         source_list = self.source_list
         sd_path = Path(self.save_directory_path.path)
 
@@ -70,11 +75,11 @@ class SkebDownloader():
             sd_path.mkdir(parents=True, exist_ok=True)
 
             # 作品をDLする
-            # ファイル名は{イラストタイトル}({イラストID})_{3ケタの連番}.{拡張子}
             for i, src in enumerate(source_list):
-                url = src.url
-                src_ext = src.extension
+                url: URL = src.url
+                src_ext: Extension = src.extension
 
+                # ファイル名は{イラストタイトル}_{イラストID}_{3ケタの連番}.{拡張子}
                 file_name = SaveFilename.create(author_name, work_id, i, src_ext).name
 
                 res = requests.get(url.original_url, headers=self.headers)
@@ -86,16 +91,16 @@ class SkebDownloader():
                 dst_path = sd_path / file_name
                 self.dl_file_pathlist.append(dst_path)
                 logger.info("\t\t: " + dst_path.name + " -> done({}/{})".format(i + 1, work_num))
-                #     logger.info("\t\t: " + file_name + " -> done({}/{}) , but convert failed".format(i + 1, work_num))
                 sleep(0.5)
         elif work_num == 1:  # 単一
             # {作者名}ディレクトリ作成
             sd_path.parent.mkdir(parents=True, exist_ok=True)
 
             # ファイル名設定
-            url = source_list[0].url
-            src_ext = source_list[0].extension
+            url: URL = source_list[0].url
+            src_ext: Extension = source_list[0].extension
 
+            # ファイル名は{イラストタイトル}_{イラストID}.{拡張子}
             file_name = SaveFilename.create(author_name, work_id, -1, src_ext).name
 
             # 既に存在しているなら再DLしないでスキップ
@@ -122,16 +127,27 @@ class SkebDownloader():
 
 
 if __name__ == "__main__":
-    urls = [
-        "https://www.pixiv.net/artworks/86704541",  # 投稿動画
-        "https://www.pixiv.net/artworks/86704541?some_query=1",  # 投稿動画(クエリつき)
-        "https://不正なURLアドレス/artworks/86704541",  # 不正なURLアドレス
-    ]
+    import configparser
+    import logging.config
+    from pathlib import Path
+    from PictureGathering.LinkSearch.Password import Password
+    from PictureGathering.LinkSearch.Skeb.SkebFetcher import SkebFetcher
+    from PictureGathering.LinkSearch.Username import Username
 
-    try:
-        for url in urls:
-            u = SkebSaveDirectoryPath.create(url)
-            print(u.non_query_url)
-            print(u.original_url)
-    except ValueError as e:
-        print(e)
+    logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
+    CONFIG_FILE_NAME = "./config/config.ini"
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE_NAME, encoding="utf8")
+
+    base_path = Path("./PictureGathering/LinkSearch/")
+    if config["skeb"].getboolean("is_skeb_trace"):
+        fetcher = SkebFetcher(Username(config["skeb"]["twitter_id"]), Password(config["skeb"]["twitter_password"]), base_path)
+
+        # イラスト（複数）
+        work_url = "https://skeb.jp/@matsukitchi12/works/25?query=1"
+        # 動画（単体）
+        # work_url = "https://skeb.jp/@wata_lemon03/works/7"
+        # gif画像（複数）
+        # work_url = "https://skeb.jp/@_sa_ya_/works/55"
+
+        fetcher.fetch(work_url)

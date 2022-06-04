@@ -7,8 +7,10 @@ from PictureGathering.LinkSearch.URL import URL
 
 @dataclass(frozen=True)
 class SkebSourceInfo():
-    _url: URL
-    _extension: Extension
+    """Skeb直リンク情報
+    """
+    _url: URL              # 直リンク
+    _extension: Extension  # 拡張子
 
     @property
     def url(self) -> URL:
@@ -20,17 +22,8 @@ class SkebSourceInfo():
 
 
 if __name__ == "__main__":
-    names = [
-        "作品名1",
-        "作品名2?****//",
-        "作品名3😀",
-        "",
-        -1,
-    ]
-
-    for name in names:
-        try:
-            username = SkebSourceInfo(name)
-            print(username.name)
-        except (ValueError, TypeError) as e:
-            print(e.args[0])
+    url = URL("https://skeb.jp/source_link/dummy01?query=1")
+    ext = Extension.WEBP
+    source_info = SkebSourceInfo(url, ext)
+    print(source_info.url.original_url)
+    print(source_info.extension.value)
