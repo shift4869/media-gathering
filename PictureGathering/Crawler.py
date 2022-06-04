@@ -27,7 +27,7 @@ import slackweb
 from requests_oauthlib import OAuth1Session
 
 from PictureGathering import WriteHTML, Archiver, GoogleDrive
-from PictureGathering.LinkSearch import LinkSearchBase, LSPixiv, LSPixivNovel, LSNijie, LSNicoSeiga, LSSkeb
+from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 logger = getLogger("root")
@@ -60,7 +60,7 @@ class Crawler(metaclass=ABCMeta):
         save_path (str): 画像保存先パス
         type (str): 継承先を表すタイプ識別{Fav, RT}
         db_cont (DBControllerBase): DB操作用クラス（実態はCrawler派生クラスで規定）
-        lsb (LinkSearchBase): 外部リンク探索機構ベースクラス
+        lsb (LinkSearcher): 外部リンク探索機構ベースクラス
         oath (OAuth1Session): TwitterAPI利用セッション
         add_cnt (int): 新規追加した画像の数
         del_cnt (int): 削除した画像の数
@@ -156,32 +156,8 @@ class Crawler(metaclass=ABCMeta):
             int: 成功時0
         """
         # 外部リンク探索を登録
-        self.lsb = LinkSearchBase.LinkSearchBase()
-        # pixivURLを処理する担当者を登録
-        config = self.config["pixiv"]
-        if config.getboolean("is_pixiv_trace"):
-            lsp = LSPixiv.LSPixiv(config["username"], config["password"], config["save_base_path"])
-            self.lsb.Register(lsp)
-            lspn = LSPixivNovel.LSPixivNovel(config["username"], config["password"], config["save_base_path"])
-            self.lsb.Register(lspn)
-
-        # nijieURLを処理する担当者を登録
-        config = self.config["nijie"]
-        if config.getboolean("is_nijie_trace"):
-            lsn = LSNijie.LSNijie(config["email"], config["password"], config["save_base_path"])
-            self.lsb.Register(lsn)
-
-        # ニコニコ静画のURLを処理する担当者を登録
-        config = self.config["nico_seiga"]
-        if config.getboolean("is_seiga_trace"):
-            lsns = LSNicoSeiga.LSNicoSeiga(config["email"], config["password"], config["save_base_path"])
-            self.lsb.Register(lsns)
-
-        # ニコニコ静画のURLを処理する担当者を登録
-        config = self.config["skeb"]
-        if config.getboolean("is_skeb_trace"):
-            lssk = LSSkeb.LSSkeb(config["twitter_id"], config["twitter_password"], config["save_base_path"])
-            self.lsb.Register(lssk)
+        self.lsb = LinkSearcher.create(self.config)
+        return 0
 
     def GetTwitterAPIResourceType(self, url: str) -> str:
         """使用するTwitterAPIのAPIリソースタイプを返す
@@ -476,7 +452,7 @@ class Crawler(metaclass=ABCMeta):
             urls = tweet.get("entities", {}).get("urls", [{}])
             url = urls[0].get("expanded_url")
             # 外部リンク探索が登録されている場合CoRで調べる
-            if self.lsb.CoRProcessCheck(url):
+            if self.lsb.can_fetch(url):
                 if tweet.get("id_str") not in id_str_list:
                     result.append(tweet)
                     id_str_list.append(tweet.get("id_str"))
@@ -627,12 +603,16 @@ class Crawler(metaclass=ABCMeta):
             # 取得したメディアツイートツリー（複数想定）
             for media_tweet in media_tweets:
                 # 外部リンク探索
-                if tweet.get("entities"):
-                    if tweet["entities"].get("urls"):
+                try:
+                    if tweet.get("entities", {}).get("urls", {}):
                         e_urls = tweet["entities"]["urls"]
                         for element in e_urls:
                             url = element.get("expanded_url")
-                            res = self.lsb.CoRProcessDo(url)
+                            self.lsb.fetch(url)
+                except ValueError as e:
+                    error_message = e.args[0]
+                    logger.info(f"{url} -> {error_message}")
+                    pass
 
                 if "extended_entities" not in media_tweet:
                     logger.debug("メディアを含んでいないツイートです。")

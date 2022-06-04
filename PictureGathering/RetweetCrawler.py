@@ -93,7 +93,7 @@ class RetweetCrawler(Crawler):
                             e_urls = media_tweet["entities"].get("urls")
                             for element in e_urls:
                                 expanded_url = element.get("expanded_url")
-                                if self.lsb.CoRProcessCheck(expanded_url):
+                                if self.lsb.can_fetch(expanded_url):
                                     include_new_flag = True
                         pass
                     else:

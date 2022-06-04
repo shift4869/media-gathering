@@ -3,10 +3,12 @@ import configparser
 from pathlib import Path
 
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase
+from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaFetcher import NicoSeigaFetcher
 from PictureGathering.LinkSearch.Nijie.NijieFetcher import NijieFetcher
 from PictureGathering.LinkSearch.Password import Password
 from PictureGathering.LinkSearch.Pixiv.PixivFetcher import PixivFetcher
 from PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher import PixivNovelFetcher
+from PictureGathering.LinkSearch.Skeb.SkebFetcher import SkebFetcher
 from PictureGathering.LinkSearch.URL import URL
 from PictureGathering.LinkSearch.Username import Username
 
@@ -16,7 +18,7 @@ class LinkSearcher():
         self.fetcher_list: list[FetcherBase] = []
 
     def register(self, fetcher) -> None:
-        interface_check = hasattr(fetcher, "is_target_url") and hasattr(fetcher, "run")
+        interface_check = hasattr(fetcher, "is_target_url") and hasattr(fetcher, "fetch")
         if not interface_check:
             raise TypeError("Invalid fetcher.")
         self.fetcher_list.append(fetcher)
@@ -25,7 +27,7 @@ class LinkSearcher():
         # CoR
         for p in self.fetcher_list:
             if p.is_target_url(URL(url)):
-                p.run(url)
+                p.fetch(url)
                 break
         else:
             raise ValueError("Fetcher not found.")
@@ -43,13 +45,13 @@ class LinkSearcher():
 
         # pixiv登録
         c = config["pixiv"]
-        if c.getboolean("is_nijie_trace"):
+        if c.getboolean("is_pixiv_trace"):
             fetcher = PixivFetcher(Username(c["username"]), Password(c["password"]), Path(c["save_base_path"]))
             ls.register(fetcher)
 
         # pixivノベル登録
         c = config["pixiv"]
-        if c.getboolean("is_nijie_trace"):
+        if c.getboolean("is_pixiv_trace"):
             fetcher = PixivNovelFetcher(Username(c["username"]), Password(c["password"]), Path(c["save_base_path"]))
             ls.register(fetcher)
 
@@ -57,6 +59,18 @@ class LinkSearcher():
         c = config["nijie"]
         if c.getboolean("is_nijie_trace"):
             fetcher = NijieFetcher(Username(c["email"]), Password(c["password"]), Path(c["save_base_path"]))
+            ls.register(fetcher)
+
+        # ニコニコ静画登録
+        c = config["nico_seiga"]
+        if c.getboolean("is_seiga_trace"):
+            fetcher = NicoSeigaFetcher(Username(c["email"]), Password(c["password"]), Path(c["save_base_path"]))
+            ls.register(fetcher)
+
+        # skeb登録
+        c = config["skeb"]
+        if c.getboolean("is_skeb_trace"):
+            fetcher = SkebFetcher(Username(c["twitter_id"]), Password(c["twitter_password"]), Path(c["save_base_path"]))
             ls.register(fetcher)
 
         return ls
@@ -69,7 +83,9 @@ if __name__ == "__main__":
 
     # url = "https://www.pixiv.net/artworks/86704541"
     # url = "https://www.pixiv.net/novel/show.php?id=17668373"
-    url = "http://nijie.info/view_popup.php?id=251267"
+    # url = "http://nijie.info/view_popup.php?id=251267"
+    url = f"https://seiga.nicovideo.jp/seiga/im5360137?query=1"
+    # url = "https://skeb.jp/@matsukitchi12/works/25?query=1"
     # url = "https://www.anyurl/sample/index_{}.html"
 
     CONFIG_FILE_NAME = "./config/config.ini"
