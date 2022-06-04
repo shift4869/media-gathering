@@ -8,6 +8,7 @@ from abc import ABCMeta, abstractmethod
 from sqlalchemy import *
 from sqlalchemy.orm import *
 from sqlalchemy.orm.exc import *
+from sqlalchemy.exc import NoResultFound
 
 from PictureGathering.Model import *
 
