@@ -296,8 +296,8 @@ class TestCrawler(unittest.TestCase):
 
         return tweet
 
-    def __CoRProcessCheck(self, url: str) -> bool:
-        """CoRProcessCheckの模倣
+    def __can_fetch(self, url: str) -> bool:
+        """can_fetchの模倣
         
         Notes:
             LSが増えた場合はIsTargetUrlの内容を追加する
@@ -310,17 +310,17 @@ class TestCrawler(unittest.TestCase):
         """
 
         # LSPixiv
-        pattern = r"^https://www.pixiv.net/artworks/[0-9]*$"
+        pattern = r"^https://www.pixiv.net/artworks/[0-9]*"
         regex = re.compile(pattern)
         if not (regex.findall(url) == []):
             return True
 
         # LSNijie
-        pattern = r"^http://nijie.info/view.php\?id=[0-9]*$"
+        pattern = r"^http://nijie.info/view.php\?id=[0-9]*"
         regex = re.compile(pattern)
         f1 = not (regex.findall(url) == [])
 
-        pattern = r"^http://nijie.info/view_popup.php\?id=[0-9]*$"
+        pattern = r"^http://nijie.info/view_popup.php\?id=[0-9]*"
         regex = re.compile(pattern)
         f2 = not (regex.findall(url) == [])
         if f1 or f2:
@@ -466,11 +466,11 @@ class TestCrawler(unittest.TestCase):
         """外部リンク探索機構のセットアップをチェックする
         """
         with ExitStack() as stack:
-            mockLSP = stack.enter_context(patch("PictureGathering.LSPixiv.LSPixiv"))
-            mockLSPN = stack.enter_context(patch("PictureGathering.LSPixivNovel.LSPixivNovel"))
-            mockLSN = stack.enter_context(patch("PictureGathering.LSNijie.LSNijie"))
-            mockLSNS = stack.enter_context(patch("PictureGathering.LSNicoSeiga.LSNicoSeiga"))
-            mockLSSK = stack.enter_context(patch("PictureGathering.LSSkeb.LSSkeb"))
+            mockLSP = stack.enter_context(patch("PictureGathering.LinkSearch.Pixiv.PixivFetcher"))
+            mockLSPN = stack.enter_context(patch("PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher"))
+            mockLSN = stack.enter_context(patch("PictureGathering.LinkSearch.Nijie.NijieFetcher"))
+            mockLSNS = stack.enter_context(patch("PictureGathering.LinkSearch.NicoSeiga.NicoSeigaFetcher"))
+            mockLSSK = stack.enter_context(patch("PictureGathering.LinkSearch.Skeb.SkebFetcher"))
 
             # 外部リンク探索クラスのインターフェイスのみ模倣したクラス
             class LSImitation():
@@ -492,11 +492,11 @@ class TestCrawler(unittest.TestCase):
             crawler = ConcreteCrawler()
 
             self.assertIsNotNone(crawler.lsb)
-            self.assertNotEqual([], crawler.lsb.processer_list)
-            self.assertEqual(LS_KIND_NUM, len(crawler.lsb.processer_list))
+            self.assertNotEqual([], crawler.lsb.fetcher_list)
+            self.assertEqual(LS_KIND_NUM, len(crawler.lsb.fetcher_list))
 
-            res = crawler.lsb.CoRProcessDo("")
-            self.assertEqual(-1, res)  # 担当者は見つかったが処理が失敗した扱いになる想定
+            with self.assertRaises(ValueError):
+                crawler.lsb.fetch("")
 
     def test_GetTwitterAPIResourceType(self):
         """使用するTwitterAPIのAPIリソースタイプ取得をチェックする
@@ -880,8 +880,8 @@ class TestCrawler(unittest.TestCase):
             # モック設定
             crawler.lsb = MagicMock()
             p_cor_pc = PropertyMock()
-            p_cor_pc.return_value = self.__CoRProcessCheck
-            type(crawler.lsb).CoRProcessCheck = p_cor_pc
+            p_cor_pc.return_value = self.__can_fetch
+            type(crawler.lsb).can_fetch = p_cor_pc
 
             # ツイートサンプル作成
             s_media_url = "http://pbs.twimg.com/media/add_sample{}.jpg:orig"
@@ -939,7 +939,7 @@ class TestCrawler(unittest.TestCase):
                 if tweet.get("entities", {}).get("urls"):
                     urls = tweet.get("entities", {}).get("urls", [{}])
                     url = urls[0].get("expanded_url")
-                    if self.__CoRProcessCheck(url):
+                    if self.__can_fetch(url):
                         if tweet.get("id_str") not in id_str_list:
                             result.append(tweet)
                             id_str_list.append(tweet.get("id_str"))
@@ -1039,15 +1039,15 @@ class TestCrawler(unittest.TestCase):
         with ExitStack() as stack:
             mockms = stack.enter_context(patch("PictureGathering.Crawler.Crawler.TweetMediaSaver"))
             mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
-            mocklspd = stack.enter_context(patch("PictureGathering.LinkSearchBase.LinkSearchBase.CoRProcessDo"))
+            mocklspd = stack.enter_context(patch("PictureGathering.LinkSearch.LinkSearcher.LinkSearcher.fetch"))
 
             crawler = ConcreteCrawler()
 
             # モック設定
             crawler.lsb = MagicMock()
             p_cor_pc = PropertyMock()
-            p_cor_pc.return_value = self.__CoRProcessCheck
-            type(crawler.lsb).CoRProcessCheck = p_cor_pc
+            p_cor_pc.return_value = self.__can_fetch
+            type(crawler.lsb).can_fetch = p_cor_pc
 
             # ツイートサンプル作成
             s_media_url = "http://pbs.twimg.com/media/add_sample{}.jpg:orig"
