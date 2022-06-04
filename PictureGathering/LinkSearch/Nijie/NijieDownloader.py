@@ -13,7 +13,6 @@ from PictureGathering.LinkSearch.Nijie.NijiePageInfo import NijiePageInfo
 from PictureGathering.LinkSearch.Nijie.NijieSaveDirectoryPath import NijieSaveDirectoryPath
 from PictureGathering.LinkSearch.Nijie.NijieURL import NijieURL
 
-
 logger = getLogger("root")
 logger.setLevel(INFO)
 
@@ -47,13 +46,13 @@ class NijieDownloader():
     def download(self) -> DownloadResult:
         """nijie作品ページURLから作品をダウンロードしてbase_path以下に保存する
         """
-        illust_id = self.nijie_url.work_id.id
+        work_id = self.nijie_url.work_id.id
 
         # 作品詳細ページをGET
-        illust_url = f"http://nijie.info/view_popup.php?id={illust_id}"
+        work_url = f"http://nijie.info/view_popup.php?id={work_id}"
         headers = self.cookies._headers
         cookies = self.cookies._cookies
-        res = requests.get(illust_url, headers=headers, cookies=cookies)
+        res = requests.get(work_url, headers=headers, cookies=cookies)
         res.raise_for_status()
 
         # BeautifulSoupを用いてhtml解析を行う
@@ -67,8 +66,9 @@ class NijieDownloader():
         urls = page_info.urls
         pages = len(urls)
         if pages > 1:  # 漫画形式、うごイラ複数
-            dirname = sd_path.parent.name
-            logger.info("Download nijie illust: [" + dirname + "] -> see below ...")
+            author_name_id = sd_path.parent.name
+            work_name_id = sd_path.name
+            logger.info(f"Download nijie work: [{author_name_id} / {work_name_id}] -> see below ...")
 
             # 既に存在しているなら再DLしないでスキップ
             if sd_path.is_dir():
@@ -99,10 +99,11 @@ class NijieDownloader():
             url = urls[0]
             ext = Path(url.original_url).suffix
             name = f"{sd_path.name}{ext}"
+            author_name_id = sd_path.parent.name
 
             # 既に存在しているなら再DLしないでスキップ
             if (sd_path.parent / name).is_file():
-                logger.info("Download nijie illust: " + name + " -> exist")
+                logger.info(f"Download nijie work: {author_name_id} / {name} -> exist")
                 return DownloadResult.PASSED
 
             # 画像をDLする
@@ -112,19 +113,21 @@ class NijieDownloader():
             # {作者名}ディレクトリ直下に保存
             with Path(sd_path.parent / name).open(mode="wb") as fout:
                 fout.write(res.content)
-            logger.info("Download nijie illust: " + name + " -> done")
+            logger.info(f"Download nijie work: {author_name_id} / {name} -> done")
         else:  # エラー
-            raise ValueError("download nijie illust failed.")
+            raise ValueError("download nijie work failed.")
 
         return DownloadResult.SUCCESS
 
 
 if __name__ == "__main__":
     import configparser
+    import logging.config
     from PictureGathering.LinkSearch.Password import Password
     from PictureGathering.LinkSearch.Nijie.NijieFetcher import NijieFetcher
     from PictureGathering.LinkSearch.Username import Username
 
+    logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
     CONFIG_FILE_NAME = "./config/config.ini"
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE_NAME, encoding="utf8")
@@ -133,10 +136,10 @@ if __name__ == "__main__":
     if config["nijie"].getboolean("is_nijie_trace"):
         fetcher = NijieFetcher(Username(config["nijie"]["email"]), Password(config["nijie"]["password"]), base_path)
 
-        illust_id = 251267  # 一枚絵
-        # illust_id = 251197  # 漫画
-        # illust_id = 414793  # うごイラ一枚
-        # illust_id = 409587  # うごイラ複数
+        work_id = 251267  # 一枚絵
+        # work_id = 251197  # 漫画
+        # work_id = 414793  # うごイラ一枚
+        # work_id = 409587  # うごイラ複数
 
-        illust_url = f"https://nijie.info/view_popup.php?id={illust_id}"
-        fetcher.fetch(illust_url)
+        work_url = f"https://nijie.info/view_popup.php?id={work_id}"
+        fetcher.fetch(work_url)

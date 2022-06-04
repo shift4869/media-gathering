@@ -1,6 +1,9 @@
 # coding: utf-8
 import configparser
+from logging import INFO, getLogger
 from pathlib import Path
+
+from plyer import notification
 
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase
 from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaFetcher import NicoSeigaFetcher
@@ -11,6 +14,9 @@ from PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher import PixivNovelF
 from PictureGathering.LinkSearch.Skeb.SkebFetcher import SkebFetcher
 from PictureGathering.LinkSearch.URL import URL
 from PictureGathering.LinkSearch.Username import Username
+
+logger = getLogger("root")
+logger.setLevel(INFO)
 
 
 class LinkSearcher():
@@ -27,6 +33,8 @@ class LinkSearcher():
         # CoR
         for p in self.fetcher_list:
             if p.is_target_url(URL(url)):
+                fetcher_class = p.__class__.__name__
+                logger.info(url + f" -> Fetcher found: {fetcher_class}.")
                 p.fetch(url)
                 break
         else:
@@ -43,35 +51,60 @@ class LinkSearcher():
     def create(self, config: configparser.ConfigParser) -> "LinkSearcher":
         ls = LinkSearcher()
 
+        # 登録失敗時の通知用
+        # 登録に失敗しても処理は続ける
+        def notify(fetcher_kind: str):
+            notification.notify(
+                title="Picture Gathering 実行エラー",
+                message=f"LinkSearcher: {fetcher_kind} register failed.",
+                app_name="Picture Gathering",
+                timeout=10
+            )
+
         # pixiv登録
-        c = config["pixiv"]
-        if c.getboolean("is_pixiv_trace"):
-            fetcher = PixivFetcher(Username(c["username"]), Password(c["password"]), Path(c["save_base_path"]))
-            ls.register(fetcher)
+        try:
+            c = config["pixiv"]
+            if c.getboolean("is_pixiv_trace"):
+                fetcher = PixivFetcher(Username(c["username"]), Password(c["password"]), Path(c["save_base_path"]))
+                ls.register(fetcher)
+        except Exception:
+            notify("pixiv")
 
         # pixivノベル登録
-        c = config["pixiv"]
-        if c.getboolean("is_pixiv_trace"):
-            fetcher = PixivNovelFetcher(Username(c["username"]), Password(c["password"]), Path(c["save_base_path"]))
-            ls.register(fetcher)
+        try:
+            c = config["pixiv"]
+            if c.getboolean("is_pixiv_trace"):
+                fetcher = PixivNovelFetcher(Username(c["username"]), Password(c["password"]), Path(c["save_base_path"]))
+                ls.register(fetcher)
+        except Exception:
+            notify("pixiv novel")
 
         # nijie登録
-        c = config["nijie"]
-        if c.getboolean("is_nijie_trace"):
-            fetcher = NijieFetcher(Username(c["email"]), Password(c["password"]), Path(c["save_base_path"]))
-            ls.register(fetcher)
+        try:
+            c = config["nijie"]
+            if c.getboolean("is_nijie_trace"):
+                fetcher = NijieFetcher(Username(c["email"]), Password(c["password"]), Path(c["save_base_path"]))
+                ls.register(fetcher)
+        except Exception:
+            notify("nijie")
 
         # ニコニコ静画登録
-        c = config["nico_seiga"]
-        if c.getboolean("is_seiga_trace"):
-            fetcher = NicoSeigaFetcher(Username(c["email"]), Password(c["password"]), Path(c["save_base_path"]))
-            ls.register(fetcher)
+        try:
+            c = config["nico_seiga"]
+            if c.getboolean("is_seiga_trace"):
+                fetcher = NicoSeigaFetcher(Username(c["email"]), Password(c["password"]), Path(c["save_base_path"]))
+                ls.register(fetcher)
+        except Exception:
+            notify("niconico seiga")
 
         # skeb登録
-        c = config["skeb"]
-        if c.getboolean("is_skeb_trace"):
-            fetcher = SkebFetcher(Username(c["twitter_id"]), Password(c["twitter_password"]), Path(c["save_base_path"]))
-            ls.register(fetcher)
+        try:
+            c = config["skeb"]
+            if c.getboolean("is_skeb_trace"):
+                fetcher = SkebFetcher(Username(c["twitter_id"]), Password(c["twitter_password"]), Path(c["save_base_path"]))
+                ls.register(fetcher)
+        except Exception:
+            notify("skeb")
 
         return ls
 

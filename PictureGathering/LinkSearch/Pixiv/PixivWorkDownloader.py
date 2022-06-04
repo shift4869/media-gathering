@@ -64,8 +64,9 @@ class PixivWorkDownloader():
         pages = len(self.source_list)
         sd_path = self.save_directory_path.path
         if pages > 1:  # 漫画形式
-            dirname = sd_path.parent.name
-            logger.info("Download pixiv illust: [" + dirname + "] -> see below ...")
+            author_name_id = sd_path.parent.name
+            work_name_id = sd_path.name
+            logger.info(f"Download pixiv works: [{author_name_id} / {work_name_id}] -> see below ...")
 
             # 既に存在しているなら再DLしないでスキップ
             if sd_path.is_dir():
@@ -77,7 +78,7 @@ class PixivWorkDownloader():
                 ext = Path(url.non_query_url).suffix
                 name = "{}_{:03}{}".format(sd_path.name, i + 1, ext)
                 self.aapi.download(url.non_query_url, path=str(sd_path), name=name)
-                logger.info("\t\t: " + name + " -> done({}/{})".format(i + 1, pages))
+                logger.info(f"\t\t: {name} -> done({i + 1}/{pages})")
                 sleep(0.5)
         elif pages == 1:  # 一枚絵
             sd_path.parent.mkdir(parents=True, exist_ok=True)
@@ -85,14 +86,15 @@ class PixivWorkDownloader():
             url = self.source_list[0].non_query_url
             ext = Path(url).suffix
             name = f"{sd_path.name}{ext}"
+            author_name_id = sd_path.parent.name
 
             # 既に存在しているなら再DLしないでスキップ
             if (sd_path.parent / name).is_file():
-                logger.info("Download pixiv illust: " + name + " -> exist")
+                logger.info(f"Download pixiv work: {author_name_id} / {name} -> exist")
                 return DownloadResult.PASSED
 
             self.aapi.download(url, path=str(sd_path.parent), name=name)
-            logger.info("Download pixiv illust: " + name + " -> done")
+            logger.info(f"Download pixiv work: {author_name_id} / {name} -> done")
 
             # うごイラの場合は追加で保存する
             regex = re.compile(r'.*\(([0-9]*)\)$')
@@ -101,7 +103,7 @@ class PixivWorkDownloader():
                 work_id = Workid(int(result.group(1)))
                 PixivUgoiraDownloader(self.aapi, work_id, sd_path.parent).download()
         else:  # エラー
-            raise ValueError("download pixiv illust failed.")
+            raise ValueError("download pixiv work failed.")
         return DownloadResult.SUCCESS
 
 
@@ -119,6 +121,11 @@ if __name__ == "__main__":
 
     base_path = Path("./PictureGathering/LinkSearch/")
     if config["pixiv"].getboolean("is_pixiv_trace"):
-        pa_cont = PixivFetcher(Username(config["pixiv"]["username"]), Password(config["pixiv"]["password"]), base_path)
+        fetcher = PixivFetcher(Username(config["pixiv"]["username"]), Password(config["pixiv"]["password"]), base_path)
+        # 一枚絵（単一）
+        # work_url = "https://www.pixiv.net/artworks/98804653"
+        # 漫画（複数）
+        # work_url = "https://www.pixiv.net/artworks/98789839"
+        # うごイラ（単一）
         work_url = "https://www.pixiv.net/artworks/86704541"
-        pa_cont.fetch(work_url)
+        fetcher.fetch(work_url)

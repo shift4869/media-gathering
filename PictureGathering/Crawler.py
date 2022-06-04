@@ -17,19 +17,23 @@ import time
 import urllib
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta, timezone
-from logging import DEBUG, INFO, getLogger
+from logging import INFO, getLogger
 from pathlib import Path
-from plyer import notification
 from typing import List
 
 import requests
 import slackweb
 from requests_oauthlib import OAuth1Session
+from plyer import notification
 
 from PictureGathering import WriteHTML, Archiver, GoogleDrive
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
+for name in logging.root.manager.loggerDict:
+    # すべてのライブラリのログ出力を抑制
+    # print("logger", name)
+    getLogger(name).disabled = True
 logger = getLogger("root")
 logger.setLevel(INFO)
 
