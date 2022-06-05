@@ -4,10 +4,9 @@ from typing import Iterable
 
 from requests_html import HTMLSession
 
-from PictureGathering.LinkSearch.Skeb.CallbackURL import CallbackURL
 from PictureGathering.LinkSearch.Skeb.SaveFilename import Extension
+from PictureGathering.LinkSearch.Skeb.SkebCookie import SkebCookie
 from PictureGathering.LinkSearch.Skeb.SkebSourceInfo import SkebSourceInfo
-from PictureGathering.LinkSearch.Skeb.SkebToken import SkebToken
 from PictureGathering.LinkSearch.Skeb.SkebURL import SkebURL
 from PictureGathering.LinkSearch.URL import URL
 
@@ -39,13 +38,13 @@ class SkebSourceList(Iterable):
         return self._list.__getitem__(i)
 
     @classmethod
-    def create(cls, skeb_url: SkebURL, top_url: URL, token: SkebToken, headers: dict) -> "SkebSourceList":
+    def create(cls, skeb_url: SkebURL, top_url: URL, cookies: SkebCookie, headers: dict) -> "SkebSourceList":
         """skebの直リンク情報を収集する
 
         Args:
             skeb_url (SkebURL): skeb作品URL
             top_url (URL): skebトップページURL
-            token (SkebToken): 接続用トークン
+            cookies (SkebCookie): 接続用クッキー
             headers (dict): 接続用ヘッダー
 
         Returns:
@@ -53,15 +52,8 @@ class SkebSourceList(Iterable):
         """
         source_list = []
 
-        # リクエスト用のURLを作成する
-        # tokenを付与したコールバックURLを作成する
-        url = skeb_url.non_query_url
-        work_path = url.replace(top_url.non_query_url, "")
-        request_url = CallbackURL.create(top_url, work_path, token)
-
-        # コールバックURL軽油で作品ページを取得して解析する
         session = HTMLSession()
-        response = session.get(request_url.callback_url, headers=headers)
+        response = session.get(skeb_url.non_query_url, headers=cookies.headers, cookies=cookies.cookies)
         response.raise_for_status()
         response.html.render(sleep=2)
 

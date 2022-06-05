@@ -1,13 +1,14 @@
 # coding: utf-8
 import asyncio
 import random
-import urllib.parse
+import re
 from dataclasses import dataclass
 from logging import INFO, getLogger
 from pathlib import Path
 
-from requests_html import HTMLSession
 import pyppeteer
+import requests.cookies
+from requests_html import HTMLSession
 
 from PictureGathering.LinkSearch.Password import Password
 from PictureGathering.LinkSearch.URL import URL
@@ -18,13 +19,16 @@ logger.setLevel(INFO)
 
 
 @dataclass(frozen=True)
-class SkebToken():
-    """SkebToken
+class SkebCookie():
+    """SkebCookie
 
     Returns:
-        SkebToken: SkebTokenを表すValueObject
+        SkebCookie: SkebCookieを表すValueObject
     """
-    token: str
+    cookies: requests.cookies.RequestsCookieJar
+    headers: dict
+
+    SKEB_COOKIE_PATH = "./config/skeb_cookie.ini"
 
     def __post_init__(self) -> None:
         """初期化処理
@@ -34,51 +38,46 @@ class SkebToken():
         self._is_valid()
 
     def _is_valid(self) -> bool:
-        if not isinstance(self.token, str):
-            raise TypeError("token is not string, invalid SkebToken.")
-        if self.token == "":
-            raise ValueError("empty string, invalid SkebToken")
+        if not isinstance(self.cookies, requests.cookies.RequestsCookieJar):
+            raise TypeError("cookies is not requests.cookies.RequestsCookieJar, invalid SkebCookie.")
+        if not isinstance(self.headers, dict):
+            raise TypeError("headers is not dict, invalid SkebCookie.")
         return True
 
     @classmethod
-    def is_valid_token(self, top_url: URL, token_str: str, headers: dict) -> bool:
-        """トークンが有効かどうか判定する
+    def is_valid_cookies(self, top_url: URL, headers: dict, cookies: requests.cookies.RequestsCookieJar) -> bool:
+        # テスト用作品ページ（画像）
+        url = "https://skeb.jp/@matsukitchi12/works/25"
 
-        tokenが有効かどうか検証する
-        実際にアクセスするため負荷がかかる
-
-        Args:
-            token_str (str): 検証対象のトークン
-
-        Returns:
-            bool: tokenが有効なトークンならTrue、有効でなければFalse
-        """
-        if token_str == "":
-            return False
-
-        # コールバックURLを取得する
-        request_url = f"{top_url.non_query_url}callback?path=/&token={token_str}"
-
-        # コールバック後のトップページを取得するリクエストを行う
         session = HTMLSession()
-        response = session.get(request_url, headers=headers)
+        response = session.get(url, headers=headers, cookies=cookies)
         response.raise_for_status()
         response.html.render(sleep=2)
 
-        # トークンが有効な場合はトップページからaccountページへのリンクが取得できる
+        # トップページはローカルストレージ情報を使うため
+        # 直接作品ページを見てみる
+        # 画像直リンクが取得できればOK
+        img_tags = response.html.find("img")
+        for img_tag in img_tags:
+            src_url = img_tag.attrs.get("src", "")
+            if "https://skeb.imgix.net/uploads/" in src_url or \
+               "https://skeb.imgix.net/requests/" in src_url:
+                return True
+
+        # クッキーが有効な場合はトップページからaccountページへのリンクが取得できる
         # 右上のアイコンマウスオーバー時に展開されるリストから
         # 「アカウント」メニューがあるかどうかを見ている
-        a_tags = response.html.find("a")
-        for a_tag in a_tags:
-            account_href = a_tag.attrs.get("href", "")
-            full_text = a_tag.full_text
-            if "/account" in account_href and "アカウント" == full_text:
-                return True
+        # a_tags = response.html.find("a")
+        # for a_tag in a_tags:
+        #     account_href = a_tag.attrs.get("href", "")
+        #     full_text = a_tag.full_text
+        #     if "/account" in account_href and "アカウント" == full_text:
+        #         return True
         return False
 
     @classmethod
-    async def get_token_from_oauth(cls, username: Username, password: Password, top_url: URL) -> "SkebToken":
-        """ツイッターログインを行いSkebページで使うtokenを取得する
+    async def get_cookies_from_oauth(cls, username: Username, password: Password, top_url: URL, headers: dict) -> "SkebCookie":
+        """ツイッターログインを行いSkebページで使うcookiesを取得する
 
         Notes:
             pyppeteerを通してheadless chromeを操作する
@@ -88,9 +87,8 @@ class SkebToken():
             twitter_password (str): SkebユーザーIDとして登録したツイッターのパスワード
 
         Returns:
-            str: アクセスに使うトークン
+            SkebCookie: アクセスに使うクッキー
         """
-        token = ""
         urls = []
         browser = await pyppeteer.launch(headless=True)
         page = await browser.newPage()
@@ -140,51 +138,85 @@ class SkebToken():
 
         # コールバックURLがキャッチできたことを確認
         if len(urls) == 0:
-            raise ValueError("Getting Skeb token is failed.")
+            raise ValueError("Getting Skeb Cookie is failed.")
         logger.info("Twitter oauth success.")
 
         # コールバックURLからtokenを切り出す
-        callback_url = urls[0]
-        q = urllib.parse.urlparse(callback_url).query
-        qs = urllib.parse.parse_qs(q)
-        token = qs.get("token", [""])[0]
+        # callback_url = urls[0]
+        # q = urllib.parse.urlparse(callback_url).query
+        # qs = urllib.parse.parse_qs(q)
+        # token = qs.get("token", [""])[0]
 
-        return SkebToken(token)
+        # クッキー保存を試みる
+        # クッキー解析用
+        def CookieToString(c):
+            name = c["name"]
+            value = c["value"]
+            expires = c["expires"]
+            path = c["path"]
+            domain = c["domain"]
+            return f'name="{name}", value="{value}", expires={expires}, path="{path}", domain="{domain}"'
+
+        # クッキー情報をファイルに保存する
+        requests_cookies = requests.cookies.RequestsCookieJar()
+        scp = Path(SkebCookie.SKEB_COOKIE_PATH)
+        with scp.open(mode="w") as fout:
+            for c in cookies:
+                requests_cookies.set(c["name"], c["value"], expires=c["expires"], path=c["path"], domain=c["domain"])
+                fout.write(CookieToString(c) + "\n")
+
+        return SkebCookie(requests_cookies, headers)
 
     @classmethod
-    def get(cls, username: Username, password: Password, top_url: URL, headers: dict) -> "SkebToken":
-        """トークン取得
+    def get(cls, username: Username, password: Password, top_url: URL, headers: dict) -> "SkebCookie":
+        """クッキー取得
         """
-        # アクセスに使用するトークンファイル置き場
-        SKEB_TOKEN_PATH = "./config/skeb_token.ini"
-        stp = Path(SKEB_TOKEN_PATH)
+        # アクセスに使用するクッキーファイル置き場
+        scp = Path(SkebCookie.SKEB_COOKIE_PATH)
 
-        # トークンを取得する
-        token = ""
-        if stp.exists():
-            # トークンファイルがある場合読み込み
-            with stp.open("r") as fin:
-                token = fin.read()
+        # クッキーを取得する
+        if scp.exists():
+            # クッキーが既に存在している場合
+            # クッキーを読み込む
+            cookies = requests.cookies.RequestsCookieJar()
+            with scp.open(mode="r") as fin:
+                for line in fin:
+                    if line == "":
+                        break
 
-            # 有効なトークンか確認する
+                    sc = {}
+                    elements = re.split("[,\n]", line)
+                    for element in elements:
+                        element = element.strip().replace('"', "")  # 左右の空白とダブルクォートを除去
+                        if element == "":
+                            break
+
+                        key, val = element.split("=")  # =で分割
+                        sc[key] = val
+
+                    cookies.set(sc["name"], sc["value"], expires=sc["expires"], path=sc["path"], domain=sc["domain"])
+
+            # 有効なクッキーか確認する
             # 実際にアクセスして確認するので負荷を考えるとチェックするかどうかは微妙
-            if(SkebToken.is_valid_token(top_url, token, headers)):
-                return SkebToken(token)
+            if(SkebCookie.is_valid_cookies(top_url, headers, cookies)):
+                return SkebCookie(cookies, headers)
             else:
-                logger.error("Getting Skeb token is failed.")
+                logger.error("Getting Skeb Cookie is failed.")
 
-        # トークンファイルがない場合、または有効なトークンではなかった場合
-        # 認証してtokenを取得する
+        # クッキーファイルがない場合、または有効なクッキーではなかった場合
+        # 認証してCookiesを取得する
         loop = asyncio.new_event_loop()
-        token = loop.run_until_complete(SkebToken.get_token_from_oauth(username, password, top_url)).token
+        skeb_cookie = loop.run_until_complete(SkebCookie.get_cookies_from_oauth(username, password, top_url, headers))
 
-        logger.info(f"Getting Skeb token is success: {token}")
+        # logger.info(f"Getting Skeb token is success: {token}")
+        logger.info("Getting Skeb Cookie is success.")
 
-        # 取得したトークンを保存
-        with stp.open("w") as fout:
-            fout.write(token)
+        # 取得したクッキーを保存
+        # get_cookies_from_oauth内で保存される
+        # with scp.open("w") as fout:
+        #     fout.write(skeb_cookie)
 
-        return SkebToken(token)
+        return skeb_cookie
 
 
 if __name__ == "__main__":
