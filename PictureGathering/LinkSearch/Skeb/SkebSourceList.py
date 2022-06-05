@@ -38,7 +38,7 @@ class SkebSourceList(Iterable):
         return self._list.__getitem__(i)
 
     @classmethod
-    def create(cls, skeb_url: SkebURL, top_url: URL, cookies: SkebCookie, headers: dict) -> "SkebSourceList":
+    def create(cls, skeb_url: SkebURL, top_url: URL, cookies: SkebCookie) -> "SkebSourceList":
         """skebの直リンク情報を収集する
 
         Args:
@@ -52,8 +52,12 @@ class SkebSourceList(Iterable):
         """
         source_list = []
 
+        url = skeb_url.non_query_url
+        work_path = url.replace(top_url.non_query_url, "")
+        request_url = f"{top_url.non_query_url}callback?path={work_path}&token={cookies.token}"
+
         session = HTMLSession()
-        response = session.get(skeb_url.non_query_url, headers=cookies.headers, cookies=cookies.cookies)
+        response = session.get(request_url, headers=cookies.headers, cookies=cookies.cookies)
         response.raise_for_status()
         response.html.render(sleep=2)
 

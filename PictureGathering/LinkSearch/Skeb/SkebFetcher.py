@@ -65,7 +65,7 @@ class SkebFetcher(FetcherBase):
             url (URL): 処理対象url
         """
         skeb_url = SkebURL.create(url)
-        source_list = SkebSourceList.create(skeb_url, self.TOP_URL, self.cookies, self.HEADERS)
+        source_list = SkebSourceList.create(skeb_url, self.TOP_URL, self.cookies)
         save_directory_path = SkebSaveDirectoryPath.create(skeb_url, self.base_path)
         downloader = SkebDownloader(skeb_url, source_list, save_directory_path, self.HEADERS)
         downloader.download()

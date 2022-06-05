@@ -2,6 +2,7 @@
 import asyncio
 import random
 import re
+import urllib.parse
 from dataclasses import dataclass
 from logging import INFO, getLogger
 from pathlib import Path
@@ -27,8 +28,10 @@ class SkebCookie():
     """
     cookies: requests.cookies.RequestsCookieJar
     headers: dict
+    token: str
 
     SKEB_COOKIE_PATH = "./config/skeb_cookie.ini"
+    SKEB_TOKEN_PATH = "./config/skeb_token.ini"
 
     def __post_init__(self) -> None:
         """初期化処理
@@ -45,9 +48,10 @@ class SkebCookie():
         return True
 
     @classmethod
-    def is_valid_cookies(self, top_url: URL, headers: dict, cookies: requests.cookies.RequestsCookieJar) -> bool:
+    def is_valid_cookies(self, top_url: URL, headers: dict, cookies: requests.cookies.RequestsCookieJar, token: str) -> bool:
         # テスト用作品ページ（画像）
-        url = "https://skeb.jp/@matsukitchi12/works/25"
+        # url = "https://skeb.jp/@matsukitchi12/works/25"
+        url = f"{top_url.non_query_url}callback?path=/&token={token}"
 
         session = HTMLSession()
         response = session.get(url, headers=headers, cookies=cookies)
@@ -57,22 +61,22 @@ class SkebCookie():
         # トップページはローカルストレージ情報を使うため
         # 直接作品ページを見てみる
         # 画像直リンクが取得できればOK
-        img_tags = response.html.find("img")
-        for img_tag in img_tags:
-            src_url = img_tag.attrs.get("src", "")
-            if "https://skeb.imgix.net/uploads/" in src_url or \
-               "https://skeb.imgix.net/requests/" in src_url:
-                return True
+        # img_tags = response.html.find("img")
+        # for img_tag in img_tags:
+        #     src_url = img_tag.attrs.get("src", "")
+        #     if "https://skeb.imgix.net/uploads/" in src_url or \
+        #        "https://skeb.imgix.net/requests/" in src_url:
+        #         return True
 
         # クッキーが有効な場合はトップページからaccountページへのリンクが取得できる
         # 右上のアイコンマウスオーバー時に展開されるリストから
         # 「アカウント」メニューがあるかどうかを見ている
-        # a_tags = response.html.find("a")
-        # for a_tag in a_tags:
-        #     account_href = a_tag.attrs.get("href", "")
-        #     full_text = a_tag.full_text
-        #     if "/account" in account_href and "アカウント" == full_text:
-        #         return True
+        a_tags = response.html.find("a")
+        for a_tag in a_tags:
+            account_href = a_tag.attrs.get("href", "")
+            full_text = a_tag.full_text
+            if "/account" in account_href and "アカウント" == full_text:
+                return True
         return False
 
     @classmethod
@@ -142,10 +146,15 @@ class SkebCookie():
         logger.info("Twitter oauth success.")
 
         # コールバックURLからtokenを切り出す
-        # callback_url = urls[0]
-        # q = urllib.parse.urlparse(callback_url).query
-        # qs = urllib.parse.parse_qs(q)
-        # token = qs.get("token", [""])[0]
+        callback_url = urls[0]
+        q = urllib.parse.urlparse(callback_url).query
+        qs = urllib.parse.parse_qs(q)
+        token = qs.get("token", [""])[0]
+
+        # 取得したトークンを保存
+        stp = Path(SkebCookie.SKEB_TOKEN_PATH)
+        with stp.open("w") as fout:
+            fout.write(token)
 
         # クッキー保存を試みる
         # クッキー解析用
@@ -165,7 +174,7 @@ class SkebCookie():
                 requests_cookies.set(c["name"], c["value"], expires=c["expires"], path=c["path"], domain=c["domain"])
                 fout.write(CookieToString(c) + "\n")
 
-        return SkebCookie(requests_cookies, headers)
+        return SkebCookie(requests_cookies, headers, token)
 
     @classmethod
     def get(cls, username: Username, password: Password, top_url: URL, headers: dict) -> "SkebCookie":
@@ -173,9 +182,17 @@ class SkebCookie():
         """
         # アクセスに使用するクッキーファイル置き場
         scp = Path(SkebCookie.SKEB_COOKIE_PATH)
+        # アクセスに使用するトークンファイル置き場
+        stp = Path(SkebCookie.SKEB_TOKEN_PATH)
 
-        # クッキーを取得する
-        if scp.exists():
+        # クッキーとトークンを取得する
+        token = ""
+        if scp.exists() and stp.exists():
+            # トークンが既に存在している場合
+            # トークンを読み込む
+            with stp.open(mode="r") as fin:
+                token = fin.read()
+
             # クッキーが既に存在している場合
             # クッキーを読み込む
             cookies = requests.cookies.RequestsCookieJar()
@@ -198,8 +215,8 @@ class SkebCookie():
 
             # 有効なクッキーか確認する
             # 実際にアクセスして確認するので負荷を考えるとチェックするかどうかは微妙
-            if(SkebCookie.is_valid_cookies(top_url, headers, cookies)):
-                return SkebCookie(cookies, headers)
+            if(SkebCookie.is_valid_cookies(top_url, headers, cookies, token)):
+                return SkebCookie(cookies, headers, token)
             else:
                 logger.error("Getting Skeb Cookie is failed.")
 

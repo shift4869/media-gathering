@@ -117,7 +117,7 @@ class SkebDownloader():
             with Path(sd_path.parent / file_name).open(mode="wb") as fout:
                 fout.write(res.content)
 
-            dst_path = sd_path / file_name
+            dst_path = sd_path.parent / file_name
             self.dl_file_pathlist.append(dst_path)
             logger.info("Download Skeb work: " + dst_path.name + " -> done")
         else:  # エラー
