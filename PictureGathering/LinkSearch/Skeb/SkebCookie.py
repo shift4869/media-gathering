@@ -151,6 +151,28 @@ class SkebCookie():
         qs = urllib.parse.parse_qs(q)
         token = qs.get("token", [""])[0]
 
+        javascript_func = """
+            function allStorage() {
+                var values = [],
+                    keys = Object.keys(localStorage),
+                    i = keys.length;
+
+                while ( i-- ) {
+                    values.push( keys[i] + ' : ' + localStorage.getItem(keys[i]) );
+                }
+
+                return values;
+            }
+            allStorage()
+        """
+        localstorage = await page.evaluate(javascript_func, force_expr=True)
+
+        # 取得したローカルストレージを保存
+        slsp = Path("./config/skeb_localstorage.ini")
+        with slsp.open("w") as fout:
+            for ls in localstorage:
+                fout.write(ls + "\n")
+
         # 取得したトークンを保存
         stp = Path(SkebCookie.SKEB_TOKEN_PATH)
         with stp.open("w") as fout:

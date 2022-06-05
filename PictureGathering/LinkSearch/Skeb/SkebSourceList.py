@@ -1,8 +1,14 @@
 # coding: utf-8
+import asyncio
 from dataclasses import dataclass
+import re
 from typing import Iterable
+from pathlib import Path
+from urllib.parse import urlencode
 
-from requests_html import HTMLSession
+from requests_html import HTMLSession, HTML
+from urllib.parse import unquote
+import pyppeteer
 
 from PictureGathering.LinkSearch.Skeb.SaveFilename import Extension
 from PictureGathering.LinkSearch.Skeb.SkebCookie import SkebCookie
@@ -38,6 +44,68 @@ class SkebSourceList(Iterable):
         return self._list.__getitem__(i)
 
     @classmethod
+    async def localstorage_test(cls, skeb_url: SkebURL, cookies: SkebCookie):
+        # ローカルストレージをセットしたpyppeteerで直リンクが載っているページを取得する
+        browser = await pyppeteer.launch(headless=True)
+        page = await browser.newPage()
+        await page.goto("https://skeb.jp/")
+
+        # ローカルストレージを読み込んでセットする
+        slsp = Path("./config/skeb_localstorage.ini")
+        javascript_func1 = "localStorage.setItem('{}', '{}');"
+        with slsp.open(mode="r") as fin:
+            for line in fin:
+                if line == "":
+                    break
+
+                sc = {}
+                elements = re.split(" : |\n", line)
+                key = elements[0]
+                value = elements[1]
+                await page.evaluate(javascript_func1.format(key, value))
+        
+        javascript_func2 = """
+            function allStorage() {
+                var values = [],
+                    keys = Object.keys(localStorage),
+                    i = keys.length;
+
+                while ( i-- ) {
+                    values.push( keys[i] + ' : ' + localStorage.getItem(keys[i]) );
+                }
+
+                return values;
+            }
+            allStorage()
+        """
+        localstorage = await page.evaluate(javascript_func2, force_expr=True)
+        # print(localstorage)
+
+        scp = Path("./config/skeb_cookie.ini")
+        with scp.open(mode="r") as fin:
+            for line in fin:
+                if line == "":
+                    break
+
+                sc = {}
+                elements = re.split("[,\n]", line)
+                for element in elements:
+                    element = element.strip().replace('"', "")  # 左右の空白とダブルクォートを除去
+                    if element == "":
+                        break
+
+                    key, val = element.split("=")  # =で分割
+                    sc[key] = val
+
+                # cookies.set(sc["name"], sc["value"], expires=sc["expires"], path=sc["path"], domain=sc["domain"])
+                sc["expires"] = float(sc["expires"])
+                await page.setCookie(sc)
+
+        await page.goto(skeb_url.non_query_url)
+        content = await page.content()
+        return content
+
+    @classmethod
     def create(cls, skeb_url: SkebURL, top_url: URL, cookies: SkebCookie) -> "SkebSourceList":
         """skebの直リンク情報を収集する
 
@@ -56,10 +124,29 @@ class SkebSourceList(Iterable):
         work_path = url.replace(top_url.non_query_url, "")
         request_url = f"{top_url.non_query_url}callback?path={work_path}&token={cookies.token}"
 
-        session = HTMLSession()
-        response = session.get(request_url, headers=cookies.headers, cookies=cookies.cookies)
-        response.raise_for_status()
-        response.html.render(sleep=2)
+        # session = HTMLSession()
+        # response = session.get(request_url, headers=cookies.headers, cookies=cookies.cookies)
+        # response.raise_for_status()
+        # response.html.render(sleep=2)
+
+        loop = asyncio.new_event_loop()
+        content = loop.run_until_complete(SkebSourceList.localstorage_test(skeb_url, cookies))
+        response = HTML(html=content)
+        response.render(sleep=2)
+
+        # イラスト
+        # imgタグ、src属性のリンクURL形式が次のいずれかの場合
+        # "https://skeb.imgix.net/uploads/"で始まる
+        # "https://skeb.imgix.net/requests/"で始まる
+        img_tags = response.find("img")
+        for img_tag in img_tags:
+            src_url = img_tag.attrs.get("src", "")
+            src_url = unquote(src_url).replace("#", "%23")
+            if "https://skeb.imgix.net/uploads/" in src_url or \
+               "https://skeb.imgix.net/requests/" in src_url:
+                source = SkebSourceInfo(URL(src_url), Extension.WEBP)
+                source_list.append(source)
+        return SkebSourceList(source_list)
 
         # イラスト
         # imgタグ、src属性のリンクURL形式が次のいずれかの場合

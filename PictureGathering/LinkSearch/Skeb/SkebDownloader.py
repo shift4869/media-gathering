@@ -10,6 +10,7 @@ from typing import ClassVar
 import requests
 
 from PictureGathering.LinkSearch.Skeb.SaveFilename import SaveFilename, Extension
+from PictureGathering.LinkSearch.Skeb.SkebCookie import SkebCookie
 from PictureGathering.LinkSearch.Skeb.SkebSaveDirectoryPath import SkebSaveDirectoryPath
 from PictureGathering.LinkSearch.Skeb.SkebSourceList import SkebSourceList
 from PictureGathering.LinkSearch.Skeb.SkebURL import SkebURL
@@ -33,7 +34,7 @@ class SkebDownloader():
     skeb_url: SkebURL                           # skeb作品ページURL
     source_list: SkebSourceList                 # 直リンク情報リスト
     save_directory_path: SkebSaveDirectoryPath  # 保存先ディレクトリパス
-    headers: dict                               # 接続時ヘッダー
+    cookies: SkebCookie                               # 接続時ヘッダー
     dl_file_pathlist: ClassVar[list[Path]]      # DL完了したファイルのパス
 
     def __post_init__(self) -> None:
@@ -47,8 +48,8 @@ class SkebDownloader():
             raise TypeError("source_list is not SkebSourceList.")
         if not isinstance(self.save_directory_path, SkebSaveDirectoryPath):
             raise TypeError("save_directory_path is not SkebSaveDirectoryPath.")
-        if not isinstance(self.headers, dict):
-            raise TypeError("headers is not dict.")
+        # if not isinstance(self.headers, dict):
+        #     raise TypeError("headers is not dict.")
         return True
 
     def download(self) -> DownloadResult:
@@ -82,7 +83,7 @@ class SkebDownloader():
                 # ファイル名は{イラストタイトル}_{イラストID}_{3ケタの連番}.{拡張子}
                 file_name = SaveFilename.create(author_name, work_id, i, src_ext).name
 
-                res = requests.get(url.original_url, headers=self.headers)
+                res = requests.get(url.original_url, headers=self.cookies.headers)
                 res.raise_for_status()
 
                 with Path(sd_path / file_name).open(mode="wb") as fout:
@@ -104,7 +105,9 @@ class SkebDownloader():
             file_name = SaveFilename.create(author_name, work_id, -1, src_ext).name
 
             # 既に存在しているなら再DLしないでスキップ
-            if (sd_path.parent / file_name).is_file():
+            exist_files = [sp.name for sp in sd_path.parent.glob("*") if sp.stem == Path(file_name).stem]
+            # if (sd_path.parent / file_name).is_file():
+            if exist_files:
                 logger.info("Download Skeb work: " + file_name + " -> exist")
                 return DownloadResult.PASSED
 
@@ -150,4 +153,5 @@ if __name__ == "__main__":
         # gif画像（複数）
         # work_url = "https://skeb.jp/@_sa_ya_/works/55"
 
+        work_url = "https://skeb.jp/@savior0iphone/works/101"
         fetcher.fetch(work_url)
