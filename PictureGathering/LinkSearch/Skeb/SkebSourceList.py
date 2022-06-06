@@ -6,8 +6,8 @@ from typing import Iterable
 from pathlib import Path
 from urllib.parse import urlencode
 
-from requests_html import HTMLSession, HTML
-from urllib.parse import unquote
+from requests_html import HTMLSession, HTML, AsyncHTMLSession
+from urllib.parse import quote, unquote
 import pyppeteer
 
 from PictureGathering.LinkSearch.Skeb.SaveFilename import Extension
@@ -63,22 +63,22 @@ class SkebSourceList(Iterable):
                 key = elements[0]
                 value = elements[1]
                 await page.evaluate(javascript_func1.format(key, value))
-        
-        javascript_func2 = """
-            function allStorage() {
-                var values = [],
-                    keys = Object.keys(localStorage),
-                    i = keys.length;
 
-                while ( i-- ) {
-                    values.push( keys[i] + ' : ' + localStorage.getItem(keys[i]) );
-                }
+        # javascript_func2 = """
+        #     function allStorage() {
+        #         var values = [],
+        #             keys = Object.keys(localStorage),
+        #             i = keys.length;
 
-                return values;
-            }
-            allStorage()
-        """
-        localstorage = await page.evaluate(javascript_func2, force_expr=True)
+        #         while ( i-- ) {
+        #             values.push( keys[i] + ' : ' + localStorage.getItem(keys[i]) );
+        #         }
+
+        #         return values;
+        #     }
+        #     allStorage()
+        # """
+        # localstorage = await page.evaluate(javascript_func2, force_expr=True)
         # print(localstorage)
 
         scp = Path("./config/skeb_cookie.ini")
@@ -101,6 +101,13 @@ class SkebSourceList(Iterable):
                 sc["expires"] = float(sc["expires"])
                 await page.setCookie(sc)
 
+        # 後の解析のためにAsyncHTMLSession を通す
+        session = AsyncHTMLSession()
+        session._browser = browser
+        response = await session.get(skeb_url.non_query_url, headers=cookies.headers, cookies=cookies.cookies)
+        response.raise_for_status()
+        await response.html.arender(sleep=2)
+        return response
         await page.goto(skeb_url.non_query_url)
         content = await page.content()
         return content
@@ -120,33 +127,21 @@ class SkebSourceList(Iterable):
         """
         source_list = []
 
-        url = skeb_url.non_query_url
-        work_path = url.replace(top_url.non_query_url, "")
-        request_url = f"{top_url.non_query_url}callback?path={work_path}&token={cookies.token}"
-
+        # url = skeb_url.non_query_url
+        # work_path = url.replace(top_url.non_query_url, "")
+        # request_url = f"{top_url.non_query_url}callback?path={work_path}&token={cookies.token}"
         # session = HTMLSession()
         # response = session.get(request_url, headers=cookies.headers, cookies=cookies.cookies)
         # response.raise_for_status()
         # response.html.render(sleep=2)
 
-        loop = asyncio.new_event_loop()
-        content = loop.run_until_complete(SkebSourceList.localstorage_test(skeb_url, cookies))
-        response = HTML(html=content)
-        response.render(sleep=2)
+        # loop = asyncio.new_event_loop()
+        # content = loop.run_until_complete(SkebSourceList.localstorage_test(skeb_url, cookies))
+        # response = HTML(html=content)
+        # response.render(sleep=2)
 
-        # イラスト
-        # imgタグ、src属性のリンクURL形式が次のいずれかの場合
-        # "https://skeb.imgix.net/uploads/"で始まる
-        # "https://skeb.imgix.net/requests/"で始まる
-        img_tags = response.find("img")
-        for img_tag in img_tags:
-            src_url = img_tag.attrs.get("src", "")
-            src_url = unquote(src_url).replace("#", "%23")
-            if "https://skeb.imgix.net/uploads/" in src_url or \
-               "https://skeb.imgix.net/requests/" in src_url:
-                source = SkebSourceInfo(URL(src_url), Extension.WEBP)
-                source_list.append(source)
-        return SkebSourceList(source_list)
+        loop = asyncio.new_event_loop()
+        response = loop.run_until_complete(SkebSourceList.localstorage_test(skeb_url, cookies))
 
         # イラスト
         # imgタグ、src属性のリンクURL形式が次のいずれかの場合
@@ -155,6 +150,7 @@ class SkebSourceList(Iterable):
         img_tags = response.html.find("img")
         for img_tag in img_tags:
             src_url = img_tag.attrs.get("src", "")
+            # src_url = unquote(src_url).replace("#", "%23")
             if "https://skeb.imgix.net/uploads/" in src_url or \
                "https://skeb.imgix.net/requests/" in src_url:
                 source = SkebSourceInfo(URL(src_url), Extension.WEBP)
@@ -170,6 +166,7 @@ class SkebSourceList(Iterable):
             muted_a = src_tag.attrs.get("muted", "")
             loop_a = src_tag.attrs.get("loop", "")
             src_url = src_tag.attrs.get("src", "")
+            src_url = unquote(src_url).replace("#", "%23")
             if preload_a == "auto" and autoplay_a == "autoplay" and muted_a == "muted" and loop_a == "loop" and src_url != "":
                 source = SkebSourceInfo(URL(src_url), Extension.MP4)
                 source_list.append(source)
@@ -180,6 +177,7 @@ class SkebSourceList(Iterable):
         for src_tag in src_tags:
             type = src_tag.attrs.get("type", "")
             src_url = src_tag.attrs.get("src", "")
+            # src_url = unquote(src_url).replace("#", "%23")
             if type == "video/mp4" and src_url != "":
                 source = SkebSourceInfo(URL(src_url), Extension.MP4)
                 source_list.append(source)

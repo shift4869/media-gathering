@@ -151,6 +151,7 @@ class SkebCookie():
         qs = urllib.parse.parse_qs(q)
         token = qs.get("token", [""])[0]
 
+        # ローカルストレージ情報を取り出す
         javascript_func = """
             function allStorage() {
                 var values = [],
@@ -167,7 +168,7 @@ class SkebCookie():
         """
         localstorage = await page.evaluate(javascript_func, force_expr=True)
 
-        # 取得したローカルストレージを保存
+        # 取得したローカルストレージ情報を保存
         slsp = Path("./config/skeb_localstorage.ini")
         with slsp.open("w") as fout:
             for ls in localstorage:

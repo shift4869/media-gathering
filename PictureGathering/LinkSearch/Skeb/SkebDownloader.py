@@ -112,7 +112,7 @@ class SkebDownloader():
                 return DownloadResult.PASSED
 
             # DLする
-            res = requests.get(url.original_url, headers=self.headers)
+            res = requests.get(url.original_url, headers=self.cookies.headers)
             res.raise_for_status()
 
             # {作者名}ディレクトリ直下に保存
