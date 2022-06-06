@@ -12,6 +12,7 @@ import pyppeteer
 
 from PictureGathering.LinkSearch.Skeb.SaveFilename import Extension
 from PictureGathering.LinkSearch.Skeb.SkebCookie import SkebCookie
+from PictureGathering.LinkSearch.Skeb.SkebSession import SkebSession
 from PictureGathering.LinkSearch.Skeb.SkebSourceInfo import SkebSourceInfo
 from PictureGathering.LinkSearch.Skeb.SkebURL import SkebURL
 from PictureGathering.LinkSearch.URL import URL
@@ -44,7 +45,12 @@ class SkebSourceList(Iterable):
         return self._list.__getitem__(i)
 
     @classmethod
-    async def localstorage_test(cls, skeb_url: SkebURL, cookies: SkebCookie):
+    async def localstorage_test(cls, skeb_url: SkebURL, session: SkebSession):
+        response = await session.session.get(skeb_url.original_url, headers=session.headers, cookies=session.cookie_jar)
+        response.raise_for_status()
+        await response.html.arender(sleep=2)
+        return response
+
         # ローカルストレージをセットしたpyppeteerで直リンクが載っているページを取得する
         browser = await pyppeteer.launch(headless=True)
         page = await browser.newPage()
@@ -113,7 +119,7 @@ class SkebSourceList(Iterable):
         return content
 
     @classmethod
-    def create(cls, skeb_url: SkebURL, top_url: URL, cookies: SkebCookie) -> "SkebSourceList":
+    def create(cls, skeb_url: SkebURL, session: SkebSession) -> "SkebSourceList":
         """skebの直リンク情報を収集する
 
         Args:
@@ -140,8 +146,11 @@ class SkebSourceList(Iterable):
         # response = HTML(html=content)
         # response.render(sleep=2)
 
-        loop = asyncio.new_event_loop()
-        response = loop.run_until_complete(SkebSourceList.localstorage_test(skeb_url, cookies))
+        # loop = asyncio.new_event_loop()
+        # response = loop.run_until_complete(SkebSourceList.localstorage_test(skeb_url, cookies))
+
+        # loop = asyncio.new_event_loop()
+        response = session.get(skeb_url.non_query_url)
 
         # イラスト
         # imgタグ、src属性のリンクURL形式が次のいずれかの場合

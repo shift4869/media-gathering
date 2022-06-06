@@ -9,6 +9,7 @@ from PictureGathering.LinkSearch.Skeb.Converter import Converter
 from PictureGathering.LinkSearch.Skeb.SkebCookie import SkebCookie
 from PictureGathering.LinkSearch.Skeb.SkebDownloader import SkebDownloader
 from PictureGathering.LinkSearch.Skeb.SkebSaveDirectoryPath import SkebSaveDirectoryPath
+from PictureGathering.LinkSearch.Skeb.SkebSession import SkebSession
 from PictureGathering.LinkSearch.Skeb.SkebSourceList import SkebSourceList
 from PictureGathering.LinkSearch.Skeb.SkebURL import SkebURL
 from PictureGathering.LinkSearch.URL import URL
@@ -22,7 +23,7 @@ logger.setLevel(INFO)
 class SkebFetcher(FetcherBase):
     """skeb作品を取得するクラス
     """
-    cookies: SkebCookie  # skebで使用するクッキー
+    session: SkebSession  # skebで使用するクッキー
     base_path: Path   # 保存ディレクトリベースパス
 
     # 接続時に使用するヘッダー
@@ -40,7 +41,7 @@ class SkebFetcher(FetcherBase):
         if not isinstance(base_path, Path):
             raise TypeError("base_path is not Path.")
 
-        object.__setattr__(self, "cookies", SkebCookie.get(username, password, self.TOP_URL, self.HEADERS))
+        object.__setattr__(self, "session", SkebSession.create(username, password, self.TOP_URL, self.HEADERS))
         object.__setattr__(self, "base_path", base_path)
 
     def is_target_url(self, url: URL) -> bool:
@@ -65,9 +66,9 @@ class SkebFetcher(FetcherBase):
             url (URL): 処理対象url
         """
         skeb_url = SkebURL.create(url)
-        source_list = SkebSourceList.create(skeb_url, self.TOP_URL, self.cookies)
+        source_list = SkebSourceList.create(skeb_url, self.session)
         save_directory_path = SkebSaveDirectoryPath.create(skeb_url, self.base_path)
-        downloader = SkebDownloader(skeb_url, source_list, save_directory_path, self.cookies)
+        downloader = SkebDownloader(skeb_url, source_list, save_directory_path, self.session)
         downloader.download()
         dl_file_pathlist = downloader.dl_file_pathlist
         Converter(dl_file_pathlist).convert()

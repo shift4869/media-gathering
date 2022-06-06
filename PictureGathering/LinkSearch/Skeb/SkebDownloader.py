@@ -12,6 +12,7 @@ import requests
 from PictureGathering.LinkSearch.Skeb.SaveFilename import SaveFilename, Extension
 from PictureGathering.LinkSearch.Skeb.SkebCookie import SkebCookie
 from PictureGathering.LinkSearch.Skeb.SkebSaveDirectoryPath import SkebSaveDirectoryPath
+from PictureGathering.LinkSearch.Skeb.SkebSession import SkebSession
 from PictureGathering.LinkSearch.Skeb.SkebSourceList import SkebSourceList
 from PictureGathering.LinkSearch.Skeb.SkebURL import SkebURL
 from PictureGathering.LinkSearch.URL import URL
@@ -34,7 +35,7 @@ class SkebDownloader():
     skeb_url: SkebURL                           # skeb作品ページURL
     source_list: SkebSourceList                 # 直リンク情報リスト
     save_directory_path: SkebSaveDirectoryPath  # 保存先ディレクトリパス
-    cookies: SkebCookie                               # 接続時ヘッダー
+    session: SkebSession
     dl_file_pathlist: ClassVar[list[Path]]      # DL完了したファイルのパス
 
     def __post_init__(self) -> None:
@@ -83,7 +84,8 @@ class SkebDownloader():
                 # ファイル名は{イラストタイトル}_{イラストID}_{3ケタの連番}.{拡張子}
                 file_name = SaveFilename.create(author_name, work_id, i, src_ext).name
 
-                res = requests.get(url.original_url, headers=self.cookies.headers)
+                res = requests.get(url.original_url, headers=self.session.headers)
+                # res = self.session.get(url.original_url)
                 res.raise_for_status()
 
                 with Path(sd_path / file_name).open(mode="wb") as fout:
@@ -112,7 +114,8 @@ class SkebDownloader():
                 return DownloadResult.PASSED
 
             # DLする
-            res = requests.get(url.original_url, headers=self.cookies.headers)
+            res = requests.get(url.original_url, headers=self.session.headers)
+            # res = self.session.get(url.original_url)
             res.raise_for_status()
 
             # {作者名}ディレクトリ直下に保存
@@ -148,10 +151,11 @@ if __name__ == "__main__":
 
         # イラスト（複数）
         work_url = "https://skeb.jp/@matsukitchi12/works/25?query=1"
+        # イラスト（単体）
+        # work_url = "https://skeb.jp/@savior0iphone/works/101"
         # 動画（単体）
         # work_url = "https://skeb.jp/@wata_lemon03/works/7"
         # gif画像（複数）
         # work_url = "https://skeb.jp/@_sa_ya_/works/55"
 
-        work_url = "https://skeb.jp/@savior0iphone/works/101"
         fetcher.fetch(work_url)
