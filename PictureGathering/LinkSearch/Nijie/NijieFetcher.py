@@ -59,7 +59,7 @@ class NijieFetcher(FetcherBase):
 
         Args:
             username (Username): nijieユーザーID(登録したemailアドレス)
-            password (Password):  nijieユーザーIDのパスワード
+            password (Password): nijieユーザーIDのパスワード
 
         Returns:
             cookies (NijieCookie): ログイン情報を保持したクッキー

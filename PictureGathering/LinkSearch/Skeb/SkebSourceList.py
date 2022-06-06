@@ -46,7 +46,7 @@ class SkebSourceList(Iterable):
 
     @classmethod
     async def localstorage_test(cls, skeb_url: SkebURL, session: SkebSession):
-        response = await session.session.get(skeb_url.original_url, headers=session.headers, cookies=session.cookie_jar)
+        response = await session.session.get(skeb_url.original_url, headers=session.headers, cookies=session.cookies)
         response.raise_for_status()
         await response.html.arender(sleep=2)
         return response

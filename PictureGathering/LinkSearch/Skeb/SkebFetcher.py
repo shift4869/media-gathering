@@ -23,13 +23,8 @@ logger.setLevel(INFO)
 class SkebFetcher(FetcherBase):
     """skeb作品を取得するクラス
     """
-    session: SkebSession  # skebで使用するクッキー
+    session: SkebSession  # skebで使用するセッション
     base_path: Path   # 保存ディレクトリベースパス
-
-    # 接続時に使用するヘッダー
-    HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"}
-    # skebトップページ
-    TOP_URL = URL("https://skeb.jp/")
 
     def __init__(self, username: Username, password: Password, base_path: Path) -> None:
         super().__init__()
@@ -41,7 +36,7 @@ class SkebFetcher(FetcherBase):
         if not isinstance(base_path, Path):
             raise TypeError("base_path is not Path.")
 
-        object.__setattr__(self, "session", SkebSession.create(username, password, self.TOP_URL, self.HEADERS))
+        object.__setattr__(self, "session", SkebSession.create(username, password))
         object.__setattr__(self, "base_path", base_path)
 
     def is_target_url(self, url: URL) -> bool:
