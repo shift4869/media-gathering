@@ -25,12 +25,13 @@ lxml==4.7.1; python_full_version >= "3.6.0"
 mock==4.0.3; python_version >= "3.6"
 oauthlib==3.1.1; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.4.0" and python_version >= "3.6"
 parse==1.19.0; python_full_version >= "3.6.0"
-pillow==9.0.0; python_version >= "3.7"
+pillow==9.0.1; python_version >= "3.7"
 pixivpy==3.6.2
 plyer==2.0.0
 protobuf==3.19.3; python_version >= "3.5"
 pyasn1-modules==0.2.8; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.6.0" and python_version >= "3.6"
 pyasn1==0.4.8; python_version >= "3.6" and python_full_version < "3.0.0" and python_version < "4" and (python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.6.0" and python_version >= "3.6") or python_full_version >= "3.6.0" and python_version >= "3.6" and python_version < "4" and (python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.6.0" and python_version >= "3.6")
+pycodestyle==2.8.0; (python_version >= "2.7" and python_full_version < "3.0.0") or (python_full_version >= "3.5.0")
 pycparser==2.21; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.4.0" and python_version >= "3.6"
 pyee==8.2.2; python_version >= "3.7" and python_version < "4.0" and python_full_version >= "3.6.0"
 pyparsing==3.0.6; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.4.0" and python_version >= "3.6"
