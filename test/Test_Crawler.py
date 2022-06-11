@@ -466,28 +466,28 @@ class TestCrawler(unittest.TestCase):
         """外部リンク探索機構のセットアップをチェックする
         """
         with ExitStack() as stack:
-            mockLSP = stack.enter_context(patch("PictureGathering.LinkSearch.Pixiv.PixivFetcher"))
-            mockLSPN = stack.enter_context(patch("PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher"))
-            mockLSN = stack.enter_context(patch("PictureGathering.LinkSearch.Nijie.NijieFetcher"))
-            mockLSNS = stack.enter_context(patch("PictureGathering.LinkSearch.NicoSeiga.NicoSeigaFetcher"))
-            mockLSSK = stack.enter_context(patch("PictureGathering.LinkSearch.Skeb.SkebFetcher"))
+            mockLSP = stack.enter_context(patch("PictureGathering.LinkSearch.LinkSearcher.PixivFetcher"))
+            mockLSPN = stack.enter_context(patch("PictureGathering.LinkSearch.LinkSearcher.PixivNovelFetcher"))
+            mockLSN = stack.enter_context(patch("PictureGathering.LinkSearch.LinkSearcher.NijieFetcher"))
+            mockLSNS = stack.enter_context(patch("PictureGathering.LinkSearch.LinkSearcher.NicoSeigaFetcher"))
+            mockLSSK = stack.enter_context(patch("PictureGathering.LinkSearch.LinkSearcher.SkebFetcher"))
 
             # 外部リンク探索クラスのインターフェイスのみ模倣したクラス
             class LSImitation():
-                def __init__(self):
+                def __init__(self, username, password, path):
                     pass
 
-                def IsTargetUrl(self, url: str) -> bool:
-                    return True  # 常に処理担当とする
+                def is_target_url(self, url: str) -> bool:
+                    return True
 
-                def Process(self, url: str) -> int:
-                    return -1  # 常に処理失敗するとする
+                def fetch(self, url: str) -> int:
+                    return -1
             LS_KIND_NUM = 5  # 外部リンク探索担当者数
-            mockLSP.return_value = LSImitation()
-            mockLSN.return_value = LSImitation()
-            mockLSNS.return_value = LSImitation()
-            mockLSPN.return_value = LSImitation()
-            mockLSSK.return_value = LSImitation()
+            mockLSP.side_effect = LSImitation
+            mockLSN.side_effect = LSImitation
+            mockLSNS.side_effect = LSImitation
+            mockLSPN.side_effect = LSImitation
+            mockLSSK.side_effect = LSImitation
 
             crawler = ConcreteCrawler()
 
