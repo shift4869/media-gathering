@@ -1,10 +1,8 @@
 # coding: utf-8
 import asyncio
-from http.client import HTTPResponse
 import random
 import re
 from typing import ClassVar
-import urllib.parse
 from dataclasses import dataclass
 from logging import INFO, getLogger
 from pathlib import Path
@@ -13,10 +11,9 @@ from httplib2 import Response
 import pyppeteer
 import requests.cookies
 import requests.utils
-from requests_html import HTMLSession, HTML, AsyncHTMLSession
+from requests_html import AsyncHTMLSession
 
 from PictureGathering.LinkSearch.Password import Password
-from PictureGathering.LinkSearch.Skeb.SkebURL import SkebURL
 from PictureGathering.LinkSearch.URL import URL
 from PictureGathering.LinkSearch.Username import Username
 
@@ -101,6 +98,7 @@ class SkebSession():
     def _is_valid_session(self) -> bool:
         """セッションの正当性チェック
 
+        self.sessionの正当性を調べる
         クッキーとローカルストレージが正しく設定されている場合
         トップページからaccountページへのリンクが取得できる
         右上のアイコンマウスオーバー時に展開されるリストから
@@ -162,6 +160,9 @@ class SkebSession():
     async def _async_get(self, request_url_str: str) -> Response:
         """セッションを使ってレスポンスを取得する
 
+        Args:
+            request_url_str (str): getするURL文字列
+
         Returns:
             Response: レンダリング済htmlページレスポンス
         """
@@ -175,6 +176,9 @@ class SkebSession():
 
         イベントループはself.loopを使い回す
 
+        Args:
+            request_url_str (str): getするURL文字列
+
         Returns:
             Response: レンダリング済htmlページレスポンス
         """
@@ -182,15 +186,22 @@ class SkebSession():
         return self.loop.run_until_complete(self._async_get(url.original_url))
 
     @classmethod
-    async def get_cookies_from_oauth(cls, username: Username, password: Password, top_url: URL, headers: dict) -> "SkebSession":
+    async def get_cookies_from_oauth(cls, username: Username, password: Password) -> "SkebSession":
         """ツイッターログインを行いSkebページで使うクッキーとローカルストレージを取得する
 
         pyppeteerを通してheadless chromeを操作する
         取得したクッキーとローカルストレージはそれぞれファイルに保存する
 
+        Args:
+            username (Username): ユーザーID(紐づいているツイッターID)
+            password (Password): ユーザーIDのパスワード(ツイッターパスワード)
+
         Returns:
             SkebSession: アクセスに使うセッション
         """
+        # トップページURL
+        top_url = URL(SkebSession.TOP_URL)
+
         urls = []
         browser = await pyppeteer.launch(headless=True)
         page = await browser.newPage()
@@ -314,10 +325,6 @@ class SkebSession():
         Returns:
             SkebSession: SkebSessionインスタンス
         """
-        # トップページURL
-        top_url = URL(SkebSession.TOP_URL)
-        # 接続に使うヘッダー
-        headers = SkebSession.HEADERS
         # アクセスに使用するクッキーファイル置き場
         scp = Path(SkebSession.SKEB_COOKIE_PATH)
         # アクセスに使用するローカルストレージファイル置き場
@@ -367,7 +374,7 @@ class SkebSession():
         # または有効なセッションが取得できなかった場合
         # 認証してクッキーとローカルストレージの取得を試みる
         loop = asyncio.new_event_loop()
-        skeb_session = loop.run_until_complete(SkebSession.get_cookies_from_oauth(username, password, top_url, headers))
+        skeb_session = loop.run_until_complete(SkebSession.get_cookies_from_oauth(username, password))
 
         logger.info("Getting Skeb session is success.")
 

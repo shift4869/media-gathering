@@ -1,17 +1,14 @@
 # coding: utf-8
-import asyncio
 from dataclasses import dataclass
 import re
 from typing import Iterable
 from pathlib import Path
-from urllib.parse import urlencode
 
-from requests_html import HTMLSession, HTML, AsyncHTMLSession
+from requests_html import AsyncHTMLSession
 from urllib.parse import quote, unquote
 import pyppeteer
 
 from PictureGathering.LinkSearch.Skeb.SaveFilename import Extension
-from PictureGathering.LinkSearch.Skeb.SkebCookie import SkebCookie
 from PictureGathering.LinkSearch.Skeb.SkebSession import SkebSession
 from PictureGathering.LinkSearch.Skeb.SkebSourceInfo import SkebSourceInfo
 from PictureGathering.LinkSearch.Skeb.SkebURL import SkebURL
@@ -46,6 +43,7 @@ class SkebSourceList(Iterable):
 
     @classmethod
     async def localstorage_test(cls, skeb_url: SkebURL, session: SkebSession):
+        return
         response = await session.session.get(skeb_url.original_url, headers=session.headers, cookies=session.cookies)
         response.raise_for_status()
         await response.html.arender(sleep=2)
@@ -133,22 +131,6 @@ class SkebSourceList(Iterable):
         """
         source_list = []
 
-        # url = skeb_url.non_query_url
-        # work_path = url.replace(top_url.non_query_url, "")
-        # request_url = f"{top_url.non_query_url}callback?path={work_path}&token={cookies.token}"
-        # session = HTMLSession()
-        # response = session.get(request_url, headers=cookies.headers, cookies=cookies.cookies)
-        # response.raise_for_status()
-        # response.html.render(sleep=2)
-
-        # loop = asyncio.new_event_loop()
-        # content = loop.run_until_complete(SkebSourceList.localstorage_test(skeb_url, cookies))
-        # response = HTML(html=content)
-        # response.render(sleep=2)
-
-        # loop = asyncio.new_event_loop()
-        # response = loop.run_until_complete(SkebSourceList.localstorage_test(skeb_url, cookies))
-
         # loop = asyncio.new_event_loop()
         response = session.get(skeb_url.non_query_url)
 
@@ -175,7 +157,6 @@ class SkebSourceList(Iterable):
             muted_a = src_tag.attrs.get("muted", "")
             loop_a = src_tag.attrs.get("loop", "")
             src_url = src_tag.attrs.get("src", "")
-            src_url = unquote(src_url).replace("#", "%23")
             if preload_a == "auto" and autoplay_a == "autoplay" and muted_a == "muted" and loop_a == "loop" and src_url != "":
                 source = SkebSourceInfo(URL(src_url), Extension.MP4)
                 source_list.append(source)
@@ -186,7 +167,6 @@ class SkebSourceList(Iterable):
         for src_tag in src_tags:
             type = src_tag.attrs.get("type", "")
             src_url = src_tag.attrs.get("src", "")
-            # src_url = unquote(src_url).replace("#", "%23")
             if type == "video/mp4" and src_url != "":
                 source = SkebSourceInfo(URL(src_url), Extension.MP4)
                 source_list.append(source)

@@ -6,7 +6,6 @@ from pathlib import Path
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase
 from PictureGathering.LinkSearch.Password import Password
 from PictureGathering.LinkSearch.Skeb.Converter import Converter
-from PictureGathering.LinkSearch.Skeb.SkebCookie import SkebCookie
 from PictureGathering.LinkSearch.Skeb.SkebDownloader import SkebDownloader
 from PictureGathering.LinkSearch.Skeb.SkebSaveDirectoryPath import SkebSaveDirectoryPath
 from PictureGathering.LinkSearch.Skeb.SkebSession import SkebSession

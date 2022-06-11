@@ -10,7 +10,6 @@ from typing import ClassVar
 import requests
 
 from PictureGathering.LinkSearch.Skeb.SaveFilename import SaveFilename, Extension
-from PictureGathering.LinkSearch.Skeb.SkebCookie import SkebCookie
 from PictureGathering.LinkSearch.Skeb.SkebSaveDirectoryPath import SkebSaveDirectoryPath
 from PictureGathering.LinkSearch.Skeb.SkebSession import SkebSession
 from PictureGathering.LinkSearch.Skeb.SkebSourceList import SkebSourceList
