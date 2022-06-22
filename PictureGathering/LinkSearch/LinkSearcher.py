@@ -112,7 +112,6 @@ class LinkSearcher():
 if __name__ == "__main__":
     import logging.config
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
-    CONFIG_FILE_NAME = "./config/config.ini"
 
     # url = "https://www.pixiv.net/artworks/86704541"
     # url = "https://www.pixiv.net/novel/show.php?id=17668373"
