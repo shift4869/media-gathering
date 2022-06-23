@@ -10,7 +10,7 @@ import unittest
 from PictureGathering.LinkSearch.URL import URL
 
 
-class TestCrawler(unittest.TestCase):
+class TestURL(unittest.TestCase):
     def setUp(self):
         pass
 

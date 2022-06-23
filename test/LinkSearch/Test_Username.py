@@ -9,7 +9,7 @@ import unittest
 from PictureGathering.LinkSearch.Username import Username
 
 
-class TestCrawler(unittest.TestCase):
+class TestUsername(unittest.TestCase):
     def setUp(self):
         pass
 
