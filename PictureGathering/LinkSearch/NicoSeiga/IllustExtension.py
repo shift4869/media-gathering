@@ -33,7 +33,7 @@ class IllustExtension():
 
     @classmethod
     def create(self, data: bytes) -> "IllustExtension":
-        """画像バイナリから拡張子を判別するし、IllustExtensionインスタンスを生成する
+        """画像バイナリから拡張子を判別し、IllustExtensionインスタンスを生成する
         """
         ext = ""
 
@@ -42,7 +42,7 @@ class IllustExtension():
 
         # プリフィックスを得るのに短すぎるbyte列の場合はエラー
         if len(data) < 8:
-            raise ValueError("invalid IllustExtension")
+            raise ValueError("data is too short, invalid IllustExtension")
 
         # 拡張子判別
         if bool(re.search(b"^\xff\xd8", data[:2])):
