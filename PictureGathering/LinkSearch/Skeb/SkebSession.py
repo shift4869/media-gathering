@@ -365,7 +365,7 @@ class SkebSession():
             # 再度クッキーとローカルストレージを取得することを試みる
             try:
                 skeb_session = SkebSession(cookies, local_storage)
-                logger.info("Getting Skeb session is success.")
+                # logger.info("Getting Skeb session is success.")
                 return skeb_session
             except Exception:
                 pass
@@ -376,7 +376,7 @@ class SkebSession():
         loop = asyncio.new_event_loop()
         skeb_session = loop.run_until_complete(SkebSession.get_cookies_from_oauth(username, password))
 
-        logger.info("Getting Skeb session is success.")
+        # logger.info("Getting Skeb session is success.")
 
         # 取得したクッキーとローカルストレージを保存する
         # get_cookies_from_oauth内で保存される

@@ -28,6 +28,8 @@ class LinkSearcher():
         if not interface_check:
             raise TypeError("Invalid fetcher.")
         self.fetcher_list.append(fetcher)
+        fetcher_class = fetcher.__class__.__name__
+        logger.info(f"LinkSearcher {fetcher_class} -> registered.")
 
     def fetch(self, url: str) -> None:
         # CoR
@@ -49,6 +51,7 @@ class LinkSearcher():
 
     @classmethod
     def create(self, config: configparser.ConfigParser) -> "LinkSearcher":
+        logger.info("LinkSearcher each fetcher registering start...")
         ls = LinkSearcher()
 
         # 登録失敗時の通知用
@@ -106,6 +109,7 @@ class LinkSearcher():
         except Exception:
             notify("skeb")
 
+        logger.info("LinkSearcher each fetcher registering done.")
         return ls
 
 

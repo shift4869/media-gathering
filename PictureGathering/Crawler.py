@@ -74,6 +74,7 @@ class Crawler(metaclass=ABCMeta):
     CONFIG_FILE_NAME = "./config/config.ini"
 
     def __init__(self):
+        logger.info("Crawler config setting start...")
         self.config = configparser.ConfigParser()
         try:
             if not self.config.read(self.CONFIG_FILE_NAME, encoding="utf8"):
@@ -149,6 +150,7 @@ class Crawler(metaclass=ABCMeta):
 
         self.add_url_list = []
         self.del_url_list = []
+        logger.info("Crawler config setting done.")
 
     def LinkSearchRegister(self) -> int:
         """外部リンク探索機構のセットアップ

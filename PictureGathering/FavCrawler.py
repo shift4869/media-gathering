@@ -73,7 +73,7 @@ class FavCrawler(Crawler):
         return done_msg
 
     def Crawl(self):
-        logger.info("Fav Crawler run.")
+        logger.info("Fav Crawler crawl start.")
         # count * fav_get_max_loop だけツイートをさかのぼる。
         fav_get_max_loop = int(self.config["tweet_timeline"]["fav_get_max_loop"]) + 1
         for i in range(1, fav_get_max_loop):
