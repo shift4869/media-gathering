@@ -6,6 +6,7 @@ from pathlib import Path
 
 from PictureGathering.Crawler import Crawler
 from PictureGathering.FavDBController import FavDBController
+from PictureGathering.LogMessage import MSG
 
 logger = getLogger("root")
 logger.setLevel(INFO)
@@ -13,6 +14,7 @@ logger.setLevel(INFO)
 
 class FavCrawler(Crawler):
     def __init__(self):
+        logger.info(MSG.FAVCRAWLER_INIT_START.value)
         super().__init__()
         try:
             config = self.config["db"]
@@ -28,6 +30,7 @@ class FavCrawler(Crawler):
         except KeyError:
             logger.exception("invalid config file error.")
             exit(-1)
+        logger.info(MSG.FAVCRAWLER_INIT_DONE.value)
 
     def FavTweetsGet(self, page):
         kind_of_api = self.config["tweet_timeline"]["kind_of_timeline"]
@@ -73,7 +76,7 @@ class FavCrawler(Crawler):
         return done_msg
 
     def Crawl(self):
-        logger.info("Fav Crawler crawl start.")
+        logger.info(MSG.FAVCRAWLER_CRAWL_START.value)
         # count * fav_get_max_loop だけツイートをさかのぼる。
         fav_get_max_loop = int(self.config["tweet_timeline"]["fav_get_max_loop"]) + 1
         for i in range(1, fav_get_max_loop):
@@ -81,6 +84,7 @@ class FavCrawler(Crawler):
             self.InterpretTweets(tweets)
         self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
         self.EndOfProcess()
+        logger.info(MSG.FAVCRAWLER_CRAWL_DONE.value)
         return 0
 
 

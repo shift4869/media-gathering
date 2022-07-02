@@ -5,6 +5,7 @@ from logging import DEBUG, INFO, getLogger
 from pathlib import Path
 
 from PictureGathering.Crawler import Crawler
+from PictureGathering.LogMessage import MSG
 from PictureGathering.RetweetDBController import RetweetDBController
 
 logger = getLogger("root")
@@ -13,6 +14,7 @@ logger.setLevel(INFO)
 
 class RetweetCrawler(Crawler):
     def __init__(self):
+        logger.info(MSG.RTCRAWLER_INIT_START.value)
         super().__init__()
         try:
             config = self.config["db"]
@@ -30,6 +32,7 @@ class RetweetCrawler(Crawler):
         except KeyError:
             logger.exception("invalid config file eeror.")
             exit(-1)
+        logger.info(MSG.RTCRAWLER_INIT_DONE.value)
 
     def RetweetsGet(self):
         url = "https://api.twitter.com/1.1/statuses/user_timeline.json"
@@ -168,11 +171,12 @@ class RetweetCrawler(Crawler):
         return done_msg
 
     def Crawl(self):
-        logger.info("Retweet Crawler crawl start.")
+        logger.info(MSG.RTCRAWLER_CRAWL_START.value)
         tweets = self.RetweetsGet()
         self.InterpretTweets(tweets)
         self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
         self.EndOfProcess()
+        logger.info(MSG.RTCRAWLER_CRAWL_DONE.value)
         return 0
 
 

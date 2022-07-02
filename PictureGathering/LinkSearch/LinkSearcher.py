@@ -14,6 +14,7 @@ from PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher import PixivNovelF
 from PictureGathering.LinkSearch.Skeb.SkebFetcher import SkebFetcher
 from PictureGathering.LinkSearch.URL import URL
 from PictureGathering.LinkSearch.Username import Username
+from PictureGathering.LogMessage import MSG
 
 logger = getLogger("root")
 logger.setLevel(INFO)
@@ -29,14 +30,14 @@ class LinkSearcher():
             raise TypeError("Invalid fetcher.")
         self.fetcher_list.append(fetcher)
         fetcher_class = fetcher.__class__.__name__
-        logger.info(f"LinkSearcher {fetcher_class} -> registered.")
+        logger.info(MSG.LINKSEARCHER_REGISTERED.value.format(fetcher_class))
 
     def fetch(self, url: str) -> None:
         # CoR
         for p in self.fetcher_list:
             if p.is_target_url(URL(url)):
                 fetcher_class = p.__class__.__name__
-                logger.info(url + f" -> Fetcher found: {fetcher_class}.")
+                logger.info(MSG.LINKSEARCHER_FETCHER_FOUND.value.format(url, fetcher_class))
                 p.fetch(url)
                 break
         else:
@@ -51,7 +52,7 @@ class LinkSearcher():
 
     @classmethod
     def create(self, config: configparser.ConfigParser) -> "LinkSearcher":
-        logger.info("LinkSearcher each fetcher registering start...")
+        logger.info(MSG.LINKSEARCHER_CREATE_START.value)
         ls = LinkSearcher()
 
         # 登録失敗時の通知用
@@ -109,7 +110,7 @@ class LinkSearcher():
         except Exception:
             notify("skeb")
 
-        logger.info("LinkSearcher each fetcher registering done.")
+        logger.info(MSG.LINKSEARCHER_CREATE_DONE.value)
         return ls
 
 

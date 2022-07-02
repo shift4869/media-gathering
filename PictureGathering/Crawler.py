@@ -28,6 +28,7 @@ from plyer import notification
 
 from PictureGathering import WriteHTML, Archiver, GoogleDrive
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
+from PictureGathering.LogMessage import MSG
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 for name in logging.root.manager.loggerDict:
@@ -74,7 +75,16 @@ class Crawler(metaclass=ABCMeta):
     CONFIG_FILE_NAME = "./config/config.ini"
 
     def __init__(self):
-        logger.info("Crawler config setting start...")
+        logger.info(MSG.CRAWLER_INIT_START.value)
+
+        def notify(error_message: str):
+            notification.notify(
+                title="Picture Gathering 実行エラー",
+                message=error_message,
+                app_name="Picture Gathering",
+                timeout=10
+            )
+
         self.config = configparser.ConfigParser()
         try:
             if not self.config.read(self.CONFIG_FILE_NAME, encoding="utf8"):
@@ -111,31 +121,19 @@ class Crawler(metaclass=ABCMeta):
             # 外部リンク探索機構のセットアップ
             self.LinkSearchRegister()
         except IOError:
-            logger.exception(self.CONFIG_FILE_NAME + " is not exist or cannot be opened.")
-            notification.notify(
-                title="Picture Gathering 実行エラー",
-                message=self.CONFIG_FILE_NAME + " is not exist or cannot be opened.",
-                app_name="Picture Gathering",
-                timeout=10
-            )
+            error_message = self.CONFIG_FILE_NAME + " is not exist or cannot be opened."
+            logger.exception(error_message)
+            notify(error_message)
             exit(-1)
         except KeyError:
-            logger.exception("invalid config file error.")
-            notification.notify(
-                title="Picture Gathering 実行エラー",
-                message="invalid config file error.",
-                app_name="Picture Gathering",
-                timeout=10
-            )
+            error_message = "invalid config file error."
+            logger.exception(error_message)
+            notify(error_message)
             exit(-1)
         except Exception:
-            logger.exception("unknown error.")
-            notification.notify(
-                title="Picture Gathering 実行エラー",
-                message="unknown error.",
-                app_name="Picture Gathering",
-                timeout=10
-            )
+            error_message = "unknown error."
+            logger.exception(error_message)
+            notify(error_message)
             exit(-1)
 
         self.oath = OAuth1Session(
@@ -150,7 +148,7 @@ class Crawler(metaclass=ABCMeta):
 
         self.add_url_list = []
         self.del_url_list = []
-        logger.info("Crawler config setting done.")
+        logger.info(MSG.CRAWLER_INIT_DONE.value)
 
     def LinkSearchRegister(self) -> int:
         """外部リンク探索機構のセットアップ
@@ -260,7 +258,7 @@ class Crawler(metaclass=ABCMeta):
                     raise Exception("Twitter API error %d" % response.status_code)
 
                 unavailableCnt += 1
-                logger.info("Service Unavailable 503")
+                logger.warning("Service Unavailable 503")
                 self.WaitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
                 continue
 
@@ -329,7 +327,7 @@ class Crawler(metaclass=ABCMeta):
                     raise Exception("Twitter API error %d" % response.status_code)
 
                 unavailableCnt += 1
-                logger.info("Service Unavailable 503")
+                logger.warning("Service Unavailable 503")
                 self.WaitTwitterAPIUntilReset(response)
                 continue
             unavailableCnt = 0
@@ -536,7 +534,7 @@ class Crawler(metaclass=ABCMeta):
             if config.getboolean("timestamp_created_at"):
                 os.utime(save_file_fullpath, (atime, mtime))
 
-            logger.info(save_file_fullpath.name + " -> done!")
+            logger.info(save_file_fullpath.name + " -> done")
             self.add_cnt += 1
 
             # 常に保存する設定の場合はコピーする
