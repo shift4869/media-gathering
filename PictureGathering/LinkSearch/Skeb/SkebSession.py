@@ -188,18 +188,19 @@ class SkebSession():
         return self.loop.run_until_complete(self._async_get(url.original_url))
 
     @classmethod
-    async def get_cookies_from_oauth(cls, username: Username, password: Password) -> "SkebSession":
+    async def get_cookies_from_oauth(cls, username: Username, password: Password) -> tuple[requests.cookies.RequestsCookieJar, list[str]]:
         """ツイッターログインを行いSkebページで使うクッキーとローカルストレージを取得する
 
         pyppeteerを通してheadless chromeを操作する
         取得したクッキーとローカルストレージはそれぞれファイルに保存する
 
         Args:
-            username (Username): ユーザーID(紐づいているツイッターID)
-            password (Password): ユーザーIDのパスワード(ツイッターパスワード)
+            username (Username): ユーザーID(ツイッターID)
+            password (Password): ユーザーIDのパスワード(ツイッターIDのパスワード)
 
         Returns:
-            SkebSession: アクセスに使うセッション
+            requests.cookies.RequestsCookieJar: ログイン後のクッキー
+            list[str]: ログイン後のローカルストレージ
         """
         # トップページURL
         top_url = URL(SkebSession.TOP_URL)
@@ -323,7 +324,7 @@ class SkebSession():
                     rest={"HttpOnly": c["httpOnly"]})
                 fout.write(CookieToString(c) + "\n")
 
-        return SkebSession(requests_cookies, local_storage)
+        return requests_cookies, local_storage
 
     @classmethod
     def create(cls, username: Username, password: Password) -> "SkebSession":
@@ -393,7 +394,8 @@ class SkebSession():
         # または有効なセッションが取得できなかった場合
         # 認証してクッキーとローカルストレージの取得を試みる
         loop = asyncio.new_event_loop()
-        skeb_session = loop.run_until_complete(SkebSession.get_cookies_from_oauth(username, password))
+        cookies, local_storage = loop.run_until_complete(SkebSession.get_cookies_from_oauth(username, password))
+        skeb_session = SkebSession(cookies, local_storage)
 
         # logger.info("Getting Skeb session is success.")
 
