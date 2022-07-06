@@ -149,6 +149,8 @@ class SkebSession():
                 "expires": c.expires,
                 "path": c.path,
                 "domain": c.domain,
+                "secure": bool(c.secure),
+                "httpOnly": bool(c._rest["HttpOnly"])
             }
             await page.setCookie(d)
 
@@ -301,7 +303,9 @@ class SkebSession():
             expires = c["expires"]
             path = c["path"]
             domain = c["domain"]
-            return f'name="{name}", value="{value}", expires={expires}, path="{path}", domain="{domain}"'
+            httponly = c["httpOnly"]
+            secure = c["secure"]
+            return f'name="{name}", value="{value}", expires={expires}, path="{path}", domain="{domain}", httponly="{httponly}", secure="{secure}"'
 
         # クッキー情報をファイルに保存する
         # 取得したクッキーはRequestsCookieJarのインスタンスではないので変換もここで行う
@@ -309,7 +313,14 @@ class SkebSession():
         scp = Path(SkebSession.SKEB_COOKIE_PATH)
         with scp.open(mode="w") as fout:
             for c in cookies:
-                requests_cookies.set(c["name"], c["value"], expires=c["expires"], path=c["path"], domain=c["domain"])
+                requests_cookies.set(
+                    c["name"],
+                    c["value"],
+                    expires=c["expires"],
+                    path=c["path"],
+                    domain=c["domain"],
+                    secure=c["secure"],
+                    rest={"HttpOnly": c["httpOnly"]})
                 fout.write(CookieToString(c) + "\n")
 
         return SkebSession(requests_cookies, local_storage)
@@ -357,7 +368,15 @@ class SkebSession():
                         key, val = element.split("=")  # =で分割
                         sc[key] = val
 
-                    cookies.set(sc["name"], sc["value"], expires=sc["expires"], path=sc["path"], domain=sc["domain"])
+                    cookies.set(
+                        sc["name"],
+                        sc["value"],
+                        expires=sc["expires"],
+                        path=sc["path"],
+                        domain=sc["domain"],
+                        secure=bool(sc["secure"]),
+                        rest={"HttpOnly": bool(sc["httponly"])}
+                    )
 
             # SkebSessionインスタンスを生成する
             # 正当性は生成時に確認される
