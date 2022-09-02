@@ -629,6 +629,7 @@ class TestCrawler(unittest.TestCase):
             mockTWALimitContext = stack.enter_context(patch("PictureGathering.Crawler.Crawler.GetTwitterAPILimitContext"))
             mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
             mockoauth = stack.enter_context(patch("requests_oauthlib.OAuth1Session.get"))
+            mocklogger = stack.enter_context(patch.object(logger, "warning"))
 
             crawler = ConcreteCrawler()
             url = "https://api.twitter.com/1.1/favorites/list.json"
@@ -740,6 +741,7 @@ class TestCrawler(unittest.TestCase):
             mockoauth = stack.enter_context(patch("requests_oauthlib.OAuth1Session.get"))
             mockTWAUntilReset = stack.enter_context(patch("PictureGathering.Crawler.Crawler.WaitTwitterAPIUntilReset"))
             mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+            mocklogger = stack.enter_context(patch.object(logger, "warning"))
 
             crawler = ConcreteCrawler()
 
