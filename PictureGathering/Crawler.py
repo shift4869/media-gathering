@@ -547,7 +547,7 @@ class Crawler(metaclass=ABCMeta):
             if config.getboolean("is_archive"):
                 shutil.copy2(save_file_fullpath, config["archive_temp_path"])
         else:
-            logger.info(save_file_fullpath.name + " -> exist")
+            logger.debug(save_file_fullpath.name + " -> exist")
             return 1
         return 0
 
@@ -615,7 +615,7 @@ class Crawler(metaclass=ABCMeta):
                             self.lsb.fetch(url)
                 except ValueError as e:
                     error_message = e.args[0]
-                    logger.info(f"{url} -> {error_message}")
+                    logger.debug(f"{url} -> {error_message}")
                     pass
 
                 if "extended_entities" not in media_tweet:
@@ -644,7 +644,7 @@ class Crawler(metaclass=ABCMeta):
         # save_path配下のファイルとサブディレクトリ内を捜査し、全てのファイルを収集する
         # (更新日時（mtime）, パス文字列)のタプルをリストに保持する
         filelist_tp = [(sp.stat().st_mtime, str(sp)) for sp in save_path.glob("**/*") if sp.is_file()]
-        
+
         # 更新日時（mtime）でソートし、最新のものからfilelistに追加する
         for mtime, path in sorted(filelist_tp, reverse=True):
             filelist.append(path)
