@@ -24,7 +24,7 @@ class Worktitle():
 
         regex = re.compile(r'[\\/:*?"<>|]')
         trimed_title = regex.sub("", self._original_title)
-        non_emoji_title = emoji.get_emoji_regexp().sub("", trimed_title)
+        non_emoji_title = emoji.replace_emoji(trimed_title, "")
         object.__setattr__(self, "_title", non_emoji_title)
 
     @property

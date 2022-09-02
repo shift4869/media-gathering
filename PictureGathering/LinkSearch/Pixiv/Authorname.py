@@ -24,7 +24,7 @@ class Authorname():
 
         regex = re.compile(r'[\\/:*?"<>|]')
         trimed_name = regex.sub("", self._original_name)
-        non_emoji_name = emoji.get_emoji_regexp().sub("", trimed_name)
+        non_emoji_name = emoji.replace_emoji(trimed_name, "")
         object.__setattr__(self, "_name", non_emoji_name)
 
     @property

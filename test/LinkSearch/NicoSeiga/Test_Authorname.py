@@ -22,7 +22,7 @@ class TestAuthorname(unittest.TestCase):
     def _sanitize(self, _original_name: str) -> str:
         regex = re.compile(r'[\\/:*?"<>|]')
         trimed_name = regex.sub("", _original_name)
-        non_emoji_name = emoji.get_emoji_regexp().sub("", trimed_name)
+        non_emoji_name = emoji.replace_emoji(trimed_name, "")
         return non_emoji_name
 
     def test_Authorname(self):
