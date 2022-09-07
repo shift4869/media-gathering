@@ -612,7 +612,11 @@ class Crawler(metaclass=ABCMeta):
                         e_urls = tweet["entities"]["urls"]
                         for element in e_urls:
                             url = element.get("expanded_url")
-                            self.lsb.fetch(url)
+                            if self.lsb.can_fetch(url):
+                                # 外部リンク先を取得して保存
+                                self.lsb.fetch(url)
+                                # DBにアドレス情報を保存
+                                self.db_cont.ExternalLinkUpsert(url, tweet)
                 except ValueError as e:
                     error_message = e.args[0]
                     logger.debug(f"{url} -> {error_message}")

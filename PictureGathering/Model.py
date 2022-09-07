@@ -192,6 +192,78 @@ class Retweet(Base):
         }
 
 
+class ExternalLink(Base):
+    """外部リンクモデル
+
+        [id] INTEGER,
+        [external_link_url] TEXT NOT NULL,
+        [tweet_id] TEXT NOT NULL,
+        [tweet_url] TEXT NOT NULL,
+        [created_at] TEXT,
+        [user_id] TEXT NOT NULL,
+        [user_name] TEXT NOT NULL,
+        [screan_name] TEXT NOT NULL,
+        [tweet_text] TEXT,
+        [tweet_via] TEXT,
+        [link_type] TEXT,
+        PRIMARY KEY([id])
+    """
+
+    __tablename__ = "ExternalLink"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    external_link_url = Column(String(512), nullable=False)
+    tweet_id = Column(String(256), nullable=False)
+    tweet_url = Column(String(512), nullable=False)
+    created_at = Column(String(32))
+    user_id = Column(String(256), nullable=False)
+    user_name = Column(String(256), nullable=False)
+    screan_name = Column(String(256), nullable=False)
+    tweet_text = Column(String(512))
+    tweet_via = Column(String(512))
+    saved_created_at = Column(String(32))
+    link_type = Column(String(256))
+
+    def __init__(self, *args, **kwargs):
+        super(Base, self).__init__(*args, **kwargs)
+
+    def __init__(self, external_link_url, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, tweet_via, saved_created_at, link_type):
+        # self.id = id
+        self.external_link_url = external_link_url
+        self.tweet_id = tweet_id
+        self.tweet_url = tweet_url
+        self.created_at = created_at
+        self.user_id = user_id
+        self.user_name = user_name
+        self.screan_name = screan_name
+        self.tweet_text = tweet_text
+        self.tweet_via = tweet_via
+        self.saved_created_at = saved_created_at
+        self.link_type = link_type
+
+    def __repr__(self):
+        return "<ExternalLink(id='%s', external_link_url='%s', tweet_url='%s')>" % (self.id, self.external_link_url, self.tweet_url)
+
+    def __eq__(self, other):
+        return isinstance(other, ExternalLink) and other.external_link_url == self.external_link_url and other.tweet_url == self.tweet_url
+
+    def toDict(self):
+        return {
+            "id": self.id,
+            "external_link_url": self.external_link_url,
+            "tweet_id": self.tweet_id,
+            "tweet_url": self.tweet_url,
+            "created_at": self.created_at,
+            "user_id": self.user_id,
+            "user_name": self.user_name,
+            "screan_name": self.screan_name,
+            "tweet_text": self.tweet_text,
+            "tweet_via": self.tweet_via,
+            "saved_created_at": self.saved_created_at,
+            "link_type": self.link_type,
+        }
+
+
 class DeleteTarget(Base):
     """削除対象ツイート保持テーブルモデル
 

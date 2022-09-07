@@ -188,7 +188,7 @@ class DBControllerBase(metaclass=ABCMeta):
             "update Favorite set is_exist_saved_file = 0"
 
         Returns:
-             int: 0(成功)
+            int: 0(成功)
         """
         return -1
 
@@ -202,7 +202,7 @@ class DBControllerBase(metaclass=ABCMeta):
             tweet (dict): Insert対象ツイートオブジェクト
 
         Returns:
-             int: 0(成功)
+            int: 0(成功)
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
@@ -227,7 +227,7 @@ class DBControllerBase(metaclass=ABCMeta):
             session.commit()
             session.add(r)
             res = 1
-        
+
         # INSERT
         session.commit()
         session.close()
@@ -271,6 +271,75 @@ class DBControllerBase(metaclass=ABCMeta):
 
         session.close()
         return res_dict
+
+    def ExternalLinkUpsert(self, external_link_url: str, tweet: dict) -> int:
+        """ExternalLinkにUpsertする
+
+        Args:
+            external_link_url (str): 外部リンク
+            tweet (dict): ツイートオブジェクト
+
+        Returns:
+            int: 0(成功)
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+        res = -1
+
+        # tweet解釈
+        td_format = "%a %b %d %H:%M:%S +0000 %Y"
+        dts_format = "%Y-%m-%d %H:%M:%S"
+        tca = tweet["created_at"]
+        dst = datetime.strptime(tca, td_format) + timedelta(hours=9)
+        text = tweet["text"] if "text" in tweet else tweet["full_text"]
+        regex = re.compile(r"<[^>]*?>")
+        via = regex.sub("", tweet["source"])
+
+        tweet_id = tweet["id_str"]
+        screan_name = tweet["user"]["screen_name"]
+
+        try:
+            tweet_url = tweet["entities"]["media"][0]["expanded_url"]
+        except Exception:
+            tweet_url = f"https://twitter.com/{screan_name}/status/{tweet_id}"
+
+        created_at = dst.strftime(dts_format)
+        user_id = tweet["user"]["id_str"]
+        user_name = tweet["user"]["name"]
+        tweet_text = text
+        tweet_via = via
+        link_type = ""
+        saved_created_at = datetime.now().strftime(dts_format)
+
+        r = ExternalLink(external_link_url, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, tweet_via, saved_created_at, link_type)
+
+        try:
+            q = session.query(ExternalLink).filter(and_(ExternalLink.external_link_url == r.external_link_url, ExternalLink.tweet_url == r.tweet_url))
+            p = q.one()
+        except NoResultFound:
+            # INSERT
+            session.add(r)
+            res = 0
+        else:
+            # UPDATE
+            p.external_link_url = r.external_link_url
+            p.tweet_id = r.tweet_id
+            p.tweet_url = r.tweet_url
+            p.created_at = r.created_at
+            p.user_id = r.user_id
+            p.user_name = r.user_name
+            p.screan_name = r.screan_name
+            p.tweet_text = r.tweet_text
+            p.tweet_via = r.tweet_via
+            if p.saved_created_at == "":
+                p.saved_created_at = r.saved_created_at
+            p.link_type = r.link_type
+            res = 1
+
+        session.commit()
+        session.close()
+
+        return res
 
     # def ReflectFromFile(self, operate_file_path):
     #     """操作履歴ファイルから操作を反映する
