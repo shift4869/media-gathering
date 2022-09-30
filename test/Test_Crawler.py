@@ -1042,6 +1042,7 @@ class TestCrawler(unittest.TestCase):
             mockms = stack.enter_context(patch("PictureGathering.Crawler.Crawler.TweetMediaSaver"))
             mockLSR = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
             mocklspd = stack.enter_context(patch("PictureGathering.LinkSearch.LinkSearcher.LinkSearcher.fetch"))
+            mockdbelu = stack.enter_context(patch("PictureGathering.FavDBController.FavDBController.ExternalLinkUpsert"))
 
             crawler = ConcreteCrawler()
 
