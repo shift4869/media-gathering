@@ -341,6 +341,48 @@ class DBControllerBase(metaclass=ABCMeta):
 
         return res
 
+    def ExternalLinkUpsert_v2(self, external_link_list: list[ExternalLink]) -> int:
+        """ExternalLinkにUpsertする
+
+        Args:
+            external_link_list (list[ExternalLink]): 外部リンクリスト
+
+        Returns:
+            int: 0(成功)
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+        res = -1
+
+        for r in external_link_list:
+            try:
+                q = session.query(ExternalLink).filter(and_(ExternalLink.external_link_url == r.external_link_url, ExternalLink.tweet_url == r.tweet_url))
+                p = q.one()
+            except NoResultFound:
+                # INSERT
+                session.add(r)
+                res = 0
+            else:
+                # UPDATE
+                p.external_link_url = r.external_link_url
+                p.tweet_id = r.tweet_id
+                p.tweet_url = r.tweet_url
+                p.created_at = r.created_at
+                p.user_id = r.user_id
+                p.user_name = r.user_name
+                p.screan_name = r.screan_name
+                p.tweet_text = r.tweet_text
+                p.tweet_via = r.tweet_via
+                if p.saved_created_at == "":
+                    p.saved_created_at = r.saved_created_at
+                p.link_type = r.link_type
+                res = 1
+
+        session.commit()
+        session.close()
+
+        return res
+
     # def ReflectFromFile(self, operate_file_path):
     #     """操作履歴ファイルから操作を反映する
 

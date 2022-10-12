@@ -24,6 +24,9 @@ class TwitterAPIEndpoint(Enum):
     # ユーザー詳細取得
     USER_LOOKUP = ["https://api.twitter.com/2/users", "GET"]
 
+    # ツイート詳細取得
+    TWEETS_LOOKUP = ["https://api.twitter.com/2/tweets", "GET"]
+
     # like取得(userid)
     LIKED_TWEET = ["https://api.twitter.com/2/users/{}/liked_tweets", "GET"]
 
@@ -114,6 +117,15 @@ class TwitterAPI():
                 continue
         else:
             raise requests.HTTPError(f"Twitter API error : exceed RETRY_NUM.")
+
+    def get(self, endpoint_url: str, params: dict) -> dict:
+        return self.request(endpoint_url=endpoint_url, params=params, method="GET")
+
+    def post(self, endpoint_url: str, params: dict) -> dict:
+        return self.request(endpoint_url=endpoint_url, params=params, method="POST")
+
+    def delete(self, endpoint_url: str, params: dict) -> dict:
+        return self.request(endpoint_url=endpoint_url, params=params, method="DELETE")
 
 
 if __name__ == "__main__":

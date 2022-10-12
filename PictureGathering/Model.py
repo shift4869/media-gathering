@@ -205,6 +205,7 @@ class ExternalLink(Base):
         [screan_name] TEXT NOT NULL,
         [tweet_text] TEXT,
         [tweet_via] TEXT,
+        [saved_created_at] TEXT,
         [link_type] TEXT,
         PRIMARY KEY([id])
     """

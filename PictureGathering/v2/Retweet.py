@@ -9,26 +9,26 @@ from pathlib import Path
 
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.Model import ExternalLink
-from PictureGathering.v2.LikeInfo import LikeInfo
+from PictureGathering.v2.RetweetInfo import RetweetInfo
 from PictureGathering.v2.TwitterAPI import TwitterAPI, TwitterAPIEndpoint
 
 
 @dataclass
-class Like():
+class Retweet():
     userid: str
     pages: str
     max_results: int
     twitter: TwitterAPI
 
     def fetch(self) -> dict:
-        # like取得
-        url = TwitterAPIEndpoint.LIKED_TWEET.value[0].format(self.userid)
+        # retweet取得
+        url = TwitterAPIEndpoint.TIMELINE_TWEET.value[0].format(self.userid)
         next_token = ""
         result = []
         for _ in range(self.pages):
             params = {
-                "expansions": "author_id,attachments.media_keys",
-                "tweet.fields": "id,attachments,author_id,entities,text,source,created_at",
+                "expansions": "author_id,referenced_tweets.id,referenced_tweets.id.author_id,attachments.media_keys",
+                "tweet.fields": "id,attachments,author_id,referenced_tweets,entities,text,source,created_at",
                 "user.fields": "id,name,username,url",
                 "media.fields": "url,variants,preview_image_url,alt_text",
                 "max_results": self.max_results,
@@ -41,6 +41,14 @@ class Like():
             next_token = tweet.get("meta", {}).get("next_token", "")
 
         return result
+
+    def _find_tweets(self, tweet_id: str, tweets_list: list[str]):
+        """tweet_id をキーに tweets_list を検索する
+        """
+        t_list = [tweet for tweet in tweets_list if tweet.get("id", "") == tweet_id]
+        if len(t_list) == 0:
+            return {}
+        return t_list[0]
 
     def _find_name(self, user_id: str, users_list: list[str]) -> tuple[str, str]:
         """user_id をキーに user_list を検索する
@@ -148,27 +156,124 @@ class Like():
                     pass
         return result
 
-    def to_convert_LikeInfo(self, liked_tweet: list[dict]) -> list[LikeInfo]:
-        """fetch後の返り値からLikeInfoのリストを返す
+    def to_convert_RetweetInfo(self, retweeted_tweet: list[dict]) -> list[RetweetInfo]:
+        """fetch後の返り値からRetweetInfoのリストを返す
         """
-        # liked_tweet のおおまかな構造解析
+        # retweeted_tweet のおおまかな構造解析
         # ページに分かれているので平滑化
         data_list = []
         media_list = []
+        tweets_list = []
         users_list = []
-        for t in liked_tweet:
+        for t in retweeted_tweet:
             match t:
-                case {"data": data, "includes": {"media": media, "users": users}}:
+                case {"data": data, "includes": {"media": media, "tweets": tweets, "users": users}}:
                     # ページをまたいでそれぞれ重複しているかもしれないが以後の処理に影響はしない
                     data_list.extend(data)
                     media_list.extend(media)
+                    tweets_list.extend(tweets)
                     users_list.extend(users)
                 case _:
-                    raise ValueError("argument liked_tweet is invalid.")
+                    # RTが1件もない場合、tweetsはおそらく空になる
+                    # raise ValueError("argument retweeted_tweet is invalid.")
+                    return []
 
-        # data_listを探索
+        # RTを探索
+        # referenced_tweetsが存在するかで判定
+        # 考えられるケースは以下の通り
+        # (0)referenced_tweetsが存在しない → 収集しない
+        # (1)referenced_tweetsが存在する → 収集する
+        # (1-1)attachmentsがある場合、収集する（mediaつきツイートをRTしたものだった）
+        # (1-2)attachmentsがない場合、referenced_tweets.idを追加で問い合わせる（引用RTをRTしたものだった）
+        # 1階層までならtweetsに問い合わせれば分かるがそれ以上は追加でAPI問い合わせが必要
+        data_with_attachments = [data for data in data_list if "attachments" in data and "referenced_tweets" in data]
+        data_without_attachments = [data for data in data_list if "attachments" not in data and "referenced_tweets" in data]
+
+        # attachmentsがないdataについてtweetsにないか調べる
+        # tweets_list内のtweetsにattachmentsがあっても、そのmedia_keyに対応するmedia情報はないため
+        # 結局追加で問い合わせになる
+        query_need_ids = []
+        query_need_tweets = []
+        for data in data_without_attachments:
+            referenced_tweets = data.get("referenced_tweets", [])
+            for referenced_tweet in referenced_tweets:
+                referenced_tweet_id = referenced_tweet.get("id", "")
+                referenced_tweet_type = referenced_tweet.get("type", "")
+                if referenced_tweet_id == "":
+                    continue
+                if referenced_tweet_type not in ["retweeted", "quoted"]:
+                    continue
+
+                tweets = self._find_tweets(referenced_tweet_id, tweets_list)
+                if not tweets:
+                    # 本来ここには入ってこないはず
+                    continue
+
+                match tweets:
+                    case {
+                        "attachments": {"media_keys": media_keys},
+                        "referenced_tweets": n_referenced_tweets,
+                    }:
+                        # attachmentsとreferenced_tweets両方ある場合
+                        query_need_ids.append(referenced_tweet_id)
+                        query_need_tweets.append(tweets)
+
+                        for n_referenced_tweet in n_referenced_tweets:
+                            query_need_id = n_referenced_tweet.get("id", "")
+                            query_need_ids.append(query_need_id)
+                    case {
+                        "attachments": {"media_keys": media_keys},
+                    }:
+                        # attachmentsのみがある場合
+                        query_need_ids.append(referenced_tweet_id)
+                        query_need_tweets.append(tweets)
+                    case {
+                        "referenced_tweets": n_referenced_tweets,
+                    }:
+                        # attachmentsがない、かつreferenced_tweetsがある場合
+                        for n_referenced_tweet in n_referenced_tweets:
+                            query_need_id = n_referenced_tweet.get("id", "")
+                            query_need_ids.append(query_need_id)
+                    case _:
+                        pass
+        # 重複排除
+        seen = []
+        query_need_ids = [i for i in query_need_ids if i not in seen and not seen.append(i)]
+
+        # 追加問い合わせ
+        # 100件ずつ回す
+        url = TwitterAPIEndpoint.TWEETS_LOOKUP.value[0]
+        MAX_IDS_NUM = 100
+        for i in range(0, len(query_need_ids), MAX_IDS_NUM):
+            query_need_ids_sub = query_need_ids[i: i + MAX_IDS_NUM]
+            params = {
+                "ids": ",".join(query_need_ids_sub),
+                "expansions": "author_id,referenced_tweets.id,referenced_tweets.id.author_id,attachments.media_keys",
+                "tweet.fields": "id,attachments,author_id,referenced_tweets,entities,text,source,created_at",
+                "user.fields": "id,name,username,url",
+                "media.fields": "url,variants,preview_image_url,alt_text",
+            }
+            tweets_lookup_result = self.twitter.get(url, params=params)
+            # with codecs.open("./PictureGathering/v2/api_response_tweet_lookup_json.txt", "w", "utf-8") as fout:
+            #     json.dump(tweet, fout)
+            # with codecs.open("./PictureGathering/v2/api_response_tweet_lookup_pprint.txt", "w", "utf-8") as fout:
+            #     pprint.pprint(tweet, fout)
+
+            # 追加問い合わせ結果を合成
+            match tweets_lookup_result:
+                case {"data": data, "includes": {"media": media, "users": users}}:
+                    media_list.extend(media)
+                    users_list.extend(users)
+                case _:
+                    raise ValueError("TwitterAPIEndpoint.TWEETS_LOOKUP access failed.")
+
+        # 追加問い合わせによって有効となったツイートを追加
+        # キーについては互換性がある
+        data_with_attachments.extend(query_need_tweets)
+
+        # data_with_attachmentsを入力としてmediaを収集
         result = []
-        for data in data_list:
+        for data in data_with_attachments:
             match data:
                 case {
                     "attachments": {"media_keys": media_keys},
@@ -182,7 +287,7 @@ class Like():
                     # mediaが添付されているならば収集
                     # 主にattachmentsフィールドが含まれるかで判定する
                     # この段階で判明する情報はそのまま保持する
-                    tweet_id = id_str
+                    referenced_tweet_id = id_str
                     tweet_via = via
                     tweet_text = text
 
@@ -224,7 +329,7 @@ class Like():
                             "media_filename": media_filename,
                             "media_url": media_url,
                             "media_thumbnail_url": media_thumbnail_url,
-                            "tweet_id": tweet_id,
+                            "tweet_id": referenced_tweet_id,
                             "tweet_url": tweet_url,
                             "created_at": dst,
                             "user_id": user_id,
@@ -233,126 +338,16 @@ class Like():
                             "tweet_text": tweet_text,
                             "tweet_via": tweet_via,
                         }
-                        result.append(LikeInfo.create(r))
+                        result.append(RetweetInfo.create(r))
                 case _:
                     # mediaが含まれているツイートではなかった
                     continue
         return result
 
-    def to_convert_ExternalLink(self, liked_tweet: list[dict], link_searcher: LinkSearcher) -> list[ExternalLink]:
+    def to_convert_ExternalLink(self, retweeted_tweet: list[dict], link_searcher: LinkSearcher) -> list[ExternalLink]:
         """fetch後の返り値からExternalLinkのリストを返す
         """
-        # liked_tweet のおおまかな構造解析
-        # ページに分かれているので平滑化
-        data_list = []
-        media_list = []
-        users_list = []
-        for t in liked_tweet:
-            match t:
-                case {"data": data, "includes": {"media": media, "users": users}}:
-                    # ページをまたいでそれぞれ重複しているかもしれないが以後の処理に影響はしない
-                    data_list.extend(data)
-                    media_list.extend(media)
-                    users_list.extend(users)
-                case _:
-                    raise ValueError("argument liked_tweet is invalid.")
-
-        def create_ExternalLink(dict: dict) -> "ExternalLink":
-            match dict:
-                case {
-                    "external_link_url": external_link_url,
-                    "tweet_id": tweet_id,
-                    "tweet_url": tweet_url,
-                    "created_at": created_at,
-                    "user_id": user_id,
-                    "user_name": user_name,
-                    "screan_name": screan_name,
-                    "tweet_text": tweet_text,
-                    "tweet_via": tweet_via,
-                    "saved_created_at": saved_created_at,
-                    "link_type": link_type,
-                }:
-                    return ExternalLink(external_link_url,
-                                        tweet_id,
-                                        tweet_url,
-                                        created_at,
-                                        user_id,
-                                        user_name,
-                                        screan_name,
-                                        tweet_text,
-                                        tweet_via,
-                                        saved_created_at,
-                                        link_type)
-                case _:
-                    raise ValueError("LikeTweet create failed.")
-
-        # data_listを探索
-        result = []
-        for data in data_list:
-            match data:
-                case {
-                    "author_id": author_id,
-                    "created_at": created_at,
-                    "entities": {"urls": urls},
-                    "id": id_str,
-                    "source": via,
-                    "text": text
-                }:
-                    # 外部リンクが含まれているならば収集
-                    # link_searcherのCoRで対象かどうか判定する
-                    # この段階で判明する情報はそのまま保持する
-                    tweet_id = id_str
-                    tweet_via = via
-                    tweet_text = text
-                    link_type = ""
-
-                    # user_name, screan_name はuser_id をキーにuser_list から検索する
-                    user_id = author_id
-                    user_name, screan_name = self._find_name(user_id, users_list)
-
-                    # tweet_url は screan_name と tweet_id から生成する
-                    tweet_url = f"https://twitter.com/{screan_name}/status/{tweet_id}"
-
-                    # created_at を解釈する
-                    # ex. created_at = "2022-10-10T23:54:18.000Z"
-                    # ISO8601拡張形式だが、末尾Zは解釈できないためタイムゾーンに置き換える
-                    # その後UTCからJSTに変換(9時間進める)して所定の形式の文字列に変換する
-                    dts_format = "%Y-%m-%d %H:%M:%S"
-                    zoned_created_at = str(created_at).replace("Z", "+00:00")
-                    utc = datetime.fromisoformat(zoned_created_at)
-                    jst = utc + timedelta(hours=9)
-                    dst = jst.strftime(dts_format)
-
-                    # 保存時間は現在時刻とする
-                    saved_created_at = datetime.now().strftime(dts_format)
-
-                    # expanded_url を収集する
-                    expanded_urls = self._match_expanded_url(urls)
-
-                    # 外部リンクについて対象かどうか判定する
-                    for expanded_url in expanded_urls:
-                        if not link_searcher.can_fetch(expanded_url):
-                            continue
-
-                        # resultレコード作成
-                        r = {
-                            "external_link_url": expanded_url,
-                            "tweet_id": tweet_id,
-                            "tweet_url": tweet_url,
-                            "created_at": dst,
-                            "user_id": user_id,
-                            "user_name": user_name,
-                            "screan_name": screan_name,
-                            "tweet_text": tweet_text,
-                            "tweet_via": tweet_via,
-                            "saved_created_at": saved_created_at,
-                            "link_type": link_type,
-                        }
-                        result.append(create_ExternalLink(r))
-                case _:
-                    # mediaが含まれているツイートではなかった
-                    continue
-        return result
+        return []
 
 
 if __name__ == "__main__":
@@ -372,27 +367,27 @@ if __name__ == "__main__":
     )
 
     MY_ID = 175674367
-    like = Like(userid=MY_ID, pages=3, max_results=100, twitter=twitter)
+    retweet = Retweet(userid=MY_ID, pages=3, max_results=100, twitter=twitter)
     # 実際にAPIを叩いて取得する
-    # res = like.fetch()
-    # with codecs.open("./PictureGathering/v2/api_response_like.txt", "w", "utf-8") as fout:
+    # res = retweet.fetch()
+    # with codecs.open("./PictureGathering/v2/api_response_timeline_json.txt", "w", "utf-8") as fout:
     #     # pprint.pprint(res, fout)
     #     json.dump(res, fout)
-    # pprint.pprint(res)
+    # # pprint.pprint(res)
 
-    # キャッシュを読み込んでLikeInfoリストを作成する
-    # input_dict = {}
-    # with codecs.open("./PictureGathering/v2/api_response_like.txt", "r", "utf-8") as fin:
-    #     input_dict = json.load(fin)
-    # res = like.to_convert_LikeInfo(input_dict)
-    # pprint.pprint(res)
+    # キャッシュを読み込んでRetweetInfoリストを作成する
+    input_dict = {}
+    with codecs.open("./PictureGathering/v2/api_response_timeline_json.txt", "r", "utf-8") as fin:
+        input_dict = json.load(fin)
+    res = retweet.to_convert_RetweetInfo(input_dict)
+    pprint.pprint(res)
 
     # キャッシュを読み込んでExternalLinkリストを作成する
-    config = config_parser
-    config["skeb"]["is_skeb_trace"] = "False"
-    lsb = LinkSearcher.create(config)
-    input_dict = {}
-    with codecs.open("./PictureGathering/v2/api_response_like.txt", "r", "utf-8") as fin:
-        input_dict = json.load(fin)
-    res = like.to_convert_ExternalLink(input_dict, lsb)
-    pprint.pprint(res)
+    # config = config_parser
+    # config["skeb"]["is_skeb_trace"] = "False"
+    # lsb = LinkSearcher.create(config)
+    # input_dict = {}
+    # with codecs.open("./PictureGathering/v2/api_response_retweet.txt", "r", "utf-8") as fin:
+    #     input_dict = json.load(fin)
+    # res = retweet.to_convert_ExternalLink(input_dict, lsb)
+    # pprint.pprint(res)
