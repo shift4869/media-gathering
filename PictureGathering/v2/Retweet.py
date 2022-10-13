@@ -20,8 +20,13 @@ class Retweet():
     max_results: int
     twitter: TwitterAPI
 
-    def fetch(self) -> dict:
-        # retweet取得
+    def fetch(self) -> list[dict]:
+        """TIMELINE_TWEET エンドポイントにて、self.userid に紐づくタイムラインを取得する
+            self.pages * self.max_results だけ遡る
+
+        Returns:
+            list[dict]: ページごとに格納された TIMELINE_TWEET API 返り値
+        """
         url = TwitterAPIEndpoint.TIMELINE_TWEET.value[0].format(self.userid)
         next_token = ""
         result = []
@@ -37,22 +42,35 @@ class Retweet():
                 params["pagination_token"] = next_token
             tweet = self.twitter.get(url, params=params)
             result.append(tweet)
-
             next_token = tweet.get("meta", {}).get("next_token", "")
-
         return result
 
-    def _find_tweets(self, tweet_id: str, tweets_list: list[str]):
+    def _find_tweets(self, tweet_id: str, tweets_list: list[dict]) -> dict:
         """tweet_id をキーに tweets_list を検索する
+
+        Args:
+            tweet_id (str): 検索id
+            tweets_list (list[dict]): 検索対象リスト
+
+        Returns:
+            dict: 最初に見つかった tweets 情報を返す、見つからなかった場合、空辞書を返す
         """
         t_list = [tweet for tweet in tweets_list if tweet.get("id", "") == tweet_id]
         if len(t_list) == 0:
             return {}
         return t_list[0]
 
-    def _find_name(self, user_id: str, users_list: list[str]) -> tuple[str, str]:
+    def _find_name(self, user_id: str, users_list: list[dict]) -> tuple[str, str]:
         """user_id をキーに user_list を検索する
-            見つかったuser情報から(user_name, screan_name)を返す
+
+        Args:
+            user_id (str): 検索id
+            users_list (list[dict]): 検索対象リスト
+
+        Returns:
+            user_name (str), screan_name (str):
+                最初に見つかった user 情報から(user_name, screan_name)を返す
+                見つからなかった場合、(invalid_name, invalid_name)を返す
         """
         invalid_name = "<null>"
         user_list = [user for user in users_list if user.get("id", "") == user_id]
@@ -62,28 +80,43 @@ class Retweet():
         user = user_list[0]
         user_name = user.get("name", invalid_name)
         screan_name = user.get("username", invalid_name)
-        return (user_name, screan_name)
+        return user_name, screan_name
 
     def _find_media(self, media_key: str, media_list: list[dict]) -> dict:
         """media_key をキーに media_list を検索する
-            見つかったmedia情報を返す
+
+        Args:
+            media_key (str): 検索キー
+            media_list (list[dict]): 検索対象リスト
+
+        Returns:
+            dict: 最初に見つかった media 情報を返す、見つからなかった場合、空辞書を返す
         """
         m_list = [media for media in media_list if media.get("media_key", "") == media_key]
         if len(m_list) == 0:
-            # raise ValueError("media not found.")
             return {}
-        media = m_list[0]
-        return media
+        return m_list[0]
     
     def _match_tweet_url(self, urls: dict) -> str:
-        """entities 内の expanded_url を採用する
+        """entities 内の expanded_url を tweet_url として取得する
             ex. https://twitter.com/{screan_name}/status/{tweet_id}/photo/1
+
+        Args:
+            urls (list[dict]): 対象のツイートオブジェクトの一部
+
+        Raises:
+            ValueError: tweet_url が見つからなかった場合
+
+        Returns:
+            tweet_url (str): 採用された entities 内の expanded_url 
         """
         tweet_url = ""
         for url in urls:
             match url:
                 case {"expanded_url": expanded_url,
                       "media_key": _}:
+                    # media_key が振られている media について、
+                    # expanded_url は共通で紐づくツイートを指すため、見つけたらすぐ確定して良い
                     tweet_url = expanded_url
                     break
                 case _:
@@ -94,8 +127,6 @@ class Retweet():
 
     def _match_media_info(self, media: dict) -> tuple[str, str, str]:
         """media情報について収集する
-            1ツイートに対して media は最大4つ添付されている
-            それぞれ media_key をキーに media_list から検索する
         """
         media_filename = ""
         media_url = ""
@@ -121,8 +152,8 @@ class Retweet():
                 media_url = urllib.parse.urljoin(media_url, url_path.name)
                 media_filename = Path(media_url).name
             case _:
-                pass  # 扱えるメディアに紐づくmedia_keyではなかった（エラー？）
-        return (media_filename, media_url, media_thumbnail_url)
+                pass  # 扱えるメディアに紐づく media_key ではなかった（エラー？）
+        return media_filename, media_url, media_thumbnail_url
 
     def _match_video_url(self, variants: dict) -> str:
         """video情報について収集する
@@ -140,6 +171,8 @@ class Retweet():
                         # 同じ動画の中で一番ビットレートが高い動画を保存する
                         video_url = t_url
                         current_bitrate = bitrate
+                case _:
+                    pass  # 扱えるメディアではなかった
         return video_url
 
     def _match_expanded_url(self, urls: dict) -> list[str]:
@@ -147,20 +180,14 @@ class Retweet():
             ex. https://twitter.com/{screan_name}/status/{tweet_id}/photo/1
             上記の他に外部リンクも対象とする
         """
-        result = []
-        for url in urls:
-            match url:
-                case {"expanded_url": expanded_url}:
-                    result.append(expanded_url)
-                case _:
-                    pass
+        result = [url.get("expanded_url", "") for url in urls if "expanded_url" in url]
         return result
 
-    def to_convert_RetweetInfo(self, retweeted_tweet: list[dict]) -> list[RetweetInfo]:
-        """fetch後の返り値からRetweetInfoのリストを返す
+    def _flatten(self, retweeted_tweet: list[dict]) -> tuple[list[dict], list[dict], list[dict], list[dict]]:
+        """retweeted_tweet のおおまかな構造解析
+            retweeted_tweet は self.fetch() の返り値を想定している
+            ページごとに分かれているので平滑化
         """
-        # retweeted_tweet のおおまかな構造解析
-        # ページに分かれているので平滑化
         data_list = []
         media_list = []
         tweets_list = []
@@ -176,54 +203,47 @@ class Retweet():
                 case _:
                     # RTが1件もない場合、tweetsはおそらく空になる
                     # raise ValueError("argument retweeted_tweet is invalid.")
-                    return []
+                    pass
+        return data_list, media_list, tweets_list, users_list
 
-        # 以下の構造となっている
-        # (A)自分のTL上でのRTツイート
-        #    0階層目
-        #    author_id 等がすべて自分のツイート
-        #    最終的な収集対象には含めない
-        #    = data_with_referenced_tweets
-        # (B)RT先ツイート
-        #    (A)のRT先のツイート
-        #    (A)から見て1階層目
-        #    media が含まれているかもしれない
-        #    (C)に紐づく referenced_tweets が含まれているかもしれない
-        #    最終的な収集対象に含める
-        #    = first_level_tweets_list
-        # (C)RT先のRT先ツイート
-        #    (B)のRT先のツイート(引用RTをRTしたときなど)
-        #    (A)から見て2階層目
-        #    media が含まれているかもしれない
-        #    最終的な収集対象に含める
-        #    = second_level_tweets_list
+    def _is_include_referenced_tweets(self, data: dict) -> bool:
+        """data に referenced_tweet が含まれる、かつ、
+            referenced_tweet.type が["retweeted", "quoted"]のいずれかならばTrue,
+            そうでないならFalse
+            ※referenced_tweet.type = "replied_to" はリプライツリー用
 
-        # (A)自分のTL上でのRTツイートを探索
-        # referenced_tweets が存在するかで判定
-        # より詳細には referenced_tweet.type が["retweeted", "quoted"]のもののみ対象とする
-        # ※referenced_tweet.type = "replied_to" はリプライツリー用
-        def is_include_referenced_tweets(data):
-            if "referenced_tweets" in data:
-                referenced_tweets = data.get("referenced_tweets", [])
-                for referenced_tweet in referenced_tweets:
-                    referenced_tweet_id = referenced_tweet.get("id", "")
-                    referenced_tweet_type = referenced_tweet.get("type", "")
-                    if referenced_tweet_id == "":
-                        continue
-                    if referenced_tweet_type in ["retweeted", "quoted"]:
-                        return True
-            return False
+        Args:
+            data (dict): self.fetch()[].data
 
-        data_with_referenced_tweets = [data for data in data_list if is_include_referenced_tweets(data)]
+        Returns:
+            bool: 説明参照
+        """
+        if "referenced_tweets" in data:
+            referenced_tweets = data.get("referenced_tweets", [])
+            for referenced_tweet in referenced_tweets:
+                referenced_tweet_id = referenced_tweet.get("id", "")
+                referenced_tweet_type = referenced_tweet.get("type", "")
+                if referenced_tweet_id == "":
+                    continue
+                if referenced_tweet_type in ["retweeted", "quoted"]:
+                    return True
+        return False
 
-        # (B)RT先ツイートを探索
-        # (A)の referenced_tweet.id に紐づくツイートを tweets_list 内から探索する
-        # 見つかった tweets に attachments があっても、
-        # その media_key に対応する media 情報は media_list に含まれてないため、
-        # 結局追加で問い合わせを行う必要がある
-        # first_level_tweets_list := query_need_tweets だが、
-        # 問い合わせを行うまでは上記の通り media 情報が有効でない
-        # ここでは問い合わせに必要な情報を収集する = (C)収集の準備
+    def _find_retweet_tree_with_attachments(self, data_with_referenced_tweets: list[dict], tweets_list: list[dict]) -> tuple[list[str], list[dict]]:
+        """attachments を基準にRTツリーを探索する
+            data_with_referenced_tweets[].referenced_tweets[].id に紐づくツイートを tweets_list 内から探索する
+            見つかった tweets に attachments があっても、
+            その media_key に対応する media 情報は media_list に含まれてないため、
+            別途追加で問い合わせを行う必要がある
+
+        Args:
+            data_with_referenced_tweets (dict): referenced_tweets を持つツイートオブジェクト
+            tweets_list (list[dict]): 参照用 tweets_list
+
+        Returns:
+            query_need_ids (list[str]): 別途問い合わせが必要なツイートidリスト
+            query_need_tweets (list[dict]): 問い合わせ後に有効になる attachments を持つツイートオブジェクト
+        """
         query_need_ids = []
         query_need_tweets = []
         for data in data_with_referenced_tweets:
@@ -238,7 +258,7 @@ class Retweet():
 
                 tweets = self._find_tweets(referenced_tweet_id, tweets_list)
                 if not tweets:
-                    # 本来ここには入ってこないはず
+                    # ツイートが削除された等で参照用 tweets_list に存在しない場合
                     continue
 
                 match tweets:
@@ -284,16 +304,102 @@ class Retweet():
                             query_need_ids.append(query_need_id)
                     case _:
                         pass
-        # 重複排除
-        seen = []
-        query_need_ids = [i for i in query_need_ids if i not in seen and not seen.append(i)]
+        return query_need_ids, query_need_tweets
 
-        # (B),(C)追加問い合わせ
-        # TWEETS_LOOKUP エンドポイントにて各ツイートIDに紐づくツイートをAPIを通して取得する
-        # 100件ずつ回す
+    def _find_retweet_tree_with_entities(self, data_with_referenced_tweets: dict, tweets_list: list[dict]) -> tuple[list[str], list[dict]]:
+        """entities を基準にRTツリーを探索する
+            data_with_referenced_tweets[].referenced_tweets[].id に紐づくツイートを tweets_list 内から探索する
+            途中で見つかった tweets にある entities は有効なので、追加で問い合わせを行う必要はない
+            ただしRTツリー末端の収集のために、問い合わせる必要があるidは収集する
+
+        Args:
+            data_with_referenced_tweets (dict): referenced_tweets を持つツイートオブジェクト
+            tweets_list (list[dict]): 参照用 tweets_list
+
+        Returns:
+            query_need_ids (list[str]): 別途問い合わせが必要なツイートidリスト（RTツリー末端）
+            first_level_tweets_list (list[dict]): entities を持つツイートオブジェクト
+        """
+        query_need_ids = []
+        first_level_tweets_list = []
+        for data in data_with_referenced_tweets:
+            referenced_tweets = data.get("referenced_tweets", [])
+            for referenced_tweet in referenced_tweets:
+                referenced_tweet_id = referenced_tweet.get("id", "")
+                referenced_tweet_type = referenced_tweet.get("type", "")
+                if referenced_tweet_id == "":
+                    continue
+                if referenced_tweet_type not in ["retweeted", "quoted"]:
+                    continue
+
+                tweets = self._find_tweets(referenced_tweet_id, tweets_list)
+                if not tweets:
+                    # 本来ここには入ってこないはず
+                    continue
+
+                match tweets:
+                    case {
+                        "entities": {"urls": urls},
+                        "referenced_tweets": n_referenced_tweets,
+                    }:
+                        # entities と referenced_tweets 両方ある場合
+                        # 1階層目のツイートに entities があり、かつ、
+                        # 2階層目のツイートが存在している
+                        # TODO::構造チェックが甘いかも
+
+                        # entities 情報は有効なので1階層目のツイートは問い合わせ対象に含めない
+                        # query_need_ids.append(referenced_tweet_id)
+                        # first_level_tweets_list 確定として取得
+                        first_level_tweets_list.append(tweets)
+
+                        # 2階層目のツイートを問い合わせ対象に含める
+                        for n_referenced_tweet in n_referenced_tweets:
+                            query_need_id = n_referenced_tweet.get("id", "")
+                            query_need_ids.append(query_need_id)
+                    case {
+                        "entities": {"urls": urls},
+                    }:
+                        # entitiesのみがある場合
+                        # 1階層目のツイートに entities があり、かつ、
+                        # 2階層目のツイートが存在しない
+
+                        # entities 情報は有効なので1階層目のツイートは問い合わせ対象に含めない
+                        # query_need_ids.append(referenced_tweet_id)
+                        # first_level_tweets_list 確定として取得
+                        first_level_tweets_list.append(tweets)
+                    case {
+                        "referenced_tweets": n_referenced_tweets,
+                    }:
+                        # entitiesがない、かつreferenced_tweetsがある場合
+                        # 1階層目のツイートに entities が存在しない、かつ、
+                        # 2階層目のツイートが存在する
+
+                        # 2階層目のツイートを問い合わせ対象に含める
+                        for n_referenced_tweet in n_referenced_tweets:
+                            query_need_id = n_referenced_tweet.get("id", "")
+                            query_need_ids.append(query_need_id)
+                    case _:
+                        pass
+        return query_need_ids, first_level_tweets_list
+
+    def _fetch_tweet_lookup(self, query_need_ids: list[str], MAX_IDS_NUM: int = 100) -> tuple[list[dict], list[dict], list[dict]]:
+        """追加問い合わせ
+            TWEETS_LOOKUP エンドポイントにて各ツイートIDに紐づくツイートをAPIを通して取得する
+            TWEETS_LOOKUP エンドポイントは取得ツイートキャップには影響しない
+
+        Args:
+            query_need_ids (list[str]): 問い合わせ対象ツイートidリスト
+            MAX_IDS_NUM (int, optional): TWEETS_LOOKUP エンドポイントの1ループでの制限個数
+
+        Returns:
+            data_list (list[dict]): TWEETS_LOOKUP 返り値のうちdata部分
+            media_list (list[dict]): TWEETS_LOOKUP 返り値のうちmedia部分
+            users_list (list[dict]): TWEETS_LOOKUP 返り値のうちusers部分
+        """
         url = TwitterAPIEndpoint.TWEETS_LOOKUP.value[0]
-        MAX_IDS_NUM = 100
-        second_level_tweets_list = []
+        data_list = []
+        media_list = []
+        users_list = []
         for i in range(0, len(query_need_ids), MAX_IDS_NUM):
             query_need_ids_sub = query_need_ids[i: i + MAX_IDS_NUM]
             params = {
@@ -304,21 +410,82 @@ class Retweet():
                 "media.fields": "url,variants,preview_image_url,alt_text",
             }
             tweets_lookup_result = self.twitter.get(url, params=params)
+            # キャッシュ用
             # with codecs.open("./PictureGathering/v2/api_response_tweet_lookup_json.txt", "w", "utf-8") as fout:
             #     json.dump(tweet, fout)
             # with codecs.open("./PictureGathering/v2/api_response_tweet_lookup_pprint.txt", "w", "utf-8") as fout:
             #     pprint.pprint(tweet, fout)
 
-            # 追加問い合わせ結果を合成
+            # 問い合わせ結果を解釈する
             match tweets_lookup_result:
                 case {"data": data, "includes": {"media": media, "users": users}}:
-                    # (C)2階層目のツイート情報を取得
-                    second_level_tweets_list.extend(data)
-                    # (B),(C) media 情報と user 情報を追加
+                    data_list.extend(data)
                     media_list.extend(media)
                     users_list.extend(users)
                 case _:
-                    raise ValueError("TwitterAPIEndpoint.TWEETS_LOOKUP access failed.")
+                    # raise ValueError("TwitterAPIEndpoint.TWEETS_LOOKUP access failed.")
+                    pass
+        return data_list, media_list, users_list
+
+    def to_convert_RetweetInfo(self, retweeted_tweet: list[dict]) -> list[RetweetInfo]:
+        """self.fetch() 後の返り値からRetweetInfoのリストを返す
+
+        Args:
+            retweeted_tweet (list[dict]): self.fetch() 後の返り値
+
+        Returns:
+            list[RetweetInfo]: RetweetInfoリスト
+        """
+        # retweeted_tweet のおおまかな構造解析
+        # ページに分かれているので平滑化
+        data_list, media_list, tweets_list, users_list = self._flatten(retweeted_tweet)
+
+        # 以下の構造となっている
+        # (A)自分のTL上でのRTツイート
+        #    0階層目
+        #    author_id 等がすべて自分のツイート
+        #    最終的な収集対象には含めない
+        #    = data_with_referenced_tweets
+        # (B)RT先ツイート
+        #    (A)のRT先のツイート
+        #    (A)から見て1階層目
+        #    media が含まれているかもしれない
+        #    (C)に紐づく referenced_tweets が含まれているかもしれない
+        #    最終的な収集対象に含める
+        #    = first_level_tweets_list
+        # (C)RT先のRT先ツイート
+        #    (B)のRT先のツイート(引用RTをRTしたときなど)
+        #    (A)から見て2階層目
+        #    media が含まれているかもしれない
+        #    最終的な収集対象に含める
+        #    = second_level_tweets_list
+
+        # (A)自分のTL上でのRTツイートを探索
+        # referenced_tweets が存在するかで判定
+        # より詳細には referenced_tweet.type が["retweeted", "quoted"]のもののみ対象とする
+        # ※referenced_tweet.type = "replied_to" はリプライツリー用
+        data_with_referenced_tweets = [data for data in data_list if self._is_include_referenced_tweets(data)]
+
+        # (B)RT先ツイートを探索
+        # (A)の referenced_tweet.id に紐づくツイートを tweets_list 内から探索する
+        # 見つかった tweets に attachments があっても、
+        # その media_key に対応する media 情報は media_list に含まれてないため、
+        # 別途追加で問い合わせを行う必要がある
+        # first_level_tweets_list := query_need_tweets だが、
+        # 問い合わせを行うまでは上記の通り media 情報が有効でない
+        # ここでは問い合わせに必要な情報を収集する = (C)収集の準備
+        query_need_ids, query_need_tweets = self._find_retweet_tree_with_attachments(data_with_referenced_tweets, tweets_list)
+        # 重複排除
+        seen = []
+        query_need_ids = [i for i in query_need_ids if i not in seen and not seen.append(i)]
+
+        # (B),(C)追加問い合わせ
+        # TWEETS_LOOKUP エンドポイントにて各ツイートIDに紐づくツイートをAPIを通して取得する
+        # 100件ずつ回す
+        MAX_IDS_NUM = 100
+        second_level_tweets_list, lookuped_media_list, lookuped_users_list = self._fetch_tweet_lookup(query_need_ids, MAX_IDS_NUM)
+        media_list.extend(lookuped_media_list)
+        users_list.extend(lookuped_users_list)
 
         # (B)問い合わせ完了したので以降は正しく扱える
         first_level_tweets_list = []
@@ -417,22 +584,7 @@ class Retweet():
         """
         # retweeted_tweet のおおまかな構造解析
         # ページに分かれているので平滑化
-        data_list = []
-        media_list = []
-        tweets_list = []
-        users_list = []
-        for t in retweeted_tweet:
-            match t:
-                case {"data": data, "includes": {"media": media, "tweets": tweets, "users": users}}:
-                    # ページをまたいでそれぞれ重複しているかもしれないが以後の処理に影響はしない
-                    data_list.extend(data)
-                    media_list.extend(media)
-                    tweets_list.extend(tweets)
-                    users_list.extend(users)
-                case _:
-                    # RTが1件もない場合、tweetsはおそらく空になる
-                    # raise ValueError("argument retweeted_tweet is invalid.")
-                    return []
+        data_list, media_list, tweets_list, users_list = self._flatten(retweeted_tweet)
 
         # 以下の構造となっている
         # (A)自分のTL上でのRTツイート
@@ -458,85 +610,14 @@ class Retweet():
         # referenced_tweets が存在するかで判定
         # より詳細には referenced_tweet.type が["retweeted", "quoted"]のもののみ対象とする
         # ※referenced_tweet.type = "replied_to" はリプライツリー用
-        def is_include_referenced_tweets(data):
-            if "referenced_tweets" in data:
-                referenced_tweets = data.get("referenced_tweets", [])
-                for referenced_tweet in referenced_tweets:
-                    referenced_tweet_id = referenced_tweet.get("id", "")
-                    referenced_tweet_type = referenced_tweet.get("type", "")
-                    if referenced_tweet_id == "":
-                        continue
-                    if referenced_tweet_type in ["retweeted", "quoted"]:
-                        return True
-            return False
-
-        data_with_referenced_tweets = [data for data in data_list if is_include_referenced_tweets(data)]
+        data_with_referenced_tweets = [data for data in data_list if self._is_include_referenced_tweets(data)]
 
         # (B)RT先ツイートを探索
         # (A)の referenced_tweet.id に紐づくツイートを tweets_list 内から探索する
         # 見つかった tweets にある entities は有効なので、
         # (B)について追加で問い合わせを行う必要はない
         # (C)収集の準備として、問い合わせに必要な情報を収集する
-        query_need_ids = []
-        first_level_tweets_list = []
-        for data in data_with_referenced_tweets:
-            referenced_tweets = data.get("referenced_tweets", [])
-            for referenced_tweet in referenced_tweets:
-                referenced_tweet_id = referenced_tweet.get("id", "")
-                referenced_tweet_type = referenced_tweet.get("type", "")
-                if referenced_tweet_id == "":
-                    continue
-                if referenced_tweet_type not in ["retweeted", "quoted"]:
-                    continue
-
-                tweets = self._find_tweets(referenced_tweet_id, tweets_list)
-                if not tweets:
-                    # 本来ここには入ってこないはず
-                    continue
-
-                match tweets:
-                    case {
-                        "entities": {"urls": urls},
-                        "referenced_tweets": n_referenced_tweets,
-                    }:
-                        # entities と referenced_tweets 両方ある場合
-                        # 1階層目のツイートに entities があり、かつ、
-                        # 2階層目のツイートが存在している
-                        # TODO::構造チェックが甘いかも
-
-                        # entities 情報は有効なので1階層目のツイートは問い合わせ対象に含めない
-                        # query_need_ids.append(referenced_tweet_id)
-                        # first_level_tweets_list 確定として取得
-                        first_level_tweets_list.append(tweets)
-
-                        # 2階層目のツイートを問い合わせ対象に含める
-                        for n_referenced_tweet in n_referenced_tweets:
-                            query_need_id = n_referenced_tweet.get("id", "")
-                            query_need_ids.append(query_need_id)
-                    case {
-                        "entities": {"urls": urls},
-                    }:
-                        # entitiesのみがある場合
-                        # 1階層目のツイートに entities があり、かつ、
-                        # 2階層目のツイートが存在しない
-
-                        # entities 情報は有効なので1階層目のツイートは問い合わせ対象に含めない
-                        # query_need_ids.append(referenced_tweet_id)
-                        # first_level_tweets_list 確定として取得
-                        first_level_tweets_list.append(tweets)
-                    case {
-                        "referenced_tweets": n_referenced_tweets,
-                    }:
-                        # entitiesがない、かつreferenced_tweetsがある場合
-                        # 1階層目のツイートに entities が存在しない、かつ、
-                        # 2階層目のツイートが存在する
-
-                        # 2階層目のツイートを問い合わせ対象に含める
-                        for n_referenced_tweet in n_referenced_tweets:
-                            query_need_id = n_referenced_tweet.get("id", "")
-                            query_need_ids.append(query_need_id)
-                    case _:
-                        pass
+        query_need_ids, first_level_tweets_list = self._find_retweet_tree_with_entities(data_with_referenced_tweets, tweets_list)
         # 重複排除
         seen = []
         query_need_ids = [i for i in query_need_ids if i not in seen and not seen.append(i)]
@@ -544,34 +625,10 @@ class Retweet():
         # (C)追加問い合わせ
         # TWEETS_LOOKUP エンドポイントにて各ツイートIDに紐づくツイートをAPIを通して取得する
         # 100件ずつ回す
-        url = TwitterAPIEndpoint.TWEETS_LOOKUP.value[0]
         MAX_IDS_NUM = 100
-        second_level_tweets_list = []
-        for i in range(0, len(query_need_ids), MAX_IDS_NUM):
-            query_need_ids_sub = query_need_ids[i: i + MAX_IDS_NUM]
-            params = {
-                "ids": ",".join(query_need_ids_sub),
-                "expansions": "author_id,referenced_tweets.id,referenced_tweets.id.author_id,attachments.media_keys",
-                "tweet.fields": "id,attachments,author_id,referenced_tweets,entities,text,source,created_at",
-                "user.fields": "id,name,username,url",
-                "media.fields": "url,variants,preview_image_url,alt_text",
-            }
-            tweets_lookup_result = self.twitter.get(url, params=params)
-            # with codecs.open("./PictureGathering/v2/api_response_tweet_lookup_json.txt", "w", "utf-8") as fout:
-            #     json.dump(tweet, fout)
-            # with codecs.open("./PictureGathering/v2/api_response_tweet_lookup_pprint.txt", "w", "utf-8") as fout:
-            #     pprint.pprint(tweet, fout)
-
-            # 追加問い合わせ結果を合成
-            match tweets_lookup_result:
-                case {"data": data, "includes": {"media": media, "users": users}}:
-                    # (C)2階層目のツイート情報を取得
-                    second_level_tweets_list.extend(data)
-                    # (C) media 情報と user 情報を追加（不要？）
-                    media_list.extend(media)
-                    users_list.extend(users)
-                case _:
-                    raise ValueError("TwitterAPIEndpoint.TWEETS_LOOKUP access failed.")
+        second_level_tweets_list, lookuped_media_list, lookuped_users_list = self._fetch_tweet_lookup(query_need_ids, MAX_IDS_NUM)
+        media_list.extend(lookuped_media_list)  # 不要？
+        users_list.extend(lookuped_users_list)  # 不要？
 
         # 収集対象を確定させる
         # TODO::重複チェック？
@@ -705,12 +762,12 @@ if __name__ == "__main__":
     # # pprint.pprint(res)
 
     # キャッシュを読み込んでRetweetInfoリストを作成する
-    # input_dict = {}
-    # with codecs.open("./PictureGathering/v2/api_response_timeline_json.txt", "r", "utf-8") as fin:
-    #     input_dict = json.load(fin)
-    # res = retweet.to_convert_RetweetInfo(input_dict)
-    # pprint.pprint(res)
-    # print(len(res))
+    input_dict = {}
+    with codecs.open("./PictureGathering/v2/api_response_timeline_json.txt", "r", "utf-8") as fin:
+        input_dict = json.load(fin)
+    res = retweet.to_convert_RetweetInfo(input_dict)
+    pprint.pprint(res)
+    print(len(res))
 
     # キャッシュを読み込んでExternalLinkリストを作成する
     config = config_parser

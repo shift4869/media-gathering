@@ -148,11 +148,9 @@ class Like():
                     pass
         return result
 
-    def to_convert_LikeInfo(self, liked_tweet: list[dict]) -> list[LikeInfo]:
-        """fetch後の返り値からLikeInfoのリストを返す
+    def _flatten(self, liked_tweet: list[dict]) -> tuple[list[dict], list[dict], list[dict]]:
+        """fetch後の返り値をおおまかに解釈して平滑化する
         """
-        # liked_tweet のおおまかな構造解析
-        # ページに分かれているので平滑化
         data_list = []
         media_list = []
         users_list = []
@@ -164,7 +162,16 @@ class Like():
                     media_list.extend(media)
                     users_list.extend(users)
                 case _:
-                    raise ValueError("argument liked_tweet is invalid.")
+                    # raise ValueError("argument liked_tweet is invalid.")
+                    continue
+        return data_list, media_list, users_list
+
+    def to_convert_LikeInfo(self, liked_tweet: list[dict]) -> list[LikeInfo]:
+        """fetch後の返り値からLikeInfoのリストを返す
+        """
+        # liked_tweet のおおまかな構造解析
+        # ページに分かれているので平滑化
+        data_list, media_list, users_list = self._flatten(liked_tweet)
 
         # data_listを探索
         result = []
@@ -244,18 +251,7 @@ class Like():
         """
         # liked_tweet のおおまかな構造解析
         # ページに分かれているので平滑化
-        data_list = []
-        media_list = []
-        users_list = []
-        for t in liked_tweet:
-            match t:
-                case {"data": data, "includes": {"media": media, "users": users}}:
-                    # ページをまたいでそれぞれ重複しているかもしれないが以後の処理に影響はしない
-                    data_list.extend(data)
-                    media_list.extend(media)
-                    users_list.extend(users)
-                case _:
-                    raise ValueError("argument liked_tweet is invalid.")
+        data_list, media_list, users_list = self._flatten(liked_tweet)
 
         def create_ExternalLink(dict: dict) -> "ExternalLink":
             match dict:
@@ -284,7 +280,7 @@ class Like():
                                         saved_created_at,
                                         link_type)
                 case _:
-                    raise ValueError("LikeTweet create failed.")
+                    raise ValueError("ExternalLink create failed.")
 
         # data_listを探索
         result = []
@@ -381,11 +377,11 @@ if __name__ == "__main__":
     # pprint.pprint(res)
 
     # キャッシュを読み込んでLikeInfoリストを作成する
-    # input_dict = {}
-    # with codecs.open("./PictureGathering/v2/api_response_like.txt", "r", "utf-8") as fin:
-    #     input_dict = json.load(fin)
-    # res = like.to_convert_LikeInfo(input_dict)
-    # pprint.pprint(res)
+    input_dict = {}
+    with codecs.open("./PictureGathering/v2/api_response_like.txt", "r", "utf-8") as fin:
+        input_dict = json.load(fin)
+    res = like.to_convert_LikeInfo(input_dict)
+    pprint.pprint(res)
 
     # キャッシュを読み込んでExternalLinkリストを作成する
     config = config_parser
