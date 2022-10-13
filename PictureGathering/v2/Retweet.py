@@ -529,8 +529,8 @@ class Retweet():
         target_data_list.extend(second_level_tweets_list)  # (C)RT先のRT先ツイート（mediaが含まれているかもしれない）
 
         # target_data_list を入力として media 情報を収集
-        result = []
         seen = []
+        result = []
         for data in target_data_list:
             match data:
                 case {
@@ -674,36 +674,8 @@ class Retweet():
         target_data_list.extend(first_level_tweets_list)  # (B)RT先ツイート
         target_data_list.extend(second_level_tweets_list)  # (C)RT先のRT先ツイート
 
-        def create_ExternalLink(dict: dict) -> "ExternalLink":
-            match dict:
-                case {
-                    "external_link_url": external_link_url,
-                    "tweet_id": tweet_id,
-                    "tweet_url": tweet_url,
-                    "created_at": created_at,
-                    "user_id": user_id,
-                    "user_name": user_name,
-                    "screan_name": screan_name,
-                    "tweet_text": tweet_text,
-                    "tweet_via": tweet_via,
-                    "saved_created_at": saved_created_at,
-                    "link_type": link_type,
-                }:
-                    return ExternalLink(external_link_url,
-                                        tweet_id,
-                                        tweet_url,
-                                        created_at,
-                                        user_id,
-                                        user_name,
-                                        screan_name,
-                                        tweet_text,
-                                        tweet_via,
-                                        saved_created_at,
-                                        link_type)
-                case _:
-                    raise ValueError("LikeTweet create failed.")
-
         # target_data_list を入力として外部リンクを探索
+        seen = []
         result = []
         for data in target_data_list:
             match data:
@@ -722,6 +694,9 @@ class Retweet():
                     tweet_via = via
                     tweet_text = text
                     link_type = ""
+
+                    if tweet_id in seen:
+                        continue
 
                     # user_name, screan_name はuser_id をキーにuser_list から検索する
                     user_id = author_id
@@ -765,7 +740,10 @@ class Retweet():
                             "saved_created_at": saved_created_at,
                             "link_type": link_type,
                         }
-                        result.append(create_ExternalLink(r))
+                        result.append(ExternalLink.create(r))
+
+                        if tweet_id not in seen:
+                            seen.append(tweet_id)
                 case _:
                     # 外部リンクが含まれているツイートではなかった
                     continue

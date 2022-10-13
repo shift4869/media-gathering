@@ -264,6 +264,36 @@ class ExternalLink(Base):
             "link_type": self.link_type,
         }
 
+    @classmethod
+    def create(cls, arg_dict: dict) -> "ExternalLink":
+        match arg_dict:
+            case {
+                "external_link_url": external_link_url,
+                "tweet_id": tweet_id,
+                "tweet_url": tweet_url,
+                "created_at": created_at,
+                "user_id": user_id,
+                "user_name": user_name,
+                "screan_name": screan_name,
+                "tweet_text": tweet_text,
+                "tweet_via": tweet_via,
+                "saved_created_at": saved_created_at,
+                "link_type": link_type,
+            }:
+                return cls(external_link_url,
+                           tweet_id,
+                           tweet_url,
+                           created_at,
+                           user_id,
+                           user_name,
+                           screan_name,
+                           tweet_text,
+                           tweet_via,
+                           saved_created_at,
+                           link_type)
+            case _:
+                raise ValueError(f"{type(cls)} create failed.")
+
 
 class DeleteTarget(Base):
     """削除対象ツイート保持テーブルモデル

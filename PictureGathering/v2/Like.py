@@ -313,35 +313,6 @@ class Like():
         # ページに分かれているので平滑化
         data_list, media_list, users_list = self._flatten(liked_tweet)
 
-        def create_ExternalLink(dict: dict) -> "ExternalLink":
-            match dict:
-                case {
-                    "external_link_url": external_link_url,
-                    "tweet_id": tweet_id,
-                    "tweet_url": tweet_url,
-                    "created_at": created_at,
-                    "user_id": user_id,
-                    "user_name": user_name,
-                    "screan_name": screan_name,
-                    "tweet_text": tweet_text,
-                    "tweet_via": tweet_via,
-                    "saved_created_at": saved_created_at,
-                    "link_type": link_type,
-                }:
-                    return ExternalLink(external_link_url,
-                                        tweet_id,
-                                        tweet_url,
-                                        created_at,
-                                        user_id,
-                                        user_name,
-                                        screan_name,
-                                        tweet_text,
-                                        tweet_via,
-                                        saved_created_at,
-                                        link_type)
-                case _:
-                    raise ValueError("ExternalLink create failed.")
-
         # data_listを探索
         result = []
         for data in data_list:
@@ -404,7 +375,7 @@ class Like():
                             "saved_created_at": saved_created_at,
                             "link_type": link_type,
                         }
-                        result.append(create_ExternalLink(r))
+                        result.append(ExternalLink.create(r))
                 case _:
                     # mediaが含まれているツイートではなかった
                     continue

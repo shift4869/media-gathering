@@ -32,7 +32,7 @@ class TwitterAPIEndpoint(Enum):
 
     # レートリミット
 
-    # ユーザー詳細取得
+    # 認証ユーザー詳細取得
     USER_ME = ["https://api.twitter.com/2/users/me", "GET"]
 
 
