@@ -463,7 +463,7 @@ class Retweet():
             retweeted_tweet (list[dict]): self.fetch() 後の返り値
 
         Returns:
-            list[RetweetInfo]: RetweetInfoリスト
+            list[RetweetInfo]: RetweetInfo リスト
         """
         # retweeted_tweet のおおまかな構造解析
         # ページに分かれているので平滑化

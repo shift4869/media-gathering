@@ -21,7 +21,12 @@ class Like():
     twitter: TwitterAPI
 
     def fetch(self) -> dict:
-        # like取得
+        """LIKED_TWEET エンドポイントにて、self.userid に紐づく LIKE を取得する
+            self.pages * self.max_results だけ遡る
+
+        Returns:
+            list[dict]: ページごとに格納された LIKED_TWEET API 返り値
+        """
         url = TwitterAPIEndpoint.LIKED_TWEET.value[0].format(self.userid)
         next_token = ""
         result = []
@@ -37,14 +42,20 @@ class Like():
                 params["pagination_token"] = next_token
             tweet = self.twitter.get(url, params=params)
             result.append(tweet)
-
             next_token = tweet.get("meta", {}).get("next_token", "")
-
         return result
 
     def _find_name(self, user_id: str, users_list: list[str]) -> tuple[str, str]:
         """user_id をキーに user_list を検索する
-            見つかったuser情報から(user_name, screan_name)を返す
+
+        Args:
+            user_id (str): 検索id
+            users_list (list[dict]): 検索対象リスト
+
+        Returns:
+            user_name (str), screan_name (str):
+                最初に見つかった user 情報から(user_name, screan_name)を返す
+                見つからなかった場合、(invalid_name, invalid_name)を返す
         """
         invalid_name = "<null>"
         user_list = [user for user in users_list if user.get("id", "") == user_id]
@@ -58,18 +69,32 @@ class Like():
 
     def _find_media(self, media_key: str, media_list: list[dict]) -> dict:
         """media_key をキーに media_list を検索する
-            見つかったmedia情報を返す
+
+        Args:
+            media_key (str): 検索キー
+            media_list (list[dict]): 検索対象リスト
+
+        Returns:
+            dict: 最初に見つかった media 情報を返す、見つからなかった場合、空辞書を返す
         """
         m_list = [media for media in media_list if media.get("media_key", "") == media_key]
         if len(m_list) == 0:
             # raise ValueError("media not found.")
             return {}
-        media = m_list[0]
-        return media
+        return m_list[0]
     
     def _match_tweet_url(self, urls: dict) -> str:
-        """entities 内の expanded_url を採用する
+        """entities 内の expanded_url を tweet_url として取得する
             ex. https://twitter.com/{screan_name}/status/{tweet_id}/photo/1
+
+        Args:
+            urls (list[dict]): 対象のツイートオブジェクトの一部
+
+        Raises:
+            ValueError: tweet_url が見つからなかった場合
+
+        Returns:
+            tweet_url (str): 採用された entities 内の expanded_url
         """
         tweet_url = ""
         for url in urls:
@@ -86,8 +111,15 @@ class Like():
 
     def _match_media_info(self, media: dict) -> tuple[str, str, str]:
         """media情報について収集する
-            1ツイートに対して media は最大4つ添付されている
-            それぞれ media_key をキーに media_list から検索する
+
+        Args:
+            media (dict): ツイートオブジェクトの一部
+
+        Returns:
+            media_filename (str): ファイル名
+            media_url (str): 直リンク
+            media_thumbnail_url (str): サムネイル画像直リンク
+                エラー時それぞれ空文字列
         """
         media_filename = ""
         media_url = ""
@@ -119,6 +151,12 @@ class Like():
     def _match_video_url(self, variants: dict) -> str:
         """video情報について収集する
             同じ動画の中で一番ビットレートが高い動画のURLを保存する
+
+        Args:
+            variants (dict): ツイートオブジェクトの一部
+
+        Returns:
+            video_url (str): 動画直リンク、エラー時空文字列
         """
         video_url = ""
         current_bitrate = -sys.maxsize  # 最小値
@@ -138,18 +176,27 @@ class Like():
         """entities 内の expanded_url を取得する
             ex. https://twitter.com/{screan_name}/status/{tweet_id}/photo/1
             上記の他に外部リンクも対象とする
+
+        Args:
+            urls (dict): ツイートオブジェクトの一部
+
+        Returns:
+            list[expanded_url] (list[str]): entities 内の expanded_url をまとめたリスト
         """
-        result = []
-        for url in urls:
-            match url:
-                case {"expanded_url": expanded_url}:
-                    result.append(expanded_url)
-                case _:
-                    pass
-        return result
+        return [url.get("expanded_url", "") for url in urls if "expanded_url" in url]
 
     def _flatten(self, liked_tweet: list[dict]) -> tuple[list[dict], list[dict], list[dict]]:
-        """fetch後の返り値をおおまかに解釈して平滑化する
+        """liked_tweet のおおまかな構造解析
+            ページごとに分かれているので平滑化
+
+        Args:
+            liked_tweet (list[dict]): self.fetch() の返り値
+
+        Returns:
+            data_list (list[dict]): liked_tweetのうちdata部分
+            media_list (list[dict]): liked_tweetのうちmedia部分
+            users_list (list[dict]): liked_tweetのうちusers部分
+                エラー時それぞれ空リスト
         """
         data_list = []
         media_list = []
@@ -167,7 +214,13 @@ class Like():
         return data_list, media_list, users_list
 
     def to_convert_LikeInfo(self, liked_tweet: list[dict]) -> list[LikeInfo]:
-        """fetch後の返り値からLikeInfoのリストを返す
+        """self.fetch() 後の返り値から LikeInfo のリストを返す
+
+        Args:
+            liked_tweet (list[dict]): self.fetch() 後の返り値
+
+        Returns:
+            list[LikeInfo]: LikeInfo リスト
         """
         # liked_tweet のおおまかな構造解析
         # ページに分かれているので平滑化
@@ -247,7 +300,14 @@ class Like():
         return result
 
     def to_convert_ExternalLink(self, liked_tweet: list[dict], link_searcher: LinkSearcher) -> list[ExternalLink]:
-        """fetch後の返り値からExternalLinkのリストを返す
+        """self.fetch() 後の返り値から ExternalLink のリストを返す
+
+        Args:
+            liked_tweet (list[dict]): self.fetch() 後の返り値
+            link_searcher (LinkSearcher): 外部リンク探索用LinkSearcher
+
+        Returns:
+            list[ExternalLink]: ExternalLink リスト
         """
         # liked_tweet のおおまかな構造解析
         # ページに分かれているので平滑化
@@ -382,6 +442,7 @@ if __name__ == "__main__":
         input_dict = json.load(fin)
     res = like.to_convert_LikeInfo(input_dict)
     pprint.pprint(res)
+    print(len(res))
 
     # キャッシュを読み込んでExternalLinkリストを作成する
     config = config_parser
@@ -392,3 +453,4 @@ if __name__ == "__main__":
         input_dict = json.load(fin)
     res = like.to_convert_ExternalLink(input_dict, lsb)
     pprint.pprint(res)
+    print(len(res))

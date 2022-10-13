@@ -32,10 +32,8 @@ class TwitterAPIEndpoint(Enum):
 
     # レートリミット
 
-    # RT取得
-    # MY_ID = 175674367
-    # url = f"https://api.twitter.com/2/users/{MY_ID}/tweets"
-    pass
+    # ユーザー詳細取得
+    USER_ME = ["https://api.twitter.com/2/users/me", "GET"]
 
 
 @dataclass
@@ -64,6 +62,11 @@ class TwitterAPI():
         )
         if not isinstance(self.oauth, OAuth1Session):
             raise ValueError("oauth must be OAuth1Session, invalid keys.")
+
+        # 疎通確認
+        res = self.get(TwitterAPIEndpoint.USER_ME.value[0], {})
+        if res.get("data", {}).get("id", "") == "":
+            raise ValueError("TwitterAPIEndpoint.USER_ME API check failed.")
 
     def request(self, endpoint_url: str, params: dict, method: str = "GET") -> dict:
         """TwitterAPIを使用するラッパメソッド
