@@ -108,7 +108,7 @@ class Retweet():
             ValueError: tweet_url が見つからなかった場合
 
         Returns:
-            tweet_url (str): 採用された entities 内の expanded_url 
+            tweet_url (str): 採用された entities 内の expanded_url
         """
         tweet_url = ""
         for url in urls:
@@ -127,6 +127,15 @@ class Retweet():
 
     def _match_media_info(self, media: dict) -> tuple[str, str, str]:
         """media情報について収集する
+
+        Args:
+            media (dict): ツイートオブジェクトの一部
+
+        Returns:
+            media_filename (str): ファイル名
+            media_url (str): 直リンク
+            media_thumbnail_url (str): サムネイル画像直リンク
+                エラー時それぞれ空文字列
         """
         media_filename = ""
         media_url = ""
@@ -158,6 +167,12 @@ class Retweet():
     def _match_video_url(self, variants: dict) -> str:
         """video情報について収集する
             同じ動画の中で一番ビットレートが高い動画のURLを保存する
+
+        Args:
+            variants (dict): ツイートオブジェクトの一部
+
+        Returns:
+            video_url (str): 動画直リンク、エラー時空文字列
         """
         video_url = ""
         current_bitrate = -sys.maxsize  # 最小値
@@ -179,14 +194,28 @@ class Retweet():
         """entities 内の expanded_url を取得する
             ex. https://twitter.com/{screan_name}/status/{tweet_id}/photo/1
             上記の他に外部リンクも対象とする
+
+        Args:
+            urls (dict): ツイートオブジェクトの一部
+
+        Returns:
+            list[expanded_url] (list[str]): entities 内の expanded_url をまとめたリスト
         """
-        result = [url.get("expanded_url", "") for url in urls if "expanded_url" in url]
-        return result
+        return [url.get("expanded_url", "") for url in urls if "expanded_url" in url]
 
     def _flatten(self, retweeted_tweet: list[dict]) -> tuple[list[dict], list[dict], list[dict], list[dict]]:
         """retweeted_tweet のおおまかな構造解析
-            retweeted_tweet は self.fetch() の返り値を想定している
             ページごとに分かれているので平滑化
+
+        Args:
+            retweeted_tweet (list[dict]): self.fetch() の返り値
+
+        Returns:
+            data_list (list[dict]): retweeted_tweetのうちdata部分
+            media_list (list[dict]): retweeted_tweetのうちmedia部分
+            tweets_list (list[dict]): retweeted_tweetのうちtweets部分
+            users_list (list[dict]): retweeted_tweetのうちusers部分
+                エラー時それぞれ空リスト
         """
         data_list = []
         media_list = []
@@ -258,7 +287,7 @@ class Retweet():
 
                 tweets = self._find_tweets(referenced_tweet_id, tweets_list)
                 if not tweets:
-                    # ツイートが削除された等で参照用 tweets_list に存在しない場合
+                    # ツイートが削除された等で、参照用 tweets_list に存在しない場合
                     continue
 
                 match tweets:
@@ -334,7 +363,7 @@ class Retweet():
 
                 tweets = self._find_tweets(referenced_tweet_id, tweets_list)
                 if not tweets:
-                    # 本来ここには入ってこないはず
+                    # ツイートが削除された等で、参照用 tweets_list に存在しない場合
                     continue
 
                 match tweets:
@@ -428,7 +457,7 @@ class Retweet():
         return data_list, media_list, users_list
 
     def to_convert_RetweetInfo(self, retweeted_tweet: list[dict]) -> list[RetweetInfo]:
-        """self.fetch() 後の返り値からRetweetInfoのリストを返す
+        """self.fetch() 後の返り値から RetweetInfo のリストを返す
 
         Args:
             retweeted_tweet (list[dict]): self.fetch() 後の返り値
@@ -580,7 +609,14 @@ class Retweet():
         return result
 
     def to_convert_ExternalLink(self, retweeted_tweet: list[dict], link_searcher: LinkSearcher) -> list[ExternalLink]:
-        """fetch後の返り値からExternalLinkのリストを返す
+        """self.fetch() 後の返り値から ExternalLink のリストを返す
+
+        Args:
+            retweeted_tweet (list[dict]): self.fetch() 後の返り値
+            link_searcher (LinkSearcher): 外部リンク探索用LinkSearcher
+
+        Returns:
+            list[ExternalLink]: ExternalLink リスト
         """
         # retweeted_tweet のおおまかな構造解析
         # ページに分かれているので平滑化
