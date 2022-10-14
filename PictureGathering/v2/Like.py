@@ -260,7 +260,7 @@ if __name__ == "__main__":
 
     # キャッシュを読み込んでLikeInfoリストを作成する
     input_dict = {}
-    with codecs.open("./PictureGathering/v2/api_response_like.txt", "r", "utf-8") as fin:
+    with codecs.open("./PictureGathering/v2/api_response_like_json.txt", "r", "utf-8") as fin:
         input_dict = json.load(fin)
     res = like.to_convert_TweetInfo(input_dict)
     pprint.pprint(res)
@@ -271,7 +271,7 @@ if __name__ == "__main__":
     config["skeb"]["is_skeb_trace"] = "False"
     lsb = LinkSearcher.create(config)
     input_dict = {}
-    with codecs.open("./PictureGathering/v2/api_response_like.txt", "r", "utf-8") as fin:
+    with codecs.open("./PictureGathering/v2/api_response_like_json.txt", "r", "utf-8") as fin:
         input_dict = json.load(fin)
     res = like.to_convert_ExternalLink(input_dict, lsb)
     pprint.pprint(res)
