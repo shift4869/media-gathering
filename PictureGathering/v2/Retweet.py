@@ -1,49 +1,37 @@
 # coding: utf-8
 import json
 import pprint
-import sys
-import urllib
-from dataclasses import dataclass
 from datetime import datetime, timedelta
-from pathlib import Path
 
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.Model import ExternalLink
-from PictureGathering.v2.RetweetInfo import RetweetInfo
+from PictureGathering.v2.TweetInfo import TweetInfo
 from PictureGathering.v2.TwitterAPI import TwitterAPI, TwitterAPIEndpoint
+from PictureGathering.v2.V2Base import V2Base
 
 
-@dataclass
-class Retweet():
+class RetweetInfo(TweetInfo):
+    pass
+
+
+class Retweet(V2Base):
     userid: str
-    pages: str
     max_results: int
-    twitter: TwitterAPI
 
-    def fetch(self) -> list[dict]:
-        """TIMELINE_TWEET エンドポイントにて、self.userid に紐づくタイムラインを取得する
-            self.pages * self.max_results だけ遡る
+    def __init__(self, userid: str, pages: int, max_results: int, twitter: TwitterAPI) -> None:
+        self.userid = userid
+        self.max_results = max_results
 
-        Returns:
-            list[dict]: ページごとに格納された TIMELINE_TWEET API 返り値
-        """
-        url = TwitterAPIEndpoint.TIMELINE_TWEET.value[0].format(self.userid)
-        next_token = ""
-        result = []
-        for _ in range(self.pages):
-            params = {
-                "expansions": "author_id,referenced_tweets.id,referenced_tweets.id.author_id,attachments.media_keys",
-                "tweet.fields": "id,attachments,author_id,referenced_tweets,entities,text,source,created_at",
-                "user.fields": "id,name,username,url",
-                "media.fields": "url,variants,preview_image_url,alt_text",
-                "max_results": self.max_results,
-            }
-            if next_token != "":
-                params["pagination_token"] = next_token
-            tweet = self.twitter.get(url, params=params)
-            result.append(tweet)
-            next_token = tweet.get("meta", {}).get("next_token", "")
-        return result
+        api_endpoint_url = TwitterAPIEndpoint.TIMELINE_TWEET.value[0].format(self.userid)
+
+        params = {
+            "expansions": "author_id,referenced_tweets.id,referenced_tweets.id.author_id,attachments.media_keys",
+            "tweet.fields": "id,attachments,author_id,referenced_tweets,entities,text,source,created_at",
+            "user.fields": "id,name,username,url",
+            "media.fields": "url,variants,preview_image_url,alt_text",
+            "max_results": self.max_results,
+        }
+        super(Retweet, self).__init__(api_endpoint_url, params, pages, twitter)
 
     def _find_tweets(self, tweet_id: str, tweets_list: list[dict]) -> dict:
         """tweet_id をキーに tweets_list を検索する
@@ -59,149 +47,6 @@ class Retweet():
         if len(t_list) == 0:
             return {}
         return t_list[0]
-
-    def _find_name(self, user_id: str, users_list: list[dict]) -> tuple[str, str]:
-        """user_id をキーに user_list を検索する
-
-        Args:
-            user_id (str): 検索id
-            users_list (list[dict]): 検索対象リスト
-
-        Returns:
-            user_name (str), screan_name (str):
-                最初に見つかった user 情報から(user_name, screan_name)を返す
-                見つからなかった場合、(invalid_name, invalid_name)を返す
-        """
-        invalid_name = "<null>"
-        user_list = [user for user in users_list if user.get("id", "") == user_id]
-        if len(user_list) == 0:
-            # raise ValueError("(user_name, screan_name) not found.")
-            return (invalid_name, invalid_name)
-        user = user_list[0]
-        user_name = user.get("name", invalid_name)
-        screan_name = user.get("username", invalid_name)
-        return user_name, screan_name
-
-    def _find_media(self, media_key: str, media_list: list[dict]) -> dict:
-        """media_key をキーに media_list を検索する
-
-        Args:
-            media_key (str): 検索キー
-            media_list (list[dict]): 検索対象リスト
-
-        Returns:
-            dict: 最初に見つかった media 情報を返す、見つからなかった場合、空辞書を返す
-        """
-        m_list = [media for media in media_list if media.get("media_key", "") == media_key]
-        if len(m_list) == 0:
-            return {}
-        return m_list[0]
-    
-    def _match_tweet_url(self, urls: dict) -> str:
-        """entities 内の expanded_url を tweet_url として取得する
-            ex. https://twitter.com/{screan_name}/status/{tweet_id}/photo/1
-
-        Args:
-            urls (list[dict]): 対象のツイートオブジェクトの一部
-
-        Raises:
-            ValueError: tweet_url が見つからなかった場合
-
-        Returns:
-            tweet_url (str): 採用された entities 内の expanded_url
-        """
-        tweet_url = ""
-        for url in urls:
-            match url:
-                case {"expanded_url": expanded_url,
-                      "media_key": _}:
-                    # media_key が振られている media について、
-                    # expanded_url は共通で紐づくツイートを指すため、見つけたらすぐ確定して良い
-                    tweet_url = expanded_url
-                    break
-                case _:
-                    pass
-        if tweet_url == "":
-            raise ValueError("tweet_url not found.")
-        return tweet_url
-
-    def _match_media_info(self, media: dict) -> tuple[str, str, str]:
-        """media情報について収集する
-
-        Args:
-            media (dict): ツイートオブジェクトの一部
-
-        Returns:
-            media_filename (str): ファイル名
-            media_url (str): 直リンク
-            media_thumbnail_url (str): サムネイル画像直リンク
-                エラー時それぞれ空文字列
-        """
-        media_filename = ""
-        media_url = ""
-        media_thumbnail_url = ""
-        match media:
-            case {"media_key": _,
-                  "type": "photo",
-                  "url": m_url}:
-                # 画像
-                media_thumbnail_url = m_url + ":large"
-                media_url = m_url + ":orig"
-                media_filename = Path(m_url).name
-            case {"media_key": _,
-                  "type": "video" | "animated_gif",
-                  "variants": variants,
-                  "preview_image_url": p_url}:
-                # 動画 or GIF
-                m_url = self._match_video_url(variants)
-                media_thumbnail_url = p_url + ":orig"
-                media_url = m_url
-                # クエリを除去
-                url_path = Path(urllib.parse.urlparse(media_url).path)
-                media_url = urllib.parse.urljoin(media_url, url_path.name)
-                media_filename = Path(media_url).name
-            case _:
-                pass  # 扱えるメディアに紐づく media_key ではなかった（エラー？）
-        return media_filename, media_url, media_thumbnail_url
-
-    def _match_video_url(self, variants: dict) -> str:
-        """video情報について収集する
-            同じ動画の中で一番ビットレートが高い動画のURLを保存する
-
-        Args:
-            variants (dict): ツイートオブジェクトの一部
-
-        Returns:
-            video_url (str): 動画直リンク、エラー時空文字列
-        """
-        video_url = ""
-        current_bitrate = -sys.maxsize  # 最小値
-        for video_variant in variants:
-            match video_variant:
-                case {"content_type": "video/mp4",
-                      "bit_rate": bitrate,
-                      "url": t_url}:
-                    bitrate = int(bitrate)
-                    if bitrate > current_bitrate:
-                        # 同じ動画の中で一番ビットレートが高い動画を保存する
-                        video_url = t_url
-                        current_bitrate = bitrate
-                case _:
-                    pass  # 扱えるメディアではなかった
-        return video_url
-
-    def _match_expanded_url(self, urls: dict) -> list[str]:
-        """entities 内の expanded_url を取得する
-            ex. https://twitter.com/{screan_name}/status/{tweet_id}/photo/1
-            上記の他に外部リンクも対象とする
-
-        Args:
-            urls (dict): ツイートオブジェクトの一部
-
-        Returns:
-            list[expanded_url] (list[str]): entities 内の expanded_url をまとめたリスト
-        """
-        return [url.get("expanded_url", "") for url in urls if "expanded_url" in url]
 
     def _flatten(self, retweeted_tweet: list[dict]) -> tuple[list[dict], list[dict], list[dict], list[dict]]:
         """retweeted_tweet のおおまかな構造解析
@@ -456,15 +301,16 @@ class Retweet():
                     pass
         return data_list, media_list, users_list
 
-    def to_convert_RetweetInfo(self, retweeted_tweet: list[dict]) -> list[RetweetInfo]:
+    def to_convert_TweetInfo(self, fetched_tweets: list[dict]) -> list[TweetInfo]:
         """self.fetch() 後の返り値から RetweetInfo のリストを返す
 
         Args:
-            retweeted_tweet (list[dict]): self.fetch() 後の返り値
+            fetched_tweets (list[dict]): self.fetch() 後の返り値
 
         Returns:
             list[RetweetInfo]: RetweetInfo リスト
         """
+        retweeted_tweet = fetched_tweets
         # retweeted_tweet のおおまかな構造解析
         # ページに分かれているので平滑化
         data_list, media_list, tweets_list, users_list = self._flatten(retweeted_tweet)
@@ -608,7 +454,7 @@ class Retweet():
                     continue
         return result
 
-    def to_convert_ExternalLink(self, retweeted_tweet: list[dict], link_searcher: LinkSearcher) -> list[ExternalLink]:
+    def to_convert_ExternalLink(self, fetchted_tweets: list[dict], link_searcher: LinkSearcher) -> list[ExternalLink]:
         """self.fetch() 後の返り値から ExternalLink のリストを返す
 
         Args:
@@ -618,6 +464,7 @@ class Retweet():
         Returns:
             list[ExternalLink]: ExternalLink リスト
         """
+        retweeted_tweet = fetchted_tweets
         # retweeted_tweet のおおまかな構造解析
         # ページに分かれているので平滑化
         data_list, media_list, tweets_list, users_list = self._flatten(retweeted_tweet)
@@ -770,16 +617,17 @@ if __name__ == "__main__":
     retweet = Retweet(userid=MY_ID, pages=3, max_results=100, twitter=twitter)
     # 実際にAPIを叩いて取得する
     # res = retweet.fetch()
+    # with codecs.open("./PictureGathering/v2/api_response_timeline_pprint.txt", "w", "utf-8") as fout:
+    #     pprint.pprint(res, fout)
     # with codecs.open("./PictureGathering/v2/api_response_timeline_json.txt", "w", "utf-8") as fout:
-    #     # pprint.pprint(res, fout)
     #     json.dump(res, fout)
-    # # pprint.pprint(res)
+    # pprint.pprint(res)
 
     # キャッシュを読み込んでRetweetInfoリストを作成する
     input_dict = {}
     with codecs.open("./PictureGathering/v2/api_response_timeline_json.txt", "r", "utf-8") as fin:
         input_dict = json.load(fin)
-    res = retweet.to_convert_RetweetInfo(input_dict)
+    res = retweet.to_convert_TweetInfo(input_dict)
     pprint.pprint(res)
     print(len(res))
 

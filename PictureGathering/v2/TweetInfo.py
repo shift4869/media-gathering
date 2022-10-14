@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class LikeInfo():
+class TweetInfo():
     media_filename: str
     media_url: str
     media_thumbnail_url: str
@@ -17,7 +17,7 @@ class LikeInfo():
     tweet_via: str
 
     @classmethod
-    def create(cls, dict: dict) -> "LikeInfo":
+    def create(cls, dict: dict) -> "TweetInfo":
         match dict:
             case {
                 "media_filename": media_filename,
