@@ -99,6 +99,46 @@ class Favorite(Base):
             "media_blob": None,
         }
 
+    @classmethod
+    def create(cls, arg_dict: dict) -> "Favorite":
+        match arg_dict:
+            case {
+                "is_exist_saved_file": is_exist_saved_file,
+                "img_filename": img_filename,
+                "url": url,
+                "url_thumbnail": url_thumbnail,
+                "tweet_id": tweet_id,
+                "tweet_url": tweet_url,
+                "created_at": created_at,
+                "user_id": user_id,
+                "user_name": user_name,
+                "screan_name": screan_name,
+                "tweet_text": tweet_text,
+                "tweet_via": tweet_via,
+                "saved_localpath": saved_localpath,
+                "saved_created_at": saved_created_at,
+                "media_size": media_size,
+                "media_blob": media_blob,
+            }:
+                return cls(is_exist_saved_file,
+                           img_filename,
+                           url,
+                           url_thumbnail,
+                           tweet_id,
+                           tweet_url,
+                           created_at,
+                           user_id,
+                           user_name,
+                           screan_name,
+                           tweet_text,
+                           tweet_via,
+                           saved_localpath,
+                           saved_created_at,
+                           media_size,
+                           media_blob)
+            case _:
+                raise ValueError(f"{type(cls)} create failed.")
+
 
 class Retweet(Base):
     """リツイートツイートモデル

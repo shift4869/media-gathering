@@ -46,10 +46,10 @@ if __name__ == "__main__":
 
     # ツイート取得
     # 認証ユーザー詳細取得
-    url = "https://api.twitter.com/2/users/me"
-    res = oath.get(url, params={})
-    tweet = json.loads(res.text)
-    pprint.pprint(tweet)
+    # url = "https://api.twitter.com/2/users/me"
+    # res = oath.get(url, params={})
+    # tweet = json.loads(res.text)
+    # pprint.pprint(tweet)
 
     # ツイート取得
     # MY_ID = 175674367
@@ -67,13 +67,13 @@ if __name__ == "__main__":
     # レートリミット
 
     # ツイート投稿
-    # url = f"https://api.twitter.com/2/tweets"
-    # params = {
-    #     "text": "ツイートテスト with v2",
-    # }
-    # res = oath.post(url, params=params)
-    # tweet = json.loads(res.text)
-    # pprint.pprint(tweet)
+    url = "https://api.twitter.com/2/tweets"
+    params = {
+        "text": "ツイートテスト with v2",
+    }
+    res = oath.post(url, json=params)
+    tweet = json.loads(res.text)
+    pprint.pprint(tweet)
 
     # ツイート削除
     # url = f"https://api.twitter.com/2/tweets/1579254037484310530"

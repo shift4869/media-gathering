@@ -10,7 +10,6 @@ import configparser
 import json
 import logging.config
 import os
-import random
 import shutil
 import sys
 import time
@@ -29,6 +28,8 @@ from plyer import notification
 from PictureGathering import WriteHTML, Archiver, GoogleDrive
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LogMessage import MSG
+from PictureGathering.v2.TweetInfo import TweetInfo
+from PictureGathering.v2.TwitterAPI import TwitterAPI, TwitterAPIEndpoint
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 for name in logging.root.manager.loggerDict:
@@ -99,6 +100,18 @@ class Crawler(metaclass=ABCMeta):
             self.TW_CONSUMER_SECRET = config["consumer_secret"]
             self.TW_ACCESS_TOKEN_KEY = config["access_token"]
             self.TW_ACCESS_TOKEN_SECRET = config["access_token_secret"]
+
+            config = self.config["twitter_token_keys_v2"]
+            self.TW_V2_API_KEY = config["api_key"]
+            self.TW_V2_API_KEY_SECRET = config["api_key_secret"]
+            self.TW_V2_ACCESS_TOKEN = config["access_token"]
+            self.TW_V2_ACCESS_TOKEN_SECRET = config["access_token_secret"]
+            self.twitter = TwitterAPI(
+                self.TW_V2_API_KEY,
+                self.TW_V2_API_KEY_SECRET,
+                self.TW_V2_ACCESS_TOKEN,
+                self.TW_V2_ACCESS_TOKEN_SECRET
+            )
 
             config = self.config["line_token_keys"]
             self.LN_TOKEN_KEY = config["token_key"]
@@ -771,14 +784,14 @@ class Crawler(metaclass=ABCMeta):
         config = self.config["notification"]
         if config.getboolean("is_post_fav_done_reply") or config.getboolean("is_post_retweet_done_reply"):
             targets = self.db_cont.DelSelect()
-            url = "https://api.twitter.com/1.1/statuses/destroy/{}.json"
+            url = TwitterAPIEndpoint.DELETE_TWEET.value[0]
             for target in targets:
-                response = self.oath.post(url.format(target["tweet_id"]))  # tweet_id
+                response = self.twitter.delete(url.format(target["tweet_id"]), {})  # tweet_id
 
         logger.info("End Of " + self.type + " Crawl Process.")
         return 0
 
-    def PostTweet(self, str: str) -> int:
+    def PostTweet(self, tweet_str: str) -> int:
         """実行完了ツイートをポストする
 
         Args:
@@ -787,67 +800,24 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             int: 成功時0、失敗時None
         """
-        url = "https://api.twitter.com/1.1/users/show.json"
+        # url = "https://api.twitter.com/1.1/users/show.json"
         reply_user_name = self.config["notification"]["reply_to_user_name"]
-        random_pickup = False  # 自分がアップロードしたことになるのでメディア欄が侵食されるためオフに
+        url = TwitterAPIEndpoint.POST_TWEET.value[0]
 
+        tweet_str = "@" + reply_user_name + " " + tweet_str
         params = {
-            "screen_name": reply_user_name,
-        }
-        res = self.TwitterAPIRequest(url, params=params)
-        if res is None:
-            return None
-
-        # 画像をランダムにピックアップしてアップロードする
-        media_ids = ""
-        if random_pickup:
-            url = "https://upload.twitter.com/1.1/media/upload.json"
-
-            pickup_url_list = random.sample(self.add_url_list, 4)
-            for pickup_url in pickup_url_list:
-                files = {
-                    "media": urllib.request.urlopen(pickup_url).read()
-                }
-                response = self.oath.post(url, files=files)
-
-                if response.status_code != 200:
-                    logger.error("Error code: {0}".format(response.status_code))
-                    return None
-
-                media_id = json.loads(response.text)["media_id"]
-                media_id_string = json.loads(response.text)["media_id_string"]
-                logger.debug("Media ID: {} ".format(media_id))
-
-                # メディアIDの文字列をカンマ","で結合
-                if media_ids == "":
-                    media_ids += media_id_string
-                else:
-                    media_ids = media_ids + "," + media_id_string
-
-        url = "https://api.twitter.com/1.1/statuses/update.json"
-        reply_to_status_id = res["id_str"]
-
-        str = "@" + reply_user_name + " " + str
-
-        params = {
-            "status": str,
-            "in_reply_to_status_id": reply_to_status_id,
+            "text": tweet_str,
         }
 
-        # 画像つきツイートの場合
-        if media_ids != "":
-            # メディアID（カンマ区切り）をパラメータに含める
-            params["media_ids"] = media_ids
+        response = self.twitter.post(url, params)
+        if not response:
+            logger.error("PostTweet failed.")
+            return -1
 
-        response = self.oath.post(url, params=params)
-        if response.status_code != 200:
-            logger.error("Error code: {0}".format(response.status_code))
-            return None
-
-        tweet = json.loads(response.text)
+        tweet = response
 
         logger.debug(tweet)
-        self.db_cont.DelUpsert(tweet)
+        self.db_cont.del_upsert_v2(tweet)
 
         return 0
 
@@ -918,6 +888,141 @@ class Crawler(metaclass=ABCMeta):
             logger.error("Error code: {0}".format(response.status_code))
             return None
 
+        return 0
+
+    def tweet_media_saver_v2(self, tweet_info: TweetInfo, atime: float, mtime: float) -> int:
+        """指定URLの画像を保存する
+
+        Args:
+            tweet_info (TweetInfo): メディア含むツイート情報
+            atime (float): 指定更新日時
+            mtime (float): 指定更新日時
+
+        Returns:
+            int: 成功時0、既に存在しているメディアだった場合1、過去に取得済のメディアだった場合2、
+                 失敗時（メディア辞書構造がエラー、urlが取得できない）-1
+        """
+        url_orig = tweet_info.media_url
+        url_thumbnail = tweet_info.media_thumbnail_url
+        file_name = tweet_info.media_filename
+        save_file_path = Path(self.save_path) / file_name
+        save_file_fullpath = save_file_path.absolute()
+
+        # 過去に取得済かどうか調べる
+        if self.db_cont.SelectFromMediaURL(file_name) != []:
+            logger.debug(save_file_fullpath.name + " -> skip")
+            return 2
+
+        if not save_file_fullpath.is_file():
+            # URLからメディアを取得してローカルに保存
+            # タイムアウトを設定するためにurlopenを利用
+            # urllib.request.urlretrieve(url_orig, save_file_fullpath)
+            try:
+                data = urllib.request.urlopen(url_orig, timeout=60).read()
+                with save_file_fullpath.open(mode="wb") as f:
+                    f.write(data)
+            except Exception:
+                # URLからのメディア取得に失敗
+                # 削除されていた場合など
+                logger.info(save_file_fullpath.name + " -> failed.")
+                return -1
+            self.add_url_list.append(url_orig)
+
+            # DB操作
+            # db_cont.Upsert派生クラスによって呼び分けられる（ポリモーフィズム）
+            dts_format = "%Y-%m-%d %H:%M:%S"
+            params = {
+                "is_exist_saved_file": True,
+                "img_filename": file_name,
+                "url": url_orig,
+                "url_thumbnail": url_thumbnail,
+                "tweet_id": tweet_info.tweet_id,
+                "tweet_url": tweet_info.tweet_url,
+                "created_at": tweet_info.created_at,
+                "user_id": tweet_info.user_id,
+                "user_name": tweet_info.user_name,
+                "screan_name": tweet_info.screan_name,
+                "tweet_text": tweet_info.tweet_text,
+                "tweet_via": tweet_info.tweet_via,
+                "saved_localpath": str(save_file_fullpath),
+                "saved_created_at": datetime.now().strftime(dts_format),
+            }
+            include_blob = self.config["db"].getboolean("save_blob")
+            try:
+                if include_blob:
+                    with open(save_file_fullpath, "rb") as fout:
+                        params["media_blob"] = fout.read()
+                        params["media_size"] = len(params["media_blob"])
+                else:
+                    params["media_blob"] = None
+                    params["media_size"] = Path(save_file_fullpath).stat().st_size
+            except Exception:
+                params["media_blob"] = None
+                params["media_size"] = -1
+            self.db_cont.upsert_v2(params)
+
+            # 画像ならばimage magickで画像変換
+            # if media_type == "photo":
+            #     img_magick_path = Path(self.config["processes"]["image_magick"])
+            #     if img_magick_path.is_file():
+            #         os.system('"' + str(img_magick_path) + '" -quality 60 ' + str(save_file_fullpath) + " " + str(save_file_fullpath))
+
+            # 更新日時を上書き
+            config = self.config["timestamp"]
+            if config.getboolean("timestamp_created_at"):
+                os.utime(save_file_fullpath, (atime, mtime))
+
+            # ログ書き出し
+            logger.info(save_file_fullpath.name + " -> done")
+            self.add_cnt += 1
+
+            # 常に保存する設定の場合はコピーする
+            config = self.config["db"]
+            if config.getboolean("save_permanent_image_flag"):
+                shutil.copy2(save_file_fullpath, config["save_permanent_image_path"])
+
+            # アーカイブする設定の場合
+            config = self.config["archive"]
+            if config.getboolean("is_archive"):
+                shutil.copy2(save_file_fullpath, config["archive_temp_path"])
+        else:
+            logger.debug(save_file_fullpath.name + " -> exist")
+            return 1
+        return 0
+
+    def interpret_tweets_v2(self, tweet_info_list: list[TweetInfo]) -> int:
+        for tweet_info in tweet_info_list:
+            """タイムスタンプについて
+                https://srbrnote.work/archives/4054
+                作成日時:ctime, 更新日時:mtime, アクセス日時:atimeがある
+                ctimeはOS依存のため設定には外部ライブラリが必要
+                ここでは
+                    Favならばatime=mtime=ツイート投稿日時 とする
+                    RTならばatime=mtime=ツイート投稿日時 とする
+                    （THINK is_apply_now_timestamp == Trueならば収集時の時刻 となる）
+                収集されたツイートの投稿日時はDBのcreated_at項目に保持される
+            """
+            # is_apply_now_timestamp = (self.type == "Fav")
+            is_apply_now_timestamp = False
+            atime = mtime = -1
+            if is_apply_now_timestamp:
+                atime = mtime = time.time()
+            else:
+                dts_format = "%Y-%m-%d %H:%M:%S"
+                media_tweet_created_time = tweet_info.created_at
+                created_time = time.strptime(media_tweet_created_time, dts_format)
+                atime = mtime = time.mktime(
+                    (created_time.tm_year,
+                     created_time.tm_mon,
+                     created_time.tm_mday,
+                     created_time.tm_hour,
+                     created_time.tm_min,
+                     created_time.tm_sec,
+                     0, 0, -1)
+                )
+
+            # メディア保存
+            self.tweet_media_saver_v2(tweet_info, atime, mtime)
         return 0
 
     @abstractmethod

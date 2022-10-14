@@ -24,6 +24,9 @@ class TwitterAPIEndpoint(Enum):
     # ユーザー詳細取得
     USER_LOOKUP = ["https://api.twitter.com/2/users", "GET"]
 
+    # ユーザー詳細取得(screen_name)
+    USER_LOOKUP_BY_USERNAME = ["https://api.twitter.com/2/users/by/username/{}", "GET"]
+
     # ツイート詳細取得
     TWEETS_LOOKUP = ["https://api.twitter.com/2/tweets", "GET"]
 
@@ -110,7 +113,11 @@ class TwitterAPI():
         RETRY_NUM = 5
         for _ in range(RETRY_NUM):
             try:
-                response = method_func(endpoint_url, params=params)
+                response = None
+                if method == "POST":
+                    response = method_func(endpoint_url, json=params)
+                else:
+                    response = method_func(endpoint_url, params=params)
                 response.raise_for_status()
                 res = json.loads(response.text)
                 return res

@@ -243,6 +243,78 @@ class DBControllerBase(metaclass=ABCMeta):
 
         return res
 
+    def del_upsert_v2(self, tweet):
+        """DeleteTargetにInsertする
+
+        Note:
+            insert into DeleteTarget (tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num) values (*)
+
+        Args:
+            tweet (dict): Insert対象ツイートオブジェクト
+
+        Returns:
+            int: 0(成功)
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+        res = -1
+
+        # tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num
+        pattern = " +[0-9]* "
+        text = tweet.get("data", {}).get("text", "")
+        add_num = int(re.findall(pattern, text)[0])
+        del_num = int(re.findall(pattern, text)[1])
+        dts_format = "%Y-%m-%d %H:%M:%S"
+
+        params = {
+            "tweet_id": tweet.get("data", {}).get("id", ""),
+            "delete_done": False,
+            "created_at": datetime.now().strftime(dts_format),
+            "deleted_at": None,
+            "tweet_text": text,
+            "add_num": add_num,
+            "del_num": del_num
+        }
+        r = DeleteTarget(params["tweet_id"], params["delete_done"], params["created_at"],
+                         params["deleted_at"], params["tweet_text"], params["add_num"], params["del_num"])
+
+        try:
+            q = session.query(DeleteTarget).filter(
+                or_(DeleteTarget.tweet_id == r.tweet_id))
+            ex = q.one()
+        except NoResultFound:
+            # INSERT
+            session.add(r)
+            res = 0
+        else:
+            # UPDATEは実質DELETE->INSERTと同じとする
+            # session.delete(ex)
+            # session.commit()
+            # session.add(r)
+            ex.tweet_id = r.tweet_id
+            ex.delete_done = r.delete_done
+            ex.created_at = r.created_at
+            ex.deleted_at = r.deleted_at
+            ex.tweet_text = r.tweet_text
+            ex.add_num = r.add_num
+            ex.del_num = r.del_num
+            res = 1
+
+        # INSERT
+        session.commit()
+        session.close()
+
+        # 操作履歴保存
+        if self.operatefile and self.operatefile.is_file():
+            bname = "DBDelUpsert" + ".bin"
+            bin_file_path = self.operatefile.parent / bname
+            with bin_file_path.open(mode="wb") as fout:
+                pickle.dump(tweet, fout)
+            with self.operatefile.open(mode="a", encoding="utf_8") as fout:
+                fout.write("DBDelUpsert\n")
+
+        return res
+
     def DelSelect(self):
         """DeleteTargetからSELECTしてフラグをUPDATEする
 

@@ -7,6 +7,8 @@ from pathlib import Path
 from PictureGathering.Crawler import Crawler
 from PictureGathering.FavDBController import FavDBController
 from PictureGathering.LogMessage import MSG
+from PictureGathering.v2.Like import Like
+from PictureGathering.v2.TwitterAPI import TwitterAPIEndpoint
 
 logger = getLogger("root")
 logger.setLevel(INFO)
@@ -79,9 +81,16 @@ class FavCrawler(Crawler):
         logger.info(MSG.FAVCRAWLER_CRAWL_START.value)
         # count * fav_get_max_loop だけツイートをさかのぼる。
         fav_get_max_loop = int(self.config["tweet_timeline"]["fav_get_max_loop"]) + 1
-        for i in range(1, fav_get_max_loop):
-            tweets = self.FavTweetsGet(i)
-            self.InterpretTweets(tweets)
+        # for i in range(1, fav_get_max_loop):
+        #     tweets = self.FavTweetsGet(i)
+        #     self.InterpretTweets(tweets)
+        my_user_info = self.twitter.get(TwitterAPIEndpoint.USER_ME.value[0], {})
+        my_id = my_user_info.get("data", {}).get("id", "")
+        like = Like(userid=my_id, pages=fav_get_max_loop, max_results=100, twitter=self.twitter)
+        fetched_tweets = like.fetch()
+        tweet_info_list = like.to_convert_TweetInfo(fetched_tweets)
+        self.interpret_tweets_v2(tweet_info_list)
+
         self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
         self.EndOfProcess()
         logger.info(MSG.FAVCRAWLER_CRAWL_DONE.value)

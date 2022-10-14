@@ -79,6 +79,55 @@ class FavDBController(DBControllerBase):
 
         return res
 
+    def upsert_v2(self, params: dict) -> int:
+        """FavoriteにUPSERTする
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+        res = -1
+
+        records = [Favorite.create(params)]
+        for r in records:
+            try:
+                q = session.query(Favorite).filter(
+                    or_(Favorite.img_filename == r.img_filename,
+                        Favorite.url == r.url,
+                        Favorite.url_thumbnail == r.url_thumbnail))
+                ex = q.one()
+            except NoResultFound:
+                # INSERT
+                session.add(r)
+                res = 0
+            else:
+                ex.is_exist_saved_file = r.is_exist_saved_file
+                ex.img_filename = r.img_filename
+                ex.url = r.url
+                ex.url_thumbnail = r.url_thumbnail
+                ex.tweet_id = r.tweet_id
+                ex.tweet_url = r.tweet_url
+                ex.created_at = r.created_at
+                ex.user_id = r.user_id
+                ex.user_name = r.user_name
+                ex.screan_name = r.screan_name
+                ex.tweet_text = r.tweet_text
+                ex.tweet_via = r.tweet_via
+                ex.saved_localpath = r.saved_localpath
+                ex.saved_created_at = r.saved_created_at
+                ex.media_size = r.media_size
+                ex.media_blob = r.media_blob
+
+                # UPDATEは実質DELETE->INSERTと同じとする
+                # session.delete(ex)
+                # session.commit()
+                # session.add(r)
+                res = 1
+
+        session.commit()
+        session.close()
+
+        # TODO::操作履歴保存未対応
+        return res
+
     def Select(self, limit=300):
         """FavoriteからSELECTする
 
