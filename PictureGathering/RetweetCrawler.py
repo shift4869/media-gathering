@@ -7,7 +7,7 @@ from pathlib import Path
 from PictureGathering.Crawler import Crawler
 from PictureGathering.LogMessage import MSG
 from PictureGathering.RetweetDBController import RetweetDBController
-from PictureGathering.v2.Retweet import Retweet
+from PictureGathering.v2.RetweetFetcher import RetweetFetcher
 from PictureGathering.v2.TwitterAPI import TwitterAPIEndpoint
 
 logger = getLogger("root")
@@ -177,7 +177,7 @@ class RetweetCrawler(Crawler):
 
         my_user_info = self.twitter.get(TwitterAPIEndpoint.USER_ME.value[0], {})
         my_id = my_user_info.get("data", {}).get("id", "")
-        retweet = Retweet(userid=my_id, pages=self.retweet_get_max_loop, max_results=100, twitter=self.twitter)
+        retweet = RetweetFetcher(userid=my_id, pages=self.retweet_get_max_loop, max_results=100, twitter=self.twitter)
         fetched_tweets = retweet.fetch()
         # tweets = self.RetweetsGet()
         # self.InterpretTweets(tweets)

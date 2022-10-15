@@ -14,7 +14,7 @@ class LikeInfo(TweetInfo):
     pass
 
 
-class Like(V2Base):
+class LikeFetcher(V2Base):
     userid: str
     max_results: int
 
@@ -31,7 +31,7 @@ class Like(V2Base):
             "media.fields": "url,variants,preview_image_url,alt_text",
             "max_results": self.max_results,
         }
-        super(Like, self).__init__(api_endpoint_url, params, pages, twitter)
+        super(LikeFetcher, self).__init__(api_endpoint_url, params, pages, twitter)
 
     def _flatten(self, liked_tweet: list[dict]) -> tuple[list[dict], list[dict], list[dict]]:
         """liked_tweet のおおまかな構造解析
@@ -249,7 +249,7 @@ if __name__ == "__main__":
     )
 
     MY_ID = 175674367
-    like = Like(userid=MY_ID, pages=3, max_results=100, twitter=twitter)
+    like = LikeFetcher(userid=MY_ID, pages=3, max_results=100, twitter=twitter)
     # 実際にAPIを叩いて取得する
     # res = like.fetch()
     # with codecs.open("./PictureGathering/v2/api_response_like_pprint.txt", "w", "utf-8") as fout:

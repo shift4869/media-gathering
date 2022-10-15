@@ -63,8 +63,6 @@ class TwitterAPI():
             self.access_token_key,
             self.access_token_secret
         )
-        if not isinstance(self.oauth, OAuth1Session):
-            raise ValueError("oauth must be OAuth1Session, invalid keys.")
 
         # 疎通確認
         res = self.get(TwitterAPIEndpoint.USER_ME.value[0], {})
@@ -126,7 +124,7 @@ class TwitterAPI():
             except Exception as e:
                 continue
         else:
-            raise requests.HTTPError(f"Twitter API error : exceed RETRY_NUM.")
+            raise requests.HTTPError("Twitter API error : exceed RETRY_NUM.")
 
     def get(self, endpoint_url: str, params: dict) -> dict:
         return self.request(endpoint_url=endpoint_url, params=params, method="GET")

@@ -14,7 +14,7 @@ class RetweetInfo(TweetInfo):
     pass
 
 
-class Retweet(V2Base):
+class RetweetFetcher(V2Base):
     userid: str
     max_results: int
 
@@ -31,7 +31,7 @@ class Retweet(V2Base):
             "media.fields": "url,variants,preview_image_url,alt_text",
             "max_results": self.max_results,
         }
-        super(Retweet, self).__init__(api_endpoint_url, params, pages, twitter)
+        super(RetweetFetcher, self).__init__(api_endpoint_url, params, pages, twitter)
 
     def _find_tweets(self, tweet_id: str, tweets_list: list[dict]) -> dict:
         """tweet_id をキーに tweets_list を検索する
@@ -614,7 +614,7 @@ if __name__ == "__main__":
     )
 
     MY_ID = 175674367
-    retweet = Retweet(userid=MY_ID, pages=3, max_results=100, twitter=twitter)
+    retweet = RetweetFetcher(userid=MY_ID, pages=3, max_results=100, twitter=twitter)
     # 実際にAPIを叩いて取得する
     # res = retweet.fetch()
     # with codecs.open("./PictureGathering/v2/api_response_timeline_pprint.txt", "w", "utf-8") as fout:

@@ -202,7 +202,7 @@ class V2Base(ABC):
 if __name__ == "__main__":
     import codecs
     import configparser
-    from PictureGathering.v2.Like import Like
+    from PictureGathering.v2.LikeFetcher import LikeFetcher
     CONFIG_FILE_NAME = "./config/config.ini"
     config_parser = configparser.ConfigParser()
     if not config_parser.read(CONFIG_FILE_NAME, encoding="utf8"):
@@ -223,7 +223,7 @@ if __name__ == "__main__":
         pass
 
     MY_ID = 175674367
-    like = Like(userid=MY_ID, pages=3, max_results=100, twitter=twitter)
+    like = LikeFetcher(userid=MY_ID, pages=3, max_results=100, twitter=twitter)
     # 実際にAPIを叩いて取得する
     # res = like.fetch()
     # with codecs.open("./PictureGathering/v2/api_response_like_pprint.txt", "w", "utf-8") as fout:
