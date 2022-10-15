@@ -28,6 +28,7 @@ from plyer import notification
 from PictureGathering import WriteHTML, Archiver, GoogleDrive
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LogMessage import MSG
+from PictureGathering.Model import ExternalLink
 from PictureGathering.v2.TweetInfo import TweetInfo
 from PictureGathering.v2.TwitterAPI import TwitterAPI, TwitterAPIEndpoint
 
@@ -149,12 +150,12 @@ class Crawler(metaclass=ABCMeta):
             notify(error_message)
             exit(-1)
 
-        self.oath = OAuth1Session(
-            self.TW_CONSUMER_KEY,
-            self.TW_CONSUMER_SECRET,
-            self.TW_ACCESS_TOKEN_KEY,
-            self.TW_ACCESS_TOKEN_SECRET
-        )
+        # self.oath = OAuth1Session(
+        #     self.TW_CONSUMER_KEY,
+        #     self.TW_CONSUMER_SECRET,
+        #     self.TW_ACCESS_TOKEN_KEY,
+        #     self.TW_ACCESS_TOKEN_SECRET
+        # )
 
         self.add_cnt = 0
         self.del_cnt = 0
@@ -1024,6 +1025,20 @@ class Crawler(metaclass=ABCMeta):
             # メディア保存
             self.tweet_media_saver_v2(tweet_info, atime, mtime)
         return 0
+
+    def trace_external_link(self, external_link_list: list[ExternalLink]) -> None:
+        # 外部リンク探索
+        for external_link in external_link_list:
+            url = external_link.external_link_url
+            # 過去に取得済かどうか調べる
+            if self.db_cont.external_link_select_v2(url) != []:
+                logger.info(url + " : in DB exist -> skip")
+                continue
+            if self.lsb.can_fetch(url):
+                # 外部リンク先を取得して保存
+                self.lsb.fetch(url)
+                # DBにアドレス情報を保存
+                self.db_cont.external_link_upsert_v2([external_link])
 
     @abstractmethod
     def Crawl(self) -> int:

@@ -1,7 +1,7 @@
 # coding: utf-8
 import random
 from datetime import datetime
-from logging import DEBUG, INFO, getLogger
+from logging import INFO, getLogger
 from pathlib import Path
 
 from PictureGathering.Crawler import Crawler
@@ -90,6 +90,9 @@ class FavCrawler(Crawler):
         fetched_tweets = like.fetch()
         tweet_info_list = like.to_convert_TweetInfo(fetched_tweets)
         self.interpret_tweets_v2(tweet_info_list)
+
+        external_link_list = like.to_convert_ExternalLink(fetched_tweets, self.lsb)
+        self.trace_external_link(external_link_list)
 
         self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
         self.EndOfProcess()

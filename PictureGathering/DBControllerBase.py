@@ -413,7 +413,7 @@ class DBControllerBase(metaclass=ABCMeta):
 
         return res
 
-    def ExternalLinkUpsert_v2(self, external_link_list: list[ExternalLink]) -> int:
+    def external_link_upsert_v2(self, external_link_list: list[ExternalLink]) -> int:
         """ExternalLinkにUpsertする
 
         Args:
@@ -454,6 +454,25 @@ class DBControllerBase(metaclass=ABCMeta):
         session.close()
 
         return res
+
+    def external_link_select_v2(self, target_external_link: str) -> int:
+        """ExternalLinkからSelectする
+
+        Args:
+            target_external_link (str): 対象外部リンク
+
+        Returns:
+            int: 0(成功)
+        """
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+        res = -1
+
+        res = session.query(ExternalLink).filter_by(external_link_url=target_external_link).all()
+        res_dict = [r.toDict() for r in res]  # 辞書リストに変換
+
+        session.close()
+        return res_dict
 
     # def ReflectFromFile(self, operate_file_path):
     #     """操作履歴ファイルから操作を反映する

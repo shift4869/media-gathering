@@ -26,3 +26,7 @@ class MSG(enum.Enum):
     LINKSEARCHER_CREATE_DONE = "LinkSearcher each fetcher registering -> done"
     LINKSEARCHER_REGISTERED = "LinkSearcher {} -> registered."
     LINKSEARCHER_FETCHER_FOUND = "{} -> Fetcher found: {}."
+
+    FETCHED_TWEET_BY_TWITTER_API_START = "Fetched Tweet by Twitter API -> start"
+    FETCHED_TWEET_BY_TWITTER_API_PROGRESS = "({}/{}) pages fetched."
+    FETCHED_TWEET_BY_TWITTER_API_DONE = "Fetched Tweet by Twitter API -> done"

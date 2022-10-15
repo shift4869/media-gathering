@@ -4,12 +4,18 @@ import pprint
 import sys
 import urllib
 from abc import ABC, abstractmethod
+from logging import INFO, getLogger
 from pathlib import Path
 
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
+from PictureGathering.LogMessage import MSG
 from PictureGathering.Model import ExternalLink
 from PictureGathering.v2.TweetInfo import TweetInfo
 from PictureGathering.v2.TwitterAPI import TwitterAPI
+
+
+logger = getLogger("root")
+logger.setLevel(INFO)
 
 
 class V2Base(ABC):
@@ -31,14 +37,17 @@ class V2Base(ABC):
         Returns:
             list[dict]: ページごとに格納された API 返り値
         """
+        logger.info(MSG.FETCHED_TWEET_BY_TWITTER_API_START.value)
         next_token = ""
         result = []
-        for _ in range(self.pages):
+        for i in range(self.pages):
             if next_token != "":
                 self.params["pagination_token"] = next_token
             tweet = self.twitter.get(self.api_endpoint_url, params=self.params)
             result.append(tweet)
             next_token = tweet.get("meta", {}).get("next_token", "")
+            logger.info(MSG.FETCHED_TWEET_BY_TWITTER_API_PROGRESS.value.format(i + 1, self.pages))
+        logger.info(MSG.FETCHED_TWEET_BY_TWITTER_API_DONE.value)
         return result
 
     def _find_name(self, user_id: str, users_list: list[str]) -> tuple[str, str]:

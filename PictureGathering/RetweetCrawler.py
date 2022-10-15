@@ -1,12 +1,14 @@
 # coding: utf-8
 import random
 from datetime import datetime
-from logging import DEBUG, INFO, getLogger
+from logging import INFO, getLogger
 from pathlib import Path
 
 from PictureGathering.Crawler import Crawler
 from PictureGathering.LogMessage import MSG
 from PictureGathering.RetweetDBController import RetweetDBController
+from PictureGathering.v2.Retweet import Retweet
+from PictureGathering.v2.TwitterAPI import TwitterAPIEndpoint
 
 logger = getLogger("root")
 logger.setLevel(INFO)
@@ -172,8 +174,20 @@ class RetweetCrawler(Crawler):
 
     def Crawl(self):
         logger.info(MSG.RTCRAWLER_CRAWL_START.value)
-        tweets = self.RetweetsGet()
-        self.InterpretTweets(tweets)
+
+        my_user_info = self.twitter.get(TwitterAPIEndpoint.USER_ME.value[0], {})
+        my_id = my_user_info.get("data", {}).get("id", "")
+        retweet = Retweet(userid=my_id, pages=self.retweet_get_max_loop, max_results=100, twitter=self.twitter)
+        fetched_tweets = retweet.fetch()
+        # tweets = self.RetweetsGet()
+        # self.InterpretTweets(tweets)
+
+        tweet_info_list = retweet.to_convert_TweetInfo(fetched_tweets)
+        self.interpret_tweets_v2(tweet_info_list)
+
+        external_link_list = retweet.to_convert_ExternalLink(fetched_tweets, self.lsb)
+        self.trace_external_link(external_link_list)
+
         self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
         self.EndOfProcess()
         logger.info(MSG.RTCRAWLER_CRAWL_DONE.value)
