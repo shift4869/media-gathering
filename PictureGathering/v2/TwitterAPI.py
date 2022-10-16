@@ -38,6 +38,24 @@ class TwitterAPIEndpoint(Enum):
     # 認証ユーザー詳細取得
     USER_ME = ["https://api.twitter.com/2/users/me", "GET"]
 
+    @classmethod
+    def validate_endpoint_url(cls, estimated_endpoint_url: str, estimated_method: str) -> bool:
+        """endpoint_url が想定されているエンドポイントURLかどうか判定する"""
+        if not isinstance(estimated_endpoint_url, str):
+            return False
+        if not isinstance(estimated_method, str):
+            return False
+        if estimated_method not in ["GET", "POST", "PUT", "DELETE"]:
+            return False
+        for expect_endpoint in TwitterAPIEndpoint:
+            e_url = expect_endpoint.value[0]
+            e_method = expect_endpoint.value[1]
+            pattern = e_url.format(".*") if "{}" in e_url else e_url
+            if re.findall(f"^{pattern}$", estimated_endpoint_url) != []:
+                if e_method == estimated_method:
+                    return True
+        return False
+
 
 @dataclass
 class TwitterAPI():
@@ -86,14 +104,7 @@ class TwitterAPI():
             dict: TwitterAPIレスポンス
         """
         # バリデーション
-        for expect_endpoint in TwitterAPIEndpoint:
-            e_url = expect_endpoint.value[0]
-            e_method = expect_endpoint.value[1]
-            pattern = e_url.format(".*") if "{}" in e_url else e_url
-            if re.findall(f"^{pattern}$", endpoint_url) != []:
-                if e_method == method:
-                    break
-        else:
+        if not TwitterAPIEndpoint.validate_endpoint_url(endpoint_url, method):
             raise ValueError(f"{method} {endpoint_url} : is not Twitter API Endpoint or invalid method.")
 
         # メソッド振り分け

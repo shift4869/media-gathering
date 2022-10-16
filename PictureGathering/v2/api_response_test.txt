@@ -1,0 +1,234 @@
+[
+    {
+        "data": [
+            {
+                "edit_history_tweet_ids": [
+                    "123456789"
+                ],
+                "created_at": "2022-10-13T19:03:00.000Z",
+                "text": "test_text",
+                "attachments": {
+                    "media_keys": [
+                        "1_123456789"
+                    ]
+                },
+                "id": "123456789123456789",
+                "entities": {
+                    "urls": [
+                        {
+                            "start": 52,
+                            "end": 75,
+                            "url": "https://t.co/ajgAdIVdA6",
+                            "expanded_url": "https://twitter.com/test_user/status/123456789123456789/photo/1",
+                            "display_url": "pic.twitter.com/testtest",
+                            "media_key": "1_123456789"
+                        }
+                    ]
+                },
+                "source": "Twitter Web App",
+                "author_id": "12345"
+            }
+        ],
+        "includes": {
+            "media": [
+                {
+                    "media_key": "1_123456789",
+                    "url": "https://pbs.twimg.com/media/test_file_name.jpg",
+                    "type": "photo"
+                },
+                {
+                    "media_key": "2_123456789",
+                    "type": "video",
+                    "preview_image_url": "https://pbs.twimg.com/ext_tw_video_thumb/123456789123456789/pu/img/test_thumbnail_file_name.jpg",
+                    "variants": [
+                        {
+                            "bit_rate": 256000,
+                            "content_type": "video/mp4",
+                            "url": "https://video.twimg.com/ext_tw_video/123456789123456789/pu/vid/330x270/test_file_name.mp4?tag=10"
+                        },
+                        {
+                            "bit_rate": 2176000,
+                            "content_type": "video/mp4",
+                            "url": "https://video.twimg.com/ext_tw_video/123456789123456789/pu/vid/882x720/test_file_name.mp4?tag=10"
+                        },
+                        {
+                            "bit_rate": 832000,
+                            "content_type": "video/mp4",
+                            "url": "https://video.twimg.com/ext_tw_video/123456789123456789/pu/vid/440x360/test_file_name.mp4?tag=10"
+                        },
+                        {
+                            "content_type": "application/x-mpegURL",
+                            "url": "https://video.twimg.com/ext_tw_video/123456789123456789/pu/pl/test_file_name.m3u8?tag=10"
+                        }
+                    ]
+                }
+            ],
+            "users": [
+                {   "id": "123456789",
+                    "name": "test_username",
+                    "url": "https://t.co/TxjfH5C37n",
+                    "username": "test_screenname"
+                }
+            ]
+        },
+        "meta": {
+            "result_count": 100,
+            "next_token": "22222"
+        }
+    },
+    {
+        "data": [
+            {
+                "edit_history_tweet_ids": [
+                    "123456789"
+                ],
+                "created_at": "2022-10-13T19:03:00.000Z",
+                "text": "test_text",
+                "attachments": {
+                    "media_keys": [
+                        "1_123456789"
+                    ]
+                },
+                "id": "123456789123456789",
+                "entities": {
+                    "urls": [
+                        {
+                            "start": 52,
+                            "end": 75,
+                            "url": "https://t.co/ajgAdIVdA6",
+                            "expanded_url": "https://twitter.com/test_user/status/123456789123456789/photo/1",
+                            "display_url": "pic.twitter.com/testtest",
+                            "media_key": "1_123456789"
+                        }
+                    ]
+                },
+                "source": "Twitter Web App",
+                "author_id": "12345"
+            }
+        ],
+        "includes": {
+            "media": [
+                {
+                    "media_key": "1_123456789",
+                    "url": "https://pbs.twimg.com/media/test_file_name.jpg",
+                    "type": "photo"
+                },
+                {
+                    "media_key": "2_123456789",
+                    "type": "video",
+                    "preview_image_url": "https://pbs.twimg.com/ext_tw_video_thumb/123456789123456789/pu/img/test_thumbnail_file_name.jpg",
+                    "variants": [
+                        {
+                            "bit_rate": 256000,
+                            "content_type": "video/mp4",
+                            "url": "https://video.twimg.com/ext_tw_video/123456789123456789/pu/vid/330x270/test_file_name.mp4?tag=10"
+                        },
+                        {
+                            "bit_rate": 2176000,
+                            "content_type": "video/mp4",
+                            "url": "https://video.twimg.com/ext_tw_video/123456789123456789/pu/vid/882x720/test_file_name.mp4?tag=10"
+                        },
+                        {
+                            "bit_rate": 832000,
+                            "content_type": "video/mp4",
+                            "url": "https://video.twimg.com/ext_tw_video/123456789123456789/pu/vid/440x360/test_file_name.mp4?tag=10"
+                        },
+                        {
+                            "content_type": "application/x-mpegURL",
+                            "url": "https://video.twimg.com/ext_tw_video/123456789123456789/pu/pl/test_file_name.m3u8?tag=10"
+                        }
+                    ]
+                }
+            ],
+            "users": [
+                {   "id": "123456789",
+                    "name": "test_username",
+                    "url": "https://t.co/TxjfH5C37n",
+                    "username": "test_screenname"
+                }
+            ]
+        },
+        "meta": {
+            "result_count": 100,
+            "next_token": "33333",
+            "previous_token": "11111"
+        }
+    },
+    {
+        "data": [
+            {
+                "edit_history_tweet_ids": [
+                    "123456789"
+                ],
+                "created_at": "2022-10-13T19:03:00.000Z",
+                "text": "test_text",
+                "attachments": {
+                    "media_keys": [
+                        "1_123456789"
+                    ]
+                },
+                "id": "123456789123456789",
+                "entities": {
+                    "urls": [
+                        {
+                            "start": 52,
+                            "end": 75,
+                            "url": "https://t.co/ajgAdIVdA6",
+                            "expanded_url": "https://twitter.com/test_user/status/123456789123456789/photo/1",
+                            "display_url": "pic.twitter.com/testtest",
+                            "media_key": "1_123456789"
+                        }
+                    ]
+                },
+                "source": "Twitter Web App",
+                "author_id": "12345"
+            }
+        ],
+        "includes": {
+            "media": [
+                {
+                    "media_key": "1_123456789",
+                    "url": "https://pbs.twimg.com/media/test_file_name.jpg",
+                    "type": "photo"
+                },
+                {
+                    "media_key": "2_123456789",
+                    "type": "video",
+                    "preview_image_url": "https://pbs.twimg.com/ext_tw_video_thumb/123456789123456789/pu/img/test_thumbnail_file_name.jpg",
+                    "variants": [
+                        {
+                            "bit_rate": 256000,
+                            "content_type": "video/mp4",
+                            "url": "https://video.twimg.com/ext_tw_video/123456789123456789/pu/vid/330x270/test_file_name.mp4?tag=10"
+                        },
+                        {
+                            "bit_rate": 2176000,
+                            "content_type": "video/mp4",
+                            "url": "https://video.twimg.com/ext_tw_video/123456789123456789/pu/vid/882x720/test_file_name.mp4?tag=10"
+                        },
+                        {
+                            "bit_rate": 832000,
+                            "content_type": "video/mp4",
+                            "url": "https://video.twimg.com/ext_tw_video/123456789123456789/pu/vid/440x360/test_file_name.mp4?tag=10"
+                        },
+                        {
+                            "content_type": "application/x-mpegURL",
+                            "url": "https://video.twimg.com/ext_tw_video/123456789123456789/pu/pl/test_file_name.m3u8?tag=10"
+                        }
+                    ]
+                }
+            ],
+            "users": [
+                {   "id": "123456789",
+                    "name": "test_username",
+                    "url": "https://t.co/TxjfH5C37n",
+                    "username": "test_screenname"
+                }
+            ]
+        },
+        "meta": {
+            "result_count": 100,
+            "previous_token": "22222"
+        }
+    }
+]

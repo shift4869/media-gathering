@@ -34,6 +34,30 @@ class TestTwitterAPI(unittest.TestCase):
             expect_endpoint = expect_endpoint_dict.get(key, [])
             self.assertEqual(expect_endpoint, actual_endpoint.value)
 
+    def test_validate_endpoint_url(self):
+        for actual_endpoint in TwitterAPIEndpoint:
+            endpoint_url = actual_endpoint.value[0] if "{}" not in actual_endpoint.value[0] else actual_endpoint.value[0].format("12345")
+            method = actual_endpoint.value[1]
+            actual = TwitterAPIEndpoint.validate_endpoint_url(endpoint_url, method)
+            self.assertTrue(actual)
+
+        endpoint_url = "invalid_endpoint_url"
+        method = "GET"
+        actual = TwitterAPIEndpoint.validate_endpoint_url(endpoint_url, method)
+        self.assertFalse(actual)
+
+        endpoint_url = TwitterAPIEndpoint.USER_ME.value[0]
+        method = "incalid_method"
+        actual = TwitterAPIEndpoint.validate_endpoint_url(endpoint_url, method)
+        self.assertFalse(actual)
+
+        endpoint_url = TwitterAPIEndpoint.USER_ME.value[0]
+        method = "GET"
+        actual = TwitterAPIEndpoint.validate_endpoint_url(-1, method)
+        self.assertFalse(actual)
+        actual = TwitterAPIEndpoint.validate_endpoint_url(endpoint_url, -1)
+        self.assertFalse(actual)
+
     def test_TwitterAPI_init(self):
         with ExitStack() as stack:
             mock_get = stack.enter_context(patch("PictureGathering.v2.TwitterAPI.TwitterAPI.get"))

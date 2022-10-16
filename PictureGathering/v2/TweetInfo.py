@@ -17,8 +17,8 @@ class TweetInfo():
     tweet_via: str
 
     @classmethod
-    def create(cls, dict: dict) -> "TweetInfo":
-        match dict:
+    def create(cls, arg_dict: dict) -> "TweetInfo":
+        match arg_dict:
             case {
                 "media_filename": media_filename,
                 "media_url": media_url,

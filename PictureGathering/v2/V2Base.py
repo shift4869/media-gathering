@@ -11,7 +11,7 @@ from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LogMessage import MSG
 from PictureGathering.Model import ExternalLink
 from PictureGathering.v2.TweetInfo import TweetInfo
-from PictureGathering.v2.TwitterAPI import TwitterAPI
+from PictureGathering.v2.TwitterAPI import TwitterAPI, TwitterAPIEndpoint
 
 
 logger = getLogger("root")
@@ -19,12 +19,21 @@ logger.setLevel(INFO)
 
 
 class V2Base(ABC):
-    pages: str
+    pages: int
     api_endpoint_url: str
     params: str
     twitter: TwitterAPI
 
-    def __init__(self, api_endpoint_url: str, params: dict, pages: str, twitter: TwitterAPI) -> None:
+    def __init__(self, api_endpoint_url: str, params: dict, pages: int, twitter: TwitterAPI) -> None:
+        if not TwitterAPIEndpoint.validate_endpoint_url(api_endpoint_url, "GET"):
+            raise ValueError(f"{api_endpoint_url} is not endpoint_url.")
+        if not isinstance(params, dict):
+            raise ValueError(f"{params} is not dict.")
+        if not isinstance(pages, int):
+            raise ValueError(f"{pages} is not integer.")
+        if not isinstance(twitter, TwitterAPI):
+            raise ValueError(f"{twitter} is not TwitterAPI.")
+
         self.api_endpoint_url = api_endpoint_url
         self.params = params
         self.pages = pages
@@ -50,7 +59,7 @@ class V2Base(ABC):
         logger.info(MSG.FETCHED_TWEET_BY_TWITTER_API_DONE.value)
         return result
 
-    def _find_name(self, user_id: str, users_list: list[str]) -> tuple[str, str]:
+    def _find_name(self, user_id: str, users_list: list[dict]) -> tuple[str, str]:
         """user_id をキーに user_list を検索する
 
         Args:
@@ -62,6 +71,13 @@ class V2Base(ABC):
                 最初に見つかった user 情報から(user_name, screan_name)を返す
                 見つからなかった場合、(invalid_name, invalid_name)を返す
         """
+        if not isinstance(users_list, list) or not users_list:
+            raise ValueError("users_list is not list or empty list.")
+        if not isinstance(users_list[0], dict):
+            raise ValueError("users_list is not list[dict].")
+        if not isinstance(user_id, str):
+            user_id = str(user_id)
+
         invalid_name = "<null>"
         user_list = [user for user in users_list if user.get("id", "") == user_id]
         if len(user_list) == 0:
@@ -82,13 +98,20 @@ class V2Base(ABC):
         Returns:
             dict: 最初に見つかった media 情報を返す、見つからなかった場合、空辞書を返す
         """
+        if not isinstance(media_list, list) or not media_list:
+            raise ValueError("media_list is not list or empty list.")
+        if not isinstance(media_list[0], dict):
+            raise ValueError("media_list is not list[dict].")
+        if not isinstance(media_key, str):
+            raise ValueError("media_key is not str.")
+
         m_list = [media for media in media_list if media.get("media_key", "") == media_key]
         if len(m_list) == 0:
             # raise ValueError("media not found.")
             return {}
         return m_list[0]
     
-    def _match_tweet_url(self, urls: dict) -> str:
+    def _match_tweet_url(self, urls: list[dict]) -> str:
         """entities 内の expanded_url を tweet_url として取得する
             ex. https://twitter.com/{screan_name}/status/{tweet_id}/photo/1
 
@@ -101,6 +124,11 @@ class V2Base(ABC):
         Returns:
             tweet_url (str): 採用された entities 内の expanded_url
         """
+        if not isinstance(urls, list) or not urls:
+            raise ValueError("urls is not list or empty list.")
+        if not isinstance(urls[0], dict):
+            raise ValueError("urls is not list[dict].")
+
         tweet_url = ""
         for url in urls:
             match url:
@@ -126,6 +154,9 @@ class V2Base(ABC):
             media_thumbnail_url (str): サムネイル画像直リンク
                 エラー時それぞれ空文字列
         """
+        if not isinstance(media, dict):
+            raise ValueError("media is not list[dict].")
+
         media_filename = ""
         media_url = ""
         media_thumbnail_url = ""
@@ -153,7 +184,7 @@ class V2Base(ABC):
                 pass  # 扱えるメディアに紐づくmedia_keyではなかった（エラー？）
         return (media_filename, media_url, media_thumbnail_url)
 
-    def _match_video_url(self, variants: dict) -> str:
+    def _match_video_url(self, variants: list[dict]) -> str:
         """video情報について収集する
             同じ動画の中で一番ビットレートが高い動画のURLを保存する
 
@@ -163,6 +194,11 @@ class V2Base(ABC):
         Returns:
             video_url (str): 動画直リンク、エラー時空文字列
         """
+        if not isinstance(variants, list) or not variants:
+            raise ValueError("variants is not list or empty list.")
+        if not isinstance(variants[0], dict):
+            raise ValueError("variants is not list[dict].")
+
         video_url = ""
         current_bitrate = -sys.maxsize  # 最小値
         for video_variant in variants:
@@ -177,17 +213,21 @@ class V2Base(ABC):
                         current_bitrate = bitrate
         return video_url
 
-    def _match_expanded_url(self, urls: dict) -> list[str]:
+    def _match_expanded_url(self, urls: list[str]) -> list[str]:
         """entities 内の expanded_url を取得する
             ex. https://twitter.com/{screan_name}/status/{tweet_id}/photo/1
             上記の他に外部リンクも対象とする
 
         Args:
-            urls (dict): ツイートオブジェクトの一部
+            urls (list[str]): ツイートオブジェクトの一部
 
         Returns:
             list[expanded_url] (list[str]): entities 内の expanded_url をまとめたリスト
         """
+        if not isinstance(urls, list) or not urls:
+            raise ValueError("urls is not list or empty list.")
+        if not isinstance(urls[0], dict):
+            raise ValueError("urls is not list[dict].")
         return [url.get("expanded_url", "") for url in urls if "expanded_url" in url]
 
     @abstractmethod
