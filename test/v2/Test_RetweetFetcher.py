@@ -69,7 +69,40 @@ class TestRetweetFetcher(unittest.TestCase):
         self.assertEqual(twitter, fetcher.twitter)
 
     def test_find_tweets(self):
-        pass
+        userid = "12345"
+        pages = 3
+        max_results = 100
+        twitter = self._mock_twitter()
+
+        fetcher = RetweetFetcher(userid, pages, max_results, twitter)
+
+        input_dict = self._tweet_sample()
+        tweets_list = input_dict[0].get("includes", {}).get("tweets", [])
+
+        tweet_id = "10004"
+        actual = fetcher._find_tweets(tweet_id, tweets_list)
+        t_list = [tweets for tweets in tweets_list if tweets.get("id", "") == tweet_id]
+        expect = t_list[0]
+        self.assertEqual(expect, actual)
+
+        tweet_id = "notfound_tweet_id"
+        actual = fetcher._find_tweets(tweet_id, tweets_list)
+        expect = {}
+        self.assertEqual(expect, actual)
+
+        actual = fetcher._find_tweets(-1, tweets_list)
+        expect = {}
+        self.assertEqual(expect, actual)
+
+        tweet_id = "10004"
+        with self.assertRaises(ValueError):
+            actual = fetcher._find_tweets(tweet_id, "invalid_users_list")
+
+        with self.assertRaises(ValueError):
+            actual = fetcher._find_tweets(tweet_id, [])
+
+        with self.assertRaises(ValueError):
+            actual = fetcher._find_tweets(tweet_id, ["invalid_users_list"])
 
     def test_flatten(self):
         userid = "12345"

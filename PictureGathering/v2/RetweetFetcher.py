@@ -43,6 +43,13 @@ class RetweetFetcher(V2Base):
         Returns:
             dict: 最初に見つかった tweets 情報を返す、見つからなかった場合、空辞書を返す
         """
+        if not isinstance(tweets_list, list) or not tweets_list:
+            raise ValueError("users_list is not list or empty list.")
+        if not isinstance(tweets_list[0], dict):
+            raise ValueError("users_list is not list[dict].")
+        if not isinstance(tweet_id, str):
+            tweet_id = str(tweet_id)
+
         t_list = [tweet for tweet in tweets_list if tweet.get("id", "") == tweet_id]
         if len(t_list) == 0:
             return {}
