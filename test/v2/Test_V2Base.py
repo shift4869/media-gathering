@@ -103,14 +103,9 @@ class TestV2Base(unittest.TestCase):
         input_dict = self._tweet_sample()
         users_list = input_dict[0].get("includes", {}).get("users", [])
 
-        user_id = "123456789"
+        user_id = "001"
         actual = fetcher._find_name(user_id, users_list)
-        expect = ("test_username", "test_screenname")
-        self.assertEqual(expect, actual)
-
-        user_id = 123456789
-        actual = fetcher._find_name(user_id, users_list)
-        expect = ("test_username", "test_screenname")
+        expect = ("test_user", "test_user_screenname")
         self.assertEqual(expect, actual)
 
         user_id = "notfound_user_id"
@@ -139,11 +134,11 @@ class TestV2Base(unittest.TestCase):
         input_dict = self._tweet_sample()
         media_list = input_dict[0].get("includes", {}).get("media", [])
 
-        media_key = "1_123456789"
+        media_key = "0001"
         actual = fetcher._find_media(media_key, media_list)
         expect = {
-            "media_key": "1_123456789",
-            "url": "https://pbs.twimg.com/media/test_file_name.jpg",
+            "media_key": "0001",
+            "url": "https://pbs.twimg.com/media/test_file_name_0001.jpg",
             "type": "photo"
         }
         self.assertEqual(expect, actual)
@@ -180,7 +175,7 @@ class TestV2Base(unittest.TestCase):
 
         urls = entities.get("urls", [])
         actual = fetcher._match_tweet_url(urls)
-        expect = "https://twitter.com/test_user/status/123456789123456789/photo/1"
+        expect = "https://twitter.com/test_user/status/00001/photo/1"
         self.assertEqual(expect, actual)
 
         with self.assertRaises(ValueError):
@@ -208,7 +203,7 @@ class TestV2Base(unittest.TestCase):
 
         media = media_list[0]
         actual = fetcher._match_media_info(media)
-        e_m_url = "https://pbs.twimg.com/media/test_file_name.jpg"
+        e_m_url = "https://pbs.twimg.com/media/test_file_name_0001.jpg"
         expect = (
             Path(e_m_url).name,
             e_m_url + ":orig",
@@ -283,7 +278,7 @@ class TestV2Base(unittest.TestCase):
 
         urls = entities.get("urls", [])
         actual = fetcher._match_expanded_url(urls)
-        expect = ["https://twitter.com/test_user/status/123456789123456789/photo/1"]
+        expect = ["https://twitter.com/test_user/status/00001/photo/1"]
         self.assertEqual(expect, actual)
 
         expect = []
