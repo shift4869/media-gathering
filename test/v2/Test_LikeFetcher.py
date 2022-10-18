@@ -12,7 +12,8 @@ from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LinkSearch.URL import URL
 from PictureGathering.Model import ExternalLink
 from PictureGathering.v2.LikeFetcher import LikeFetcher, LikeInfo
-from PictureGathering.v2.TwitterAPI import TwitterAPI, TwitterAPIEndpoint
+from PictureGathering.v2.TwitterAPI import TwitterAPI
+from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 
 
 class TestLikeFetcher(unittest.TestCase):
@@ -49,7 +50,7 @@ class TestLikeFetcher(unittest.TestCase):
             "media.fields": "url,variants,preview_image_url,alt_text",
             "max_results": max_results,
         }
-        api_endpoint_url = TwitterAPIEndpoint.LIKED_TWEET.value[0].format(userid)
+        api_endpoint_url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.LIKED_TWEET, userid)
 
         fetcher = LikeFetcher(userid, pages, max_results, twitter)
 

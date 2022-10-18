@@ -15,7 +15,8 @@ import requests
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.Model import ExternalLink
 from PictureGathering.v2.TweetInfo import TweetInfo
-from PictureGathering.v2.TwitterAPI import TwitterAPI, TwitterAPIEndpoint
+from PictureGathering.v2.TwitterAPI import TwitterAPI
+from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 from PictureGathering.v2.V2Base import V2Base
 
 
@@ -55,7 +56,7 @@ class TestV2Base(unittest.TestCase):
         return input_dict
 
     def test_V2Base_init(self):
-        api_endpoint_url = TwitterAPIEndpoint.USER_ME.value[0]
+        api_endpoint_url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
         params = {"dummy_params": "dummy_params"}
         pages = 3
         twitter = self._mock_twitter()
@@ -75,7 +76,7 @@ class TestV2Base(unittest.TestCase):
             mock_logger = stack.enter_context(patch.object(logger, "info"))
             mock_twitter = stack.enter_context(patch("PictureGathering.v2.TwitterAPI.TwitterAPI.get"))
 
-            api_endpoint_url = TwitterAPIEndpoint.USER_ME.value[0]
+            api_endpoint_url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
             params = {"dummy_params": "dummy_params"}
             pages = 3
             twitter = self._mock_twitter()
@@ -93,7 +94,7 @@ class TestV2Base(unittest.TestCase):
                 actual = fetcher.fetch()
 
     def test_find_name(self):
-        api_endpoint_url = TwitterAPIEndpoint.USER_ME.value[0]
+        api_endpoint_url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
         params = {"dummy_params": "dummy_params"}
         pages = 3
         twitter = self._mock_twitter()
@@ -124,7 +125,7 @@ class TestV2Base(unittest.TestCase):
             actual = fetcher._find_name(user_id, ["invalid_users_list"])
 
     def test_find_media(self):
-        api_endpoint_url = TwitterAPIEndpoint.USER_ME.value[0]
+        api_endpoint_url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
         params = {"dummy_params": "dummy_params"}
         pages = 3
         twitter = self._mock_twitter()
@@ -162,7 +163,7 @@ class TestV2Base(unittest.TestCase):
             actual = fetcher._find_media(123456789, media_list)
 
     def test_match_tweet_url(self):
-        api_endpoint_url = TwitterAPIEndpoint.USER_ME.value[0]
+        api_endpoint_url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
         params = {"dummy_params": "dummy_params"}
         pages = 3
         twitter = self._mock_twitter()
@@ -191,7 +192,7 @@ class TestV2Base(unittest.TestCase):
             actual = fetcher._match_tweet_url(["invalid_urls"])
 
     def test_match_media_info(self):
-        api_endpoint_url = TwitterAPIEndpoint.USER_ME.value[0]
+        api_endpoint_url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
         params = {"dummy_params": "dummy_params"}
         pages = 3
         twitter = self._mock_twitter()
@@ -235,7 +236,7 @@ class TestV2Base(unittest.TestCase):
             actual = fetcher._match_media_info("invalid_media")
 
     def test_match_video_url(self):
-        api_endpoint_url = TwitterAPIEndpoint.USER_ME.value[0]
+        api_endpoint_url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
         params = {"dummy_params": "dummy_params"}
         pages = 3
         twitter = self._mock_twitter()
@@ -265,7 +266,7 @@ class TestV2Base(unittest.TestCase):
             actual = fetcher._match_video_url(["invalid_variants"])
 
     def test_match_expanded_url(self):
-        api_endpoint_url = TwitterAPIEndpoint.USER_ME.value[0]
+        api_endpoint_url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
         params = {"dummy_params": "dummy_params"}
         pages = 3
         twitter = self._mock_twitter()

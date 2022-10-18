@@ -8,7 +8,7 @@ from PictureGathering.Crawler import Crawler
 from PictureGathering.FavDBController import FavDBController
 from PictureGathering.LogMessage import MSG
 from PictureGathering.v2.LikeFetcher import LikeFetcher
-from PictureGathering.v2.TwitterAPI import TwitterAPIEndpoint
+from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 
 logger = getLogger("root")
 logger.setLevel(INFO)
@@ -84,7 +84,8 @@ class FavCrawler(Crawler):
         # for i in range(1, fav_get_max_loop):
         #     tweets = self.FavTweetsGet(i)
         #     self.InterpretTweets(tweets)
-        my_user_info = self.twitter.get(TwitterAPIEndpoint.USER_ME.value[0], {})
+        url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
+        my_user_info = self.twitter.get(url)
         my_id = my_user_info.get("data", {}).get("id", "")
         like = LikeFetcher(userid=my_id, pages=fav_get_max_loop, max_results=100, twitter=self.twitter)
         fetched_tweets = like.fetch()

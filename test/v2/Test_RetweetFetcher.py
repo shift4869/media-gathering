@@ -13,7 +13,8 @@ from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LinkSearch.URL import URL
 from PictureGathering.Model import ExternalLink
 from PictureGathering.v2.RetweetFetcher import RetweetFetcher, RetweetInfo
-from PictureGathering.v2.TwitterAPI import TwitterAPI, TwitterAPIEndpoint
+from PictureGathering.v2.TwitterAPI import TwitterAPI
+from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 
 
 class TestRetweetFetcher(unittest.TestCase):
@@ -57,7 +58,7 @@ class TestRetweetFetcher(unittest.TestCase):
             "media.fields": "url,variants,preview_image_url,alt_text",
             "max_results": max_results,
         }
-        api_endpoint_url = TwitterAPIEndpoint.TIMELINE_TWEET.value[0].format(userid)
+        api_endpoint_url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.TIMELINE_TWEET, userid)
 
         fetcher = RetweetFetcher(userid, pages, max_results, twitter)
 

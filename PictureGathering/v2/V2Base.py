@@ -11,7 +11,8 @@ from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LogMessage import MSG
 from PictureGathering.Model import ExternalLink
 from PictureGathering.v2.TweetInfo import TweetInfo
-from PictureGathering.v2.TwitterAPI import TwitterAPI, TwitterAPIEndpoint
+from PictureGathering.v2.TwitterAPI import TwitterAPI
+from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 
 
 logger = getLogger("root")
@@ -25,7 +26,7 @@ class V2Base(ABC):
     twitter: TwitterAPI
 
     def __init__(self, api_endpoint_url: str, params: dict, pages: int, twitter: TwitterAPI) -> None:
-        if not TwitterAPIEndpoint.validate_endpoint_url(api_endpoint_url, "GET"):
+        if not TwitterAPIEndpoint.validate(api_endpoint_url, "GET"):
             raise ValueError(f"{api_endpoint_url} is not endpoint_url.")
         if not isinstance(params, dict):
             raise ValueError(f"{params} is not dict.")

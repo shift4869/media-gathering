@@ -67,13 +67,13 @@ if __name__ == "__main__":
     # レートリミット
 
     # ツイート投稿
-    url = "https://api.twitter.com/2/tweets"
-    params = {
-        "text": "ツイートテスト with v2",
-    }
-    res = oath.post(url, json=params)
-    tweet = json.loads(res.text)
-    pprint.pprint(tweet)
+    # url = "https://api.twitter.com/2/tweets"
+    # params = {
+    #     "text": "ツイートテスト with v2",
+    # }
+    # res = oath.post(url, json=params)
+    # tweet = json.loads(res.text)
+    # pprint.pprint(tweet)
 
     # ツイート削除
     # url = f"https://api.twitter.com/2/tweets/1579254037484310530"

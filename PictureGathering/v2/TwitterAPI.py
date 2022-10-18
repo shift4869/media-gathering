@@ -2,59 +2,21 @@
 import json
 import pprint
 import re
+import sys
+import time
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from enum import Enum
+from logging import INFO, getLogger
 from typing import ClassVar
 
 import requests
 from requests_oauthlib import OAuth1Session
 
+from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 
-class TwitterAPIEndpoint(Enum):
-    # 必要な機能
-    # ツイート取得(userid)
-    TIMELINE_TWEET = ["https://api.twitter.com/2/users/{}/tweets", "GET"]
-
-    # ツイート投稿
-    POST_TWEET = ["https://api.twitter.com/2/tweets", "POST"]
-
-    # ツイート削除(tweetid)
-    DELETE_TWEET = ["https://api.twitter.com/2/tweets/{}", "DELETE"]
-
-    # ユーザー詳細取得
-    USER_LOOKUP = ["https://api.twitter.com/2/users", "GET"]
-
-    # ユーザー詳細取得(screen_name)
-    USER_LOOKUP_BY_USERNAME = ["https://api.twitter.com/2/users/by/username/{}", "GET"]
-
-    # ツイート詳細取得
-    TWEETS_LOOKUP = ["https://api.twitter.com/2/tweets", "GET"]
-
-    # like取得(userid)
-    LIKED_TWEET = ["https://api.twitter.com/2/users/{}/liked_tweets", "GET"]
-
-    # レートリミット
-
-    # 認証ユーザー詳細取得
-    USER_ME = ["https://api.twitter.com/2/users/me", "GET"]
-
-    @classmethod
-    def validate_endpoint_url(cls, estimated_endpoint_url: str, estimated_method: str) -> bool:
-        """endpoint_url が想定されているエンドポイントURLかどうか判定する"""
-        if not isinstance(estimated_endpoint_url, str):
-            return False
-        if not isinstance(estimated_method, str):
-            return False
-        if estimated_method not in ["GET", "POST", "PUT", "DELETE"]:
-            return False
-        for expect_endpoint in TwitterAPIEndpoint:
-            e_url = expect_endpoint.value[0]
-            e_method = expect_endpoint.value[1]
-            pattern = e_url.format(".*") if "{}" in e_url else e_url
-            if re.findall(f"^{pattern}$", estimated_endpoint_url) != []:
-                if e_method == estimated_method:
-                    return True
-        return False
+logger = getLogger("root")
+logger.setLevel(INFO)
 
 
 @dataclass
@@ -83,11 +45,57 @@ class TwitterAPI():
         )
 
         # 疎通確認
-        res = self.get(TwitterAPIEndpoint.USER_ME.value[0], {})
+        url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
+        res = self.get(url)
         if res.get("data", {}).get("id", "") == "":
-            raise ValueError("TwitterAPIEndpoint.USER_ME API check failed.")
+            raise ValueError("TwitterAPIEndpointName.USER_LOOKUP_ME API check failed.")
 
-    def request(self, endpoint_url: str, params: dict, method: str = "GET") -> dict:
+    def _wait(self, dt_unix: float) -> None:
+        """指定UNIX時間まで待機する
+
+        Args:
+            dt_unix (float): UNIX時間の指定（秒）
+        """
+        seconds = dt_unix - time.mktime(datetime.now().timetuple())
+        seconds = max(seconds, 0)
+        logger.debug("=======================")
+        logger.debug(f"=== waiting {seconds} sec ===")
+        logger.debug("=======================")
+        sys.stdout.flush()
+        time.sleep(seconds)
+
+    def _wait_until_reset(self, response: dict) -> None:
+        """TwitterAPIが利用できるまで待つ
+
+        Args:
+            response (dict): 利用できるまで待つTwitterAPIを使ったときのレスポンス
+
+        Raises:
+            HTTPError: レスポンスヘッダにx-rate-limit-remaining and x-rate-limit-reset が入ってない場合
+
+        Returns:
+            None: このメソッド実行後はresponseに対応するエンドポイントが利用可能であることが保証される
+        """
+        match response.headers:
+            case {
+                # "x-rate-limit-limit": limit,
+                "x-rate-limit-remaining": remain_count,
+                "x-rate-limit-reset": dt_unix,
+            }:
+                dt_jst_aware = datetime.fromtimestamp(dt_unix, timezone(timedelta(hours=9)))
+                remain_seconds = dt_unix - time.mktime(datetime.now().timetuple())
+                logger.debug("リクエストURL {}".format(response.url))
+                logger.debug("アクセス可能回数 {}".format(remain_count))
+                logger.debug("リセット時刻 {}".format(dt_jst_aware))
+                logger.debug("リセットまでの残り時間 {}[s]".format(remain_seconds))
+                if remain_count == 0:
+                    self._wait(dt_unix + 3)
+            case _:
+                msg = "not found  -  x-rate-limit-remaining and x-rate-limit-reset"
+                logger.debug(msg)
+                raise requests.HTTPError(msg)
+
+    def request(self, endpoint_url: str, params: dict = {}) -> dict:
         """TwitterAPIを使用するラッパメソッド
 
         Args:
@@ -103,8 +111,19 @@ class TwitterAPI():
         Returns:
             dict: TwitterAPIレスポンス
         """
+        # 月のツイートキャップを超えていないかチェック
+        TwitterAPIEndpoint.raise_for_tweet_cap_limit_over()
+
+        # エンドポイント名を取得
+        endpoint_name: TwitterAPIEndpointName = TwitterAPIEndpoint.get_name(endpoint_url)
+        if not endpoint_name:
+            raise ValueError(f"{endpoint_url} : is not Twitter API Endpoint.")
+
+        # メソッド名を取得
+        method = TwitterAPIEndpoint.get_method(endpoint_name)
+
         # バリデーション
-        if not TwitterAPIEndpoint.validate_endpoint_url(endpoint_url, method):
+        if not TwitterAPIEndpoint.validate(endpoint_url, method):
             raise ValueError(f"{method} {endpoint_url} : is not Twitter API Endpoint or invalid method.")
 
         # メソッド振り分け
@@ -118,33 +137,63 @@ class TwitterAPI():
         if not method_func:
             raise ValueError(f"{method} is invalid method.")
 
-        # リクエスト
+        # ツイートキャップ対象エンドポイント
+        tweet_cap_endpoint = [
+            TwitterAPIEndpointName.LIKED_TWEET,
+            TwitterAPIEndpointName.TIMELINE_TWEET,
+        ]
+
+        # RETRY_NUM 回だけリクエストを試行する
         RETRY_NUM = 5
-        for _ in range(RETRY_NUM):
+        for i in range(RETRY_NUM):
             try:
+                # POSTの場合はjsonとして送信（ヘッダーにjson指定すればOK?）
                 response = None
                 if method == "POST":
                     response = method_func(endpoint_url, json=params)
                 else:
                     response = method_func(endpoint_url, params=params)
                 response.raise_for_status()
-                res = json.loads(response.text)
+
+                # 成功したならばJSONとして解釈してレスポンスを返す
+                res: dict = json.loads(response.text)
+
+                # ツイートキャップ対象エンドポイントならば現在の推定カウント数に加算
+                if endpoint_name in tweet_cap_endpoint:
+                    count = int(res.get("data", {}).get("result_count", 0))
+                    TwitterAPIEndpoint.increase_tweet_cap(count)
                 return res
             except requests.exceptions.RequestException as e:
-                continue
+                pass
             except Exception as e:
-                continue
+                pass
+
+            # リクエスト失敗した場合
+            try:
+                # レートリミットにかかっていないか確認して必要なら待つ
+                self._wait_until_reset(response)
+            except Exception as e:
+                # 原因不明：徐々に待機時間を増やしてとりあえず待つ(exp backoff)
+                wair_seconds = 2 ** i
+                n = time.mktime(datetime.now().timetuple())
+                self._wait(n + wair_seconds)
         else:
             raise requests.HTTPError("Twitter API error : exceed RETRY_NUM.")
 
-    def get(self, endpoint_url: str, params: dict) -> dict:
-        return self.request(endpoint_url=endpoint_url, params=params, method="GET")
+    def get(self, endpoint_url: str, params: dict = {}) -> dict:
+        """GETリクエストのエイリアス
+        """
+        return self.request(endpoint_url=endpoint_url, params=params)
 
-    def post(self, endpoint_url: str, params: dict) -> dict:
-        return self.request(endpoint_url=endpoint_url, params=params, method="POST")
+    def post(self, endpoint_url: str, params: dict = {}) -> dict:
+        """POSTリクエストのエイリアス
+        """
+        return self.request(endpoint_url=endpoint_url, params=params)
 
-    def delete(self, endpoint_url: str, params: dict) -> dict:
-        return self.request(endpoint_url=endpoint_url, params=params, method="DELETE")
+    def delete(self, endpoint_url: str, params: dict = {}) -> dict:
+        """DELETEリクエストのエイリアス
+        """
+        return self.request(endpoint_url=endpoint_url, params=params)
 
 
 if __name__ == "__main__":
@@ -165,9 +214,22 @@ if __name__ == "__main__":
         TW_ACCESS_TOKEN_KEY,
         TW_ACCESS_TOKEN_SECRET
     )
-    url = "https://api.twitter.com/2/users"
-    params = {
-        "ids": "175674367,175674367"
-    }
-    res = twitter.request(url, params, "GET")
+    url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
+    # params = {
+    #     "ids": "175674367,175674367"
+    # }
+    res = twitter.request(url, {})
     pprint.pprint(res)
+
+    # like取得
+    MY_ID = 175674367
+    url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.LIKED_TWEET, MY_ID)
+    params = {
+        "expansions": "author_id,attachments.media_keys",
+        "tweet.fields": "id,attachments,author_id,entities,text,source,created_at",
+        "user.fields": "id,name,username,url",
+        "media.fields": "url",
+        "max_results": 100,
+    }
+    tweets = twitter.get(url, params=params)
+    pprint.pprint(tweets)

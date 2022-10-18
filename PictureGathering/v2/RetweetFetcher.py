@@ -6,7 +6,8 @@ from datetime import datetime, timedelta
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.Model import ExternalLink
 from PictureGathering.v2.TweetInfo import TweetInfo
-from PictureGathering.v2.TwitterAPI import TwitterAPI, TwitterAPIEndpoint
+from PictureGathering.v2.TwitterAPI import TwitterAPI
+from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 from PictureGathering.v2.V2Base import V2Base
 
 
@@ -22,7 +23,7 @@ class RetweetFetcher(V2Base):
         self.userid = userid
         self.max_results = max_results
 
-        api_endpoint_url = TwitterAPIEndpoint.TIMELINE_TWEET.value[0].format(self.userid)
+        api_endpoint_url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.TIMELINE_TWEET, self.userid)
 
         params = {
             "expansions": "author_id,referenced_tweets.id,referenced_tweets.id.author_id,attachments.media_keys",
@@ -277,7 +278,7 @@ class RetweetFetcher(V2Base):
             media_list (list[dict]): TWEETS_LOOKUP 返り値のうちmedia部分
             users_list (list[dict]): TWEETS_LOOKUP 返り値のうちusers部分
         """
-        url = TwitterAPIEndpoint.TWEETS_LOOKUP.value[0]
+        url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.TWEETS_LOOKUP)
         data_list = []
         media_list = []
         users_list = []
@@ -304,7 +305,6 @@ class RetweetFetcher(V2Base):
                     media_list.extend(media)
                     users_list.extend(users)
                 case _:
-                    # raise ValueError("TwitterAPIEndpoint.TWEETS_LOOKUP access failed.")
                     pass
         return data_list, media_list, users_list
 

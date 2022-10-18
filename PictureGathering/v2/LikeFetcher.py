@@ -6,7 +6,8 @@ from datetime import datetime, timedelta
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.Model import ExternalLink
 from PictureGathering.v2.TweetInfo import TweetInfo
-from PictureGathering.v2.TwitterAPI import TwitterAPI, TwitterAPIEndpoint
+from PictureGathering.v2.TwitterAPI import TwitterAPI
+from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 from PictureGathering.v2.V2Base import V2Base
 
 
@@ -22,7 +23,7 @@ class LikeFetcher(V2Base):
         self.userid = userid
         self.max_results = max_results
 
-        api_endpoint_url = TwitterAPIEndpoint.LIKED_TWEET.value[0].format(self.userid)
+        api_endpoint_url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.LIKED_TWEET, self.userid)
 
         params = {
             "expansions": "author_id,attachments.media_keys",

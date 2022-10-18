@@ -30,7 +30,8 @@ from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LogMessage import MSG
 from PictureGathering.Model import ExternalLink
 from PictureGathering.v2.TweetInfo import TweetInfo
-from PictureGathering.v2.TwitterAPI import TwitterAPI, TwitterAPIEndpoint
+from PictureGathering.v2.TwitterAPI import TwitterAPI
+from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 for name in logging.root.manager.loggerDict:
@@ -785,9 +786,9 @@ class Crawler(metaclass=ABCMeta):
         config = self.config["notification"]
         if config.getboolean("is_post_fav_done_reply") or config.getboolean("is_post_retweet_done_reply"):
             targets = self.db_cont.DelSelect()
-            url = TwitterAPIEndpoint.DELETE_TWEET.value[0]
             for target in targets:
-                response = self.twitter.delete(url.format(target["tweet_id"]), {})  # tweet_id
+                url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.DELETE_TWEET, target["tweet_id"])
+                response = self.twitter.delete(url)  # tweet_id
 
         logger.info("End Of " + self.type + " Crawl Process.")
         return 0
@@ -803,7 +804,7 @@ class Crawler(metaclass=ABCMeta):
         """
         # url = "https://api.twitter.com/1.1/users/show.json"
         reply_user_name = self.config["notification"]["reply_to_user_name"]
-        url = TwitterAPIEndpoint.POST_TWEET.value[0]
+        url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.POST_TWEET)
 
         tweet_str = "@" + reply_user_name + " " + tweet_str
         params = {
