@@ -3,3 +3,4 @@
 *keys*.txt
 *api_response*
 !*api_response_test*
+*.json*
