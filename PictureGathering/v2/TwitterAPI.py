@@ -95,7 +95,7 @@ class TwitterAPI():
                 logger.debug(msg)
                 raise requests.HTTPError(msg)
 
-    def request(self, endpoint_url: str, params: dict = {}) -> dict:
+    def request(self, endpoint_url: str, params: dict, method: str) -> dict:
         """TwitterAPIを使用するラッパメソッド
 
         Args:
@@ -115,12 +115,9 @@ class TwitterAPI():
         TwitterAPIEndpoint.raise_for_tweet_cap_limit_over()
 
         # エンドポイント名を取得
-        endpoint_name: TwitterAPIEndpointName = TwitterAPIEndpoint.get_name(endpoint_url)
+        endpoint_name: TwitterAPIEndpointName = TwitterAPIEndpoint.get_name(endpoint_url, method)
         if not endpoint_name:
             raise ValueError(f"{endpoint_url} : is not Twitter API Endpoint.")
-
-        # メソッド名を取得
-        method = TwitterAPIEndpoint.get_method(endpoint_name)
 
         # バリデーション
         if not TwitterAPIEndpoint.validate(endpoint_url, method):
@@ -160,7 +157,7 @@ class TwitterAPI():
 
                 # ツイートキャップ対象エンドポイントならば現在の推定カウント数に加算
                 if endpoint_name in tweet_cap_endpoint:
-                    count = int(res.get("data", {}).get("result_count", 0))
+                    count = int(res.get("meta", {}).get("result_count", 0))
                     TwitterAPIEndpoint.increase_tweet_cap(count)
                 return res
             except requests.exceptions.RequestException as e:
@@ -183,17 +180,17 @@ class TwitterAPI():
     def get(self, endpoint_url: str, params: dict = {}) -> dict:
         """GETリクエストのエイリアス
         """
-        return self.request(endpoint_url=endpoint_url, params=params)
+        return self.request(endpoint_url=endpoint_url, params=params, method="GET")
 
     def post(self, endpoint_url: str, params: dict = {}) -> dict:
         """POSTリクエストのエイリアス
         """
-        return self.request(endpoint_url=endpoint_url, params=params)
+        return self.request(endpoint_url=endpoint_url, params=params, method="POST")
 
     def delete(self, endpoint_url: str, params: dict = {}) -> dict:
         """DELETEリクエストのエイリアス
         """
-        return self.request(endpoint_url=endpoint_url, params=params)
+        return self.request(endpoint_url=endpoint_url, params=params, method="DELETE")
 
 
 if __name__ == "__main__":
@@ -215,21 +212,18 @@ if __name__ == "__main__":
         TW_ACCESS_TOKEN_SECRET
     )
     url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
-    # params = {
-    #     "ids": "175674367,175674367"
-    # }
-    res = twitter.request(url, {})
+    res = twitter.request(url, {}, "GET")
     pprint.pprint(res)
 
     # like取得
-    MY_ID = 175674367
-    url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.LIKED_TWEET, MY_ID)
-    params = {
-        "expansions": "author_id,attachments.media_keys",
-        "tweet.fields": "id,attachments,author_id,entities,text,source,created_at",
-        "user.fields": "id,name,username,url",
-        "media.fields": "url",
-        "max_results": 100,
-    }
-    tweets = twitter.get(url, params=params)
-    pprint.pprint(tweets)
+    # MY_ID = 175674367
+    # url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.LIKED_TWEET, MY_ID)
+    # params = {
+    #     "expansions": "author_id,attachments.media_keys",
+    #     "tweet.fields": "id,attachments,author_id,entities,text,source,created_at",
+    #     "user.fields": "id,name,username,url",
+    #     "media.fields": "url",
+    #     "max_results": 100,
+    # }
+    # tweets = twitter.get(url, params=params)
+    # pprint.pprint(tweets)

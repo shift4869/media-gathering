@@ -71,7 +71,7 @@ class TestTwitterAPI(unittest.TestCase):
             with patch("PictureGathering.v2.TwitterAPI.TwitterAPI.get"):
                 twitter = TwitterAPI(dummy_api_key, dummy_api_secret, dummy_access_token_key, dummy_access_token_secret)
             expect = json.loads(r.text)
-            actual = twitter.request(endpoint_url, dummy_params)
+            actual = twitter.request(endpoint_url, dummy_params, "GET")
             self.assertEqual(expect, actual)
             mock_oauth_get.assert_called_once_with(endpoint_url, params=dummy_params)
             mock_oauth_get.reset_mock()
@@ -79,7 +79,7 @@ class TestTwitterAPI(unittest.TestCase):
             endpoint_url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.POST_TWEET)
             r.text = '{"dummy_response_text": "post_dummy_response_text"}'
             expect = json.loads(r.text)
-            actual = twitter.request(endpoint_url, dummy_params)
+            actual = twitter.request(endpoint_url, dummy_params, "POST")
             self.assertEqual(expect, actual)
             mock_oauth_post.assert_called_once_with(endpoint_url, json=dummy_params)
             mock_oauth_post.reset_mock()
@@ -87,7 +87,7 @@ class TestTwitterAPI(unittest.TestCase):
             endpoint_url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.DELETE_TWEET, "00000")
             r.text = '{"dummy_response_text": "delete_dummy_response_text"}'
             expect = json.loads(r.text)
-            actual = twitter.request(endpoint_url, dummy_params)
+            actual = twitter.request(endpoint_url, dummy_params, "DELETE")
             self.assertEqual(expect, actual)
             mock_oauth_delete.assert_called_once_with(endpoint_url, params=dummy_params)
             mock_oauth_delete.reset_mock()
@@ -97,7 +97,7 @@ class TestTwitterAPI(unittest.TestCase):
             r.text = '{"dummy_response_text": "get_dummy_response_text"}'
             expect = json.loads(r.text)
             mock_oauth_get.side_effect = [None, None, r]
-            actual = twitter.request(endpoint_url, dummy_params)
+            actual = twitter.request(endpoint_url, dummy_params, "GET")
             self.assertEqual(expect, actual)
             called = mock_oauth_get.mock_calls
             self.assertEqual(4, len(called))
@@ -109,11 +109,11 @@ class TestTwitterAPI(unittest.TestCase):
             RETRY_NUM = 5
             mock_oauth_get.side_effect = [None, None, None, None, None, r]
             with self.assertRaises(requests.HTTPError):
-                actual = twitter.request(endpoint_url, dummy_params)
+                actual = twitter.request(endpoint_url, dummy_params, "GET")
             mock_oauth_get.reset_mock()
 
             with self.assertRaises(ValueError):
-                actual = twitter.request("INVALID_ENDPOINT", dummy_params)
+                actual = twitter.request("INVALID_ENDPOINT", dummy_params, "GET")
 
     def test_get(self):
         with ExitStack() as stack:
@@ -126,15 +126,15 @@ class TestTwitterAPI(unittest.TestCase):
             dummy_endpoint_url = "dummy_endpoint_url"
             dummy_params = {"dummy_params": "dummy_params"}
 
-            mock_request.side_effect = lambda endpoint_url, params: (endpoint_url, params)
+            mock_request.side_effect = lambda endpoint_url, params, method: (endpoint_url, params, method)
 
             twitter = None
             with patch("PictureGathering.v2.TwitterAPI.TwitterAPI.get"):
                 twitter = TwitterAPI(dummy_api_key, dummy_api_secret, dummy_access_token_key, dummy_access_token_secret)
-            expect = (dummy_endpoint_url, dummy_params)
+            expect = (dummy_endpoint_url, dummy_params, "GET")
             actual = twitter.get(dummy_endpoint_url, dummy_params)
             self.assertEqual(expect, actual)
-            mock_request.assert_called_once_with(endpoint_url=dummy_endpoint_url, params=dummy_params)
+            mock_request.assert_called_once_with(endpoint_url=dummy_endpoint_url, params=dummy_params, method="GET")
 
     def test_post(self):
         with ExitStack() as stack:
@@ -147,15 +147,15 @@ class TestTwitterAPI(unittest.TestCase):
             dummy_endpoint_url = "dummy_endpoint_url"
             dummy_params = {"dummy_params": "dummy_params"}
 
-            mock_request.side_effect = lambda endpoint_url, params: (endpoint_url, params)
+            mock_request.side_effect = lambda endpoint_url, params, method: (endpoint_url, params, method)
 
             twitter = None
             with patch("PictureGathering.v2.TwitterAPI.TwitterAPI.get"):
                 twitter = TwitterAPI(dummy_api_key, dummy_api_secret, dummy_access_token_key, dummy_access_token_secret)
-            expect = (dummy_endpoint_url, dummy_params)
+            expect = (dummy_endpoint_url, dummy_params, "POST")
             actual = twitter.post(dummy_endpoint_url, dummy_params)
             self.assertEqual(expect, actual)
-            mock_request.assert_called_once_with(endpoint_url=dummy_endpoint_url, params=dummy_params)
+            mock_request.assert_called_once_with(endpoint_url=dummy_endpoint_url, params=dummy_params, method="POST")
 
     def test_delete(self):
         with ExitStack() as stack:
@@ -168,15 +168,15 @@ class TestTwitterAPI(unittest.TestCase):
             dummy_endpoint_url = "dummy_endpoint_url"
             dummy_params = {"dummy_params": "dummy_params"}
 
-            mock_request.side_effect = lambda endpoint_url, params: (endpoint_url, params)
+            mock_request.side_effect = lambda endpoint_url, params, method: (endpoint_url, params, method)
 
             twitter = None
             with patch("PictureGathering.v2.TwitterAPI.TwitterAPI.get"):
                 twitter = TwitterAPI(dummy_api_key, dummy_api_secret, dummy_access_token_key, dummy_access_token_secret)
-            expect = (dummy_endpoint_url, dummy_params)
+            expect = (dummy_endpoint_url, dummy_params, "DELETE")
             actual = twitter.delete(dummy_endpoint_url, dummy_params)
             self.assertEqual(expect, actual)
-            mock_request.assert_called_once_with(endpoint_url=dummy_endpoint_url, params=dummy_params)
+            mock_request.assert_called_once_with(endpoint_url=dummy_endpoint_url, params=dummy_params, method="DELETE")
 
 
 if __name__ == "__main__":

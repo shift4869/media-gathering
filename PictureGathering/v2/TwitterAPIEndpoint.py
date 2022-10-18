@@ -87,11 +87,13 @@ class TwitterAPIEndpoint():
         return res[0]
 
     @classmethod
-    def get_name(cls, estimated_endpoint_url: str) -> TwitterAPIEndpointName | None:
+    def get_name(cls, estimated_endpoint_url: str, estimated_method: str) -> TwitterAPIEndpointName | None:
         for name in TwitterAPIEndpointName:
             template = cls.get_template(name)
+            method = cls.get_method(name)
             if re.findall(f"^{template}$", estimated_endpoint_url) != []:
-                return name
+                if method == estimated_method:
+                    return name
         return None
 
     @classmethod
@@ -122,7 +124,7 @@ class TwitterAPIEndpoint():
         for name in TwitterAPIEndpointName:
             template = cls.get_template(name)
             method = cls.get_method(name)
-            if re.search(template, estimated_endpoint_url) is not None:
+            if re.findall(f"^{template}$", estimated_endpoint_url) != []:
                 if estimated_method is None or method == estimated_method:
                     return True
         return False
