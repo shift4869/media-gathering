@@ -1,0 +1,68 @@
+{
+    "util": {
+        "tweet_cap": {
+            "access_level": "Elevated",
+            "max": 2000000,
+            "reset_date": 12,
+            "estimated_now_count": 73863
+        }
+    },
+    "endpoint": [
+        {
+            "name": "LIKED_TWEET",
+            "method": "GET",
+            "path_params_num": 1,
+            "template": "https://api.twitter.com/2/users/(.*)/liked_tweets",
+            "url": "https://api.twitter.com/2/users/{}/liked_tweets"
+        },
+        {
+            "name": "TIMELINE_TWEET",
+            "method": "GET",
+            "path_params_num": 1,
+            "template": "https://api.twitter.com/2/users/(.*)/tweets",
+            "url": "https://api.twitter.com/2/users/{}/tweets"
+        },
+        {
+            "name": "POST_TWEET",
+            "method": "POST",
+            "path_params_num": 0,
+            "template": "https://api.twitter.com/2/tweets",
+            "url": "https://api.twitter.com/2/tweets"
+        },
+        {
+            "name": "DELETE_TWEET",
+            "method": "DELETE",
+            "path_params_num": 1,
+            "template": "https://api.twitter.com/2/tweets/(.*)",
+            "url": "https://api.twitter.com/2/tweets/{}"
+        },
+        {
+            "name": "TWEETS_LOOKUP",
+            "method": "GET",
+            "path_params_num": 0,
+            "template": "https://api.twitter.com/2/tweets",
+            "url": "https://api.twitter.com/2/tweets"
+        },
+        {
+            "name": "USER_LOOKUP",
+            "method": "GET",
+            "path_params_num": 0,
+            "template": "https://api.twitter.com/2/users",
+            "url": "https://api.twitter.com/2/users"
+        },
+        {
+            "name": "USER_LOOKUP_BY_USERNAME",
+            "method": "GET",
+            "path_params_num": 1,
+            "template": "https://api.twitter.com/2/users/by/username/(.*)",
+            "url": "https://api.twitter.com/2/users/by/username/{}"
+        },
+        {
+            "name": "USER_LOOKUP_ME",
+            "method": "GET",
+            "path_params_num": 0,
+            "template": "https://api.twitter.com/2/users/me",
+            "url": "https://api.twitter.com/2/users/me"
+        }
+    ]
+}
