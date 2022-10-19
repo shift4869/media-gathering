@@ -1,12 +1,10 @@
 # coding: utf-8
 import json
 import pprint
-import re
 import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from enum import Enum
 from logging import INFO, getLogger
 from typing import ClassVar
 
