@@ -10,7 +10,7 @@ from PictureGathering.LogMessage import MSG
 from PictureGathering.v2.LikeFetcher import LikeFetcher
 from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(INFO)
 
 

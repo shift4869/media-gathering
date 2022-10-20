@@ -13,7 +13,7 @@ from PictureGathering.LinkSearch.Pixiv.PixivSourceList import PixivSourceList
 from PictureGathering.LinkSearch.Pixiv.PixivUgoiraDownloader import PixivUgoiraDownloader
 from PictureGathering.LinkSearch.Pixiv.Workid import Workid
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(INFO)
 
 

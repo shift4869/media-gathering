@@ -16,7 +16,7 @@ from sqlalchemy.orm.exc import *
 from PictureGathering import FavDBController
 from PictureGathering.Model import *
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(WARNING)
 TEST_DB_FULLPATH = "./test/test.db"
 

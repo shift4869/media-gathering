@@ -10,7 +10,7 @@ from PictureGathering.RetweetDBController import RetweetDBController
 from PictureGathering.v2.RetweetFetcher import RetweetFetcher
 from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(INFO)
 
 

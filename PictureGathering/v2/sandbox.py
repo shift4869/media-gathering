@@ -17,7 +17,7 @@ for name in logging.root.manager.loggerDict:
     # すべてのライブラリのログ出力を抑制
     # print("logger", name)
     getLogger(name).disabled = True
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(INFO)
 
 

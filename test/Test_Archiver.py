@@ -20,7 +20,7 @@ from mock import MagicMock, PropertyMock, patch
 
 from PictureGathering import Archiver
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(WARNING)
 
 

@@ -15,7 +15,7 @@ from PictureGathering.LinkSearch.FetcherBase import FetcherBase
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(WARNING)
 
 

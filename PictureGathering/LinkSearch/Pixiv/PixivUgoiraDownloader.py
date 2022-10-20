@@ -11,7 +11,7 @@ from pixivpy3 import AppPixivAPI
 from PictureGathering.LinkSearch.Pixiv.Workid import Workid
 from PictureGathering.LinkSearch.Pixiv.Worktitle import Worktitle
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(INFO)
 
 

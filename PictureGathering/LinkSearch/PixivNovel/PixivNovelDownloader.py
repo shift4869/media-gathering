@@ -9,7 +9,7 @@ from pixivpy3 import AppPixivAPI
 from PictureGathering.LinkSearch.PixivNovel.PixivNovelSaveDirectoryPath import PixivNovelSaveDirectoryPath
 from PictureGathering.LinkSearch.PixivNovel.PixivNovelURL import PixivNovelURL
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(INFO)
 
 

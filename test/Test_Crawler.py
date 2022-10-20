@@ -28,7 +28,7 @@ from requests_oauthlib import OAuth1Session
 
 from PictureGathering import Crawler, FavDBController
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(WARNING)
 
 

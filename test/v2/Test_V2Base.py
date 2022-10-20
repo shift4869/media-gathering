@@ -20,7 +20,7 @@ from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAP
 from PictureGathering.v2.V2Base import V2Base
 
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(WARNING)
 
 

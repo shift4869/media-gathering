@@ -16,7 +16,7 @@ from PictureGathering.LinkSearch.URL import URL
 from PictureGathering.LinkSearch.Username import Username
 from PictureGathering.LogMessage import MSG
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(INFO)
 
 

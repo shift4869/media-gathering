@@ -19,7 +19,7 @@ from mock import MagicMock, PropertyMock, patch
 
 from PictureGathering import FavCrawler
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(WARNING)
 
 

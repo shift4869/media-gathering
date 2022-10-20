@@ -12,7 +12,7 @@ from mock import MagicMock, PropertyMock, mock_open, patch
 
 from PictureGathering import FavDBController, RetweetDBController, WriteHTML
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(WARNING)
 
 

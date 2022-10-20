@@ -12,7 +12,7 @@ from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaSession import NicoSeigaSess
 from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaURL import NicoSeigaURL
 
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(INFO)
 
 

@@ -20,7 +20,7 @@ from mock import MagicMock, PropertyMock, patch
 
 from PictureGathering import RetweetCrawler
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(WARNING)
 
 

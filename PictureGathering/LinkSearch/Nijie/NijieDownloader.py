@@ -13,7 +13,7 @@ from PictureGathering.LinkSearch.Nijie.NijiePageInfo import NijiePageInfo
 from PictureGathering.LinkSearch.Nijie.NijieSaveDirectoryPath import NijieSaveDirectoryPath
 from PictureGathering.LinkSearch.Nijie.NijieURL import NijieURL
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(INFO)
 
 

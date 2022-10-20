@@ -13,7 +13,7 @@ from PictureGathering.LinkSearch.PixivNovel.PixivNovelURL import PixivNovelURL
 from PictureGathering.LinkSearch.URL import URL
 from PictureGathering.LinkSearch.Username import Username
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(INFO)
 
 

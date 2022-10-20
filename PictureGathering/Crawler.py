@@ -35,10 +35,10 @@ from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAP
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 for name in logging.root.manager.loggerDict:
-    # すべてのライブラリのログ出力を抑制
-    # print("logger", name)
-    getLogger(name).disabled = True
-logger = getLogger("root")
+    # 自分以外のすべてのライブラリのログ出力を抑制
+    if "PictureGathering" not in name:
+        getLogger(name).disabled = True
+logger = getLogger(__name__)
 logger.setLevel(INFO)
 
 

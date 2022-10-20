@@ -21,7 +21,7 @@ from mock import MagicMock, PropertyMock, patch
 
 from PictureGathering import GoogleDrive
 
-logger = getLogger("root")
+logger = getLogger(__name__)
 logger.setLevel(WARNING)
 
 CREDENTIALS_PATH = "./config/credentials.json"
