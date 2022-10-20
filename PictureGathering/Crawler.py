@@ -145,6 +145,11 @@ class Crawler(metaclass=ABCMeta):
             logger.exception(error_message)
             notify(error_message)
             exit(-1)
+        except ValueError as e:
+            error_message = "Twitter API setup error."
+            logger.exception(e)
+            notify(error_message)
+            exit(-1)
         except Exception:
             error_message = "unknown error."
             logger.exception(error_message)

@@ -44,9 +44,7 @@ class TwitterAPI():
 
         # 疎通確認
         url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
-        res = self.get(url)
-        if res.get("data", {}).get("id", "") == "":
-            raise ValueError("TwitterAPIEndpointName.USER_LOOKUP_ME API check failed.")
+        res = self.get(url)  # 失敗時は例外が送出される
 
     def _wait(self, dt_unix: float) -> None:
         """指定UNIX時間まで待機する
@@ -104,11 +102,22 @@ class TwitterAPI():
         Raises:
             ValueError: endpoint_url が想定外のエンドポイントの場合
             ValueError: method が想定外のメソッドの場合
+            ValueError: 月のツイートキャップ上限対象APIで、上限を超えている場合
             HTTPError: RETRY_NUM=5回リトライしてもAPI利用結果が200でなかった場合
 
         Returns:
             dict: TwitterAPIレスポンス
         """
+        # バリデーション
+        if not isinstance(endpoint_url, str):
+            raise ValueError("endpoint_url must be str.")
+        if not isinstance(params, dict):
+            raise ValueError("params must be dict.")
+        if not (isinstance(method, str) and method in ["GET", "POST", "PUT", "DELETE"]):
+            raise ValueError('method must be in ["GET", "POST", "PUT", "DELETE"].')
+        if not TwitterAPIEndpoint.validate(endpoint_url, method):
+            raise ValueError(f"{method} {endpoint_url} : is not Twitter API Endpoint or invalid method.")
+
         # 月のツイートキャップを超えていないかチェック
         TwitterAPIEndpoint.raise_for_tweet_cap_limit_over()
 
@@ -116,10 +125,6 @@ class TwitterAPI():
         endpoint_name: TwitterAPIEndpointName = TwitterAPIEndpoint.get_name(endpoint_url, method)
         if not endpoint_name:
             raise ValueError(f"{endpoint_url} : is not Twitter API Endpoint.")
-
-        # バリデーション
-        if not TwitterAPIEndpoint.validate(endpoint_url, method):
-            raise ValueError(f"{method} {endpoint_url} : is not Twitter API Endpoint or invalid method.")
 
         # メソッド振り分け
         method_func = None
@@ -159,7 +164,7 @@ class TwitterAPI():
                     TwitterAPIEndpoint.increase_tweet_cap(count)
                 return res
             except requests.exceptions.RequestException as e:
-                pass
+                logger.error(e.response.txt)
             except Exception as e:
                 pass
 
@@ -172,6 +177,7 @@ class TwitterAPI():
                 wair_seconds = 2 ** i
                 n = time.mktime(datetime.now().timetuple())
                 self._wait(n + wair_seconds)
+            logger.error(f"retry ({i}/{RETRY_NUM}) ...")
         else:
             raise requests.HTTPError("Twitter API error : exceed RETRY_NUM.")
 
@@ -209,6 +215,8 @@ if __name__ == "__main__":
         TW_ACCESS_TOKEN_KEY,
         TW_ACCESS_TOKEN_SECRET
     )
+
+    # 認証ユーザー詳細取得
     url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
     res = twitter.request(url, {}, "GET")
     pprint.pprint(res)
