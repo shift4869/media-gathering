@@ -58,10 +58,6 @@ class TestTwitterAPI(unittest.TestCase):
             with self.assertRaises(TypeError):
                 actual = TwitterAPI(dummy_api_key, dummy_api_secret, dummy_access_token_key, None)
 
-            mock_get.side_effect = lambda url: {}
-            with self.assertRaises(ValueError):
-                actual = TwitterAPI(dummy_api_key, dummy_api_secret, dummy_access_token_key, dummy_access_token_secret)
-
     def test_wait(self):
         with ExitStack() as stack:
             mock_logger = stack.enter_context(patch.object(logger, "debug"))
@@ -111,6 +107,7 @@ class TestTwitterAPI(unittest.TestCase):
 
     def test_request(self):
         with ExitStack() as stack:
+            mock_logger = stack.enter_context(patch.object(logger, "warning"))
             mock_oauth_get = stack.enter_context(patch("PictureGathering.v2.TwitterAPI.OAuth1Session.get"))
             mock_oauth_post = stack.enter_context(patch("PictureGathering.v2.TwitterAPI.OAuth1Session.post"))
             mock_oauth_delete = stack.enter_context(patch("PictureGathering.v2.TwitterAPI.OAuth1Session.delete"))

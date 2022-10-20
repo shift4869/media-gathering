@@ -164,7 +164,7 @@ class TwitterAPI():
                     TwitterAPIEndpoint.increase_tweet_cap(count)
                 return res
             except requests.exceptions.RequestException as e:
-                logger.error(e.response.txt)
+                logger.warning(e.response.text)
             except Exception as e:
                 pass
 
@@ -177,7 +177,7 @@ class TwitterAPI():
                 wair_seconds = 2 ** i
                 n = time.mktime(datetime.now().timetuple())
                 self._wait(n + wair_seconds)
-            logger.error(f"retry ({i}/{RETRY_NUM}) ...")
+            logger.warning(f"retry ({i}/{RETRY_NUM}) ...")
         else:
             raise requests.HTTPError("Twitter API error : exceed RETRY_NUM.")
 
