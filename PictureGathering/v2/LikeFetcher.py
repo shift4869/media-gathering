@@ -103,7 +103,11 @@ class LikeFetcher(V2Base):
                     # tweet_url を探索
                     # entities内のexpanded_urlを採用する
                     # ex. https://twitter.com/{screan_name}/status/{tweet_id}/photo/1
-                    tweet_url = self._match_tweet_url(urls)
+                    tweet_url = ""
+                    try:
+                        tweet_url = self._match_tweet_url(urls)
+                    except ValueError:
+                        continue
 
                     # created_at を解釈する
                     # ex. created_at = "2022-10-10T23:54:18.000Z"
