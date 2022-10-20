@@ -104,7 +104,7 @@ class TwitterAPI():
         Raises:
             ValueError: endpoint_url が想定外のエンドポイントの場合
             ValueError: method が想定外のメソッドの場合
-            HTTPError: RETRY_NUM=5回リトライしてもAPI利用結果が200でかった場合
+            HTTPError: RETRY_NUM=5回リトライしてもAPI利用結果が200でなかった場合
 
         Returns:
             dict: TwitterAPIレスポンス
