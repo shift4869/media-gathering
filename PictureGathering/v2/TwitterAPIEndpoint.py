@@ -440,18 +440,50 @@ class TwitterAPIEndpoint():
 
 
 if __name__ == "__main__":
-    import configparser
-    CONFIG_FILE_NAME = "./config/config.ini"
-    config_parser = configparser.ConfigParser()
-    if not config_parser.read(CONFIG_FILE_NAME, encoding="utf8"):
-        raise IOError
+    # 存在するAPIエンドポイントをすべて表示
+    for name in TwitterAPIEndpointName:
+        print(f"{name.name}")
 
-    config = config_parser["twitter_token_keys_v2"]
+    # アクセス用エンドポイントURL生成
     url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
-    pprint.pprint(url)
+    print(url)  # "https://api.twitter.com/2/users"
 
-    count = TwitterAPIEndpoint.get_tweet_cap_now_count()
-    pprint.pprint(count)
+    # アクセス用エンドポイントURL生成(パスパラメータつき)
+    dummy_user_id = "00000"
+    url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_BY_USERNAME, dummy_user_id)
+    print(url)  # "https://api.twitter.com/2/users/by/username/dummy_user_id"
+
+    # メソッド名取得
+    method = TwitterAPIEndpoint.get_method(TwitterAPIEndpointName.USER_LOOKUP_BY_USERNAME)
+    print(method)  # "GET"
+
+    # エンドポイント名逆引き
+    url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
+    method = TwitterAPIEndpoint.get_method(TwitterAPIEndpointName.USER_LOOKUP_ME)
+    endpoint_name: TwitterAPIEndpointName = TwitterAPIEndpoint.get_name(url, method)
+    print(endpoint_name)  # TwitterAPIEndpointName.USER_LOOKUP_ME
+
+    # バリデーション
+    url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
+    method = TwitterAPIEndpoint.get_method(TwitterAPIEndpointName.USER_LOOKUP_ME)
+    print(TwitterAPIEndpoint.validate(url, method))  # True
+
+    # 月のツイートキャップを超えていないかチェック
     TwitterAPIEndpoint.raise_for_tweet_cap_limit_over()
-    count = TwitterAPIEndpoint.increase_tweet_cap(1)
-    pprint.pprint(count)
+
+    # 現在のツイートキャップ推定カウントを取得
+    count = TwitterAPIEndpoint.get_tweet_cap_now_count()
+    print(count)
+
+    # 現在のツイートキャップ推定カウントを設定
+    # count = TwitterAPIEndpoint.set_tweet_cap_now_count(count)
+    # print(count)
+
+    # 現在のツイートキャップ推定カウントに加算
+    # amount = 1
+    # count = TwitterAPIEndpoint.increase_tweet_cap(amount)
+    # print(count)
+
+    # 設定辞書を取得
+    setting_dict = TwitterAPIEndpoint.get_setting_dict()
+    pprint.pprint(setting_dict)
