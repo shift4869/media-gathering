@@ -48,6 +48,11 @@ class V2Base(ABC):
             list[dict]: ページごとに格納された API 返り値
         """
         logger.info(MSG.FETCHED_TWEET_BY_TWITTER_API_START.value)
+
+        now_count = TwitterAPIEndpoint.get_tweet_cap_now_count()
+        max_count = TwitterAPIEndpoint.get_tweet_cap_max_count()
+        logger.info(MSG.FETCHED_TWEET_BY_TWITTER_API_TWEET_CAP.value.format(now_count, max_count))
+
         next_token = ""
         result = []
         for i in range(self.pages):
@@ -57,6 +62,11 @@ class V2Base(ABC):
             result.append(tweet)
             next_token = tweet.get("meta", {}).get("next_token", "")
             logger.info(MSG.FETCHED_TWEET_BY_TWITTER_API_PROGRESS.value.format(i + 1, self.pages))
+
+        now_count = TwitterAPIEndpoint.get_tweet_cap_now_count()
+        max_count = TwitterAPIEndpoint.get_tweet_cap_max_count()
+        logger.info(MSG.FETCHED_TWEET_BY_TWITTER_API_TWEET_CAP.value.format(now_count, max_count))
+
         logger.info(MSG.FETCHED_TWEET_BY_TWITTER_API_DONE.value)
         return result
 
@@ -275,7 +285,7 @@ if __name__ == "__main__":
 
     # キャッシュを読み込んでV2BaseInfoリストを作成する
     input_dict = {}
-    with codecs.open("./PictureGathering/v2/api_response_like.txt", "r", "utf-8") as fin:
+    with codecs.open("./PictureGathering/v2/api_response_like_json.txt", "r", "utf-8") as fin:
         input_dict = json.load(fin)
     res = like.to_convert_TweetInfo(input_dict)
     pprint.pprint(res)
@@ -286,7 +296,7 @@ if __name__ == "__main__":
     config["skeb"]["is_skeb_trace"] = "False"
     lsb = LinkSearcher.create(config)
     input_dict = {}
-    with codecs.open("./PictureGathering/v2/api_response_like.txt", "r", "utf-8") as fin:
+    with codecs.open("./PictureGathering/v2/api_response_like_json.txt", "r", "utf-8") as fin:
         input_dict = json.load(fin)
     res = like.to_convert_ExternalLink(input_dict, lsb)
     pprint.pprint(res)

@@ -97,11 +97,11 @@ class Crawler(metaclass=ABCMeta):
             Path(config["save_fav_path"]).mkdir(parents=True, exist_ok=True)
             Path(config["save_retweet_path"]).mkdir(parents=True, exist_ok=True)
 
-            config = self.config["twitter_token_keys"]
-            self.TW_CONSUMER_KEY = config["consumer_key"]
-            self.TW_CONSUMER_SECRET = config["consumer_secret"]
-            self.TW_ACCESS_TOKEN_KEY = config["access_token"]
-            self.TW_ACCESS_TOKEN_SECRET = config["access_token_secret"]
+            # config = self.config["twitter_token_keys"]
+            # self.TW_CONSUMER_KEY = config["consumer_key"]
+            # self.TW_CONSUMER_SECRET = config["consumer_secret"]
+            # self.TW_ACCESS_TOKEN_KEY = config["access_token"]
+            # self.TW_ACCESS_TOKEN_SECRET = config["access_token_secret"]
 
             config = self.config["twitter_token_keys_v2"]
             self.TW_V2_API_KEY = config["api_key"]
@@ -124,8 +124,8 @@ class Crawler(metaclass=ABCMeta):
             config = self.config["discord_webhook_url"]
             self.DISCORD_WEBHOOK_URL = config["webhook_url"]
 
-            self.user_name = self.config["tweet_timeline"]["user_name"]
-            self.count = int(self.config["tweet_timeline"]["count"])
+            # self.user_name = self.config["tweet_timeline"]["user_name"]
+            # self.count = int(self.config["tweet_timeline"]["count"])
 
             self.save_path = Path()
             self.type = ""
@@ -936,7 +936,7 @@ class Crawler(metaclass=ABCMeta):
             self.add_url_list.append(url_orig)
 
             # DB操作
-            # db_cont.Upsert派生クラスによって呼び分けられる（ポリモーフィズム）
+            # db_cont.Upsert派生クラスによって呼び分けられる
             dts_format = "%Y-%m-%d %H:%M:%S"
             params = {
                 "is_exist_saved_file": True,
@@ -993,6 +993,7 @@ class Crawler(metaclass=ABCMeta):
             if config.getboolean("is_archive"):
                 shutil.copy2(save_file_fullpath, config["archive_temp_path"])
         else:
+            # 既に存在している場合
             logger.debug(save_file_fullpath.name + " -> exist")
             return 1
         return 0
@@ -1038,7 +1039,7 @@ class Crawler(metaclass=ABCMeta):
             url = external_link.external_link_url
             # 過去に取得済かどうか調べる
             if self.db_cont.external_link_select_v2(url) != []:
-                logger.info(url + " : in DB exist -> skip")
+                logger.debug(url + " : in DB exist -> skip")
                 continue
             if self.lsb.can_fetch(url):
                 # 外部リンク先を取得して保存

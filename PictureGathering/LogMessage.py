@@ -28,5 +28,6 @@ class MSG(enum.Enum):
     LINKSEARCHER_FETCHER_FOUND = "{} -> Fetcher found: {}."
 
     FETCHED_TWEET_BY_TWITTER_API_START = "Fetched Tweet by Twitter API -> start"
+    FETCHED_TWEET_BY_TWITTER_API_TWEET_CAP = "Tweet caps now count is {}/{}."
     FETCHED_TWEET_BY_TWITTER_API_PROGRESS = "({}/{}) pages fetched."
     FETCHED_TWEET_BY_TWITTER_API_DONE = "Fetched Tweet by Twitter API -> done"

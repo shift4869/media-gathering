@@ -20,6 +20,14 @@ class RetweetFetcher(V2Base):
     max_results: int
 
     def __init__(self, userid: str, pages: int, max_results: int, twitter: TwitterAPI) -> None:
+        if not (isinstance(userid, str) and userid != ""):
+            raise ValueError(f"{userid} is not str or empty.")
+        if not (isinstance(pages, int) and 0 < pages):
+            raise ValueError(f"{pages} is not integer or invalid.")
+        if not (isinstance(max_results, int) and 0 < max_results and max_results <= 100):
+            raise ValueError(f"{max_results} is not integer or invalid.")
+        if not isinstance(twitter, TwitterAPI):
+            raise ValueError(f"{twitter} is not TwitterAPI.")
         self.userid = userid
         self.max_results = max_results
 

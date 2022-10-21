@@ -79,22 +79,28 @@ class FavCrawler(Crawler):
 
     def Crawl(self):
         logger.info(MSG.FAVCRAWLER_CRAWL_START.value)
-        # count * fav_get_max_loop だけツイートをさかのぼる。
-        fav_get_max_loop = int(self.config["tweet_timeline"]["fav_get_max_loop"]) + 1
-        # for i in range(1, fav_get_max_loop):
-        #     tweets = self.FavTweetsGet(i)
-        #     self.InterpretTweets(tweets)
+        # each_max_count * fav_get_max_loop だけツイートをさかのぼる。
+        each_max_count = int(self.config["tweet_timeline"]["each_max_count"])
+        fav_get_max_loop = int(self.config["tweet_timeline"]["fav_get_max_loop"])
+
+        # 対象ユーザーのユーザーIDを取得する
         url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
         my_user_info = self.twitter.get(url)
-        my_id = my_user_info.get("data", {}).get("id", "")
-        like = LikeFetcher(userid=my_id, pages=fav_get_max_loop, max_results=100, twitter=self.twitter)
+        my_userid = my_user_info.get("data", {}).get("id", "")
+
+        # like取得
+        like = LikeFetcher(userid=my_userid, pages=fav_get_max_loop, max_results=each_max_count, twitter=self.twitter)
         fetched_tweets = like.fetch()
+
+        # メディア取得
         tweet_info_list = like.to_convert_TweetInfo(fetched_tweets)
         self.interpret_tweets_v2(tweet_info_list)
 
+        # 外部リンク収集
         external_link_list = like.to_convert_ExternalLink(fetched_tweets, self.lsb)
         self.trace_external_link(external_link_list)
 
+        # 後処理
         self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
         self.EndOfProcess()
         logger.info(MSG.FAVCRAWLER_CRAWL_DONE.value)

@@ -174,21 +174,28 @@ class RetweetCrawler(Crawler):
 
     def Crawl(self):
         logger.info(MSG.RTCRAWLER_CRAWL_START.value)
+        # each_max_count * retweet_get_max_loop だけツイートをさかのぼる。
+        each_max_count = int(self.config["tweet_timeline"]["each_max_count"])
+        retweet_get_max_loop = int(self.config["tweet_timeline"]["retweet_get_max_loop"])
 
+        # 対象ユーザーのユーザーIDを取得する
         url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
         my_user_info = self.twitter.get(url)
-        my_id = my_user_info.get("data", {}).get("id", "")
-        retweet = RetweetFetcher(userid=my_id, pages=self.retweet_get_max_loop, max_results=100, twitter=self.twitter)
-        fetched_tweets = retweet.fetch()
-        # tweets = self.RetweetsGet()
-        # self.InterpretTweets(tweets)
+        my_userid = my_user_info.get("data", {}).get("id", "")
 
+        # retweet取得
+        retweet = RetweetFetcher(userid=my_userid, pages=retweet_get_max_loop, max_results=each_max_count, twitter=self.twitter)
+        fetched_tweets = retweet.fetch()
+
+        # メディア取得
         tweet_info_list = retweet.to_convert_TweetInfo(fetched_tweets)
         self.interpret_tweets_v2(tweet_info_list)
 
+        # 外部リンク取得
         external_link_list = retweet.to_convert_ExternalLink(fetched_tweets, self.lsb)
         self.trace_external_link(external_link_list)
 
+        # 後処理
         self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
         self.EndOfProcess()
         logger.info(MSG.RTCRAWLER_CRAWL_DONE.value)

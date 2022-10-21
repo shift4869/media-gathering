@@ -16,7 +16,7 @@ from freezegun import freeze_time
 from PictureGathering.v2.TwitterAPI import TwitterAPI
 from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 
-logger = getLogger(__name__)
+logger = getLogger("PictureGathering.v2.TwitterAPI")
 logger.setLevel(WARNING)
 
 
