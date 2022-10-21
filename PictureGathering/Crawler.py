@@ -11,18 +11,15 @@ import json
 import logging.config
 import os
 import shutil
-import sys
 import time
 import urllib
 from abc import ABCMeta, abstractmethod
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from logging import INFO, getLogger
 from pathlib import Path
-from typing import List
 
 import requests
 import slackweb
-from requests_oauthlib import OAuth1Session
 from plyer import notification
 
 from PictureGathering import WriteHTML, Archiver, GoogleDrive
@@ -97,12 +94,6 @@ class Crawler(metaclass=ABCMeta):
             Path(config["save_fav_path"]).mkdir(parents=True, exist_ok=True)
             Path(config["save_retweet_path"]).mkdir(parents=True, exist_ok=True)
 
-            # config = self.config["twitter_token_keys"]
-            # self.TW_CONSUMER_KEY = config["consumer_key"]
-            # self.TW_CONSUMER_SECRET = config["consumer_secret"]
-            # self.TW_ACCESS_TOKEN_KEY = config["access_token"]
-            # self.TW_ACCESS_TOKEN_SECRET = config["access_token_secret"]
-
             config = self.config["twitter_token_keys_v2"]
             self.TW_V2_API_KEY = config["api_key"]
             self.TW_V2_API_KEY_SECRET = config["api_key_secret"]
@@ -123,15 +114,6 @@ class Crawler(metaclass=ABCMeta):
 
             config = self.config["discord_webhook_url"]
             self.DISCORD_WEBHOOK_URL = config["webhook_url"]
-
-            # self.user_name = self.config["tweet_timeline"]["user_name"]
-            # self.count = int(self.config["tweet_timeline"]["count"])
-
-            self.save_path = Path()
-            self.type = ""
-
-            # 情報保持DBコントローラー（派生クラスで実体が代入される）
-            self.db_cont = None
 
             # 外部リンク探索機構のセットアップ
             self.LinkSearchRegister()
@@ -163,9 +145,17 @@ class Crawler(metaclass=ABCMeta):
         #     self.TW_ACCESS_TOKEN_SECRET
         # )
 
+        # 派生クラスで実体が代入されるメンバ
+        # 情報保持DBコントローラー
+        self.db_cont = None
+        # 保存先パス
+        self.save_path = Path()
+        # クローラタイプ = ["Fav", "RT"]
+        self.type = ""
+
+        # 処理中～処理完了後に使用する追加削除カウント・リスト
         self.add_cnt = 0
         self.del_cnt = 0
-
         self.add_url_list = []
         self.del_url_list = []
         logger.info(MSG.CRAWLER_INIT_DONE.value)
@@ -181,479 +171,6 @@ class Crawler(metaclass=ABCMeta):
         """
         # 外部リンク探索を登録
         self.lsb = LinkSearcher.create(self.config)
-        return 0
-
-    def GetTwitterAPIResourceType(self, url: str) -> str:
-        """使用するTwitterAPIのAPIリソースタイプを返す
-
-        Args:
-            url (str): TwitterAPIのエンドポイントURL
-
-        Returns:
-            str: APIリソースタイプ
-        """
-        called_url = Path(urllib.parse.urlparse(url).path)
-        url = urllib.parse.urljoin(url, called_url.name)
-        resources = []
-        if "users" in url:
-            resources.append("users")
-        elif "statuses" in url:
-            resources.append("statuses")
-        elif "favorites" in url:
-            resources.append("favorites")
-        return ",".join(resources)
-
-    def GetTwitterAPILimitContext(self, res_text: dict, params: dict) -> tuple[int, int]:
-        """Limitを取得するAPIの返り値を解釈して残数と開放時間を取得する
-
-        Note:
-            TwitterAPIリファレンス:rate_limit_status
-            http://westplain.sakuraweb.com/translate/twitter/Documentation/REST-APIs/Public-API/GET-application-rate_limit_status.cgi
-
-        Args:
-            res_text (dict): TwitterAPI:rate_limit_statusの返り値(json)
-            params (dict): TwitterAPI:rate_limit_statusを呼び出したときのパラメータ辞書
-
-        Returns:
-            int, int: 残り使用回数, 制限リセット時間(UNIXエポック秒)
-        """
-        if "resources" not in params:
-            return -1, -1  # 引数エラー
-        r = params["resources"]
-
-        if r not in res_text["resources"]:
-            return -1, -1  # 引数エラー
-
-        for p in res_text["resources"][r].keys():
-            # remainingとresetを取得する
-            remaining = res_text["resources"][r][p]["remaining"]
-            reset = res_text["resources"][r][p]["reset"]
-            return int(remaining), int(reset)
-
-    def WaitUntilReset(self, dt_unix: float) -> int:
-        """指定UNIX時間まで待機する
-
-        Notes:
-            念のため(dt_unix + 10)秒まで待機する
-
-        Args:
-            dt_unix (float): UNIX時間の指定
-
-        Returns:
-            int: 成功時0
-        """
-        seconds = dt_unix - time.mktime(datetime.now().timetuple())
-        seconds = max(seconds, 0)
-        logger.debug("=======================")
-        logger.debug("=== waiting {} sec ===".format(seconds))
-        logger.debug("=======================")
-        sys.stdout.flush()
-        time.sleep(seconds + 10)  # 念のため + 10 秒
-        return 0
-
-    def CheckTwitterAPILimit(self, called_url: str) -> int:
-        """TwitterAPI制限を取得する
-
-        Args:
-            called_url (str): API制限を取得したいTwitterAPIエンドポイントURL
-
-        Raises:
-            Exception: API制限情報を取得するのに503で10回失敗した場合エラー
-            Exception: API制限情報取得した結果が200でない場合エラー
-
-        Returns:
-            int: 成功時0、このメソッド実行後はcalled_urlのエンドポイントが利用可能であることが保証される
-        """
-        unavailableCnt = 0
-        while True:
-            url = "https://api.twitter.com/1.1/application/rate_limit_status.json"
-            params = {
-                "resources": self.GetTwitterAPIResourceType(called_url)
-            }
-            response = self.oath.get(url, params=params)
-
-            if response.status_code == 503:
-                # 503 : Service Unavailable
-                if unavailableCnt > 10:
-                    raise Exception("Twitter API error %d" % response.status_code)
-
-                unavailableCnt += 1
-                logger.warning("Service Unavailable 503")
-                self.WaitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
-                continue
-
-            unavailableCnt = 0
-
-            if response.status_code != 200:
-                raise Exception("Twitter API error %d" % response.status_code)
-
-            remaining, reset = self.GetTwitterAPILimitContext(json.loads(response.text), params)
-            if (remaining == 0):
-                self.WaitUntilReset(reset)
-            else:
-                break
-        return 0
-
-    def WaitTwitterAPIUntilReset(self, response: dict) -> int:
-        """TwitterAPIが利用できるまで待つ
-
-        Args:
-            response (dict): 利用できるまで待つTwitterAPIを使ったときのレスポンス
-
-        Returns:
-            int: 成功時0、このメソッド実行後はresponseに対応するエンドポイントが利用可能であることが保証される
-        """
-        # X-Rate-Limit-Remaining が入ってないことが稀にあるのでチェック
-        if "X-Rate-Limit-Remaining" in response.headers and "X-Rate-Limit-Reset" in response.headers:
-            # 回数制限（ヘッダ参照）
-            remain_cnt = int(response.headers["X-Rate-Limit-Remaining"])
-            dt_unix = int(response.headers["X-Rate-Limit-Reset"])
-            dt_jst_aware = datetime.fromtimestamp(dt_unix, timezone(timedelta(hours=9)))
-            remain_sec = dt_unix - time.mktime(datetime.now().timetuple())
-            logger.debug("リクエストURL {}".format(response.url))
-            logger.debug("アクセス可能回数 {}".format(remain_cnt))
-            logger.debug("リセット時刻 {}".format(dt_jst_aware))
-            logger.debug("リセットまでの残り時間 {}[s]".format(remain_sec))
-            if remain_cnt == 0:
-                self.WaitUntilReset(dt_unix)
-                self.CheckTwitterAPILimit(response.url)
-        else:
-            # 回数制限（API参照）
-            logger.debug("not found  -  X-Rate-Limit-Remaining or X-Rate-Limit-Reset")
-            self.CheckTwitterAPILimit(response.url)
-        return 0
-
-    def TwitterAPIRequest(self, url: str, params: dict) -> dict:
-        """TwitterAPIを使用するラッパメソッド
-
-        Args:
-            url (str): TwitterAPIエンドポイントURL
-            params (dict): TwitterAPI使用時に渡すパラメータ
-
-        Raises:
-            Exception: API利用に503で10回失敗した場合エラー
-            Exception: API利用結果が200でない場合エラー
-
-        Returns:
-            dict: TwitterAPIレスポンス
-        """
-        unavailableCnt = 0
-        while True:
-            response = self.oath.get(url, params=params)
-
-            if response.status_code == 503:
-                # 503 : Service Unavailable
-                if unavailableCnt > 10:
-                    raise Exception("Twitter API error %d" % response.status_code)
-
-                unavailableCnt += 1
-                logger.warning("Service Unavailable 503")
-                self.WaitTwitterAPIUntilReset(response)
-                continue
-            unavailableCnt = 0
-
-            if response.status_code != 200:
-                raise Exception("Twitter API error %d" % response.status_code)
-
-            res = json.loads(response.text)
-            return res
-
-    def GetMediaUrl(self, media_dict: dict) -> str:
-        """tweet["extended_entities"]["media"]から保存対象のメディアURLを取得する
-
-        Args:
-            media_dict (dict): tweet["extended_entities"]["media"]
-
-        Returns:
-            str: 成功時メディアURL、引数や辞書構造が不正だった場合空文字列を返す
-        """
-        media_type = "None"
-        if "type" not in media_dict:
-            logger.info("メディアタイプが不明です。")
-            return ""
-        media_type = media_dict["type"]
-
-        url = ""
-        if media_type == "photo":
-            if "media_url" not in media_dict:
-                logger.info("画像を含んでいないツイートです。")
-                return ""
-            url = media_dict["media_url"]
-        elif media_type == "video" or media_type == "animated_gif":
-            if "video_info" not in media_dict:
-                logger.info("動画を含んでいないツイートです。")
-                return ""
-            video_variants = media_dict["video_info"]["variants"]
-            bitrate = -sys.maxsize  # 最小値
-            for video_variant in video_variants:
-                if video_variant["content_type"] == "video/mp4":
-                    if int(video_variant["bitrate"]) > bitrate:
-                        # 同じ動画の中で一番ビットレートが高い動画を保存する
-                        url = video_variant["url"]
-                        bitrate = int(video_variant["bitrate"])
-            # クエリを除去
-            url_path = Path(urllib.parse.urlparse(url).path)
-            url = urllib.parse.urljoin(url, url_path.name)
-        else:
-            logger.info("メディアタイプが不明です。")
-            return ""
-        return url
-
-    def GetMediaTweet(self, tweet: dict, id_str_list: list = None) -> List[dict]:
-        """ツイートオブジェクトの階層（RT、引用RTの親子関係）をたどり、ツイートがメディアを含むかどうか調べる
-
-        Note:
-           ツイートオブジェクトのルートを引数として受け取り、以下のようにresultを返す
-           (1)tweetにメディアが添付されている場合、resultにtweetを追加
-           (2)tweetに外部リンクが含まれている場合、resultにtweetを追加
-           (3)RTされているツイートの場合、resultにtweet["retweeted_status"]とtweetを追加
-           (4)引用RTされているツイートの場合、resultにtweet["quoted_status"]とtweetを追加
-           (5)引用RTがRTされているツイートの場合、
-              resultにtweet["retweeted_status"]["quoted_status"]とtweet["retweeted_status"]とtweetを追加
-
-           引用RTはRTできるがRTは引用RTできないので無限ループにはならない（最大深さ2）
-           id_strが重複しているツイートは格納しない
-           最終的な返り値となる辞書リストは、タイムスタンプ順に昇順ソートされている
-           （昔  RT先ツイート(=A) → （存在するならば）(A)を引用RTしたツイート(=B) → (AまたはB)をRTしたツイート  直近）
-
-        Args:
-            tweet (dict): ツイートオブジェクトのルート
-            id_str_list (list[str]): 格納済みツイートのid_strリスト
-
-        Returns:
-            list[dict]: 上記にて出力された辞書リスト
-        """
-        result = []
-
-        # デフォルト引数の処理
-        if id_str_list is None:
-            id_str_list = []
-            id_str_list.append(None)
-
-        # ツイートオブジェクトにRTフラグが立っている場合
-        if tweet.get("retweeted") and tweet.get("retweeted_status"):
-            retweeted_tweet = tweet.get("retweeted_status", {})
-            if retweeted_tweet.get("extended_entities"):
-                if retweeted_tweet.get("id_str") not in id_str_list:
-                    result.append(retweeted_tweet)
-                    id_str_list.append(retweeted_tweet.get("id_str"))
-                    result.append(tweet)
-                    id_str_list.append(tweet.get("id_str"))
-            # リツイートオブジェクトに引用RTフラグも立っている場合
-            if retweeted_tweet.get("is_quote_status") and retweeted_tweet.get("quoted_status"):
-                quoted_tweet = retweeted_tweet.get("quoted_status", {})
-                if quoted_tweet.get("extended_entities"):
-                    if quoted_tweet.get("id_str") not in id_str_list:
-                        result = result + self.GetMediaTweet(retweeted_tweet, id_str_list)
-                        result.append(tweet)
-                        id_str_list.append(tweet.get("id_str"))
-        # ツイートオブジェクトに引用RTフラグが立っている場合
-        elif tweet.get("is_quote_status") and tweet.get("quoted_status"):
-            quoted_tweet = tweet.get("quoted_status", {})
-            if quoted_tweet.get("extended_entities"):
-                if quoted_tweet.get("id_str") not in id_str_list:
-                    result.append(quoted_tweet)
-                    id_str_list.append(quoted_tweet.get("id_str"))
-                    result.append(tweet)
-                    id_str_list.append(tweet.get("id_str"))
-            # ツイートオブジェクトにRTフラグも立っている場合（仕様上、本来はここはいらない）
-            if quoted_tweet.get("retweeted") and quoted_tweet.get("retweeted_status"):
-                retweeted_tweet = quoted_tweet.get("retweeted_status", {})
-                if retweeted_tweet.get("extended_entities"):
-                    if retweeted_tweet.get("id_str") not in id_str_list:
-                        result = result + self.GetMediaTweet(quoted_tweet, id_str_list)
-                        result.append(tweet)
-                        id_str_list.append(tweet.get("id_str"))
-
-        # ツイートオブジェクトにメディアがある場合
-        if tweet.get("extended_entities", {}).get("media"):
-            if tweet.get("id_str") not in id_str_list:
-                result.append(tweet)
-                id_str_list.append(tweet.get("id_str"))
-
-        # ツイートに外部リンクが含まれている場合
-        if tweet.get("entities", {}).get("urls"):
-            urls = tweet.get("entities", {}).get("urls", [{}])
-            url = urls[0].get("expanded_url")
-            # 外部リンク探索が登録されている場合CoRで調べる
-            if self.lsb.can_fetch(url):
-                if tweet.get("id_str") not in id_str_list:
-                    result.append(tweet)
-                    id_str_list.append(tweet.get("id_str"))
-
-        return result
-
-    def TweetMediaSaver(self, tweet: dict, media_dict: dict, atime: float, mtime: float) -> int:
-        """指定URLの画像を保存する
-
-        Args:
-            tweet (dict): メディア含むツイート（全体）
-            media_dict (dict): tweet["extended_entities"]["media"]
-            atime (float): 指定更新日時
-            mtime (float): 指定更新日時
-
-        Returns:
-            int: 成功時0、既に存在しているメディアだった場合1、
-                 失敗時（メディア辞書構造がエラー、urlが取得できない）-1
-        """
-        media_type = "None"
-        if "type" not in media_dict:
-            logger.debug("メディアタイプが不明です。")
-            return -1
-        media_type = media_dict["type"]
-
-        url = self.GetMediaUrl(media_dict)
-        if url == "":
-            logger.debug("urlが不正です。")
-            return -1
-
-        if media_type == "photo":
-            url_orig = url + ":orig"
-            url_thumbnail = url + ":large"
-            file_name = Path(url).name
-            save_file_path = Path(self.save_path) / file_name
-            save_file_fullpath = save_file_path.absolute()
-        elif media_type == "video" or media_type == "animated_gif":
-            url_orig = url
-            url_thumbnail = media_dict["media_url"] + ":orig"  # サムネ
-            file_name = Path(url_orig).name
-            save_file_path = Path(self.save_path) / file_name
-            save_file_fullpath = save_file_path.absolute()
-        else:
-            logger.debug("メディアタイプが不明です。")
-            return -1
-
-        if not save_file_fullpath.is_file():
-            # URLからメディアを取得してローカルに保存
-            # タイムアウトを設定するためにurlopenを利用
-            # urllib.request.urlretrieve(url_orig, save_file_fullpath)
-            try:
-                data = urllib.request.urlopen(url_orig, timeout=60).read()
-                with save_file_fullpath.open(mode="wb") as f:
-                    f.write(data)
-            except Exception:
-                # URLからのメディア取得に失敗
-                # 削除されていた場合など
-                logger.info(save_file_fullpath.name + " -> failed.")
-                return -1
-            self.add_url_list.append(url_orig)
-
-            # DB操作
-            # db_cont.Upsert派生クラスによって呼び分けられる（ポリモーフィズム）
-            include_blob = self.config["db"].getboolean("save_blob")
-            self.db_cont.Upsert(file_name, url_orig, url_thumbnail, tweet, str(save_file_fullpath), include_blob)
-
-            # 画像ならばimage magickで画像変換
-            if media_type == "photo":
-                img_magick_path = Path(self.config["processes"]["image_magick"])
-                if img_magick_path.is_file():
-                    os.system('"' + str(img_magick_path) + '" -quality 60 ' + str(save_file_fullpath) + " " + str(save_file_fullpath))
-
-            # 更新日時を上書き
-            config = self.config["timestamp"]
-            if config.getboolean("timestamp_created_at"):
-                os.utime(save_file_fullpath, (atime, mtime))
-
-            logger.info(save_file_fullpath.name + " -> done")
-            self.add_cnt += 1
-
-            # 常に保存する設定の場合はコピーする
-            config = self.config["db"]
-            if config.getboolean("save_permanent_image_flag"):
-                shutil.copy2(save_file_fullpath, config["save_permanent_image_path"])
-
-            # アーカイブする設定の場合
-            config = self.config["archive"]
-            if config.getboolean("is_archive"):
-                shutil.copy2(save_file_fullpath, config["archive_temp_path"])
-        else:
-            logger.debug(save_file_fullpath.name + " -> exist")
-            return 1
-        return 0
-
-    def InterpretTweets(self, tweets: List[dict]) -> int:
-        """ツイートオブジェクトを解釈してメディアURLを取得して保存する
-
-        Note:
-            ツイートオブジェクトのメディアを保存する機能はTweetMediaSaverが担う
-            外部リンクが含まれている場合の処理はself.lsbが担う
-
-        Args:
-            tweets (list[dict]): メディアを含んでいる可能性があるツイートオブジェクト辞書配列
-
-        Returns:
-            int: 0(成功)
-        """
-        for tweet in tweets:
-            # メディアツイートツリーを取得
-            media_tweets = self.GetMediaTweet(tweet)
-
-            if not media_tweets:
-                continue
-
-            """タイムスタンプについて
-                https://srbrnote.work/archives/4054
-                作成日時:ctime, 更新日時:mtime, アクセス日時:atimeがある
-                ctimeはOS依存のため設定には外部ライブラリが必要
-                ここでは
-                    Favならばatime=mtime=ツイート投稿日時 とする
-                    RTならばatime=mtime=ツイート投稿日時 とする
-                    （THINK is_apply_now_timestamp == Trueならば収集時の時刻 となる）
-                収集されたツイートの投稿日時はDBのcreated_at項目に保持される
-
-                引用RTなどのツリーで関係ツイートが複数ある場合は最新の日時を一律付与する
-                もしcreated_atが不正な形式だった場合、strptimeはValueErrorを返す
-                ex) tweet["created_at"] = "Tue Sep 04 15:55:52 +0000 2012"
-            """
-            # is_apply_now_timestamp = (self.type == "Fav")
-            is_apply_now_timestamp = False
-            atime = mtime = -1
-            if is_apply_now_timestamp:
-                atime = mtime = time.time()
-            else:
-                td_format = "%a %b %d %H:%M:%S +0000 %Y"
-                mt = media_tweets[-1]
-                created_time = time.strptime(mt["created_at"], td_format)
-                atime = mtime = time.mktime(
-                    (created_time.tm_year,
-                     created_time.tm_mon,
-                     created_time.tm_mday,
-                     created_time.tm_hour + 9,
-                     created_time.tm_min,
-                     created_time.tm_sec,
-                     0, 0, -1)
-                )
-
-            # 取得したメディアツイートツリー（複数想定）
-            for media_tweet in media_tweets:
-                # 外部リンク探索
-                try:
-                    if tweet.get("entities", {}).get("urls", {}):
-                        e_urls = tweet["entities"]["urls"]
-                        for element in e_urls:
-                            url = element.get("expanded_url")
-                            if self.lsb.can_fetch(url):
-                                # 外部リンク先を取得して保存
-                                self.lsb.fetch(url)
-                                # DBにアドレス情報を保存
-                                self.db_cont.ExternalLinkUpsert(url, tweet)
-                except ValueError as e:
-                    error_message = e.args[0]
-                    logger.debug(f"{url} -> {error_message}")
-                    pass
-
-                if "extended_entities" not in media_tweet:
-                    logger.debug("メディアを含んでいないツイートです。")
-                    continue
-                if "media" not in media_tweet["extended_entities"]:
-                    logger.debug("メディアを含んでいないツイートです。")
-                    continue
-
-                # メディアリスト（今の仕様なら画像で最大4枚まで）
-                media_list = media_tweet["extended_entities"]["media"]
-                for media_dict in media_list:
-                    # メディア保存
-                    self.TweetMediaSaver(media_tweet, media_dict, atime, mtime)
         return 0
 
     def GetExistFilelist(self) -> list:
@@ -766,6 +283,10 @@ class Crawler(metaclass=ABCMeta):
                 self.PostTweet(done_msg)
                 logger.info("Reply posted.")
 
+            if config.getboolean("is_post_discord_notify"):
+                self.PostDiscordNotify(done_msg)
+                logger.info("Discord Notify posted.")
+
             if config.getboolean("is_post_line_notify"):
                 self.PostLineNotify(done_msg)
                 logger.info("Line Notify posted.")
@@ -773,10 +294,6 @@ class Crawler(metaclass=ABCMeta):
             if config.getboolean("is_post_slack_notify"):
                 self.PostSlackNotify(done_msg)
                 logger.info("Slack Notify posted.")
-
-            if config.getboolean("is_post_discord_notify"):
-                self.PostDiscordNotify(done_msg)
-                logger.info("Discord Notify posted.")
 
             # アーカイブする設定の場合
             config = self.config["archive"]
@@ -807,7 +324,6 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             int: 成功時0、失敗時None
         """
-        # url = "https://api.twitter.com/1.1/users/show.json"
         reply_user_name = self.config["notification"]["reply_to_user_name"]
         url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.POST_TWEET)
 
@@ -822,8 +338,6 @@ class Crawler(metaclass=ABCMeta):
             return -1
 
         tweet = response
-
-        logger.debug(tweet)
         self.db_cont.del_upsert_v2(tweet)
 
         return 0
@@ -898,7 +412,7 @@ class Crawler(metaclass=ABCMeta):
         return 0
 
     def tweet_media_saver_v2(self, tweet_info: TweetInfo, atime: float, mtime: float) -> int:
-        """指定URLの画像を保存する
+        """指定URLのメディアを保存する
 
         Args:
             tweet_info (TweetInfo): メディア含むツイート情報
@@ -968,12 +482,6 @@ class Crawler(metaclass=ABCMeta):
                 params["media_size"] = -1
             self.db_cont.upsert_v2(params)
 
-            # 画像ならばimage magickで画像変換
-            # if media_type == "photo":
-            #     img_magick_path = Path(self.config["processes"]["image_magick"])
-            #     if img_magick_path.is_file():
-            #         os.system('"' + str(img_magick_path) + '" -quality 60 ' + str(save_file_fullpath) + " " + str(save_file_fullpath))
-
             # 更新日時を上書き
             config = self.config["timestamp"]
             if config.getboolean("timestamp_created_at"):
@@ -998,7 +506,7 @@ class Crawler(metaclass=ABCMeta):
             return 1
         return 0
 
-    def interpret_tweets_v2(self, tweet_info_list: list[TweetInfo]) -> int:
+    def interpret_tweets_v2(self, tweet_info_list: list[TweetInfo]) -> None:
         for tweet_info in tweet_info_list:
             """タイムスタンプについて
                 https://srbrnote.work/archives/4054
@@ -1007,13 +515,12 @@ class Crawler(metaclass=ABCMeta):
                 ここでは
                     Favならばatime=mtime=ツイート投稿日時 とする
                     RTならばatime=mtime=ツイート投稿日時 とする
-                    （THINK is_apply_now_timestamp == Trueならば収集時の時刻 となる）
+                    （IS_APPLY_NOW_TIMESTAMP == Trueならば収集時の時刻 とする？）
                 収集されたツイートの投稿日時はDBのcreated_at項目に保持される
             """
-            # is_apply_now_timestamp = (self.type == "Fav")
-            is_apply_now_timestamp = False
+            IS_APPLY_NOW_TIMESTAMP = False
             atime = mtime = -1
-            if is_apply_now_timestamp:
+            if IS_APPLY_NOW_TIMESTAMP:
                 atime = mtime = time.time()
             else:
                 dts_format = "%Y-%m-%d %H:%M:%S"
@@ -1031,7 +538,6 @@ class Crawler(metaclass=ABCMeta):
 
             # メディア保存
             self.tweet_media_saver_v2(tweet_info, atime, mtime)
-        return 0
 
     def trace_external_link(self, external_link_list: list[ExternalLink]) -> None:
         # 外部リンク探索
