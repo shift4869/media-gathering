@@ -324,17 +324,23 @@ class TestTwitterAPI(unittest.TestCase):
             self.assertEqual(expect, actual)
 
     def test_raise_for_tweet_cap_limit_over(self):
-        TwitterAPIEndpoint.setting_dict["util"]["tweet_cap"]["max"] = 2000000
+        TwitterAPIEndpoint.setting_dict["util"]["tweet_cap"]["max_count"] = 2000000
         TwitterAPIEndpoint.setting_dict["util"]["tweet_cap"]["estimated_now_count"] = 0
         actual = TwitterAPIEndpoint.raise_for_tweet_cap_limit_over()
         self.assertIsNone(actual)
 
-        TwitterAPIEndpoint.setting_dict["util"]["tweet_cap"]["max"] = 0
+        TwitterAPIEndpoint.setting_dict["util"]["tweet_cap"]["max_count"] = 0
         TwitterAPIEndpoint.setting_dict["util"]["tweet_cap"]["estimated_now_count"] = 100
         with self.assertRaises(ValueError):
             actual = TwitterAPIEndpoint.raise_for_tweet_cap_limit_over()
 
         TwitterAPIEndpoint.reload()
+
+    def test_get_tweet_cap_max_count(self):
+        expect_dict = self._get_expect_setting_dict()
+        expect = int(expect_dict.get("util", {}).get("tweet_cap", {}).get("max_count", -100))
+        actual = TwitterAPIEndpoint.get_tweet_cap_max_count()
+        self.assertEqual(expect, actual)
 
     def test_get_tweet_cap_now_count(self):
         expect_dict = self._get_expect_setting_dict()

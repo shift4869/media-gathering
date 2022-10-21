@@ -68,7 +68,7 @@ class TwitterAPIEndpoint():
             case {
                     "tweet_cap": {
                         "access_level": access_level,
-                        "max": max_tweet_cap,
+                        "max_count": max_tweet_cap,
                         "reset_date": reset_date,
                         "estimated_now_count": estimated_now_count
                     }}:
@@ -347,10 +347,21 @@ class TwitterAPIEndpoint():
         """
         setting_dict = TwitterAPIEndpoint.get_setting_dict()
         now_count = cls.get_tweet_cap_now_count()
-        max_count = int(setting_dict.get("util", {}).get("tweet_cap", {}).get("max", -1))
+        max_count = int(setting_dict.get("util", {}).get("tweet_cap", {}).get("max_count", -1))
 
         if max_count < now_count:
             raise ValueError(f"tweet caps is over: caps = {max_count} < now_count = {now_count}.")
+
+    @classmethod
+    def get_tweet_cap_max_count(cls) -> int:
+        """ツイートキャップ上限を取得する
+
+        Returns:
+            int: ツイートキャップ上限数
+        """
+        setting_dict = TwitterAPIEndpoint.get_setting_dict()
+        count = int(setting_dict.get("util", {}).get("tweet_cap", {}).get("max_count", -1))
+        return count
 
     @classmethod
     def get_tweet_cap_now_count(cls) -> int:
@@ -412,7 +423,7 @@ class TwitterAPIEndpoint():
         cls.reload()
 
         now_count = cls.get_tweet_cap_now_count()
-        max_count = int(setting_dict.get("util", {}).get("tweet_cap", {}).get("max", -1))
+        max_count = int(setting_dict.get("util", {}).get("tweet_cap", {}).get("max_count", -1))
         reset_date = int(setting_dict.get("util", {}).get("tweet_cap", {}).get("reset_date", -1))
         reset_date = "{:02}".format(reset_date)
         now_date = "{:02}".format((datetime.now() - timedelta(hours=9)).day)

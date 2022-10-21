@@ -2,7 +2,7 @@
     "util": {
         "tweet_cap": {
             "access_level": "Elevated",
-            "max": 2000000,
+            "max_count": 2000000,
             "reset_date": 12,
             "estimated_now_count": 103719
         }
