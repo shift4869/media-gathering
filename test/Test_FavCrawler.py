@@ -83,7 +83,7 @@ class TestFavCrawler(unittest.TestCase):
             s_pickup_url_list = random.sample(s_add_url_list, min(4, len(s_add_url_list)))
             mock_random = stack.enter_context(patch("PictureGathering.FavCrawler.random.sample"))
             mock_random.return_value = s_pickup_url_list
-            
+
             s_now_str = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
             s_done_msg = "Fav PictureGathering run.\n"
             s_done_msg += s_now_str
@@ -108,7 +108,7 @@ class TestFavCrawler(unittest.TestCase):
 
             self.assertEqual(expect, actual)
 
-    def test_Crawl(self):
+    def test_crawl(self):
         """全体クロールの呼び出しをチェックする
         """
         with ExitStack() as stack:
