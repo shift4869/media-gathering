@@ -51,7 +51,11 @@ class V2Base(ABC):
 
         now_count = TwitterAPIEndpoint.get_tweet_cap_now_count()
         max_count = TwitterAPIEndpoint.get_tweet_cap_max_count()
-        logger.info(MSG.FETCHED_TWEET_BY_TWITTER_API_TWEET_CAP.value.format(now_count, max_count))
+        logger.info(
+            MSG.FETCHED_TWEET_BY_TWITTER_API_TWEET_CAP.value.format(
+                now_count, max_count, int(now_count / max_count * 100)
+            )
+        )
 
         next_token = ""
         result = []

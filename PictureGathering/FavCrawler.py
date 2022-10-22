@@ -34,31 +34,7 @@ class FavCrawler(Crawler):
             exit(-1)
         logger.info(MSG.FAVCRAWLER_INIT_DONE.value)
 
-    def FavTweetsGet(self, page):
-        kind_of_api = self.config["tweet_timeline"]["kind_of_timeline"]
-        if kind_of_api == "favorite":
-            url = "https://api.twitter.com/1.1/favorites/list.json"
-            params = {
-                "screen_name": self.user_name,
-                "page": page,
-                "count": self.count,
-                "include_entities": 1,  # ツイートのメタデータ取得。これしないと複数枚の画像に対応できない。
-                "tweet_mode": "extended"
-            }
-        elif kind_of_api == "home":
-            url = "https://api.twitter.com/1.1/statuses/home_timeline.json"
-            params = {
-                "count": self.count,
-                "include_entities": 1,
-                "tweet_mode": "extended"
-            }
-        else:
-            logger.error("kind_of_api is invalid.")
-            return None
-
-        return self.TwitterAPIRequest(url, params)
-
-    def MakeDoneMessage(self):
+    def make_done_message(self):
         now_str = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
         done_msg = "Fav PictureGathering run.\n"
         done_msg += now_str
@@ -77,7 +53,7 @@ class FavCrawler(Crawler):
 
         return done_msg
 
-    def Crawl(self):
+    def crawl(self):
         logger.info(MSG.FAVCRAWLER_CRAWL_START.value)
         # each_max_count * fav_get_max_loop だけツイートをさかのぼる。
         each_max_count = int(self.config["tweet_timeline"]["each_max_count"])
@@ -101,8 +77,8 @@ class FavCrawler(Crawler):
         self.trace_external_link(external_link_list)
 
         # 後処理
-        self.ShrinkFolder(int(self.config["holding"]["holding_file_num"]))
-        self.EndOfProcess()
+        self.shrink_folder(int(self.config["holding"]["holding_file_num"]))
+        self.end_of_process()
         logger.info(MSG.FAVCRAWLER_CRAWL_DONE.value)
         return 0
 
@@ -111,8 +87,8 @@ if __name__ == "__main__":
     c = FavCrawler()
 
     # クロール前に保存場所から指定枚数削除しておく
-    # c.ShrinkFolder(int(c.config["holding"]["holding_file_num"]) - 10)
+    # c.shrink_folder(int(c.config["holding"]["holding_file_num"]) - 10)
     # c.del_cnt = 0
     # c.del_url_list = []
 
-    c.Crawl()
+    c.crawl()

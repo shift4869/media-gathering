@@ -51,16 +51,16 @@ class ConcreteCrawler(Crawler.Crawler):
                 # configファイルのパスエラーは変数置き換えで自動的に処理される
                 self.CONFIG_FILE_NAME = "error_file_path"
             elif error_occur == "KeyError":
-                # LinkSearchRegister呼び出しを利用して例外を送出するモックを設定する
-                mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+                # link_search_register呼び出しを利用して例外を送出するモックを設定する
+                mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
                 mock_lsr.side_effect = KeyError()
             elif error_occur == "ValueError":
-                # LinkSearchRegister呼び出しを利用して例外を送出するモックを設定する
-                mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+                # link_search_register呼び出しを利用して例外を送出するモックを設定する
+                mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
                 mock_lsr.side_effect = ValueError()
             elif error_occur == "Exception":
-                # LinkSearchRegister呼び出しを利用して例外を送出するモックを設定する
-                mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+                # link_search_register呼び出しを利用して例外を送出するモックを設定する
+                mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
                 mock_lsr.side_effect = Exception()
 
             super().__init__()
@@ -69,10 +69,10 @@ class ConcreteCrawler(Crawler.Crawler):
             self.save_path = Path("./test")
             self.type = "Test Crawler"
 
-    def MakeDoneMessage(self):
+    def make_done_message(self):
         return "Test Crawler : done"
 
-    def Crawl(self):
+    def crawl(self):
         return 0
 
 
@@ -121,14 +121,14 @@ class TestCrawler(unittest.TestCase):
         """
         with ExitStack() as stack:
             mock_notification = stack.enter_context(patch("PictureGathering.Crawler.notification"))
-            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
             crawler = ConcreteCrawler()
 
             self.assertIsInstance(crawler.db_cont, MagicMock)
             self.assertEqual(Path("./test"), crawler.save_path)
             self.assertEqual("Test Crawler", crawler.type)
-            self.assertEqual("Test Crawler : done", crawler.MakeDoneMessage())
-            self.assertEqual(0, crawler.Crawl())
+            self.assertEqual("Test Crawler : done", crawler.make_done_message())
+            self.assertEqual(0, crawler.crawl())
 
     def test_CrawlerInit(self):
         """Crawlerの初期状態のテスト
@@ -140,7 +140,7 @@ class TestCrawler(unittest.TestCase):
         """
         with ExitStack() as stack:
             mock_notification = stack.enter_context(patch("PictureGathering.Crawler.notification"))
-            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
             # 例外発生テスト
             with self.assertRaises(SystemExit):
                 crawler = ConcreteCrawler("IOError")
@@ -239,7 +239,7 @@ class TestCrawler(unittest.TestCase):
             self.assertEqual([], crawler.add_url_list)
             self.assertEqual([], crawler.del_url_list)
 
-    def test_LinkSearchRegister(self):
+    def test_link_search_register(self):
         """外部リンク探索機構のセットアップをチェックする
         """
         with ExitStack() as stack:
@@ -251,11 +251,11 @@ class TestCrawler(unittest.TestCase):
             expect = mock_lsc(crawler.config)
             self.assertEqual(expect, crawler.lsb)
 
-    def test_GetExistFilelist(self):
+    def test_get_exist_filelist(self):
         """save_pathにあるファイル名一覧取得処理をチェックする
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
 
             crawler = ConcreteCrawler()
 
@@ -271,17 +271,17 @@ class TestCrawler(unittest.TestCase):
             for mtime, path in sorted(xs, reverse=True):
                 expect_filelist.append(path)
 
-            actual_filelist = crawler.GetExistFilelist()
+            actual_filelist = crawler.get_exist_filelist()
             self.assertEqual(expect_filelist, actual_filelist)
 
-    def test_ShrinkFolder(self):
+    def test_shrink_folder(self):
         """フォルダ内ファイルの数を一定にする機能をチェックする
         """
         with ExitStack() as stack:
-            mock_GetExistFilelist = stack.enter_context(patch("PictureGathering.Crawler.Crawler.GetExistFilelist"))
-            mock_UpdateDBExistMark = stack.enter_context(patch("PictureGathering.Crawler.Crawler.UpdateDBExistMark"))
-            mock_GetMediaURL = stack.enter_context(patch("PictureGathering.Crawler.Crawler.GetMediaURL"))
-            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+            mock_get_exist_filelist = stack.enter_context(patch("PictureGathering.Crawler.Crawler.get_exist_filelist"))
+            mock_update_db_exist_mark = stack.enter_context(patch("PictureGathering.Crawler.Crawler.update_db_exist_mark"))
+            mock_get_media_url = stack.enter_context(patch("PictureGathering.Crawler.Crawler.get_media_url"))
+            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
             mock_unlink = stack.enter_context(patch("pathlib.Path.unlink"))
             image_base_url = "http://pbs.twimg.com/media/{}:orig"
             video_base_url = "https://video.twimg.com/ext_tw_video/1144527536388337664/pu/vid/626x882/{}"
@@ -296,12 +296,12 @@ class TestCrawler(unittest.TestCase):
             img_sample = ["sample_img_{}.png".format(i) for i in range(sample_num // 2 + 1)]
             video_sample = ["sample_video_{}.mp4".format(i) for i in range(sample_num // 2 + 1)]
             file_sample = random.sample(img_sample + video_sample, sample_num)  # 結合してシャッフル
-            mock_GetExistFilelist.return_value = file_sample
+            mock_get_exist_filelist.return_value = file_sample
 
-            mock_UpdateDBExistMark = None
-            mock_GetMediaURL.side_effect = lambda name: [video_base_url.format(v) for v in video_sample if v == name][0]
+            mock_update_db_exist_mark = None
+            mock_get_media_url.side_effect = lambda name: [video_base_url.format(v) for v in video_sample if v == name][0]
 
-            self.assertEqual(0, crawler.ShrinkFolder(holding_file_num - 1))
+            self.assertEqual(0, crawler.shrink_folder(holding_file_num - 1))
 
             def MakeUrl(filename):
                 if ".mp4" in filename:  # media_type == "video":
@@ -318,11 +318,11 @@ class TestCrawler(unittest.TestCase):
             self.assertEqual(expect_del_cnt, crawler.del_cnt)
             self.assertEqual(expect_del_url_list, crawler.del_url_list)
 
-    def test_UpdateDBExistMark(self):
+    def test_update_db_exist_mark(self):
         """存在マーキング更新をチェックする
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
 
             crawler = ConcreteCrawler()
             mock_db_cont = crawler.db_cont
@@ -330,15 +330,15 @@ class TestCrawler(unittest.TestCase):
             mock_db_cont.FlagUpdate = MagicMock()
 
             img_sample = ["sample_img_{}.png".format(i) for i in range(5)]
-            crawler.UpdateDBExistMark(img_sample)
+            crawler.update_db_exist_mark(img_sample)
             mock_db_cont.FlagClear.assert_called_once_with()
             mock_db_cont.FlagUpdate.assert_called_once_with(img_sample, 1)
 
-    def test_GetMediaURL(self):
+    def test_get_media_url(self):
         """動画URL問い合わせをチェックする
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
 
             video_base_url = "https://video.twimg.com/ext_tw_video/1144527536388337664/pu/vid/626x882/{}"
 
@@ -356,23 +356,23 @@ class TestCrawler(unittest.TestCase):
 
             video_sample_filename = "sample_video_1.mp4"
             expect = video_base_url.format(video_sample_filename)
-            actual = crawler.GetMediaURL(video_sample_filename)
+            actual = crawler.get_media_url(video_sample_filename)
             self.assertEqual(expect, actual)
 
             expect = ""
-            actual = crawler.GetMediaURL("invalid_filename")
+            actual = crawler.get_media_url("invalid_filename")
             self.assertEqual(expect, actual)
 
-    def test_EndOfProcess(self):
+    def test_end_of_process(self):
         """取得後処理をチェックする
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
             mock_whtml = stack.enter_context(patch("PictureGathering.WriteHTML.WriteResultHTML"))
-            mock_cptweet = stack.enter_context(patch("PictureGathering.Crawler.Crawler.PostTweet"))
-            mock_cplnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.PostLineNotify"))
-            mock_cpsnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.PostSlackNotify"))
-            mock_cpdnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.PostDiscordNotify"))
+            mock_cptweet = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_tweet"))
+            mock_cplnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_line_notify"))
+            mock_cpsnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_slack_notify"))
+            mock_cpdnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_discord_notify"))
             mock_amzf = stack.enter_context(patch("PictureGathering.Archiver.MakeZipFile"))
             mock_gdutgd = stack.enter_context(patch("PictureGathering.GoogleDrive.UploadToGoogleDrive"))
             mock_logger_info = stack.enter_context(patch.object(logger, "info"))
@@ -389,7 +389,7 @@ class TestCrawler(unittest.TestCase):
 
             crawler.add_cnt = 1
             crawler.type = "Fav"
-            actual = crawler.EndOfProcess()
+            actual = crawler.end_of_process()
             self.assertEqual(0, actual)
 
             mock_whtml.assert_called_once()
@@ -404,11 +404,11 @@ class TestCrawler(unittest.TestCase):
             mock_db_cont.DelSelect.assert_called_once_with()
             mock_twitter.delete.assert_called_once_with(expect_url)
 
-    def test_PostTweet(self):
+    def test_post_tweet(self):
         """ツイートポスト機能をチェックする
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
             mock_logger_error = stack.enter_context(patch.object(logger, "error"))
 
             crawler = ConcreteCrawler()
@@ -428,18 +428,18 @@ class TestCrawler(unittest.TestCase):
             mock_twitter.post = MagicMock()
             mock_twitter.post.side_effect = lambda url, params: response
 
-            self.assertEqual(0, crawler.PostTweet(tweet_str))
+            self.assertEqual(0, crawler.post_tweet(tweet_str))
             mock_db_cont.del_upsert_v2.assert_called_once_with(response)
             mock_twitter.post.assert_called_once_with(url, params)
 
             mock_twitter.post.side_effect = lambda url, params: ""
-            self.assertEqual(-1, crawler.PostTweet(tweet_str))
+            self.assertEqual(-1, crawler.post_tweet(tweet_str))
 
-    def test_PostDiscordNotify(self):
+    def test_post_discord_notify(self):
         """Discord通知ポスト機能をチェックする
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
             mock_req = stack.enter_context(patch("PictureGathering.Crawler.requests.post"))
 
             crawler = ConcreteCrawler()
@@ -452,14 +452,14 @@ class TestCrawler(unittest.TestCase):
             mock_req.return_value = response
 
             str = "text"
-            self.assertEqual(0, crawler.PostDiscordNotify(str))
+            self.assertEqual(0, crawler.post_discord_notify(str))
             mock_req.assert_called_once()
 
-    def test_PostLineNotify(self):
+    def test_post_line_notify(self):
         """LINE通知ポスト機能をチェックする
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
             mock_req = stack.enter_context(patch("PictureGathering.Crawler.requests.post"))
 
             crawler = ConcreteCrawler()
@@ -472,14 +472,14 @@ class TestCrawler(unittest.TestCase):
             mock_req.return_value = response
 
             str = "text"
-            self.assertEqual(0, crawler.PostLineNotify(str))
+            self.assertEqual(0, crawler.post_line_notify(str))
             mock_req.assert_called_once()
 
-    def test_PostSlackNotify(self):
+    def test_post_slack_notify(self):
         """Slack通知ポスト機能をチェックする
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
             mock_slack = stack.enter_context(patch("PictureGathering.Crawler.slackweb.Slack.notify"))
 
             crawler = ConcreteCrawler()
@@ -488,7 +488,7 @@ class TestCrawler(unittest.TestCase):
             mock_slack.return_value = 0
 
             str = "text"
-            self.assertEqual(0, crawler.PostSlackNotify(str))
+            self.assertEqual(0, crawler.post_slack_notify(str))
             mock_slack.assert_called_once_with(text="<!here> " + str)
 
     def test_tweet_media_saver_v2(self):
@@ -497,7 +497,7 @@ class TestCrawler(unittest.TestCase):
             実際にファイル保存する
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
             mock_urlopen = stack.enter_context(patch("PictureGathering.Crawler.urllib.request.urlopen"))
             # mock_file_open: MagicMock = stack.enter_context(patch("PictureGathering.Crawler.Path.open", mock_open()))
             mock_shutil = stack.enter_context(patch("PictureGathering.Crawler.shutil.copy2"))
@@ -560,7 +560,7 @@ class TestCrawler(unittest.TestCase):
         """ツイートオブジェクトの解釈をチェックする
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
             mock_tweet_media_saver_v2 = stack.enter_context(patch("PictureGathering.Crawler.Crawler.tweet_media_saver_v2"))
 
             crawler = ConcreteCrawler()
@@ -596,7 +596,7 @@ class TestCrawler(unittest.TestCase):
             実際にはファイル保存はしない
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.LinkSearchRegister"))
+            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
             mock_logger_debug = stack.enter_context(patch.object(logger, "debug"))
 
             crawler = ConcreteCrawler()

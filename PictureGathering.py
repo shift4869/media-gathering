@@ -34,7 +34,7 @@ if __name__ == "__main__":
         c = RetweetCrawler()
 
     if c is not None:
-        c.Crawl()
+        c.crawl()
     else:
         arg_parser.print_help()
 

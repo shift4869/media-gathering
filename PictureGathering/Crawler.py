@@ -2,7 +2,6 @@
 """クローラー
 
 Fav/Retweetクローラーのベースとなるクローラークラス
-API呼び出しなど共通処理はこのクローラークラスに記述する
 設定ファイルとして {CONFIG_FILE_NAME} にあるconfig.iniファイルを使用する
 """
 
@@ -53,24 +52,22 @@ class Crawler(metaclass=ABCMeta):
     Attributes:
         CONFIG_FILE_NAME (str): 設定ファイルパス
         config (ConfigParser): 設定ini構造体
-        TW_CONSUMER_KEY (str): TwitterAPI利用キー
-        TW_CONSUMER_SECRET (str): TwitterAPI利用シークレットキー
-        TW_ACCESS_TOKEN_KEY (str): TwitterAPIアクセストークンキー
-        TW_ACCESS_TOKEN_SECRET (str): TwitterAPIアクセストークンシークレットキー
+        TW_V2_API_KEY (str): TwitterAPI_v2利用APIキー
+        TW_V2_API_KEY_SECRET (str): TwitterAPI_v2利用APIシークレットキー
+        TW_V2_ACCESS_TOKEN (str): TwitterAPI_v2アクセストークンキー
+        TW_V2_ACCESS_TOKEN_SECRET (str): TwitterAPI_v2アクセストークンシークレットキー
+        DISCORD_WEBHOOK_URL (str): DiscordのWebhook URL
         LN_TOKEN_KEY (str): LINE notifyのトークン
         SLACK_WEBHOOK_URL (str): SlackのWebhook URL
-        DISCORD_WEBHOOK_URL (str): DiscordのWebhook URL
-        user_name (str): Twitterのユーザーネーム
-        count (int): 一度に取得するFav/Retweetの数
-        save_path (str): 画像保存先パス
-        type (str): 継承先を表すタイプ識別{Fav, RT}
-        db_cont (DBControllerBase): DB操作用クラス（実態はCrawler派生クラスで規定）
+        twitter (TwitterAPI): TwitterAPI利用クラス
         lsb (LinkSearcher): 外部リンク探索機構ベースクラス
-        oath (OAuth1Session): TwitterAPI利用セッション
-        add_cnt (int): 新規追加した画像の数
-        del_cnt (int): 削除した画像の数
-        add_url_list (list): 新規追加した画像のURLリスト
-        del_url_list (list): 削除した画像のURLリスト
+        db_cont (DBControllerBase): DB操作用クラス（実体はCrawler派生クラスで規定）
+        save_path (str): メディア保存先パス
+        type (str): 継承先を表すタイプ識別{Fav, RT}
+        add_cnt (int): 新規追加したメディアの数
+        del_cnt (int): 削除したメディアの数
+        add_url_list (list): 新規追加したメディアのURLリスト
+        del_url_list (list): 削除したメディアのURLリスト
     """
     CONFIG_FILE_NAME = "./config/config.ini"
 
@@ -106,17 +103,17 @@ class Crawler(metaclass=ABCMeta):
                 self.TW_V2_ACCESS_TOKEN_SECRET
             )
 
+            config = self.config["discord_webhook_url"]
+            self.DISCORD_WEBHOOK_URL = config["webhook_url"]
+
             config = self.config["line_token_keys"]
             self.LN_TOKEN_KEY = config["token_key"]
 
             config = self.config["slack_webhook_url"]
             self.SLACK_WEBHOOK_URL = config["webhook_url"]
 
-            config = self.config["discord_webhook_url"]
-            self.DISCORD_WEBHOOK_URL = config["webhook_url"]
-
             # 外部リンク探索機構のセットアップ
-            self.LinkSearchRegister()
+            self.link_search_register()
         except IOError:
             error_message = self.CONFIG_FILE_NAME + " is not exist or cannot be opened."
             logger.exception(error_message)
@@ -138,13 +135,6 @@ class Crawler(metaclass=ABCMeta):
             notify(error_message)
             exit(-1)
 
-        # self.oath = OAuth1Session(
-        #     self.TW_CONSUMER_KEY,
-        #     self.TW_CONSUMER_SECRET,
-        #     self.TW_ACCESS_TOKEN_KEY,
-        #     self.TW_ACCESS_TOKEN_SECRET
-        # )
-
         # 派生クラスで実体が代入されるメンバ
         # 情報保持DBコントローラー
         self.db_cont = None
@@ -160,7 +150,7 @@ class Crawler(metaclass=ABCMeta):
         self.del_url_list = []
         logger.info(MSG.CRAWLER_INIT_DONE.value)
 
-    def LinkSearchRegister(self) -> int:
+    def link_search_register(self) -> int:
         """外部リンク探索機構のセットアップ
 
         Notes:
@@ -173,7 +163,7 @@ class Crawler(metaclass=ABCMeta):
         self.lsb = LinkSearcher.create(self.config)
         return 0
 
-    def GetExistFilelist(self) -> list:
+    def get_exist_filelist(self) -> list:
         """self.save_pathに存在するファイル名一覧を取得する
 
         Returns:
@@ -192,7 +182,7 @@ class Crawler(metaclass=ABCMeta):
 
         return filelist
 
-    def ShrinkFolder(self, holding_file_num: int) -> int:
+    def shrink_folder(self, holding_file_num: int) -> int:
         """フォルダ内ファイルの数を一定にする
 
         Args:
@@ -201,7 +191,7 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             int: 0(成功)
         """
-        filelist = self.GetExistFilelist()
+        filelist = self.get_exist_filelist()
 
         # フォルダに既に保存しているファイルにはURLの情報がない
         # ファイル名とドメインを結びつけてURLを手動で生成する
@@ -214,7 +204,7 @@ class Crawler(metaclass=ABCMeta):
             file_path = Path(file)
 
             if ".mp4" == file_path.suffix:  # media_type == "video":
-                url = self.GetMediaURL(file_path.name)
+                url = self.get_media_url(file_path.name)
             else:  # media_type == "photo":
                 image_base_url = "http://pbs.twimg.com/media/{}:orig"
                 url = image_base_url.format(file_path.name)
@@ -228,28 +218,28 @@ class Crawler(metaclass=ABCMeta):
                 add_img_filename.append(file_path.name)
 
         # 存在マーキングを更新する
-        self.UpdateDBExistMark(add_img_filename)
+        self.update_db_exist_mark(add_img_filename)
 
         return 0
 
-    def UpdateDBExistMark(self, add_img_filename):
+    def update_db_exist_mark(self, add_img_filename):
         # 存在マーキングを更新する
         self.db_cont.FlagClear()
         self.db_cont.FlagUpdate(add_img_filename, 1)
 
-    def GetMediaURL(self, filename):
+    def get_media_url(self, filename):
         # 'https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/b0ZDq8zG_HppFWb6.mp4?tag=10'
         response = self.db_cont.SelectFromMediaURL(filename)
         url = response[0]["url"] if len(response) == 1 else ""
         return url
 
     @abstractmethod
-    def MakeDoneMessage(self) -> str:
+    def make_done_message(self) -> str:
         """実行後の結果文字列を生成する
         """
         pass
 
-    def EndOfProcess(self) -> int:
+    def end_of_process(self) -> int:
         """実行後の後処理
 
         Returns:
@@ -257,7 +247,7 @@ class Crawler(metaclass=ABCMeta):
         """
         logger.info("")
 
-        done_msg = self.MakeDoneMessage()
+        done_msg = self.make_done_message()
 
         logger.info("\t".join(done_msg.splitlines()))
 
@@ -276,23 +266,23 @@ class Crawler(metaclass=ABCMeta):
                     logger.info(url)
 
             if self.type == "Fav" and config.getboolean("is_post_fav_done_reply"):
-                self.PostTweet(done_msg)
+                self.post_tweet(done_msg)
                 logger.info("Reply posted.")
 
             if self.type == "RT" and config.getboolean("is_post_retweet_done_reply"):
-                self.PostTweet(done_msg)
+                self.post_tweet(done_msg)
                 logger.info("Reply posted.")
 
             if config.getboolean("is_post_discord_notify"):
-                self.PostDiscordNotify(done_msg)
+                self.post_discord_notify(done_msg)
                 logger.info("Discord Notify posted.")
 
             if config.getboolean("is_post_line_notify"):
-                self.PostLineNotify(done_msg)
+                self.post_line_notify(done_msg)
                 logger.info("Line Notify posted.")
 
             if config.getboolean("is_post_slack_notify"):
-                self.PostSlackNotify(done_msg)
+                self.post_slack_notify(done_msg)
                 logger.info("Slack Notify posted.")
 
             # アーカイブする設定の場合
@@ -315,14 +305,14 @@ class Crawler(metaclass=ABCMeta):
         logger.info("End Of " + self.type + " Crawl Process.")
         return 0
 
-    def PostTweet(self, tweet_str: str) -> int:
+    def post_tweet(self, tweet_str: str) -> int:
         """実行完了ツイートをポストする
 
         Args:
             str (str): ポストする文字列
 
         Returns:
-            int: 成功時0、失敗時None
+            int: 成功時0、失敗時-1
         """
         reply_user_name = self.config["notification"]["reply_to_user_name"]
         url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.POST_TWEET)
@@ -334,7 +324,7 @@ class Crawler(metaclass=ABCMeta):
 
         response = self.twitter.post(url, params)
         if not response:
-            logger.error("PostTweet failed.")
+            logger.error("post_tweet failed.")
             return -1
 
         tweet = response
@@ -342,48 +332,7 @@ class Crawler(metaclass=ABCMeta):
 
         return 0
 
-    def PostLineNotify(self, str: str) -> int:
-        """LINE通知ポスト
-
-        Args:
-            str (str): LINEに通知する文字列
-
-        Returns:
-            int: 0(成功)
-        """
-        url = "https://notify-api.line.me/api/notify"
-        token = self.LN_TOKEN_KEY
-
-        headers = {"Authorization": "Bearer " + token}
-        payload = {"message": str}
-
-        response = requests.post(url, headers=headers, params=payload)
-
-        if response.status_code != 200:
-            logger.error("Error code: {0}".format(response.status_code))
-            return None
-
-        return 0
-
-    def PostSlackNotify(self, str: str) -> int:
-        """Slack通知ポスト
-
-        Args:
-            str (str): Slackに通知する文字列
-
-        Returns:
-            int: 0(成功)
-        """
-        try:
-            slack = slackweb.Slack(url=self.SLACK_WEBHOOK_URL)
-            slack.notify(text="<!here> " + str)
-        except ValueError:
-            logger.error("Webhook URL error: {0} is invalid".format(self.SLACK_WEBHOOK_URL))
-            return None
-
-        return 0
-
-    def PostDiscordNotify(self, str: str) -> int:
+    def post_discord_notify(self, str: str) -> int:
         """Discord通知ポスト
 
         Args:
@@ -407,7 +356,48 @@ class Crawler(metaclass=ABCMeta):
 
         if response.status_code != 204:  # 成功すると204 No Contentが返ってくる
             logger.error("Error code: {0}".format(response.status_code))
-            return None
+            return -1
+
+        return 0
+
+    def post_line_notify(self, str: str) -> int:
+        """LINE通知ポスト
+
+        Args:
+            str (str): LINEに通知する文字列
+
+        Returns:
+            int: 0(成功)
+        """
+        url = "https://notify-api.line.me/api/notify"
+        token = self.LN_TOKEN_KEY
+
+        headers = {"Authorization": "Bearer " + token}
+        payload = {"message": str}
+
+        response = requests.post(url, headers=headers, params=payload)
+
+        if response.status_code != 200:
+            logger.error("Error code: {0}".format(response.status_code))
+            return -1
+
+        return 0
+
+    def post_slack_notify(self, str: str) -> int:
+        """Slack通知ポスト
+
+        Args:
+            str (str): Slackに通知する文字列
+
+        Returns:
+            int: 0(成功)
+        """
+        try:
+            slack = slackweb.Slack(url=self.SLACK_WEBHOOK_URL)
+            slack.notify(text="<!here> " + str)
+        except ValueError:
+            logger.error("Webhook URL error: {0} is invalid".format(self.SLACK_WEBHOOK_URL))
+            return -1
 
         return 0
 
@@ -554,7 +544,7 @@ class Crawler(metaclass=ABCMeta):
                 self.db_cont.external_link_upsert_v2([external_link])
 
     @abstractmethod
-    def Crawl(self) -> int:
+    def crawl(self) -> int:
         """一連の実行メソッドをまとめる
 
         Returns:
@@ -566,4 +556,4 @@ class Crawler(metaclass=ABCMeta):
 if __name__ == "__main__":
     import PictureGathering.FavCrawler as FavCrawler
     c = FavCrawler.FavCrawler()
-    c.Crawl()
+    c.crawl()
