@@ -9,13 +9,12 @@ import unittest
 
 from contextlib import ExitStack
 from logging import WARNING, getLogger
-from mock import MagicMock, PropertyMock, patch
+from mock import MagicMock, patch
 
-from PictureGathering.LinkSearch.FetcherBase import FetcherBase
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 
 
-logger = getLogger(__name__)
+logger = getLogger("PictureGathering.LinkSearch.LinkSearcher")
 logger.setLevel(WARNING)
 
 
