@@ -217,7 +217,7 @@ class TestDBController(unittest.TestCase):
         expect = [self.f.toDict()]
         self.assertEqual(expect, actual)
 
-    def test_SelectFromMediaURL(self):
+    def test_select_from_media_url(self):
         """Favoriteからfilenameを条件としてのSELECTをチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
@@ -233,10 +233,10 @@ class TestDBController(unittest.TestCase):
         self.session.commit()
 
         expect = [record.toDict()]
-        actual = controlar.SelectFromMediaURL(file_name_s)
+        actual = controlar.select_from_media_url(file_name_s)
         self.assertEqual(expect, actual)
 
-    def test_FlagUpdate(self):
+    def test_update_flag(self):
         """Favoriteのis_exist_saved_fileフラグ更新をチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
@@ -255,7 +255,7 @@ class TestDBController(unittest.TestCase):
         r2.is_exist_saved_file = True
         self.session.commit()
         expect = [r1.toDict(), r2.toDict()]
-        actual = controlar.FlagUpdate([r1.img_filename, r2.img_filename], 1)
+        actual = controlar.update_flag([r1.img_filename, r2.img_filename], 1)
         self.assertEqual(expect[0]["is_exist_saved_file"], actual[0]["is_exist_saved_file"])
         self.assertEqual(expect, actual)
 
@@ -269,11 +269,11 @@ class TestDBController(unittest.TestCase):
         r3.is_exist_saved_file = False
         self.session.commit()
         expect = [r1.toDict(), r3.toDict()]
-        actual = controlar.FlagUpdate([r1.img_filename, r3.img_filename], 0)
+        actual = controlar.update_flag([r1.img_filename, r3.img_filename], 0)
         self.assertEqual(expect[0]["is_exist_saved_file"], actual[0]["is_exist_saved_file"])
         self.assertEqual(expect, actual)
 
-    def test_FlagClear(self):
+    def test_clear_flag(self):
         """Favoriteのis_exist_saved_fileフラグクリア機能をチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
@@ -296,7 +296,7 @@ class TestDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
         # フラグクリア
-        controlar.FlagClear()
+        controlar.clear_flag()
 
         # フラグクリア後チェック
         self.f.is_exist_saved_file = False

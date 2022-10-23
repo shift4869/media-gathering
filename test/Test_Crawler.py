@@ -326,13 +326,13 @@ class TestCrawler(unittest.TestCase):
 
             crawler = ConcreteCrawler()
             mock_db_cont = crawler.db_cont
-            mock_db_cont.FlagClear = MagicMock()
-            mock_db_cont.FlagUpdate = MagicMock()
+            mock_db_cont.clear_flag = MagicMock()
+            mock_db_cont.update_flag = MagicMock()
 
             img_sample = ["sample_img_{}.png".format(i) for i in range(5)]
             crawler.update_db_exist_mark(img_sample)
-            mock_db_cont.FlagClear.assert_called_once_with()
-            mock_db_cont.FlagUpdate.assert_called_once_with(img_sample, 1)
+            mock_db_cont.clear_flag.assert_called_once_with()
+            mock_db_cont.update_flag.assert_called_once_with(img_sample, 1)
 
     def test_get_media_url(self):
         """動画URL問い合わせをチェックする
@@ -344,15 +344,15 @@ class TestCrawler(unittest.TestCase):
 
             crawler = ConcreteCrawler()
             mock_db_cont = crawler.db_cont
-            mock_db_cont.SelectFromMediaURL = MagicMock()
+            mock_db_cont.select_from_media_url = MagicMock()
 
-            def mock_SelectFromMediaURL(filename):
+            def mock_select_from_media_url(filename):
                 if "sample_video" in filename:
                     return [{"url": video_base_url.format(filename)}]
                 else:
                     return []
 
-            mock_db_cont.SelectFromMediaURL.side_effect = mock_SelectFromMediaURL
+            mock_db_cont.select_from_media_url.side_effect = mock_select_from_media_url
 
             video_sample_filename = "sample_video_1.mp4"
             expect = video_base_url.format(video_sample_filename)
@@ -381,8 +381,8 @@ class TestCrawler(unittest.TestCase):
 
             dummy_id = "dummy_id"
             mock_db_cont = crawler.db_cont
-            mock_db_cont.DelSelect = MagicMock()
-            mock_db_cont.DelSelect.side_effect = lambda: [{"tweet_id": dummy_id}]
+            mock_db_cont.update_del = MagicMock()
+            mock_db_cont.update_del.side_effect = lambda: [{"tweet_id": dummy_id}]
 
             mock_twitter = crawler.twitter
             mock_twitter.delete = MagicMock()
@@ -401,7 +401,7 @@ class TestCrawler(unittest.TestCase):
             # mock_gdutgd.assert_called_once()
 
             expect_url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.DELETE_TWEET, dummy_id)
-            mock_db_cont.DelSelect.assert_called_once_with()
+            mock_db_cont.update_del.assert_called_once_with()
             mock_twitter.delete.assert_called_once_with(expect_url)
 
     def test_post_tweet(self):
@@ -422,14 +422,14 @@ class TestCrawler(unittest.TestCase):
             response = "response"
 
             mock_db_cont = crawler.db_cont
-            mock_db_cont.del_upsert_v2 = MagicMock()
+            mock_db_cont.upsert_del = MagicMock()
 
             mock_twitter = crawler.twitter
             mock_twitter.post = MagicMock()
             mock_twitter.post.side_effect = lambda url, params: response
 
             self.assertEqual(0, crawler.post_tweet(tweet_str))
-            mock_db_cont.del_upsert_v2.assert_called_once_with(response)
+            mock_db_cont.upsert_del.assert_called_once_with(response)
             mock_twitter.post.assert_called_once_with(url, params)
 
             mock_twitter.post.side_effect = lambda url, params: ""
@@ -512,8 +512,8 @@ class TestCrawler(unittest.TestCase):
 
             crawler = ConcreteCrawler()
             mock_db_cont = crawler.db_cont
-            mock_db_cont.SelectFromMediaURL = MagicMock()
-            mock_db_cont.SelectFromMediaURL.side_effect = lambda file_name: []
+            mock_db_cont.select_from_media_url = MagicMock()
+            mock_db_cont.select_from_media_url.side_effect = lambda file_name: []
             mock_db_cont.upsert_v2 = MagicMock()
 
             tweet_info_list = [self._make_tweet_info(i) for i in range(1, 5)]
@@ -537,7 +537,7 @@ class TestCrawler(unittest.TestCase):
                 self.assertEqual(1, actual)
 
             # DB内にすでに蓄積されていた場合
-            mock_db_cont.SelectFromMediaURL.side_effect = lambda file_name: ["already_saved"]
+            mock_db_cont.select_from_media_url.side_effect = lambda file_name: ["already_saved"]
             for tweet_info in tweet_info_list:
                 actual = crawler.tweet_media_saver_v2(tweet_info, atime, mtime)
                 self.assertEqual(2, actual)
@@ -550,7 +550,7 @@ class TestCrawler(unittest.TestCase):
                 save_file_fullpath.unlink(missing_ok=True)
 
             # DL時に例外発生
-            mock_db_cont.SelectFromMediaURL.side_effect = lambda file_name: []
+            mock_db_cont.select_from_media_url.side_effect = lambda file_name: []
             mock_urlopen.side_effect = Exception()
             for tweet_info in tweet_info_list:
                 actual = crawler.tweet_media_saver_v2(tweet_info, atime, mtime)
@@ -601,14 +601,14 @@ class TestCrawler(unittest.TestCase):
 
             crawler = ConcreteCrawler()
             mock_db_cont = crawler.db_cont
-            mock_db_cont.external_link_select_v2 = MagicMock()
-            mock_db_cont.external_link_upsert_v2 = MagicMock()
+            mock_db_cont.select_external_link = MagicMock()
+            mock_db_cont.upsert_external_link = MagicMock()
             crawler.lsb = MagicMock()
             mock_lsb = crawler.lsb
             mock_lsb.can_fetch = MagicMock()
             mock_lsb.fetch = MagicMock()
 
-            mock_db_cont.external_link_select_v2.side_effect = lambda url: []
+            mock_db_cont.select_external_link.side_effect = lambda url: []
             mock_lsb.can_fetch.side_effect = lambda url: True
 
             external_link_list = [self._make_external_link(i) for i in range(1, 5)]
@@ -620,17 +620,17 @@ class TestCrawler(unittest.TestCase):
             actual = crawler.trace_external_link(external_link_list)
             self.assertIsNone(actual)
 
-            external_link_select_v2_calls = mock_db_cont.external_link_select_v2.mock_calls
-            self.assertEqual(len(external_link_list), len(external_link_select_v2_calls))
-            for expect, actual in zip(expect_args_list, external_link_select_v2_calls):
+            select_external_link_calls = mock_db_cont.select_external_link.mock_calls
+            self.assertEqual(len(external_link_list), len(select_external_link_calls))
+            for expect, actual in zip(expect_args_list, select_external_link_calls):
                 self.assertEqual(call(expect), actual)
-            mock_db_cont.external_link_select_v2.reset_mock()
+            mock_db_cont.select_external_link.reset_mock()
 
-            external_link_upsert_v2_calls = mock_db_cont.external_link_upsert_v2.mock_calls
-            self.assertEqual(len(external_link_list), len(external_link_upsert_v2_calls))
-            for expect, actual in zip(external_link_list, external_link_upsert_v2_calls):
+            upsert_external_link_calls = mock_db_cont.upsert_external_link.mock_calls
+            self.assertEqual(len(external_link_list), len(upsert_external_link_calls))
+            for expect, actual in zip(external_link_list, upsert_external_link_calls):
                 self.assertEqual(call([expect]), actual)
-            mock_db_cont.external_link_upsert_v2.reset_mock()
+            mock_db_cont.upsert_external_link.reset_mock()
 
             mock_lsb_can_fetch_calls = mock_lsb.can_fetch.mock_calls
             self.assertEqual(len(external_link_list), len(mock_lsb_can_fetch_calls))
@@ -648,19 +648,19 @@ class TestCrawler(unittest.TestCase):
             actual = crawler.trace_external_link(external_link_list)
             self.assertIsNone(actual)
 
-            mock_db_cont.external_link_upsert_v2.assert_not_called()
-            mock_db_cont.external_link_upsert_v2.reset_mock()
+            mock_db_cont.upsert_external_link.assert_not_called()
+            mock_db_cont.upsert_external_link.reset_mock()
             mock_lsb.fetch.assert_not_called()
             mock_lsb.fetch.reset_mock()
 
             mock_lsb.can_fetch.reset_mock(side_effect=True)
             mock_lsb.fetch.reset_mock(side_effect=True)
-            mock_db_cont.external_link_select_v2.side_effect = lambda url: [url]
+            mock_db_cont.select_external_link.side_effect = lambda url: [url]
             actual = crawler.trace_external_link(external_link_list)
             self.assertIsNone(actual)
 
-            mock_db_cont.external_link_upsert_v2.assert_not_called()
-            mock_db_cont.external_link_upsert_v2.reset_mock()
+            mock_db_cont.upsert_external_link.assert_not_called()
+            mock_db_cont.upsert_external_link.reset_mock()
             mock_lsb.can_fetch.assert_not_called()
             mock_lsb.can_fetch.reset_mock()
             mock_lsb.fetch.assert_not_called()

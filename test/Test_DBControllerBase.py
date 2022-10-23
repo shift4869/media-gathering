@@ -37,13 +37,13 @@ class ConcreteDBControllerBase(DBControllerBase.DBControllerBase):
     def Select(self, limit=300):
         return ["Select Called"]
 
-    def SelectFromMediaURL(self, filename):
-        return ["SelectFromMediaURL Called"]
+    def select_from_media_url(self, filename):
+        return ["select_from_media_url Called"]
 
-    def FlagUpdate(self, file_list=[], set_flag=0):
-        return ["FlagUpdate Called"]
+    def update_flag(self, file_list=[], set_flag=0):
+        return ["update_flag Called"]
 
-    def FlagClear(self):
+    def clear_flag(self):
         return 0
 
 
@@ -190,7 +190,7 @@ class TestDBController(unittest.TestCase):
             actual = controlar._GetDelUpdateParam(del_tweet_s)
             self.assertEqual(expect, actual)
 
-    def test_DBDelUpsert(self):
+    def test_DBupsert_del(self):
         """DeleteTargetへのUPSERTをチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
@@ -198,7 +198,7 @@ class TestDBController(unittest.TestCase):
         controlar.engine = self.engine
 
         del_tweet_s = self.GetDelTweetSample()
-        res = controlar.DelUpsert(del_tweet_s)
+        res = controlar.upsert_del(del_tweet_s)
         self.assertEqual(res, 0)
 
         param = controlar._GetDelUpdateParam(del_tweet_s)
@@ -207,7 +207,7 @@ class TestDBController(unittest.TestCase):
         actual = self.session.query(DeleteTarget).all()
         self.assertEqual([expect], actual)
 
-    def test_DBDelSelect(self):
+    def test_DBupdate_del(self):
         """DeleteTargetからのSELECTをチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
@@ -237,7 +237,7 @@ class TestDBController(unittest.TestCase):
             self.session.add(r)
         self.session.commit()
 
-        actual = controlar.DelSelect()[0]
+        actual = controlar.update_del()[0]
 
         expect = records[2].toDict()
         self.assertEqual(expect["tweet_id"], actual["tweet_id"])
@@ -285,7 +285,7 @@ class TestDBController(unittest.TestCase):
         actual = self.session.query(Retweet).all()
         self.assertEqual(expect, actual)
 
-        # DBDelUpsert
+        # DBupsert_del
         del_tweet_s = self.GetDelTweetSample()
         param = controlar._DBController__GetDelUpdateParam(del_tweet_s)
         expect = DeleteTarget(param["tweet_id"], param["delete_done"], param["created_at"],

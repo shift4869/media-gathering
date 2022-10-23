@@ -224,12 +224,12 @@ class Crawler(metaclass=ABCMeta):
 
     def update_db_exist_mark(self, add_img_filename):
         # 存在マーキングを更新する
-        self.db_cont.FlagClear()
-        self.db_cont.FlagUpdate(add_img_filename, 1)
+        self.db_cont.clear_flag()
+        self.db_cont.update_flag(add_img_filename, 1)
 
     def get_media_url(self, filename):
         # 'https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/b0ZDq8zG_HppFWb6.mp4?tag=10'
-        response = self.db_cont.SelectFromMediaURL(filename)
+        response = self.db_cont.select_from_media_url(filename)
         url = response[0]["url"] if len(response) == 1 else ""
         return url
 
@@ -297,7 +297,7 @@ class Crawler(metaclass=ABCMeta):
         # 古い通知リプライを消す
         config = self.config["notification"]
         if config.getboolean("is_post_fav_done_reply") or config.getboolean("is_post_retweet_done_reply"):
-            targets = self.db_cont.DelSelect()
+            targets = self.db_cont.update_del()
             for target in targets:
                 url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.DELETE_TWEET, target["tweet_id"])
                 response = self.twitter.delete(url)  # tweet_id
@@ -328,7 +328,7 @@ class Crawler(metaclass=ABCMeta):
             return -1
 
         tweet = response
-        self.db_cont.del_upsert_v2(tweet)
+        self.db_cont.upsert_del(tweet)
 
         return 0
 
@@ -420,7 +420,7 @@ class Crawler(metaclass=ABCMeta):
         save_file_fullpath = save_file_path.absolute()
 
         # 過去に取得済かどうか調べる
-        if self.db_cont.SelectFromMediaURL(file_name) != []:
+        if self.db_cont.select_from_media_url(file_name) != []:
             logger.debug(save_file_fullpath.name + " -> skip")
             return 2
 
@@ -440,7 +440,7 @@ class Crawler(metaclass=ABCMeta):
             self.add_url_list.append(url_orig)
 
             # DB操作
-            # db_cont.Upsert派生クラスによって呼び分けられる
+            # db_cont.upsert_v2派生クラスによって呼び分けられる
             dts_format = "%Y-%m-%d %H:%M:%S"
             params = {
                 "is_exist_saved_file": True,
@@ -470,7 +470,7 @@ class Crawler(metaclass=ABCMeta):
             except Exception:
                 params["media_blob"] = None
                 params["media_size"] = -1
-            self.db_cont.upsert_v2(params)
+            self.db_cont.upsert(params)
 
             # 更新日時を上書き
             config = self.config["timestamp"]
@@ -534,14 +534,14 @@ class Crawler(metaclass=ABCMeta):
         for external_link in external_link_list:
             url = external_link.external_link_url
             # 過去に取得済かどうか調べる
-            if self.db_cont.external_link_select_v2(url) != []:
+            if self.db_cont.select_external_link(url) != []:
                 logger.debug(url + " : in DB exist -> skip")
                 continue
             if self.lsb.can_fetch(url):
                 # 外部リンク先を取得して保存
                 self.lsb.fetch(url)
                 # DBにアドレス情報を保存
-                self.db_cont.external_link_upsert_v2([external_link])
+                self.db_cont.upsert_external_link([external_link])
 
     @abstractmethod
     def crawl(self) -> int:

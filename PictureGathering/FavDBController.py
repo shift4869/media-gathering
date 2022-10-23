@@ -18,73 +18,34 @@ class FavDBController(DBControllerBase):
     def __init__(self, db_fullpath="PG_DB.db", save_operation=True):
         super().__init__(db_fullpath, save_operation)
 
-    def Upsert(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob):
+    def upsert(self, params: dict) -> None:
         """FavoriteにUPSERTする
 
         Notes:
-            追加しようとしているレコードが既存テーブルに存在しなければINSERT
-            存在しているならばUPDATE(DELETE->INSERT)
             一致しているかの判定は
             img_filename, url, url_thumbnailのどれか一つでも完全一致している場合、とする
 
         Args:
-            file_name (str): ファイル名
-            url_orig (str): メディアURL
-            url_thumbnail (str): サムネイルメディアURL
-            tweet(str): ツイート本文
-            save_file_fullpath(str): メディア保存パス（ローカル）
-
-        Returns:
-            int: 0(成功,新規追加), 1(成功,更新), other(失敗)
+            params (dict): 以下のキーを持つ辞書
+                params = {
+                    "is_exist_saved_file": (bool),
+                    "img_filename": (str),
+                    "url": (str),
+                    "url_thumbnail": (str),
+                    "tweet_id": (str),
+                    "tweet_url": (str),
+                    "created_at": (str: "%Y-%m-%d %H:%M:%S"),
+                    "user_id": (str),
+                    "user_name": (str),
+                    "screan_name": (str),
+                    "tweet_text": (str),
+                    "tweet_via": (str),
+                    "saved_localpath": (str),
+                    "saved_created_at": (str: "%Y-%m-%d %H:%M:%S"),
+                }
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
-        res = -1
-
-        param = self._GetUpdateParam(file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob)
-        r = Favorite(False, param["img_filename"], param["url"], param["url_thumbnail"],
-                     param["tweet_id"], param["tweet_url"], param["created_at"],
-                     param["user_id"], param["user_name"], param["screan_name"],
-                     param["tweet_text"], param["tweet_via"], param["saved_localpath"], param["saved_created_at"],
-                     param["media_size"], param["media_blob"])
-
-        try:
-            q = session.query(Favorite).filter(
-                or_(Favorite.img_filename == r.img_filename,
-                    Favorite.url == r.url,
-                    Favorite.url_thumbnail == r.url_thumbnail))
-            ex = q.one()
-        except NoResultFound:
-            # INSERT
-            session.add(r)
-            res = 0
-        else:
-            # UPDATEは実質DELETE->INSERTと同じとする
-            session.delete(ex)
-            session.commit()
-            session.add(r)
-            res = 1
-
-        session.commit()
-        session.close()
-
-        # 操作履歴保存
-        if self.operatefile and self.operatefile.is_file():
-            bname = "DBFavUpsert_" + file_name.split(".")[0] + ".bin"
-            bin_file_path = self.operatefile.parent / bname
-            with bin_file_path.open(mode="wb") as fout:
-                pickle.dump(tweet, fout)
-            with self.operatefile.open(mode="a", encoding="utf_8") as fout:
-                fout.write("DBFavUpsert,{},{},{},{},{}\n".format(file_name, url_orig, url_thumbnail, save_file_fullpath, include_blob))
-
-        return res
-
-    def upsert_v2(self, params: dict) -> int:
-        """FavoriteにUPSERTする
-        """
-        Session = sessionmaker(bind=self.engine)
-        session = Session()
-        res = -1
 
         records = [Favorite.create(params)]
         for r in records:
@@ -97,8 +58,8 @@ class FavDBController(DBControllerBase):
             except NoResultFound:
                 # INSERT
                 session.add(r)
-                res = 0
             else:
+                # UPDATE
                 ex.is_exist_saved_file = r.is_exist_saved_file
                 ex.img_filename = r.img_filename
                 ex.url = r.url
@@ -116,29 +77,21 @@ class FavDBController(DBControllerBase):
                 ex.media_size = r.media_size
                 ex.media_blob = r.media_blob
 
-                # UPDATEは実質DELETE->INSERTと同じとする
-                # session.delete(ex)
-                # session.commit()
-                # session.add(r)
-                res = 1
-
+        # TODO::操作履歴保存未対応
         session.commit()
         session.close()
 
-        # TODO::操作履歴保存未対応
-        return res
-
-    def Select(self, limit=300):
+    def select(self, limit=300) -> list[dict]:
         """FavoriteからSELECTする
 
         Note:
-            "select * from Favorite order by created_at desc limit {}".format(limit)
+            f"select * from Favorite order by created_at desc limit {limit}"
 
         Args:
             limit (int): 取得レコード数上限
 
         Returns:
-            dict[]: SELECTしたレコードの辞書リスト
+            list[dict]: SELECTしたレコードの辞書リスト
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
@@ -149,17 +102,17 @@ class FavDBController(DBControllerBase):
         session.close()
         return res_dict
 
-    def SelectFromMediaURL(self, filename):
+    def select_from_media_url(self, filename) -> list[dict]:
         """Favoriteからfilenameを条件としてSELECTする
 
         Note:
-            "select * from Favorite where img_filename = {}".format(file_name_s)
+            f"select * from Favorite where img_filename = {filename}"
 
         Args:
             filename (str): 取得対象のファイル名
 
         Returns:
-            dict[]: SELECTしたレコードの辞書リスト
+            list[dict]: SELECTしたレコードの辞書リスト
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
@@ -170,25 +123,25 @@ class FavDBController(DBControllerBase):
         session.close()
         return res_dict
 
-    def FlagUpdate(self, file_list=[], set_flag=0):
-        """Favorite中のfile_listに含まれるファイル名を持つレコードについて
+    def update_flag(self, filename_list=[], set_flag=0) -> list[dict]:
+        """Favorite中の filename_list に含まれるファイル名を持つレコードについて
         　 is_exist_saved_fileフラグを更新する
 
         Note:
-            "update Favorite set is_exist_saved_file = {} where img_filename in ({})".format(set_flag, filename)
+            f"update Favorite set is_exist_saved_file = {set_flag} where img_filename in ({filename_list})"
 
         Args:
-            file_list (list): 取得対象のファイル名リスト
+            filename_list (list[str]): 取得対象のファイル名リスト
             set_flag (int): セットするフラグ
 
         Returns:
-            dict[]: フラグが更新された結果レコードの辞書リスト
+            list[dict]: フラグが更新された結果レコードの辞書リスト
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
 
         flag = False if set_flag == 0 else True
-        records = session.query(Favorite).filter(Favorite.img_filename.in_(file_list)).all()
+        records = session.query(Favorite).filter(Favorite.img_filename.in_(filename_list)).all()
         for record in records:
             record.is_exist_saved_file = flag
 
@@ -199,14 +152,11 @@ class FavDBController(DBControllerBase):
 
         return res_dict
 
-    def FlagClear(self):
+    def clear_flag(self) -> None:
         """Favorite中のis_exist_saved_fileフラグをすべて0に更新する
 
         Note:
             "update Favorite set is_exist_saved_file = 0"
-
-        Returns:
-             int: 0(成功)
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
@@ -217,8 +167,6 @@ class FavDBController(DBControllerBase):
 
         session.commit()
         session.close()
-
-        return 0
 
 
 if __name__ == "__main__":

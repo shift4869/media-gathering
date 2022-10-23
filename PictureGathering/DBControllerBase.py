@@ -31,168 +31,92 @@ class DBControllerBase(metaclass=ABCMeta):
             with self.operatefile.open(mode="w", encoding="utf_8") as fout:
                 fout.write("")
 
-    def _GetUpdateParam(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob):
-        """DBにUPSERTする際のパラメータを作成する
-
-        Notes:
-            include_blobがTrueのとき、save_file_fullpathを読み込み、blobとしてDBに格納する
-            そのためinclude_blobをTrueで呼び出す場合は、その前にsave_file_fullpathに
-            メディアファイルが保存されていなければならない
-
-        Args:
-            file_name (str): ファイル名
-            url_orig (str): メディアURL
-            url_thumbnail (str): サムネイルメディアURL
-            tweet (dict): ツイート
-            save_file_fullpath (str): メディア保存パス（ローカル）
-            include_blob (boolean): メディアをblobとして格納するかどうかのフラグ(Trueで格納する)
-
-        Returns:
-            dict: DBにUPSERTする際のパラメータをまとめた辞書
-        """
-        # img_filename,url,url_thumbnail,tweet_id,tweet_url,created_at,
-        # user_id,user_name,screan_name,tweet_text,tweet_via,saved_localpath,saved_created_at
-        td_format = "%a %b %d %H:%M:%S +0000 %Y"
-        dts_format = "%Y-%m-%d %H:%M:%S"
-        tca = tweet["created_at"]
-        dst = datetime.strptime(tca, td_format) + timedelta(hours=9)
-        text = tweet["text"] if "text" in tweet else tweet["full_text"]
-        regex = re.compile(r"<[^>]*?>")
-        via = regex.sub("", tweet["source"])
-        param = {
-            "img_filename": file_name,
-            "url": url_orig,
-            "url_thumbnail": url_thumbnail,
-            "tweet_id": tweet["id_str"],
-            "tweet_url": tweet["entities"]["media"][0]["expanded_url"],
-            "created_at": dst.strftime(dts_format),
-            "user_id": tweet["user"]["id_str"],
-            "user_name": tweet["user"]["name"],
-            "screan_name": tweet["user"]["screen_name"],
-            "tweet_text": text,
-            "tweet_via": via,
-            "saved_localpath": save_file_fullpath,
-            "saved_created_at": datetime.now().strftime(dts_format)
-        }
-
-        # media_size,media_blob
-        try:
-            if include_blob:
-                with open(save_file_fullpath, "rb") as fout:
-                    param["media_blob"] = fout.read()
-                    param["media_size"] = len(param["media_blob"])
-            else:
-                param["media_blob"] = None
-                param["media_size"] = Path(save_file_fullpath).stat().st_size
-        except Exception:
-            param["media_blob"] = None
-            param["media_size"] = -1
-
-        return param
-
-    def _GetDelUpdateParam(self, tweet):
-        pattern = " +[0-9]* "
-        text = tweet["text"]
-        add_num = int(re.findall(pattern, text)[0])
-        del_num = int(re.findall(pattern, text)[1])
-        td_format = "%a %b %d %H:%M:%S +0000 %Y"
-        dts_format = "%Y-%m-%d %H:%M:%S"
-
-        tca = tweet["created_at"]
-        dst = datetime.strptime(tca, td_format) + timedelta(hours=9)
-        # tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num
-        return {
-            "tweet_id": tweet["id_str"],
-            "delete_done": False,
-            "created_at": dst.strftime(dts_format),
-            "deleted_at": None,
-            "tweet_text": tweet["text"],
-            "add_num": add_num,
-            "del_num": del_num
-        }
-
     @abstractmethod
-    def Upsert(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob):
-        """FavoriteにUPSERTする
+    def upsert(self, params: dict) -> None:
+        """DBにUPSERTする
 
         Notes:
-            追加しようとしているレコードが既存テーブルに存在しなければINSERT
-            存在しているならばUPDATE(DELETE->INSERT)
             一致しているかの判定は
             img_filename, url, url_thumbnailのどれか一つでも完全一致している場合、とする
 
         Args:
-            file_name (str): ファイル名
-            url_orig (str): メディアURL
-            url_thumbnail (str): サムネイルメディアURL
-            tweet(str): ツイート本文
-            save_file_fullpath(str): メディア保存パス（ローカル）
-
-        Returns:
-            int: 0(成功,新規追加), 1(成功,更新), other(失敗)
+            params (dict): 以下のキーを持つ辞書
+                params = {
+                    "is_exist_saved_file": (bool),
+                    "img_filename": (str),
+                    "url": (str),
+                    "url_thumbnail": (str),
+                    "tweet_id": (str),
+                    "tweet_url": (str),
+                    "created_at": (str: "%Y-%m-%d %H:%M:%S"),
+                    "user_id": (str),
+                    "user_name": (str),
+                    "screan_name": (str),
+                    "tweet_text": (str),
+                    "tweet_via": (str),
+                    "saved_localpath": (str),
+                    "saved_created_at": (str: "%Y-%m-%d %H:%M:%S"),
+                }
         """
-        return -1
+        pass
 
     @abstractmethod
-    def Select(self, limit=300):
-        """FavoriteからSELECTする
+    def select(self, limit=300) -> list[dict]:
+        """DBからSELECTする
 
         Note:
-            "select * from Favorite order by created_at desc limit {}".format(limit)
+            f"select * from Favorite order by created_at desc limit {limit}"
 
         Args:
             limit (int): 取得レコード数上限
 
         Returns:
-            dict[]: SELECTしたレコードの辞書リスト
+            list[dict]: SELECTしたレコードの辞書リスト
         """
         return []
 
     @abstractmethod
-    def SelectFromMediaURL(self, filename):
-        """filenameを条件としてSELECTする
+    def select_from_media_url(self, filename) -> list[dict]:
+        """filename を条件としてSELECTする
 
         Note:
-            "select * from Favorite where img_filename = {}".format(file_name_s)
+            f"select * from Favorite where img_filename = {filename}"
 
         Args:
             filename (str): 取得対象のファイル名
 
         Returns:
-            dict[]: SELECTしたレコードの辞書リスト
+            list[dict]: SELECTしたレコードの辞書リスト
         """
         return []
 
     @abstractmethod
-    def FlagUpdate(self, file_list=[], set_flag=0):
-        """file_listに含まれるファイル名を持つレコードについて
-        　 is_exist_saved_fileフラグを更新する
+    def update_flag(self, filename_list=[], set_flag=0) -> list[dict]:
+        """filename_list に含まれるファイル名を持つレコードについて
+        　 is_exist_saved_file フラグを更新する
 
         Note:
-            "update Favorite set is_exist_saved_file = {} where img_filename in ({})".format(set_flag, filename)
+            f"update Favorite set is_exist_saved_file = {set_flag} where img_filename in ({filename_list})"
 
         Args:
-            file_list (list): 取得対象のファイル名リスト
+            filename_list (list): 取得対象のファイル名リスト
             set_flag (int): セットするフラグ
 
         Returns:
-            dict[]: フラグが更新された結果レコードの辞書リスト
+            list[dict]: フラグが更新された結果レコードの辞書リスト
         """
         return []
 
     @abstractmethod
-    def FlagClear(self):
-        """Favorite中のis_exist_saved_fileフラグをすべて0に更新する
+    def clear_flag(self) -> None:
+        """is_exist_saved_file フラグをすべて0に更新する
 
         Note:
             "update Favorite set is_exist_saved_file = 0"
-
-        Returns:
-            int: 0(成功)
         """
-        return -1
+        pass
 
-    def DelUpsert(self, tweet):
+    def upsert_del(self, tweet) -> None:
         """DeleteTargetにInsertする
 
         Note:
@@ -200,66 +124,17 @@ class DBControllerBase(metaclass=ABCMeta):
 
         Args:
             tweet (dict): Insert対象ツイートオブジェクト
-
-        Returns:
-            int: 0(成功)
+                tweet = {
+                    "data": {
+                        "id": tweet_id (str),
+                        "text": (str),
+                    }
+                }
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
-        res = -1
 
-        # tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num
-        param = self._GetDelUpdateParam(tweet)
-        r = DeleteTarget(param["tweet_id"], param["delete_done"], param["created_at"],
-                         param["deleted_at"], param["tweet_text"], param["add_num"], param["del_num"])
-
-        try:
-            q = session.query(DeleteTarget).filter(
-                or_(DeleteTarget.tweet_id == r.tweet_id))
-            ex = q.one()
-        except NoResultFound:
-            # INSERT
-            session.add(r)
-            res = 0
-        else:
-            # UPDATEは実質DELETE->INSERTと同じとする
-            session.delete(ex)
-            session.commit()
-            session.add(r)
-            res = 1
-
-        # INSERT
-        session.commit()
-        session.close()
-
-        # 操作履歴保存
-        if self.operatefile and self.operatefile.is_file():
-            bname = "DBDelUpsert" + ".bin"
-            bin_file_path = self.operatefile.parent / bname
-            with bin_file_path.open(mode="wb") as fout:
-                pickle.dump(tweet, fout)
-            with self.operatefile.open(mode="a", encoding="utf_8") as fout:
-                fout.write("DBDelUpsert\n")
-
-        return res
-
-    def del_upsert_v2(self, tweet):
-        """DeleteTargetにInsertする
-
-        Note:
-            insert into DeleteTarget (tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num) values (*)
-
-        Args:
-            tweet (dict): Insert対象ツイートオブジェクト
-
-        Returns:
-            int: 0(成功)
-        """
-        Session = sessionmaker(bind=self.engine)
-        session = Session()
-        res = -1
-
-        # tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num
+        # text から add_num と del_num を抽出する
         pattern = " +[0-9]* "
         text = tweet.get("data", {}).get("text", "")
         add_num = int(re.findall(pattern, text)[0])
@@ -285,12 +160,8 @@ class DBControllerBase(metaclass=ABCMeta):
         except NoResultFound:
             # INSERT
             session.add(r)
-            res = 0
         else:
-            # UPDATEは実質DELETE->INSERTと同じとする
-            # session.delete(ex)
-            # session.commit()
-            # session.add(r)
+            # UPDATE
             ex.tweet_id = r.tweet_id
             ex.delete_done = r.delete_done
             ex.created_at = r.created_at
@@ -298,31 +169,27 @@ class DBControllerBase(metaclass=ABCMeta):
             ex.tweet_text = r.tweet_text
             ex.add_num = r.add_num
             ex.del_num = r.del_num
-            res = 1
 
-        # INSERT
         session.commit()
         session.close()
 
         # 操作履歴保存
         if self.operatefile and self.operatefile.is_file():
-            bname = "DBDelUpsert" + ".bin"
+            bname = "DBupsert_del" + ".bin"
             bin_file_path = self.operatefile.parent / bname
             with bin_file_path.open(mode="wb") as fout:
                 pickle.dump(tweet, fout)
             with self.operatefile.open(mode="a", encoding="utf_8") as fout:
-                fout.write("DBDelUpsert\n")
+                fout.write("DBupsert_del\n")
 
-        return res
-
-    def DelSelect(self):
+    def update_del(self) -> list[dict]:
         """DeleteTargetからSELECTしてフラグをUPDATEする
 
         Note:
             2日前の通知ツイートを削除対象とする
 
         Returns:
-             dict[]: 削除対象となる通知ツイートの辞書リスト
+            list[dict]: 削除対象となる通知ツイートの辞書リスト
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
@@ -339,92 +206,19 @@ class DBControllerBase(metaclass=ABCMeta):
         for record in records:
             record.delete_done = True
             record.deleted_at = t.strftime("%Y-%m-%d %H:%M:%S")
-        session.commit()
 
+        session.commit()
         session.close()
         return res_dict
 
-    def ExternalLinkUpsert(self, external_link_url: str, tweet: dict) -> int:
-        """ExternalLinkにUpsertする
-
-        Args:
-            external_link_url (str): 外部リンク
-            tweet (dict): ツイートオブジェクト
-
-        Returns:
-            int: 0(成功)
-        """
-        Session = sessionmaker(bind=self.engine)
-        session = Session()
-        res = -1
-
-        # tweet解釈
-        td_format = "%a %b %d %H:%M:%S +0000 %Y"
-        dts_format = "%Y-%m-%d %H:%M:%S"
-        tca = tweet["created_at"]
-        dst = datetime.strptime(tca, td_format) + timedelta(hours=9)
-        text = tweet["text"] if "text" in tweet else tweet["full_text"]
-        regex = re.compile(r"<[^>]*?>")
-        via = regex.sub("", tweet["source"])
-
-        tweet_id = tweet["id_str"]
-        screan_name = tweet["user"]["screen_name"]
-
-        try:
-            tweet_url = tweet["entities"]["media"][0]["expanded_url"]
-        except Exception:
-            tweet_url = f"https://twitter.com/{screan_name}/status/{tweet_id}"
-
-        created_at = dst.strftime(dts_format)
-        user_id = tweet["user"]["id_str"]
-        user_name = tweet["user"]["name"]
-        tweet_text = text
-        tweet_via = via
-        link_type = ""
-        saved_created_at = datetime.now().strftime(dts_format)
-
-        r = ExternalLink(external_link_url, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, tweet_via, saved_created_at, link_type)
-
-        try:
-            q = session.query(ExternalLink).filter(and_(ExternalLink.external_link_url == r.external_link_url, ExternalLink.tweet_url == r.tweet_url))
-            p = q.one()
-        except NoResultFound:
-            # INSERT
-            session.add(r)
-            res = 0
-        else:
-            # UPDATE
-            p.external_link_url = r.external_link_url
-            p.tweet_id = r.tweet_id
-            p.tweet_url = r.tweet_url
-            p.created_at = r.created_at
-            p.user_id = r.user_id
-            p.user_name = r.user_name
-            p.screan_name = r.screan_name
-            p.tweet_text = r.tweet_text
-            p.tweet_via = r.tweet_via
-            if p.saved_created_at == "":
-                p.saved_created_at = r.saved_created_at
-            p.link_type = r.link_type
-            res = 1
-
-        session.commit()
-        session.close()
-
-        return res
-
-    def external_link_upsert_v2(self, external_link_list: list[ExternalLink]) -> int:
+    def upsert_external_link(self, external_link_list: list[ExternalLink]) -> None:
         """ExternalLinkにUpsertする
 
         Args:
             external_link_list (list[ExternalLink]): 外部リンクリスト
-
-        Returns:
-            int: 0(成功)
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
-        res = -1
 
         for r in external_link_list:
             try:
@@ -433,7 +227,6 @@ class DBControllerBase(metaclass=ABCMeta):
             except NoResultFound:
                 # INSERT
                 session.add(r)
-                res = 0
             else:
                 # UPDATE
                 p.external_link_url = r.external_link_url
@@ -448,25 +241,21 @@ class DBControllerBase(metaclass=ABCMeta):
                 if p.saved_created_at == "":
                     p.saved_created_at = r.saved_created_at
                 p.link_type = r.link_type
-                res = 1
 
         session.commit()
         session.close()
 
-        return res
-
-    def external_link_select_v2(self, target_external_link: str) -> int:
+    def select_external_link(self, target_external_link: str) -> list[dict]:
         """ExternalLinkからSelectする
 
         Args:
             target_external_link (str): 対象外部リンク
 
         Returns:
-            int: 0(成功)
+            list[dict]: SELECTしたレコードの辞書リスト
         """
         Session = sessionmaker(bind=self.engine)
         session = Session()
-        res = -1
 
         res = session.query(ExternalLink).filter_by(external_link_url=target_external_link).all()
         res_dict = [r.toDict() for r in res]  # 辞書リストに変換
@@ -500,16 +289,16 @@ class DBControllerBase(metaclass=ABCMeta):
     #                     tweet = pickle.load(bin)
     #                 self.DBRetweetUpsert(params[1], params[2], params[3], tweet, params[4], params[5] == "True")
     #                 rt_upsert_file_list.append(params[1])
-    #             elif params[0] == "DBDelUpsert":
-    #                 bin_file = "DBDelUpsert" + ".bin"
+    #             elif params[0] == "DBupsert_del":
+    #                 bin_file = "DBupsert_del" + ".bin"
     #                 with (fp.parent / bin_file).open(mode="rb") as bin:
     #                     tweet = pickle.load(bin)
-    #                 self.DBDelUpsert(tweet)
+    #                 self.DBupsert_del(tweet)
 
     #     if fav_upsert_file_list:
-    #         self.DBFavFlagUpdate(fav_upsert_file_list, 1)
+    #         self.DBFavupdate_flag(fav_upsert_file_list, 1)
     #     if rt_upsert_file_list:
-    #         self.DBRetweetFlagUpdate(rt_upsert_file_list, 1)
+    #         self.DBRetweetupdate_flag(rt_upsert_file_list, 1)
 
     #     return 0
 

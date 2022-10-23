@@ -41,7 +41,7 @@ def MakeTHTag(url, url_thumbnail, tweet_url):
 
 def WriteResultHTML(op_type, db_controller, limit=300):
     save_path = ""
-    db = db_controller.Select(limit)
+    db = db_controller.select(limit)
     if op_type == "Fav":
         save_path = FAV_HTML_PATH
     elif op_type == "RT":
