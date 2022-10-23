@@ -344,51 +344,55 @@ class SkebSession():
 
         # 以前に接続した時のクッキーとローカルストレージのファイルが存在しているならば
         if scp.exists() and slsp.exists():
-            # ローカルストレージを読み込む
-            local_storage = []
-            with slsp.open(mode="r") as fin:
-                for line in fin:
-                    if line == "":
-                        break
-                    local_storage.append(line)
+            RETRY_NUM = 5
+            for i in range(RETRY_NUM):
+                # ローカルストレージを読み込む
+                local_storage = []
+                with slsp.open(mode="r") as fin:
+                    for line in fin:
+                        if line == "":
+                            break
+                        local_storage.append(line)
 
-            # クッキーを読み込む
-            cookies = requests.cookies.RequestsCookieJar()
-            with scp.open(mode="r") as fin:
-                for line in fin:
-                    if line == "":
-                        break
-
-                    sc = {}
-                    elements = re.split("[,\n]", line)
-                    for element in elements:
-                        element = element.strip().replace('"', "")  # 左右の空白とダブルクォートを除去
-                        if element == "":
+                # クッキーを読み込む
+                cookies = requests.cookies.RequestsCookieJar()
+                with scp.open(mode="r") as fin:
+                    for line in fin:
+                        if line == "":
                             break
 
-                        key, val = element.split("=")  # =で分割
-                        sc[key] = val
+                        sc = {}
+                        elements = re.split("[,\n]", line)
+                        for element in elements:
+                            element = element.strip().replace('"', "")  # 左右の空白とダブルクォートを除去
+                            if element == "":
+                                break
 
-                    cookies.set(
-                        sc["name"],
-                        sc["value"],
-                        expires=sc["expires"],
-                        path=sc["path"],
-                        domain=sc["domain"],
-                        secure=bool(sc["secure"]),
-                        rest={"HttpOnly": bool(sc["httponly"])}
-                    )
+                            key, val = element.split("=")  # =で分割
+                            sc[key] = val
 
-            # SkebSessionインスタンスを生成する
-            # 正当性は生成時に確認される
-            # エラーが発生した場合は以降の処理に続いて
-            # 再度クッキーとローカルストレージを取得することを試みる
-            try:
-                skeb_session = SkebSession(cookies, local_storage)
-                # logger.info("Getting Skeb session is success.")
-                return skeb_session
-            except Exception:
-                pass
+                        cookies.set(
+                            sc["name"],
+                            sc["value"],
+                            expires=sc["expires"],
+                            path=sc["path"],
+                            domain=sc["domain"],
+                            secure=bool(sc["secure"]),
+                            rest={"HttpOnly": bool(sc["httponly"])}
+                        )
+
+                # SkebSessionインスタンスを生成する
+                # 正当性は生成時に確認される
+                # エラーが発生した場合は以降の処理に続いて
+                # 再度クッキーとローカルストレージを取得することを試みる
+                try:
+                    skeb_session = SkebSession(cookies, local_storage)
+                    # logger.info("Getting Skeb session is success.")
+                    return skeb_session
+                except Exception:
+                    logger.info(f"Local_storage and cookies loading retry ... ({i+1}/{RETRY_NUM}).")
+            else:
+                logger.info(f"Retry num is exceed RETRY_NUM={RETRY_NUM}.")
 
         # クッキーとローカルストレージのファイルがない場合
         # または有効なセッションが取得できなかった場合
@@ -396,13 +400,6 @@ class SkebSession():
         loop = asyncio.new_event_loop()
         cookies, local_storage = loop.run_until_complete(SkebSession.get_cookies_from_oauth(username, password))
         skeb_session = SkebSession(cookies, local_storage)
-
-        # logger.info("Getting Skeb session is success.")
-
-        # 取得したクッキーとローカルストレージを保存する
-        # get_cookies_from_oauth内で保存される
-        # with scp.open("w") as fout:
-        #     fout.write(skeb_cookie)
 
         return skeb_session
 
