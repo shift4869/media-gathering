@@ -15,8 +15,8 @@ DEBUG = False
 
 
 class RetweetDBController(DBControllerBase):
-    def __init__(self, db_fullpath="PG_DB.db", save_operation=True):
-        super().__init__(db_fullpath, save_operation)
+    def __init__(self, db_fullpath="PG_DB.db",):
+        super().__init__(db_fullpath)
 
     def upsert(self, params: dict) -> None:
         """RetweetにUPSERTする

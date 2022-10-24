@@ -1,5 +1,4 @@
 # coding: utf-8
-import pickle
 import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -17,19 +16,10 @@ DEBUG = False
 
 
 class DBControllerBase(metaclass=ABCMeta):
-    def __init__(self, db_fullpath="PG_DB.db", save_operation=True):
+    def __init__(self, db_fullpath="PG_DB.db"):
         self.dbname = db_fullpath
         self.engine = create_engine(f"sqlite:///{self.dbname}", echo=False)
         Base.metadata.create_all(self.engine)
-
-        self.operatefile = None
-        if save_operation and not DEBUG:
-            self.operatefile = Path("./archive").absolute() / "operatefile.txt"  # 操作履歴保存ファイル
-            
-            if not self.operatefile.parent.is_dir():
-                self.operatefile.parent.mkdir(parents=True, exist_ok=True)
-            with self.operatefile.open(mode="w", encoding="utf_8") as fout:
-                fout.write("")
 
     @abstractmethod
     def upsert(self, params: dict) -> None:
@@ -117,7 +107,7 @@ class DBControllerBase(metaclass=ABCMeta):
         pass
 
     def upsert_del(self, tweet) -> None:
-        """DeleteTargetにInsertする
+        """DeleteTargetにUPSERTする
 
         Note:
             insert into DeleteTarget (tweet_id,delete_done,created_at,deleted_at,tweet_text,add_num,del_num) values (*)
@@ -173,15 +163,6 @@ class DBControllerBase(metaclass=ABCMeta):
         session.commit()
         session.close()
 
-        # 操作履歴保存
-        if self.operatefile and self.operatefile.is_file():
-            bname = "DBupsert_del" + ".bin"
-            bin_file_path = self.operatefile.parent / bname
-            with bin_file_path.open(mode="wb") as fout:
-                pickle.dump(tweet, fout)
-            with self.operatefile.open(mode="a", encoding="utf_8") as fout:
-                fout.write("DBupsert_del\n")
-
     def update_del(self) -> list[dict]:
         """DeleteTargetからSELECTしてフラグをUPDATEする
 
@@ -200,19 +181,19 @@ class DBControllerBase(metaclass=ABCMeta):
         records = session.query(DeleteTarget).filter(~DeleteTarget.delete_done).\
             filter(DeleteTarget.created_at < t.strftime("%Y-%m-%d %H:%M:%S")).all()
 
-        res_dict = [r.toDict() for r in records]  # 辞書リストに変換
-
         # 消去フラグを立てる
         for record in records:
             record.delete_done = True
             record.deleted_at = t.strftime("%Y-%m-%d %H:%M:%S")
+
+        res_dict = [r.toDict() for r in records]  # 辞書リストに変換
 
         session.commit()
         session.close()
         return res_dict
 
     def upsert_external_link(self, external_link_list: list[ExternalLink]) -> None:
-        """ExternalLinkにUpsertする
+        """ExternalLinkにUPSERTする
 
         Args:
             external_link_list (list[ExternalLink]): 外部リンクリスト
@@ -246,7 +227,7 @@ class DBControllerBase(metaclass=ABCMeta):
         session.close()
 
     def select_external_link(self, target_external_link: str) -> list[dict]:
-        """ExternalLinkからSelectする
+        """ExternalLinkからSELECTする
 
         Args:
             target_external_link (str): 対象外部リンク
@@ -262,45 +243,6 @@ class DBControllerBase(metaclass=ABCMeta):
 
         session.close()
         return res_dict
-
-    # def ReflectFromFile(self, operate_file_path):
-    #     """操作履歴ファイルから操作を反映する
-
-    #     Returns:
-    #          int: 0(成功)
-    #     """
-    #     fav_upsert_file_list = []
-    #     rt_upsert_file_list = []
-    #     fp = Path(operate_file_path)
-    #     with fp.open(mode="r", encoding="utf_8") as fin:
-    #         lines = fin.readlines()
-    #         for line_str in lines:
-    #             token = re.split("[,\n]", line_str)
-    #             params = token[:-1]
-    #             if params[0] == "DBFavUpsert":
-    #                 bin_file = "DBFavUpsert_" + params[1].split(".")[0] + ".bin"
-    #                 with (fp.parent / bin_file).open(mode="rb") as bin:
-    #                     tweet = pickle.load(bin)
-    #                 self.DBFavUpsert(params[1], params[2], params[3], tweet, params[4], params[5] == "True")
-    #                 fav_upsert_file_list.append(params[1])
-    #             elif params[0] == "DBRetweetUpsert":
-    #                 bin_file = "DBRetweetUpsert_" + params[1].split(".")[0] + ".bin"
-    #                 with (fp.parent / bin_file).open(mode="rb") as bin:
-    #                     tweet = pickle.load(bin)
-    #                 self.DBRetweetUpsert(params[1], params[2], params[3], tweet, params[4], params[5] == "True")
-    #                 rt_upsert_file_list.append(params[1])
-    #             elif params[0] == "DBupsert_del":
-    #                 bin_file = "DBupsert_del" + ".bin"
-    #                 with (fp.parent / bin_file).open(mode="rb") as bin:
-    #                     tweet = pickle.load(bin)
-    #                 self.DBupsert_del(tweet)
-
-    #     if fav_upsert_file_list:
-    #         self.DBFavupdate_flag(fav_upsert_file_list, 1)
-    #     if rt_upsert_file_list:
-    #         self.DBRetweetupdate_flag(rt_upsert_file_list, 1)
-
-    #     return 0
 
 
 if __name__ == "__main__":

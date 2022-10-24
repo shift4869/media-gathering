@@ -22,6 +22,7 @@ import slackweb
 from plyer import notification
 
 from PictureGathering import WriteHTML, Archiver, GoogleDrive
+from PictureGathering.DBControllerBase import DBControllerBase
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LogMessage import MSG
 from PictureGathering.Model import ExternalLink
@@ -137,7 +138,7 @@ class Crawler(metaclass=ABCMeta):
 
         # 派生クラスで実体が代入されるメンバ
         # 情報保持DBコントローラー
-        self.db_cont = None
+        self.db_cont: DBControllerBase = None
         # 保存先パス
         self.save_path = Path()
         # クローラタイプ = ["Fav", "RT"]
@@ -299,8 +300,9 @@ class Crawler(metaclass=ABCMeta):
         if config.getboolean("is_post_fav_done_reply") or config.getboolean("is_post_retweet_done_reply"):
             targets = self.db_cont.update_del()
             for target in targets:
-                url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.DELETE_TWEET, target["tweet_id"])
-                response = self.twitter.delete(url)  # tweet_id
+                tweet_id = target.get("tweet_id")
+                url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.DELETE_TWEET, tweet_id)
+                response = self.twitter.delete(url)
 
         logger.info("End Of " + self.type + " Crawl Process.")
         return 0
@@ -327,6 +329,14 @@ class Crawler(metaclass=ABCMeta):
             logger.error("post_tweet failed.")
             return -1
 
+        # 削除用DBにUPSERTする
+        # レスポンスは以下の形で返ってくる
+        # {
+        #     "data": {
+        #         "id": {id},
+        #         "text": {tweet_str}
+        #     }
+        # }
         tweet = response
         self.db_cont.upsert_del(tweet)
 

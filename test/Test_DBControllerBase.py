@@ -1,24 +1,18 @@
 # coding: utf-8
-import json
 import re
 import sys
 import unittest
-from contextlib import ExitStack
 from datetime import date, datetime, timedelta
-from logging import WARNING, getLogger
-from mock import MagicMock, PropertyMock, patch
 from pathlib import Path
 
-import freezegun
+from freezegun import freeze_time
 from sqlalchemy import *
 from sqlalchemy.orm import *
 from sqlalchemy.orm.exc import *
 
-from PictureGathering import DBControllerBase, Model
+from PictureGathering import DBControllerBase
 from PictureGathering.Model import *
 
-logger = getLogger(__name__)
-logger.setLevel(WARNING)
 TEST_DB_FULLPATH = "./test/test.db"
 
 
@@ -28,22 +22,22 @@ class ConcreteDBControllerBase(DBControllerBase.DBControllerBase):
     DBControllerBase.DBControllerBase()の抽象クラスメソッドを最低限実装したテスト用の派生クラス
     """
 
-    def __init__(self, db_fullpath=TEST_DB_FULLPATH, save_operation=True):
-        super().__init__(db_fullpath, save_operation)
+    def __init__(self, db_fullpath=TEST_DB_FULLPATH):
+        super().__init__(db_fullpath)
 
-    def Upsert(self, file_name, url_orig, url_thumbnail, tweet, save_file_fullpath, include_blob):
+    def upsert(self, params: dict) -> None:
         return 0
 
-    def Select(self, limit=300):
-        return ["Select Called"]
+    def select(self, limit=300) -> list[dict]:
+        return ["select called"]
 
-    def select_from_media_url(self, filename):
-        return ["select_from_media_url Called"]
+    def select_from_media_url(self, filename) -> list[dict]:
+        return ["select_from_media_url called"]
 
-    def update_flag(self, file_list=[], set_flag=0):
-        return ["update_flag Called"]
+    def update_flag(self, file_list=[], set_flag=0) -> list[dict]:
+        return ["update_flag called"]
 
-    def clear_flag(self):
+    def clear_flag(self) -> None:
         return 0
 
 
@@ -62,8 +56,7 @@ class TestDBController(unittest.TestCase):
         if self.engine.url.database == ":memory:":
             Base.metadata.drop_all(self.engine)
 
-        if Path(TEST_DB_FULLPATH).is_file():
-            Path(TEST_DB_FULLPATH).unlink()
+        Path(TEST_DB_FULLPATH).unlink(missing_ok=True)
 
         # 操作履歴削除
         sd_archive = Path("./archive")
@@ -71,227 +64,252 @@ class TestDBController(unittest.TestCase):
         for op_file in op_files:
             op_file.unlink()
 
-    def GetTweetSample(self, img_url_s: str) -> dict:
-        """ツイートオブジェクトのサンプルを生成する
-
-        Notes:
-            メディアを含むツイートのサンプル
-            辞書構造やキーについては下記tweet_json参照
-
-        Args:
-            img_url_s (str): サンプルメディアURL
-
-        Returns:
-            dict: ツイートオブジェクト（辞書）
-        """
-        # ネストした引用符つきの文字列はjsonで処理できないのであくまで仮の文字列
-        tweet_url_s = "http://www.tweet.sample.com"
-        tag_p_s = "<a href=https://mobile.twitter.com rel=nofollow>Twitter Web App</a>"
-        tweet_json = f'''{{
-            "entities": {{
-                "media": [{{
-                    "expanded_url": "{tweet_url_s}"
-                }}]
-            }},
-            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
-            "id_str": "12345_id_str_sample",
-            "user": {{
-                "id_str": "12345_id_str_sample",
-                "name": "shift_name_sample",
-                "screen_name": "_shift4869_screen_name_sample"
-            }},
-            "text": "tweet_text_sample",
-            "source": "{tag_p_s}"
-        }}'''
-        tweet_s = json.loads(tweet_json)
-        return tweet_s
-
-    def GetDelTweetSample(self) -> dict:
+    def _make_post_tweet_response_sample(self, created_at, add_num, del_num) -> dict:
         """ツイートオブジェクトのサンプルを生成する
 
         Notes:
             DeleteTargetに挿入するツイートのサンプル
-            辞書構造やキーについては下記tweet_json参照
 
         Returns:
-            dict: ツイートオブジェクト（辞書）
+            dict: ツイートオブジェクト（post後の返り値）
         """
-        tweet_json = f'''{{
-            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
-            "id_str": "12345_id_str_sample",
-            "text": "@s_shift4869 PictureGathering run.\\n2018/03/09 11:59:38 Process Done !!\\nadd 1 new images. delete 0 old images."
-        }}'''
-        tweet_s = json.loads(tweet_json)
+        tweet_texts = [
+            "@s_shift4869 PictureGathering run.",
+            f"{created_at} Process Done !!",
+            f"add {add_num} new images. delete {del_num} old images."
+        ]
+        tweet_s = {
+            "data": {
+                "id": "12345_id_str_sample",
+                "text": "\n".join(tweet_texts)
+            }
+        }
         return tweet_s
 
-    def test_SQLParam(self):
-        """パラメータ生成関数をチェックする
+    def _make_external_link_sample(self, i: int) -> ExternalLink:
+        """外部リンクオブジェクトのサンプルを生成する
+
+        Notes:
+            ExternalLinkに挿入する外部リンクオブジェクトのサンプル
+
+        Returns:
+            ExternalLink: 外部リンクオブジェクト
         """
-        # engineをテスト用インメモリテーブルに置き換える
-        controlar = ConcreteDBControllerBase()
-        controlar.engine = self.engine
+        expanded_url = f"expanded_url_{i:02}"
+        tweet_id = f"{i:05}"
+        tweet_url = f"tweet_url_{i:02}"
+        dts_format = "%Y-%m-%d %H:%M:%S"
+        created_at = datetime.now().strftime(dts_format)
+        user_id = f"{i:03}"
+        user_name = f"user_name_{i:02}"
+        screan_name = f"screan_name_{i:02}"
+        tweet_text = f"tweet_text_{i:02}"
+        tweet_via = "tweet_via"
+        saved_created_at = datetime.now().strftime(dts_format)
+        link_type = ""
+        r = {
+            "external_link_url": expanded_url,
+            "tweet_id": tweet_id,
+            "tweet_url": tweet_url,
+            "created_at": created_at,
+            "user_id": user_id,
+            "user_name": user_name,
+            "screan_name": screan_name,
+            "tweet_text": tweet_text,
+            "tweet_via": tweet_via,
+            "saved_created_at": saved_created_at,
+            "link_type": link_type,
+        }
+        return ExternalLink.create(r)
 
-        with freezegun.freeze_time("2018-11-18 17:12:58"):
-            img_url_s = "http://www.img.filename.sample.com/media/sample.png"
-            url_orig_s = img_url_s + ":orig"
-            url_thumbnail_s = img_url_s + ":large"
-            file_name_s = Path(img_url_s).name
+    def test_upsert_del(self):
+        """DeleteTargetへのUPSERTをチェックする
+        """
+        freezed_time = "2022-10-24 10:30:00"
+        with freeze_time(freezed_time):
+            # engineをテスト用インメモリテーブルに置き換える
+            controlar = ConcreteDBControllerBase()
+            controlar.engine = self.engine
 
-            td_format_s = "%a %b %d %H:%M:%S +0000 %Y"
-            dts_format_s = "%Y-%m-%d %H:%M:%S"
+            # 厳密な一致判定
+            def is_equal_DeleteTarget(p_list, q_list):
+                if len(p_list) != len(q_list):
+                    return False
+                for p, q in zip(p_list, q_list):
+                    member = [
+                        p.tweet_id == q.tweet_id,
+                        p.delete_done == q.delete_done,
+                        p.created_at == q.created_at,
+                        p.deleted_at == q.deleted_at,
+                        p.tweet_text == q.tweet_text,
+                        p.add_num == q.add_num,
+                        p.del_num == q.del_num
+                    ]
+                    if not all(member):
+                        return False
+                return True
 
-            tweet_s = self.GetTweetSample(img_url_s)
-            save_file_fullpath_s = Path(file_name_s)
+            # insert
+            tweet_del = self._make_post_tweet_response_sample(freezed_time, 1, 0)
 
-            with save_file_fullpath_s.open(mode="wb") as fout:
-                fout.write(b"abcde")
-
-            tca = tweet_s["created_at"]
-            dst = datetime.strptime(tca, td_format_s) + timedelta(hours=9)
-            regex = re.compile(r"<[^>]*?>")
-            via = regex.sub("", tweet_s["source"])
-            expect = {
-                "img_filename": file_name_s,
-                "url": url_orig_s,
-                "url_thumbnail": url_thumbnail_s,
-                "tweet_id": tweet_s["id_str"],
-                "tweet_url": tweet_s["entities"]["media"][0]["expanded_url"],
-                "created_at": dst.strftime(dts_format_s),
-                "user_id": tweet_s["user"]["id_str"],
-                "user_name": tweet_s["user"]["name"],
-                "screan_name": tweet_s["user"]["screen_name"],
-                "tweet_text": tweet_s["text"],
-                "tweet_via": via,
-                "saved_localpath": str(save_file_fullpath_s),
-                "saved_created_at": datetime.now().strftime(dts_format_s),
-                "media_size": 5,
-                "media_blob": b"abcde"
-            }
-            actual = controlar._GetUpdateParam(file_name_s, url_orig_s, url_thumbnail_s, tweet_s, str(save_file_fullpath_s), True)
-            self.assertEqual(expect, actual)
-
-            del_tweet_s = self.GetDelTweetSample()
             pattern = " +[0-9]* "
-            text = del_tweet_s["text"]
+            text = tweet_del.get("data", {}).get("text", "")
             add_num = int(re.findall(pattern, text)[0])
             del_num = int(re.findall(pattern, text)[1])
+            dts_format = "%Y-%m-%d %H:%M:%S"
 
-            tca = del_tweet_s["created_at"]
-            dst = datetime.strptime(tca, td_format_s) + timedelta(hours=9)
-            expect = {
-                "tweet_id": del_tweet_s["id_str"],
+            params = {
+                "tweet_id": tweet_del.get("data", {}).get("id", ""),
                 "delete_done": False,
-                "created_at": dst.strftime(dts_format_s),
+                "created_at": datetime.now().strftime(dts_format),
                 "deleted_at": None,
-                "tweet_text": del_tweet_s["text"],
+                "tweet_text": text,
                 "add_num": add_num,
                 "del_num": del_num
             }
-            actual = controlar._GetDelUpdateParam(del_tweet_s)
-            self.assertEqual(expect, actual)
+            expect = DeleteTarget(params["tweet_id"], params["delete_done"], params["created_at"],
+                                  params["deleted_at"], params["tweet_text"], params["add_num"], params["del_num"])
 
-    def test_DBupsert_del(self):
-        """DeleteTargetへのUPSERTをチェックする
-        """
-        # engineをテスト用インメモリテーブルに置き換える
-        controlar = ConcreteDBControllerBase()
-        controlar.engine = self.engine
+            actual = controlar.upsert_del(tweet_del)
+            self.assertIsNone(actual)
+            actual = self.session.query(DeleteTarget).all()
+            self.assertTrue(is_equal_DeleteTarget([expect], actual))
 
-        del_tweet_s = self.GetDelTweetSample()
-        res = controlar.upsert_del(del_tweet_s)
-        self.assertEqual(res, 0)
+            # update
+            tweet_del = self._make_post_tweet_response_sample(freezed_time, 5, 3)
 
-        param = controlar._GetDelUpdateParam(del_tweet_s)
-        expect = DeleteTarget(param["tweet_id"], param["delete_done"], param["created_at"],
-                              param["deleted_at"], param["tweet_text"], param["add_num"], param["del_num"])
-        actual = self.session.query(DeleteTarget).all()
-        self.assertEqual([expect], actual)
+            pattern = " +[0-9]* "
+            text = tweet_del.get("data", {}).get("text", "")
+            add_num = int(re.findall(pattern, text)[0])
+            del_num = int(re.findall(pattern, text)[1])
+            dts_format = "%Y-%m-%d %H:%M:%S"
 
-    def test_DBupdate_del(self):
-        """DeleteTargetからのSELECTをチェックする
+            params = {
+                "tweet_id": tweet_del.get("data", {}).get("id", ""),
+                "delete_done": False,
+                "created_at": datetime.now().strftime(dts_format),
+                "deleted_at": None,
+                "tweet_text": text,
+                "add_num": add_num,
+                "del_num": del_num
+            }
+            expect = DeleteTarget(params["tweet_id"], params["delete_done"], params["created_at"],
+                                  params["deleted_at"], params["tweet_text"], params["add_num"], params["del_num"])
+
+            actual = controlar.upsert_del(tweet_del)
+            self.assertIsNone(actual)
+            actual = self.session.query(DeleteTarget).all()
+            self.assertTrue(is_equal_DeleteTarget([expect], actual))
+
+    def test_update_del(self):
+        """DeleteTargetからのSELECTしてフラグをUPDATEする機能をチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
         controlar = ConcreteDBControllerBase()
         controlar.engine = self.engine
 
         # テーブルの用意
-        records = []
-        td_format = "%a %b %d %H:%M:%S +0000 %Y"
-        t = []
-        s = []
-        t.append(date.today())
-        for i in range(1, 3):
-            t.append(t[i - 1] - timedelta(1))
-        for tn in t:
-            s.append(tn.strftime(td_format))
-        for i, sn in enumerate(s):
-            del_tweet_s = {
-                "created_at": sn,
-                "id_str": f"12345_id_str_sample_{i + 1}",
-                "text": "@s_shift4869 PictureGathering run.\\n2018/03/09 11:59:38 Process Done !!\\nadd 1 new images. delete 0 old images."
-            }
-            param = controlar._GetDelUpdateParam(del_tweet_s)
-            r = DeleteTarget(param["tweet_id"], param["delete_done"], param["created_at"],
-                             param["deleted_at"], param["tweet_text"], param["add_num"], param["del_num"])
-            records.append(r)
-            self.session.add(r)
-        self.session.commit()
+        for i in range(1, 5):
+            freezed_time = f"2022-10-{i:02} 10:30:00"
+            with freeze_time(freezed_time):
+                # insert
+                tweet_del = self._make_post_tweet_response_sample(freezed_time, i + 2, i + 1)
+                tweet_del["data"]["id"] = f"{i:02}_" + tweet_del["data"]["id"]
+                controlar.upsert_del(tweet_del)
 
-        actual = controlar.update_del()[0]
+        freezed_time = f"2022-10-05 10:30:00"
+        with freeze_time(freezed_time):
+            t = date.today() - timedelta(1)
+            expect_element_list = list(self.session.query(DeleteTarget).all()[:3])
 
-        expect = records[2].toDict()
-        self.assertEqual(expect["tweet_id"], actual["tweet_id"])
+            expect = []
+            for record in expect_element_list:
+                record.delete_done = True
+                record.deleted_at = t.strftime("%Y-%m-%d %H:%M:%S")
+                expect.append(record.toDict())
+            actual = controlar.update_del()
+            self.assertEqual(expect, actual)
 
-    def test_DBReflectFromFile(self):
-        """操作履歴ファイルから操作を反映する機能をチェックする
+    def test_upsert_external_link(self):
+        """ExternalLinkへのUPSERTをチェックする
         """
-        return  # 一旦スキップ
+        freezed_time = "2022-10-24 10:30:00"
+        with freeze_time(freezed_time):
+            # engineをテスト用インメモリテーブルに置き換える
+            controlar = ConcreteDBControllerBase()
+            controlar.engine = self.engine
 
-        # engineをテスト用インメモリテーブルに置き換える
-        controlar = ConcreteDBControllerBase()
-        controlar.engine = self.engine
+            # 厳密な一致判定
+            def is_equal_ExternalLink(p_list, q_list):
+                if len(p_list) != len(q_list):
+                    return False
+                for p, q in zip(p_list, q_list):
+                    member = [
+                        p.external_link_url == q.external_link_url,
+                        p.tweet_id == q.tweet_id,
+                        p.tweet_url == q.tweet_url,
+                        p.created_at == q.created_at,
+                        p.user_id == q.user_id,
+                        p.user_name == q.user_name,
+                        p.screan_name == q.screan_name,
+                        p.tweet_text == q.tweet_text,
+                        p.tweet_via == q.tweet_via,
+                        p.saved_created_at == q.saved_created_at,
+                        p.link_type == q.link_type
+                    ]
+                    if not all(member):
+                        return False
+                return True
 
-        # テスト用操作履歴ファイルを反映する
-        operate_file = "./test/operate_file_example/operatefile.txt"
-        operate_file_path = Path(operate_file)
+            # insert
+            external_link_list = [self._make_external_link_sample(i) for i in range(5)]
+            expect = [self._make_external_link_sample(i) for i in range(5)]
 
-        res = controlar.DBReflectFromFile(str(operate_file_path))
-        self.assertEqual(res, 0)
+            controlar.upsert_external_link(external_link_list)
 
-        # テスト用操作履歴ファイル反映後の想定状況と比較する
-        # DBFavUpsert
-        img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
-        r1 = self.FavoriteSampleFactory(img_url_s)
-        img_url_s = "http://www.img.filename.sample.com/media/sample_2.png"
-        r2 = self.FavoriteSampleFactory(img_url_s)
-        img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
-        file_name_s = "sample_3.png"
-        r3 = self.FavoriteSampleFactory(img_url_s)
-        r3.img_filename = file_name_s
-        expect = [self.f, r2, r3]
-        actual = self.session.query(Favorite).all()
-        self.assertEqual(expect, actual)
+            actual = self.session.query(ExternalLink).all()
+            self.assertTrue(is_equal_ExternalLink(expect, actual))
 
-        # DBRetweetUpsert
-        img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
-        r1 = self.RetweetSampleFactory(img_url_s)
-        img_url_s = "http://www.img.filename.sample.com/media/sample_2.png"
-        r2 = self.RetweetSampleFactory(img_url_s)
-        img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
-        file_name_s = "sample_3.png"
-        r3 = self.RetweetSampleFactory(img_url_s)
-        r3.img_filename = file_name_s
-        expect = [self.rt, r2, r3]
-        actual = self.session.query(Retweet).all()
-        self.assertEqual(expect, actual)
+            # update
+            external_link_list = [self._make_external_link_sample(i) for i in range(5)]
+            expect = [self._make_external_link_sample(i) for i in range(5)]
+            for e_args, e in zip(external_link_list, expect):
+                e_args.tweet_text = "updated_" + e_args.tweet_text
+                e.tweet_text = "updated_" + e.tweet_text
 
-        # DBupsert_del
-        del_tweet_s = self.GetDelTweetSample()
-        param = controlar._DBController__GetDelUpdateParam(del_tweet_s)
-        expect = DeleteTarget(param["tweet_id"], param["delete_done"], param["created_at"],
-                              param["deleted_at"], param["tweet_text"], param["add_num"], param["del_num"])
-        actual = self.session.query(DeleteTarget).all()
-        self.assertEqual([expect], actual)
+            controlar.upsert_external_link(external_link_list)
+
+            actual = []
+            for record in expect:
+                external_link = controlar.select_external_link(record.external_link_url)
+                actual.append(external_link[0])
+            expect = [e.toDict() for e in expect]
+            for e, a in zip(expect, actual):
+                del e["id"]
+                del a["id"]
+            self.assertEqual(expect, actual)
+
+    def test_select_external_link(self):
+        """ExternalLinkへのSELECTをチェックする
+        """
+        freezed_time = "2022-10-24 10:30:00"
+        with freeze_time(freezed_time):
+            # engineをテスト用インメモリテーブルに置き換える
+            controlar = ConcreteDBControllerBase()
+            controlar.engine = self.engine
+
+            # insert
+            external_link_list = [self._make_external_link_sample(i) for i in range(5)]
+            controlar.upsert_external_link(external_link_list)
+
+            expect = self.session.query(ExternalLink).all()
+
+            actual = []
+            for record in expect:
+                external_link = controlar.select_external_link(record.external_link_url)
+                actual.append(external_link[0])
+            expect = [e.toDict() for e in expect]
+            self.assertEqual(expect, actual)
 
 
 if __name__ == "__main__":

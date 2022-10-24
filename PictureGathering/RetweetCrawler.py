@@ -23,7 +23,7 @@ class RetweetCrawler(Crawler):
             save_path = Path(config["save_path"])
             save_path.mkdir(parents=True, exist_ok=True)
             db_fullpath = save_path / config["save_file_name"]
-            self.db_cont = RetweetDBController(db_fullpath, False)  # テーブルはRetweetを使用
+            self.db_cont = RetweetDBController(db_fullpath)  # テーブルはRetweetを使用
             if config.getboolean("save_permanent_image_flag"):
                 Path(config["save_permanent_image_path"]).mkdir(parents=True, exist_ok=True)
 
