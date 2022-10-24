@@ -65,7 +65,7 @@ class TestDBController(unittest.TestCase):
         url_orig = img_url + ":orig"
         url_thumbnail = img_url + ":large"
         file_name = Path(img_url).name
-        tweet_info = self._get_Tweet_sample(img_url)
+        tweet_info = self._make_tweet_info_sample(img_url)
         save_file_fullpath = Path(file_name)
 
         with save_file_fullpath.open(mode="wb") as fout:
@@ -95,7 +95,7 @@ class TestDBController(unittest.TestCase):
         f = Favorite.create(params)
         return f
 
-    def _get_Tweet_sample(self, img_url_s: str) -> TweetInfo:
+    def _make_tweet_info_sample(self, img_url_s: str) -> TweetInfo:
         """ツイートオブジェクトのサンプルを生成する
 
         Notes:
@@ -112,17 +112,17 @@ class TestDBController(unittest.TestCase):
         file_name = Path(img_url_s).name
         tweet_url_s = "http://www.tweet.sample.com"
         arg_dict = {
-                "media_filename": file_name,
-                "media_url": img_url_s,
-                "media_thumbnail_url": img_url_s,
-                "tweet_id": "tweet_id",
-                "tweet_url": tweet_url_s,
-                "created_at": datetime.now().strftime(dts_format),
-                "user_id": "user_id",
-                "user_name": "user_name",
-                "screan_name": "screan_name",
-                "tweet_text": "tweet_text",
-                "tweet_via": "tweet_via",
+            "media_filename": file_name,
+            "media_url": img_url_s,
+            "media_thumbnail_url": img_url_s,
+            "tweet_id": "tweet_id",
+            "tweet_url": tweet_url_s,
+            "created_at": datetime.now().strftime(dts_format),
+            "user_id": "user_id",
+            "user_name": "user_name",
+            "screan_name": "screan_name",
+            "tweet_text": "tweet_text",
+            "tweet_via": "tweet_via",
         }
         tweet_s = TweetInfo.create(arg_dict)
         return tweet_s
