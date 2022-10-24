@@ -87,6 +87,10 @@ class SkebSession():
             raise ValueError("local_storage is invalid, not included 'user'.")
         if not any(["token" in s for s in self.local_storage]):
             raise ValueError("local_storage is invalid, not included 'token'.")
+        if not any(["cache-sprite-plyr" in s for s in self.local_storage]):
+            raise ValueError("local_storage is invalid, not included 'cache-sprite-plyr'.")
+        if not any(["blockingUsers" in s for s in self.local_storage]):
+            raise ValueError("local_storage is invalid, not included 'blockingUsers'.")
 
         # クッキーに（最低限）必要なキーが含まれているか確認
         if not any([c.name == "_interslice_session" for c in self.cookies]):
