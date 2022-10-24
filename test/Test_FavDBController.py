@@ -1,12 +1,7 @@
 # coding: utf-8
-import json
-import re
 import sys
 import unittest
-from contextlib import ExitStack
-from datetime import date, datetime, timedelta
-from logging import WARNING, getLogger
-from mock import MagicMock, PropertyMock, patch
+from datetime import datetime
 from pathlib import Path
 
 from sqlalchemy import *
@@ -15,9 +10,8 @@ from sqlalchemy.orm.exc import *
 
 from PictureGathering import FavDBController
 from PictureGathering.Model import *
+from PictureGathering.v2.TweetInfo import TweetInfo
 
-logger = getLogger(__name__)
-logger.setLevel(WARNING)
 TEST_DB_FULLPATH = "./test/test.db"
 
 
@@ -32,7 +26,7 @@ class TestDBController(unittest.TestCase):
 
         # サンプル生成
         img_url_s = "http://www.img.filename.sample.com/media/sample.png"
-        self.f = self.FavoriteSampleFactory(img_url_s)
+        self.f = self._Favorite_sample_factory(img_url_s)
         self.session.add(self.f)
 
         self.session.commit()
@@ -59,13 +53,7 @@ class TestDBController(unittest.TestCase):
         if Path(TEST_DB_FULLPATH).is_file():
             Path(TEST_DB_FULLPATH).unlink()
 
-        # 操作履歴削除
-        sd_archive = Path("./archive")
-        op_files = [s for s in sd_archive.glob("**/*") if ".gitkeep" not in str(s)]
-        for op_file in op_files:
-            op_file.unlink()
-
-    def FavoriteSampleFactory(self, img_url: str) -> Favorite:
+    def _Favorite_sample_factory(self, img_url: str) -> Favorite:
         """Favoriteオブジェクトを生成する
 
         Args:
@@ -77,42 +65,37 @@ class TestDBController(unittest.TestCase):
         url_orig = img_url + ":orig"
         url_thumbnail = img_url + ":large"
         file_name = Path(img_url).name
-        tweet = self.GetTweetSample(img_url)
+        tweet_info = self._get_Tweet_sample(img_url)
         save_file_fullpath = Path(file_name)
 
         with save_file_fullpath.open(mode="wb") as fout:
             fout.write(file_name.encode())  # ファイル名をテキトーに書き込んでおく
 
         # パラメータ設定
-        td_format = "%a %b %d %H:%M:%S +0000 %Y"
         dts_format = "%Y-%m-%d %H:%M:%S"
-        tca = tweet["created_at"]
-        dst = datetime.strptime(tca, td_format)
-        text = tweet["text"] if "text" in tweet else tweet["full_text"]
-        regex = re.compile(r"<[^>]*?>")
-        via = regex.sub("", tweet["source"])
-        param = (file_name,
-                 url_orig,
-                 url_thumbnail,
-                 tweet["id_str"],
-                 tweet["entities"]["media"][0]["expanded_url"],
-                 dst.strftime(dts_format),
-                 tweet["user"]["id_str"],
-                 tweet["user"]["name"],
-                 tweet["user"]["screen_name"],
-                 text,
-                 via,
-                 str(save_file_fullpath),
-                 datetime.now().strftime(dts_format),
-                 len(file_name.encode()),
-                 file_name.encode())
+        params = {
+            "is_exist_saved_file": True,
+            "img_filename": file_name,
+            "url": url_orig,
+            "url_thumbnail": url_thumbnail,
+            "tweet_id": tweet_info.tweet_id,
+            "tweet_url": tweet_info.tweet_url,
+            "created_at": tweet_info.created_at,
+            "user_id": tweet_info.user_id,
+            "user_name": tweet_info.user_name,
+            "screan_name": tweet_info.screan_name,
+            "tweet_text": tweet_info.tweet_text,
+            "tweet_via": tweet_info.tweet_via,
+            "saved_localpath": str(save_file_fullpath),
+            "saved_created_at": datetime.now().strftime(dts_format),
+        }
+        params["media_blob"] = None
+        params["media_size"] = Path(save_file_fullpath).stat().st_size
 
-        # サンプル生成
-        f = Favorite(False, param[0], param[1], param[2], param[3], param[4], param[5], param[6],
-                     param[7], param[8], param[9], param[10], param[11], param[12], param[13], param[14])
+        f = Favorite.create(params)
         return f
 
-    def GetTweetSample(self, img_url_s: str) -> dict:
+    def _get_Tweet_sample(self, img_url_s: str) -> TweetInfo:
         """ツイートオブジェクトのサンプルを生成する
 
         Notes:
@@ -123,46 +106,25 @@ class TestDBController(unittest.TestCase):
             img_url_s (str): サンプルメディアURL
 
         Returns:
-            dict: ツイートオブジェクト（辞書）
+            TweetInfo: ツイート情報オブジェクト
         """
-        # ネストした引用符つきの文字列はjsonで処理できないのであくまで仮の文字列
+        dts_format = "%Y-%m-%d %H:%M:%S"
+        file_name = Path(img_url_s).name
         tweet_url_s = "http://www.tweet.sample.com"
-        tag_p_s = "<a href=https://mobile.twitter.com rel=nofollow>Twitter Web App</a>"
-        tweet_json = f'''{{
-            "entities": {{
-                "media": [{{
-                    "expanded_url": "{tweet_url_s}"
-                }}]
-            }},
-            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
-            "id_str": "12345_id_str_sample",
-            "user": {{
-                "id_str": "12345_id_str_sample",
-                "name": "shift_name_sample",
-                "screen_name": "_shift4869_screen_name_sample"
-            }},
-            "text": "tweet_text_sample",
-            "source": "{tag_p_s}"
-        }}'''
-        tweet_s = json.loads(tweet_json)
-        return tweet_s
-
-    def GetDelTweetSample(self) -> dict:
-        """ツイートオブジェクトのサンプルを生成する
-
-        Notes:
-            DeleteTargetに挿入するツイートのサンプル
-            辞書構造やキーについては下記tweet_json参照
-
-        Returns:
-            dict: ツイートオブジェクト（辞書）
-        """
-        tweet_json = f'''{{
-            "created_at": "Sat Nov 18 17:12:58 +0000 2018",
-            "id_str": "12345_id_str_sample",
-            "text": "@s_shift4869 PictureGathering run.\\n2018/03/09 11:59:38 Process Done !!\\nadd 1 new images. delete 0 old images."
-        }}'''
-        tweet_s = json.loads(tweet_json)
+        arg_dict = {
+                "media_filename": file_name,
+                "media_url": img_url_s,
+                "media_thumbnail_url": img_url_s,
+                "tweet_id": "tweet_id",
+                "tweet_url": tweet_url_s,
+                "created_at": datetime.now().strftime(dts_format),
+                "user_id": "user_id",
+                "user_name": "user_name",
+                "screan_name": "screan_name",
+                "tweet_text": "tweet_text",
+                "tweet_via": "tweet_via",
+        }
+        tweet_s = TweetInfo.create(arg_dict)
         return tweet_s
 
     def test_QuerySample(self):
@@ -172,7 +134,7 @@ class TestDBController(unittest.TestCase):
         actual = self.session.query(Favorite).all()
         self.assertEqual(actual, expect)
 
-    def test_Upsert(self):
+    def test_upsert(self):
         """FavoriteへのUPSERTをチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
@@ -181,29 +143,28 @@ class TestDBController(unittest.TestCase):
 
         # 1回目（INSERT）
         img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
-        r1 = self.FavoriteSampleFactory(img_url_s)
-        controlar.Upsert(r1.img_filename, r1.url, r1.url_thumbnail,
-                         self.GetTweetSample(img_url_s), r1.saved_localpath, True)
+        r1 = self._Favorite_sample_factory(img_url_s)
+        controlar.upsert(r1.toDict())
 
         # 2回目（INSERT）
         img_url_s = "http://www.img.filename.sample.com/media/sample_2.png"
-        r2 = self.FavoriteSampleFactory(img_url_s)
-        controlar.Upsert(r2.img_filename, r2.url, r2.url_thumbnail,
-                         self.GetTweetSample(img_url_s), r2.saved_localpath, False)
+        r2 = self._Favorite_sample_factory(img_url_s)
+        controlar.upsert(r2.toDict())
 
         # 3回目（UPDATE）
         img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
         file_name_s = "sample_3.png"
-        r3 = self.FavoriteSampleFactory(img_url_s)
+        r3 = self._Favorite_sample_factory(img_url_s)
         r3.img_filename = file_name_s
-        controlar.Upsert(r3.img_filename, r3.url, r3.url_thumbnail,
-                         self.GetTweetSample(img_url_s), r3.saved_localpath, True)
+        controlar.upsert(r3.toDict())
 
-        expect = [self.f, r2, r3]
+        r2.id = "2"
+        r3.id = "3"
+        expect = [self.f, r3, r2]
         actual = self.session.query(Favorite).all()
         self.assertEqual(expect, actual)
 
-    def test_Select(self):
+    def test_select(self):
         """FavoriteからのSELECTをチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
@@ -212,7 +173,7 @@ class TestDBController(unittest.TestCase):
 
         # SELECT
         limit_s = 300
-        actual = controlar.Select(limit_s)
+        actual = controlar.select(limit_s)
 
         expect = [self.f.toDict()]
         self.assertEqual(expect, actual)
@@ -227,7 +188,7 @@ class TestDBController(unittest.TestCase):
         # サンプル生成
         video_url_s = "https://video.twimg.com/ext_tw_video/1152052808385875970/pu/vid/998x714/sample.mp4"
         file_name_s = Path(video_url_s).name
-        record = self.FavoriteSampleFactory(video_url_s)
+        record = self._Favorite_sample_factory(video_url_s)
         record.img_filename = file_name_s
         self.session.add(record)
         self.session.commit()
@@ -245,9 +206,9 @@ class TestDBController(unittest.TestCase):
 
         # 1回目（r1,r2を追加して両方ともTrueに更新）
         img_url_1 = "http://www.img.filename.sample.com/media/sample_1.png"
-        r1 = self.FavoriteSampleFactory(img_url_1)
+        r1 = self._Favorite_sample_factory(img_url_1)
         img_url_2 = "http://www.img.filename.sample.com/media/sample_2.png"
-        r2 = self.FavoriteSampleFactory(img_url_2)
+        r2 = self._Favorite_sample_factory(img_url_2)
         self.session.add(r1)
         self.session.add(r2)
 
@@ -261,7 +222,7 @@ class TestDBController(unittest.TestCase):
 
         # 2回目（r3を追加してr1とr3のみFalseに更新）
         img_url_3 = "http://www.img.filename.sample.com/media/sample_3.png"
-        r3 = self.FavoriteSampleFactory(img_url_3)
+        r3 = self._Favorite_sample_factory(img_url_3)
         r3.is_exist_saved_file = True
         self.session.add(r3)
 
@@ -284,7 +245,7 @@ class TestDBController(unittest.TestCase):
         r = []
         for i, f in enumerate([True, False, True]):
             img_url = f"http://www.img.filename.sample.com/media/sample_{i}.png"
-            t = self.FavoriteSampleFactory(img_url)
+            t = self._Favorite_sample_factory(img_url)
             t.is_exist_saved_file = f
             r.append(t)
             self.session.add(t)

@@ -58,12 +58,6 @@ class TestDBController(unittest.TestCase):
 
         Path(TEST_DB_FULLPATH).unlink(missing_ok=True)
 
-        # 操作履歴削除
-        sd_archive = Path("./archive")
-        op_files = [s for s in sd_archive.glob("**/*") if ".gitkeep" not in str(s)]
-        for op_file in op_files:
-            op_file.unlink()
-
     def _make_post_tweet_response_sample(self, created_at, add_num, del_num) -> dict:
         """ツイートオブジェクトのサンプルを生成する
 
