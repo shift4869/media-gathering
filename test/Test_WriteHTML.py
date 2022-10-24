@@ -90,7 +90,7 @@ class TestWriteHTML(unittest.TestCase):
             config.read(config_path, encoding="utf8")
             db_path = Path(config["db"]["save_path"]) / config["db"]["save_file_name"]
 
-            # Select時にデフォルトではキリが良い数しか取得しない
+            # select時にデフォルトではキリが良い数しか取得しない
             # 全分岐を通るために中途半端な数を要求する
             limit_s = 299  # 299レコード取得する
 
@@ -112,8 +112,8 @@ class TestWriteHTML(unittest.TestCase):
                 return res
 
             # Fav
-            db_cont = FavDBController.FavDBController(str(db_path), False)
-            s_db = db_cont.Select(limit_s)
+            db_cont = FavDBController.FavDBController(str(db_path))
+            s_db = db_cont.select(limit_s)
             s_save_path = self.FAV_HTML_PATH
             res = MakeResultHTML(s_db)
             expect = self.template.format(table_content=res)
@@ -127,8 +127,8 @@ class TestWriteHTML(unittest.TestCase):
             self.assertEqual(expect, actual)
 
             # Retweet
-            db_cont = RetweetDBController.RetweetDBController(str(db_path), False)
-            s_db = db_cont.Select(limit_s)
+            db_cont = RetweetDBController.RetweetDBController(str(db_path))
+            s_db = db_cont.select(limit_s)
             s_save_path = self.RETWEET_HTML_PATH
             res = MakeResultHTML(s_db)
             expect = self.template.format(table_content=res)
