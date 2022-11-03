@@ -177,7 +177,7 @@ class TwitterAPI():
                 wair_seconds = 2 ** i
                 n = time.mktime(datetime.now().timetuple())
                 self._wait(n + wair_seconds)
-            logger.warning(f"retry ({i}/{RETRY_NUM}) ...")
+            logger.warning(f"retry ({i+1}/{RETRY_NUM}) ...")
         else:
             raise requests.HTTPError("Twitter API error : exceed RETRY_NUM.")
 
