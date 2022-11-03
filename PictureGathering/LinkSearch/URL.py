@@ -39,7 +39,7 @@ class URL():
 
         # クエリ除去
         non_query_url = urllib.parse.urlunparse(
-            urllib.parse.urlparse(str(url))._replace(query=None)
+            urllib.parse.urlparse(str(url))._replace(query=None, fragment=None)
         )
         self.non_query_url = non_query_url
         self.original_url = url
