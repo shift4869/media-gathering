@@ -12,7 +12,7 @@ from PictureGathering.LogMessage import MSG
 from PictureGathering.Model import ExternalLink
 from PictureGathering.v2.TweetInfo import TweetInfo
 from PictureGathering.v2.TwitterAPI import TwitterAPI
-from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
+from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint
 
 
 logger = getLogger(__name__)
