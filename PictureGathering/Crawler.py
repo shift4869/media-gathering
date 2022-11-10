@@ -26,6 +26,7 @@ from PictureGathering.DBControllerBase import DBControllerBase
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LogMessage import MSG
 from PictureGathering.Model import ExternalLink
+from PictureGathering.Screenshot.Screenshot import Screenshot
 from PictureGathering.v2.TweetInfo import TweetInfo
 from PictureGathering.v2.TwitterAPI import TwitterAPI
 from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
@@ -149,6 +150,9 @@ class Crawler(metaclass=ABCMeta):
         self.del_cnt = 0
         self.add_url_list = []
         self.del_url_list = []
+
+        # クロールしたツイートのURLリスト
+        self.crawled_url_list = []
         logger.info(MSG.CRAWLER_INIT_DONE.value)
 
     def link_search_register(self) -> int:
@@ -252,10 +256,16 @@ class Crawler(metaclass=ABCMeta):
 
         logger.info("\t".join(done_msg.splitlines()))
 
-        config = self.config["notification"]
-
         WriteHTML.WriteResultHTML(self.type, self.db_cont)
         if self.add_cnt != 0 or self.del_cnt != 0:
+            # ツイート画面のスクリーンショットを撮る設定の場合
+            config = self.config["db"]
+            if config.getboolean("save_screenshot_flag"):
+                if self.crawled_url_list:
+                    save_directory_path = config.get("save_screenshot_path")
+                    Screenshot.take_screenshot_for_all_urls(self.crawled_url_list, save_directory_path)
+
+            config = self.config["notification"]
             if self.add_cnt != 0:
                 logger.info("add url:")
                 for url in self.add_url_list:
@@ -423,6 +433,7 @@ class Crawler(metaclass=ABCMeta):
             int: 成功時0、既に存在しているメディアだった場合1、過去に取得済のメディアだった場合2、
                  失敗時（メディア辞書構造がエラー、urlが取得できない）-1
         """
+        tweet_url = tweet_info.tweet_url
         url_orig = tweet_info.media_url
         url_thumbnail = tweet_info.media_thumbnail_url
         file_name = tweet_info.media_filename
@@ -448,6 +459,7 @@ class Crawler(metaclass=ABCMeta):
                 logger.info(save_file_fullpath.name + " -> failed.")
                 return -1
             self.add_url_list.append(url_orig)
+            self.crawled_url_list.append(tweet_url)
 
             # DB操作
             # db_cont.upsert_v2派生クラスによって呼び分けられる
