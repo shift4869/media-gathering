@@ -46,6 +46,36 @@ class TestTwitterAPI(unittest.TestCase):
         actual = TwitterAPIEndpoint.SETTING_JSON_PATH
         self.assertEqual(expect, actual)
 
+    def test_is_first_call_of_reset_date(self):
+        def set_setting_date(reset_date, last_reset_utc):
+            setting_dict = TwitterAPIEndpoint.get_setting_dict()
+            setting_dict["util"]["tweet_cap"]["reset_date"] = reset_date
+            setting_dict["util"]["tweet_cap"]["last_reset_utc"] = last_reset_utc
+
+        set_setting_date("09", "2022-12-09 08:00:00")
+        freeze_time_str = "2023-01-10 08:00:00"
+        with freeze_time(freeze_time_str):
+            actual = TwitterAPIEndpoint._is_first_call_of_reset_date()
+            self.assertTrue(actual)
+
+        set_setting_date("09", "2023-01-09 23:30:00")
+        freeze_time_str = "2023-01-10 08:00:00"
+        with freeze_time(freeze_time_str):
+            actual = TwitterAPIEndpoint._is_first_call_of_reset_date()
+            self.assertFalse(actual)
+
+        set_setting_date("09", "2022-12-09 08:00:00")
+        freeze_time_str = "2023-01-15 08:00:00"
+        with freeze_time(freeze_time_str):
+            actual = TwitterAPIEndpoint._is_first_call_of_reset_date()
+            self.assertFalse(actual)
+
+        set_setting_date(0, "")
+        freeze_time_str = "2023-01-10 08:00:00"
+        with freeze_time(freeze_time_str):
+            with self.assertRaises(ValueError):
+                actual = TwitterAPIEndpoint._is_first_call_of_reset_date()
+
     def test_is_json_util_struct_match(self):
         expect_dict = self._get_expect_setting_dict()
         util_dict = expect_dict.get("util", {})
@@ -54,6 +84,10 @@ class TestTwitterAPI(unittest.TestCase):
         self.assertTrue(actual)
 
         util_dict["tweet_cap"]["estimated_now_count"] = 2000001
+        actual = TwitterAPIEndpoint._is_json_util_struct_match(util_dict)
+        self.assertFalse(actual)
+
+        util_dict["tweet_cap"]["last_reset_utc"] = ""
         actual = TwitterAPIEndpoint._is_json_util_struct_match(util_dict)
         self.assertFalse(actual)
 
@@ -368,48 +402,55 @@ class TestTwitterAPI(unittest.TestCase):
         TwitterAPIEndpoint.reload()
 
     def test_increase_tweet_cap(self):
+        def set_setting_date(reset_date, last_reset_utc):
+            setting_dict = TwitterAPIEndpoint.get_setting_dict()
+            setting_dict["util"]["tweet_cap"]["reset_date"] = reset_date
+            setting_dict["util"]["tweet_cap"]["last_reset_utc"] = last_reset_utc
+
         with ExitStack() as stack:
-            RESET_DAY = 9
-            dt_format = "%Y-%m-%d %H:%M:%S"
-            now_time_str = f"2022-10-{RESET_DAY:02} 10:00:00"
+            set_setting_date("10", "2022-12-09 01:00:00")
+            now_time_str = "2023-01-09 10:00:00"
             mock_freezegun = stack.enter_context(freeze_time(now_time_str))
+            mock_raise = stack.enter_context(patch("PictureGathering.v2.TwitterAPIEndpoint.TwitterAPIEndpoint.raise_for_tweet_cap_limit_over"))
             mock_save = stack.enter_context(patch("PictureGathering.v2.TwitterAPIEndpoint.TwitterAPIEndpoint.save"))
             mock_reload = stack.enter_context(patch("PictureGathering.v2.TwitterAPIEndpoint.TwitterAPIEndpoint.reload"))
-            mock_raise = stack.enter_context(patch("PictureGathering.v2.TwitterAPIEndpoint.TwitterAPIEndpoint.raise_for_tweet_cap_limit_over"))
             mock_set = stack.enter_context(patch("PictureGathering.v2.TwitterAPIEndpoint.TwitterAPIEndpoint.set_tweet_cap_now_count"))
 
             INCREASE_AMOUNT = 50
             expect = 150
-            TwitterAPIEndpoint.setting_dict["util"]["tweet_cap"]["reset_date"] = RESET_DAY + 1
             TwitterAPIEndpoint.setting_dict["util"]["tweet_cap"]["estimated_now_count"] = 100
             actual_res = TwitterAPIEndpoint.increase_tweet_cap(INCREASE_AMOUNT)
             actual = TwitterAPIEndpoint.setting_dict["util"]["tweet_cap"]["estimated_now_count"]
             self.assertEqual(expect, actual_res)
             self.assertEqual(expect, actual)
+            mock_raise.assert_called_once()
             mock_save.assert_called_once()
             mock_reload.assert_called_once()
-            mock_raise.assert_called_once()
             mock_set.assert_not_called()
+            mock_raise.reset_mock()
             mock_save.reset_mock()
             mock_reload.reset_mock()
-            mock_raise.reset_mock()
             mock_set.reset_mock()
 
+            set_setting_date("09", "2022-12-09 01:00:00")
             expect = 150
-            TwitterAPIEndpoint.setting_dict["util"]["tweet_cap"]["reset_date"] = RESET_DAY
             TwitterAPIEndpoint.setting_dict["util"]["tweet_cap"]["estimated_now_count"] = 100
             actual_res = TwitterAPIEndpoint.increase_tweet_cap(INCREASE_AMOUNT)
             actual = TwitterAPIEndpoint.setting_dict["util"]["tweet_cap"]["estimated_now_count"]
             self.assertEqual(expect, actual_res)
             self.assertEqual(expect, actual)
+            mock_raise.assert_called_once()
             mock_save.assert_called_once()
             mock_reload.assert_called_once()
-            mock_raise.assert_called_once()
-            mock_set.assert_called_once()
+            mock_set.assert_called()
+            mock_raise.reset_mock()
             mock_save.reset_mock()
             mock_reload.reset_mock()
-            mock_raise.reset_mock()
             mock_set.reset_mock()
+
+            expect = "2023-01-09 01:00:00"
+            actual = TwitterAPIEndpoint.setting_dict["util"]["tweet_cap"]["last_reset_utc"]
+            self.assertEqual(expect, actual)
 
             with self.assertRaises(ValueError):
                 actual = TwitterAPIEndpoint.increase_tweet_cap("invalid_amount")

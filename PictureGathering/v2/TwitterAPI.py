@@ -160,6 +160,9 @@ class TwitterAPI():
 
                 # ツイートキャップ対象エンドポイントならば現在の推定カウント数に加算
                 if endpoint_name in tweet_cap_endpoint:
+                    # 加算前に、現在日付がツイートキャップ上限のリセット日かどうか判定してログ出力
+                    if TwitterAPIEndpoint._is_first_call_of_reset_date():
+                        logger.info("Now date is monthly reset date, Tweet caps reseted.")
                     count = int(res.get("meta", {}).get("result_count", 0))
                     TwitterAPIEndpoint.increase_tweet_cap(count)
                 return res

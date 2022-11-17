@@ -55,6 +55,34 @@ class TwitterAPIEndpoint():
     SETTING_JSON_PATH = "./PictureGathering/v2/twitter_api_setting.json"
 
     @classmethod
+    def _is_first_call_of_reset_date(cls) -> bool:
+        """ツイートキャップ上限リセット日の、最初の実行かどうか判定する
+
+            実行日UTC[dd] が util.tweet_cap.reset_date[dd]と一致している、かつ、
+            実行年月日UTC[yyyymmdd] が util.tweet_cap.last_reset_utc[yyyymmdd] より未来ならばTrue
+
+        Returns:
+            bool: 上記条件を満たすならTrue, そうでないならばFalse
+        """
+        tweet_cap_dict = cls.get_util().get("tweet_cap", {})
+        reset_date = int(tweet_cap_dict.get("reset_date", 0))
+        last_reset_utc = str(tweet_cap_dict.get("last_reset_utc", ""))
+
+        if reset_date == 0 or last_reset_utc == "":
+            raise ValueError("reset_date or last_reset_utc is invalid.")
+
+        now_utc = datetime.now() - timedelta(hours=9)
+        reset_date = f"{reset_date:02}"
+        now_date = f"{now_utc.day:02}"
+
+        dts_format = "%Y-%m-%d %H:%M:%S"
+        l_day = datetime.strptime(last_reset_utc, dts_format)
+        l_year_month_date = f"{l_day.year:04}{l_day.month:02}{l_day.day:02}"
+        now_year_month_date = f"{now_utc.year:04}{now_utc.month:02}{now_utc.day:02}"
+
+        return now_date == reset_date and int(l_year_month_date) < int(now_year_month_date)
+
+    @classmethod
     def _is_json_util_struct_match(cls, estimated_util_dict: dict) -> bool:
         """指定辞書の util 構造部分について判定する
 
@@ -70,6 +98,7 @@ class TwitterAPIEndpoint():
                         "access_level": access_level,
                         "max_count": max_tweet_cap,
                         "reset_date": reset_date,
+                        "last_reset_utc": last_reset_utc,
                         "estimated_now_count": estimated_now_count
                     }}:
                 if not (isinstance(access_level, str) and access_level in ["Essential", "Elevated"]):
@@ -77,6 +106,11 @@ class TwitterAPIEndpoint():
                 if not (isinstance(max_tweet_cap, int) and max_tweet_cap in [500000, 2000000]):
                     return False
                 if not (isinstance(reset_date, int) and 1 <= reset_date and reset_date <= 31):
+                    return False
+                try:
+                    dts_format = "%Y-%m-%d %H:%M:%S"
+                    l_day = datetime.strptime(last_reset_utc, dts_format)
+                except ValueError:
                     return False
                 if not (isinstance(estimated_now_count, int) and 0 <= estimated_now_count and estimated_now_count <= max_tweet_cap):
                     return False
@@ -389,6 +423,12 @@ class TwitterAPIEndpoint():
         """
         if not isinstance(count, int):
             raise ValueError("count must be integer.")
+
+        tweet_cap_dict = cls.get_util().get("tweet_cap", {})
+        max_count = int(tweet_cap_dict.get("max_count", -1))
+        if count < 0 or max_count < count:
+            raise ValueError("count must be 0 <= count <= max_count.")
+
         setting_dict = TwitterAPIEndpoint.get_setting_dict()
         setting_dict["util"]["tweet_cap"]["estimated_now_count"] = int(count)
 
@@ -415,22 +455,23 @@ class TwitterAPIEndpoint():
         """
         if not isinstance(amount, int):
             raise ValueError("amount must be integer.")
+
         setting_dict = TwitterAPIEndpoint.get_setting_dict()
         now_count = cls.get_tweet_cap_now_count()
         setting_dict["util"]["tweet_cap"]["estimated_now_count"] = now_count + int(amount)
 
+        cls.raise_for_tweet_cap_limit_over()
         cls.save(setting_dict)
         cls.reload()
 
-        now_count = cls.get_tweet_cap_now_count()
-        max_count = int(setting_dict.get("util", {}).get("tweet_cap", {}).get("max_count", -1))
-        reset_date = int(setting_dict.get("util", {}).get("tweet_cap", {}).get("reset_date", -1))
-        reset_date = "{:02}".format(reset_date)
-        now_date = "{:02}".format((datetime.now() - timedelta(hours=9)).day)
-
-        cls.raise_for_tweet_cap_limit_over()
-
-        if now_date == reset_date:
+        if cls._is_first_call_of_reset_date():
+            # リセット日の初回実行ならば
+            # util.tweet_cap.last_reset_utc を更新し
+            # 現在のカウントを0にする
+            setting_dict = TwitterAPIEndpoint.get_setting_dict()
+            now_utc = datetime.now() - timedelta(hours=9)
+            dts_format = "%Y-%m-%d %H:%M:%S"
+            setting_dict["util"]["tweet_cap"]["last_reset_utc"] = now_utc.strftime(dts_format)
             cls.set_tweet_cap_now_count(0)
 
         return cls.get_tweet_cap_now_count()
@@ -487,13 +528,13 @@ if __name__ == "__main__":
     print(count)
 
     # 現在のツイートキャップ推定カウントを設定
-    # count = TwitterAPIEndpoint.set_tweet_cap_now_count(count)
-    # print(count)
+    count = TwitterAPIEndpoint.set_tweet_cap_now_count(count)
+    print(count)
 
     # 現在のツイートキャップ推定カウントに加算
-    # amount = 1
-    # count = TwitterAPIEndpoint.increase_tweet_cap(amount)
-    # print(count)
+    amount = 1
+    count = TwitterAPIEndpoint.increase_tweet_cap(amount)
+    print(count)
 
     # 設定辞書を取得
     setting_dict = TwitterAPIEndpoint.get_setting_dict()
