@@ -50,17 +50,17 @@ def WriteResultHTML(op_type, db_controller, limit=300):
         return -1
 
     res = ""
-    cnt = 0
+    count = 0
 
     for row in db:
-        if cnt == 0:
+        if count == 0:
             res += "<tr>\n"
         res += MakeTHTag(url=row["url"], url_thumbnail=row["url_thumbnail"], tweet_url=row["tweet_url"])
-        if cnt == COLUMN_NUM - 1:
+        if count == COLUMN_NUM - 1:
             res += "</tr>\n"
-        cnt = (cnt + 1) % COLUMN_NUM
-    if cnt != 0:
-        for k in range((COLUMN_NUM) - (cnt)):
+        count = (count + 1) % COLUMN_NUM
+    if count != 0:
+        for k in range((COLUMN_NUM) - count):
             res += "<th></th>\n"
         res += "</tr>\n"
 

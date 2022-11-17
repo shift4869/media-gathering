@@ -84,7 +84,7 @@ class FavDBController(DBControllerBase):
         """FavoriteからSELECTする
 
         Note:
-            f"select * from Favorite order by created_at desc limit {limit}"
+            f"select * from Favorite order by id desc limit {limit}"
 
         Args:
             limit (int): 取得レコード数上限
@@ -95,7 +95,7 @@ class FavDBController(DBControllerBase):
         Session = sessionmaker(bind=self.engine)
         session = Session()
 
-        res = session.query(Favorite).order_by(desc(Favorite.created_at)).limit(limit).all()
+        res = session.query(Favorite).order_by(desc(Favorite.id)).limit(limit).all()
         res_dict = [r.toDict() for r in res]  # 辞書リストに変換
 
         session.close()

@@ -84,7 +84,7 @@ class RetweetDBController(DBControllerBase):
         """RetweetからSELECTする
 
         Note:
-            f"select * from Retweet order by created_at desc limit {limit}"
+            f"select * from Retweet order by id desc limit {limit}"
 
         Args:
             limit (int): 取得レコード数上限
@@ -95,7 +95,7 @@ class RetweetDBController(DBControllerBase):
         Session = sessionmaker(bind=self.engine)
         session = Session()
 
-        res = session.query(Retweet).order_by(desc(Retweet.created_at)).limit(limit).all()
+        res = session.query(Retweet).order_by(desc(Retweet.id)).limit(limit).all()
         res_dict = [r.toDict() for r in res]  # 辞書リストに変換
 
         session.close()
