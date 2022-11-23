@@ -95,15 +95,17 @@ class NicoSeigaURL():
 
 if __name__ == "__main__":
     urls = [
-        "https://www.pixiv.net/artworks/86704541",  # 投稿動画
-        "https://www.pixiv.net/artworks/86704541?some_query=1",  # 投稿動画(クエリつき)
-        "https://不正なURLアドレス/artworks/86704541",  # 不正なURLアドレス
+        "https://seiga.nicovideo.jp/seiga/im12345678",
+        "http://nico.ms/im12345678",
+        "https://seiga.nicovideo.jp/seiga/im12345678?some_query=1",
+        "https://www.google.co.jp/",
+        "https://不正なNicoSeigaURLアドレス/seiga/im12345678",
     ]
 
-    try:
-        for url in urls:
+    for url in urls:
+        try:
             u = NicoSeigaURL.create(url)
             print(u.non_query_url)
             print(u.original_url)
-    except ValueError as e:
-        print(e)
+        except ValueError as e:
+            print(e)

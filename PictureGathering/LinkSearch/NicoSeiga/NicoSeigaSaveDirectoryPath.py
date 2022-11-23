@@ -17,7 +17,7 @@ class NicoSeigaSaveDirectoryPath():
 
     def _is_valid(self):
         if not isinstance(self.path, Path):
-            raise TypeError("path is not Path.")
+            raise TypeError("argument is not Path.")
         return True
 
     @classmethod

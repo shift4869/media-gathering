@@ -88,9 +88,10 @@ class PixivWorkURL():
 
 if __name__ == "__main__":
     urls = [
-        "https://www.pixiv.net/artworks/86704541",  # 投稿動画
-        "https://www.pixiv.net/artworks/86704541?some_query=1",  # 投稿動画(クエリつき)
-        "https://不正なURLアドレス/artworks/86704541",  # 不正なURLアドレス
+        "https://www.pixiv.net/artworks/86704541",
+        "https://www.pixiv.net/artworks/86704541?some_query=1",
+        "https://www.google.co.jp/",
+        "https://不正なURLアドレス/artworks/86704541",
     ]
 
     try:
