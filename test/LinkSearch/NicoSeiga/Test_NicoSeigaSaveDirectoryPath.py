@@ -3,10 +3,10 @@
 
 NicoSeigaSaveDirectoryPathを表すクラスをテストする
 """
-from pathlib import Path
+import re
 import sys
-import urllib.parse
 import unittest
+from pathlib import Path
 
 from PictureGathering.LinkSearch.NicoSeiga.Authorid import Authorid
 from PictureGathering.LinkSearch.NicoSeiga.Authorname import Authorname
@@ -18,34 +18,52 @@ from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaSaveDirectoryPath import Nic
 
 class TestNicoSeigaSaveDirectoryPath(unittest.TestCase):
     def test_NicoSeigaSaveDirectoryPath(self):
-        return
-        # 正常系
-        # クエリなし
-        url_str = "https://seiga.nicovideo.jp/seiga/im12345678"
-        url = NicoSeigaSaveDirectoryPath.create(url_str)
-        self.assertEqual(url_str, url.non_query_url)
-        self.assertEqual(url_str, url.original_url)
+        illust_id = Illustid(12345678)
+        illust_name = Illustname("作品名1")
+        author_id = Authorid(1234567)
+        author_name = Authorname("作者名1")
+        illust_info = NicoSeigaInfo(illust_id, illust_name, author_id, author_name)
 
-        # クエリなし
-        url_str = "http://nico.ms/im12345678"
-        url = NicoSeigaSaveDirectoryPath.create(url_str)
-        self.assertEqual(url_str, url.non_query_url)
-        self.assertEqual(url_str, url.original_url)
+        def traverse(base_path):
+            illust_id = illust_info.illust_id.id
+            illust_name = illust_info.illust_name.name
+            author_id = illust_info.author_id.id
+            author_name = illust_info.author_name.name
 
-        # クエリ付き
-        url_str = "https://seiga.nicovideo.jp/seiga/im12345678?some_query=1"
-        non_query_url = urllib.parse.urlunparse(
-            urllib.parse.urlparse(str(url_str))._replace(query=None, fragment=None)
-        )
-        url = NicoSeigaSaveDirectoryPath.create(url_str)
-        self.assertEqual(non_query_url, url.non_query_url)
-        self.assertEqual(url_str, url.original_url)
+            sd_path = ""
+            save_path = Path(base_path)
+            filelist = []
+            filelist_tp = [(sp.stat().st_mtime, sp.name) for sp in save_path.glob("*") if sp.is_dir()]
+            for mtime, path in sorted(filelist_tp, reverse=True):
+                filelist.append(path)
 
-        # 異常系
-        # NicoSeigaSaveDirectoryPathアドレスでない
-        with self.assertRaises(ValueError):
-            url_str = "https://www.google.co.jp/"
-            url = NicoSeigaSaveDirectoryPath.create(url_str)
+            regex = re.compile(r'.*\(([0-9]*)\)$')
+            for dir_name in filelist:
+                result = regex.match(dir_name)
+                if result:
+                    ai = result.group(1)
+                    if ai == str(author_id):
+                        sd_path = f"./{dir_name}/{illust_name}({illust_id})/"
+                        break
+
+            if sd_path == "":
+                sd_path = f"./{author_name}({author_id})/{illust_name}({illust_id})/"
+
+            return save_path / sd_path
+
+        base_path = Path("./test/LinkSearch/NicoSeiga")
+        expect = traverse(base_path)
+        expect.rmdir()
+        actual = NicoSeigaSaveDirectoryPath.create(illust_info, base_path).path
+        self.assertEqual(expect, actual)
+
+        expect.mkdir(exist_ok=True, parents=True)
+        base_path = Path("./test/LinkSearch/NicoSeiga")
+        expect = traverse(base_path)
+        actual = NicoSeigaSaveDirectoryPath.create(illust_info, base_path).path
+        self.assertEqual(expect, actual)
+
+        expect.rmdir()
 
     def test_is_valid(self):
         illust_id = Illustid(12345678)
@@ -55,15 +73,15 @@ class TestNicoSeigaSaveDirectoryPath(unittest.TestCase):
         illust_info = NicoSeigaInfo(illust_id, illust_name, author_id, author_name)
 
         base_path = Path("./test/LinkSearch/NicoSeiga")
-        save_directory_path = NicoSeigaSaveDirectoryPath.create(illust_info, base_path)
-        self.assertEqual(True, save_directory_path._is_valid())
+        actual = NicoSeigaSaveDirectoryPath.create(illust_info, base_path)
+        self.assertEqual(True, actual._is_valid())
 
-        save_directory_path = NicoSeigaSaveDirectoryPath(base_path)
-        self.assertEqual(True, save_directory_path._is_valid())
+        actual = NicoSeigaSaveDirectoryPath(base_path)
+        self.assertEqual(True, actual._is_valid())
 
         with self.assertRaises(TypeError):
-            save_directory_path = NicoSeigaSaveDirectoryPath("invalid argument")
-            self.assertEqual(True, save_directory_path._is_valid())
+            actual = NicoSeigaSaveDirectoryPath("invalid argument")
+            self.assertEqual(True, actual._is_valid())
 
 
 if __name__ == "__main__":
