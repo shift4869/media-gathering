@@ -34,7 +34,10 @@ if __name__ == "__main__":
         c = RetweetCrawler()
 
     if c is not None:
-        c.crawl()
+        try:
+            c.crawl()
+        except Exception as e:
+            logger.exception(e)
     else:
         arg_parser.print_help()
 
