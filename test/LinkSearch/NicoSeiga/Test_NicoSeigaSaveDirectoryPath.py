@@ -4,6 +4,7 @@
 NicoSeigaSaveDirectoryPathを表すクラスをテストする
 """
 import re
+import shutil
 import sys
 import unittest
 from pathlib import Path
@@ -24,7 +25,7 @@ class TestNicoSeigaSaveDirectoryPath(unittest.TestCase):
         author_name = Authorname("作者名1")
         illust_info = NicoSeigaInfo(illust_id, illust_name, author_id, author_name)
 
-        def traverse(base_path):
+        def traverse(base_path) -> Path:
             illust_id = illust_info.illust_id.id
             illust_name = illust_info.illust_name.name
             author_id = illust_info.author_id.id
@@ -53,7 +54,8 @@ class TestNicoSeigaSaveDirectoryPath(unittest.TestCase):
 
         base_path = Path("./test/LinkSearch/NicoSeiga")
         expect = traverse(base_path)
-        expect.rmdir()
+        if expect.is_dir():
+            shutil.rmtree(expect.parent)
         actual = NicoSeigaSaveDirectoryPath.create(illust_info, base_path).path
         self.assertEqual(expect, actual)
 
@@ -63,7 +65,8 @@ class TestNicoSeigaSaveDirectoryPath(unittest.TestCase):
         actual = NicoSeigaSaveDirectoryPath.create(illust_info, base_path).path
         self.assertEqual(expect, actual)
 
-        expect.rmdir()
+        if expect.is_dir():
+            shutil.rmtree(expect.parent)
 
     def test_is_valid(self):
         illust_id = Illustid(12345678)
