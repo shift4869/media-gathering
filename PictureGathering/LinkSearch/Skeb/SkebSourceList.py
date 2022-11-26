@@ -1,12 +1,7 @@
 # coding: utf-8
 from dataclasses import dataclass
-import re
 from typing import Iterable
 from pathlib import Path
-
-from requests_html import AsyncHTMLSession
-from urllib.parse import quote, unquote
-import pyppeteer
 
 from PictureGathering.LinkSearch.Skeb.SaveFilename import Extension
 from PictureGathering.LinkSearch.Skeb.SkebSession import SkebSession
@@ -40,81 +35,6 @@ class SkebSourceList(Iterable):
 
     def __getitem__(self, i):
         return self._list.__getitem__(i)
-
-    @classmethod
-    async def localstorage_test(cls, skeb_url: SkebURL, session: SkebSession):
-        return
-        response = await session.session.get(skeb_url.original_url, headers=session.headers, cookies=session.cookies)
-        response.raise_for_status()
-        await response.html.arender(sleep=2)
-        return response
-
-        # ローカルストレージをセットしたpyppeteerで直リンクが載っているページを取得する
-        browser = await pyppeteer.launch(headless=True)
-        page = await browser.newPage()
-        await page.goto("https://skeb.jp/")
-
-        # ローカルストレージを読み込んでセットする
-        slsp = Path("./config/skeb_localstorage.ini")
-        javascript_func1 = "localStorage.setItem('{}', '{}');"
-        with slsp.open(mode="r") as fin:
-            for line in fin:
-                if line == "":
-                    break
-
-                sc = {}
-                elements = re.split(" : |\n", line)
-                key = elements[0]
-                value = elements[1]
-                await page.evaluate(javascript_func1.format(key, value))
-
-        # javascript_func2 = """
-        #     function allStorage() {
-        #         var values = [],
-        #             keys = Object.keys(localStorage),
-        #             i = keys.length;
-
-        #         while ( i-- ) {
-        #             values.push( keys[i] + ' : ' + localStorage.getItem(keys[i]) );
-        #         }
-
-        #         return values;
-        #     }
-        #     allStorage()
-        # """
-        # localstorage = await page.evaluate(javascript_func2, force_expr=True)
-        # print(localstorage)
-
-        scp = Path("./config/skeb_cookie.ini")
-        with scp.open(mode="r") as fin:
-            for line in fin:
-                if line == "":
-                    break
-
-                sc = {}
-                elements = re.split("[,\n]", line)
-                for element in elements:
-                    element = element.strip().replace('"', "")  # 左右の空白とダブルクォートを除去
-                    if element == "":
-                        break
-
-                    key, val = element.split("=")  # =で分割
-                    sc[key] = val
-
-                # cookies.set(sc["name"], sc["value"], expires=sc["expires"], path=sc["path"], domain=sc["domain"])
-                sc["expires"] = float(sc["expires"])
-                await page.setCookie(sc)
-
-        # 後の解析のためにAsyncHTMLSession を通す
-        session = AsyncHTMLSession()
-        session._browser = browser
-        response = await session.get(skeb_url.non_query_url, headers=cookies.headers, cookies=cookies.cookies)
-        response.raise_for_status()
-        await response.html.arender(sleep=2)
-        return response
-        await page.goto(skeb_url.non_query_url)
-        content = await page.content()
-        return content
 
     @classmethod
     def create(cls, skeb_url: SkebURL, session: SkebSession) -> "SkebSourceList":
@@ -171,6 +91,16 @@ class SkebSourceList(Iterable):
                 source = SkebSourceInfo(URL(src_url), Extension.MP4)
                 source_list.append(source)
 
+        # 小説
+        # urlの後ろに?p="{本文}"として付与する（力技）
+        src_tags = response.html.find(".p")
+        for src_tag in src_tags:
+            text = src_tag.full_text
+            if len(text) > 0:
+                src_url = skeb_url.non_query_url + f"?p={text}"
+                source = SkebSourceInfo(URL(src_url), Extension.TXT)
+                source_list.append(source)
+
         if len(source_list) == 0:
             raise ValueError("SkebSourceList: html analysis failed.")
 
@@ -195,10 +125,12 @@ if __name__ == "__main__":
         fetcher = SkebFetcher(Username(config["skeb"]["twitter_id"]), Password(config["skeb"]["twitter_password"]), base_path)
 
         # イラスト（複数）
-        work_url = "https://skeb.jp/@matsukitchi12/works/25?query=1"
+        # work_url = "https://skeb.jp/@matsukitchi12/works/25?query=1"
         # 動画（単体）
         # work_url = "https://skeb.jp/@wata_lemon03/works/7"
         # gif画像（複数）
         # work_url = "https://skeb.jp/@_sa_ya_/works/55"
+        # 小説
+        work_url = "https://skeb.jp/@ba77_chiriny/works/6"
 
         fetcher.fetch(work_url)

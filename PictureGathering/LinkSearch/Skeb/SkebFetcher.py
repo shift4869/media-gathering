@@ -82,9 +82,13 @@ if __name__ == "__main__":
 
         # イラスト（複数）
         work_url = "https://skeb.jp/@matsukitchi12/works/25?query=1"
+        # イラスト（単体）
+        # work_url = "https://skeb.jp/@savior0iphone/works/101"
         # 動画（単体）
         # work_url = "https://skeb.jp/@wata_lemon03/works/7"
         # gif画像（複数）
         # work_url = "https://skeb.jp/@_sa_ya_/works/55"
+        # 小説
+        # work_url = "https://skeb.jp/@ba77_chiriny/works/6"
 
         fetcher.fetch(work_url)

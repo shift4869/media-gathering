@@ -12,6 +12,7 @@ class Extension(enum.Enum):
     WEBP: str = ".webp"
     PNG: str = ".png"
     MP4: str = ".mp4"
+    TXT: str = ".txt"
 
 
 @dataclass(frozen=True)

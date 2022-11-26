@@ -2,7 +2,6 @@
 import enum
 from dataclasses import dataclass
 from logging import INFO, getLogger
-from msilib.schema import Extension
 from pathlib import Path
 from time import sleep
 from typing import ClassVar
@@ -112,15 +111,25 @@ class SkebDownloader():
                 logger.info("Download Skeb work: " + file_name + " -> exist")
                 return DownloadResult.PASSED
 
-            # DLする
-            res = requests.get(url.original_url, headers=self.session.headers)
-            # res = self.session.get(url.original_url)
-            res.raise_for_status()
+            # 拡張子で分岐
+            if src_ext.value == Extension.TXT.value:
+                # 小説の本文情報は SkebSourceList にて ?p={本文} としてURLクエリで渡されている
+                text = url.original_url.replace(url.non_query_url + "?p=", "")
 
-            # {作者名}ディレクトリ直下に保存
-            # file_name = f"{author_name.name}_{work_id.id:03}{src_ext}"
-            with Path(sd_path.parent / file_name).open(mode="wb") as fout:
-                fout.write(res.content)
+                # {作者名}ディレクトリ直下に保存
+                # file_name = f"{author_name.name}_{work_id.id:03}{src_ext}"
+                with Path(sd_path.parent / file_name).open(mode="w", encoding="utf-8") as fout:
+                    fout.write(text)
+            else:
+                # DLする
+                res = requests.get(url.original_url, headers=self.session.headers)
+                # res = self.session.get(url.original_url)
+                res.raise_for_status()
+
+                # {作者名}ディレクトリ直下に保存
+                # file_name = f"{author_name.name}_{work_id.id:03}{src_ext}"
+                with Path(sd_path.parent / file_name).open(mode="wb") as fout:
+                    fout.write(res.content)
 
             dst_path = sd_path.parent / file_name
             self.dl_file_pathlist.append(dst_path)
@@ -149,12 +158,14 @@ if __name__ == "__main__":
         fetcher = SkebFetcher(Username(config["skeb"]["twitter_id"]), Password(config["skeb"]["twitter_password"]), base_path)
 
         # イラスト（複数）
-        work_url = "https://skeb.jp/@matsukitchi12/works/25?query=1"
+        # work_url = "https://skeb.jp/@matsukitchi12/works/25?query=1"
         # イラスト（単体）
-        # work_url = "https://skeb.jp/@savior0iphone/works/101"
+        # work_url = "https://skeb.jp/@tororicchi1125/works/60"
         # 動画（単体）
         # work_url = "https://skeb.jp/@wata_lemon03/works/7"
         # gif画像（複数）
         # work_url = "https://skeb.jp/@_sa_ya_/works/55"
+        # 小説
+        work_url = "https://skeb.jp/@ba77_chiriny/works/6"
 
         fetcher.fetch(work_url)
