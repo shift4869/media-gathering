@@ -8,6 +8,7 @@ class MSG(enum.Enum):
     HORIZONTAL_LINE = "-" * 80
     APPLICATION_START = "Picture Gathering -> start"
     APPLICATION_DONE = "Picture Gathering -> done"
+    APPLICATION_MULTIPLE_RUN = "Picture Gathering is now running. This instance is not start."
 
     CRAWLER_INIT_START = "Crawler init -> start"
     CRAWLER_INIT_DONE = "Crawler init -> done"

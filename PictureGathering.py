@@ -2,6 +2,7 @@
 import argparse
 import logging.config
 from logging import INFO, getLogger
+from pathlib import Path
 
 from PictureGathering.FavCrawler import FavCrawler
 from PictureGathering.LogMessage import MSG
@@ -14,6 +15,8 @@ for name in logging.root.manager.loggerDict:
         getLogger(name).disabled = True
 logger = getLogger(__name__)
 logger.setLevel(INFO)
+
+PREVENT_MULTIPLE_RUN_PATH = "./prevent_multiple_run"
 
 # python PictureGathering.py --type="Fav"
 # python PictureGathering.py --type="RT"
@@ -34,10 +37,17 @@ if __name__ == "__main__":
         c = RetweetCrawler()
 
     if c is not None:
+        p = Path(PREVENT_MULTIPLE_RUN_PATH)
         try:
-            c.crawl()
+            if not p.exists():
+                p.touch()
+                c.crawl()
+            else:
+                logger.warning(MSG.APPLICATION_MULTIPLE_RUN.value)
         except Exception as e:
             logger.exception(e)
+        finally:
+            p.unlink(missing_ok=True)
     else:
         arg_parser.print_help()
 
