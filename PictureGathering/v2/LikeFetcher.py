@@ -399,14 +399,14 @@ class LikeFetcher(V2Base):
                     "created_at": created_at,
                     "entities": {"urls": urls},
                     "id": id_str,
-                    "source": via,
+                    # "source": via,
                     "text": text
                 }:
                     # mediaが添付されているならば収集
                     # 主にattachmentsフィールドが含まれるかで判定する
                     # この段階で判明する情報はそのまま保持する
                     liked_tweet_id = id_str
-                    tweet_via = via
+                    tweet_via = data.get("source", "unknown via")
                     tweet_text = text
 
                     if liked_tweet_id in seen:
@@ -550,14 +550,14 @@ class LikeFetcher(V2Base):
                     "created_at": created_at,
                     "entities": {"urls": urls},
                     "id": id_str,
-                    "source": via,
+                    # "source": via,
                     "text": text
                 }:
                     # 外部リンクが含まれているならば収集
                     # link_searcherのCoRで対象かどうか判定する
                     # この段階で判明する情報はそのまま保持する
                     tweet_id = id_str
-                    tweet_via = via
+                    tweet_via = data.get("source", "unknown via")
                     tweet_text = text
                     link_type = ""
 

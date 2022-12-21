@@ -400,14 +400,14 @@ class RetweetFetcher(V2Base):
                     "created_at": created_at,
                     "entities": {"urls": urls},
                     "id": id_str,
-                    "source": via,
+                    # "source": via,
                     "text": text
                 }:
                     # mediaが添付されているならば収集
                     # 主にattachmentsフィールドが含まれるかで判定する
                     # この段階で判明する情報はそのまま保持する
                     referenced_tweet_id = id_str
-                    tweet_via = via
+                    tweet_via = data.get("source", "unknown via")
                     tweet_text = text
 
                     if referenced_tweet_id in seen:
@@ -550,14 +550,14 @@ class RetweetFetcher(V2Base):
                     "created_at": created_at,
                     "entities": {"urls": urls},
                     "id": id_str,
-                    "source": via,
+                    # "source": via,
                     "text": text
                 }:
                     # 外部リンクが含まれているならば収集
                     # link_searcherのCoRで対象かどうか判定する
                     # この段階で判明する情報はそのまま保持する
                     tweet_id = id_str
-                    tweet_via = via
+                    tweet_via = data.get("source", "unknown via")
                     tweet_text = text
                     link_type = ""
 
@@ -632,7 +632,7 @@ if __name__ == "__main__":
         config["access_token_secret"]
     )
 
-    MY_ID = 175674367
+    MY_ID = "175674367"
     retweet = RetweetFetcher(userid=MY_ID, pages=3, max_results=100, twitter=twitter)
     # 実際にAPIを叩いて取得する
     # res = retweet.fetch()
