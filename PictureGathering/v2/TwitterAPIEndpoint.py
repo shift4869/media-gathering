@@ -42,6 +42,9 @@ class TwitterAPIEndpointName(Enum):
 
     # レートリミット(未実装)
 
+    # ツイート詳細取得v1.1
+    TWEETS_LOOKUP_v1_1 = auto()
+
 
 @dataclass
 class TwitterAPIEndpoint():

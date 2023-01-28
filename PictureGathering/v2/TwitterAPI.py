@@ -236,3 +236,12 @@ if __name__ == "__main__":
     # }
     # tweets = twitter.get(url, params=params)
     # pprint.pprint(tweets)
+
+    # via取得
+    TWEETS_IDS = "1619144454337892353,1619144806143500289"
+    url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.TWEETS_LOOKUP_v1_1)
+    params = {
+        "id": TWEETS_IDS
+    }
+    tweets = twitter.get(url, params=params)
+    pprint.pprint(tweets)

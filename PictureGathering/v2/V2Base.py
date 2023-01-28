@@ -1,6 +1,7 @@
 # coding: utf-8
 import json
 import pprint
+import re
 import sys
 import urllib
 from abc import ABC, abstractmethod
@@ -12,7 +13,7 @@ from PictureGathering.LogMessage import MSG
 from PictureGathering.Model import ExternalLink
 from PictureGathering.v2.TweetInfo import TweetInfo
 from PictureGathering.v2.TwitterAPI import TwitterAPI
-from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint
+from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 
 
 logger = getLogger(__name__)
@@ -249,6 +250,30 @@ class V2Base(ABC):
             raise ValueError("urls is not list[dict].")
         return [url.get("expanded_url", "") for url in urls if "expanded_url" in url]
 
+    def _get_tweets_via(self, id_list: list[str]) -> list[dict]:
+        url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.TWEETS_LOOKUP_v1_1)
+        res = []
+
+        def to_dict(tweet: dict):
+            via_html = tweet.get("source", "unknown via")
+            via = re.findall("^<.+?>([^<]*?)<.+?>$", via_html)[0]
+            d = {
+                "id": tweet.get("id_str", -1),
+                "via": via,
+            }
+            return d
+
+        MAX_IDS_NUM = 100
+        for i in range(0, len(id_list), MAX_IDS_NUM):
+            ids = id_list[i:i + MAX_IDS_NUM]
+            params = {
+                "id": ",".join(ids)
+            }
+            tweets = self.twitter.get(url, params=params)
+
+            res.extend([to_dict(t) for t in tweets])
+        return res
+
     @abstractmethod
     def to_convert_TweetInfo(self, fetched_tweets: list[dict]) -> list[TweetInfo]:
         return []
@@ -281,7 +306,7 @@ if __name__ == "__main__":
     except Exception:
         pass
 
-    MY_ID = 175674367
+    MY_ID = "175674367"
     like = LikeFetcher(userid=MY_ID, pages=3, max_results=100, twitter=twitter)
     # 実際にAPIを叩いて取得する
     # res = like.fetch()
@@ -292,20 +317,25 @@ if __name__ == "__main__":
     # pprint.pprint(res)
 
     # キャッシュを読み込んでV2BaseInfoリストを作成する
-    input_dict = {}
-    with codecs.open("./PictureGathering/v2/api_response_like_json.txt", "r", "utf-8") as fin:
-        input_dict = json.load(fin)
-    res = like.to_convert_TweetInfo(input_dict)
-    pprint.pprint(res)
-    print(len(res))
+    # input_dict = {}
+    # with codecs.open("./PictureGathering/v2/api_response_like_json.txt", "r", "utf-8") as fin:
+    #     input_dict = json.load(fin)
+    # res = like.to_convert_TweetInfo(input_dict)
+    # pprint.pprint(res)
+    # print(len(res))
 
     # キャッシュを読み込んでExternalLinkリストを作成する
-    config = config_parser
-    config["skeb"]["is_skeb_trace"] = "False"
-    lsb = LinkSearcher.create(config)
-    input_dict = {}
-    with codecs.open("./PictureGathering/v2/api_response_like_json.txt", "r", "utf-8") as fin:
-        input_dict = json.load(fin)
-    res = like.to_convert_ExternalLink(input_dict, lsb)
+    # config = config_parser
+    # config["skeb"]["is_skeb_trace"] = "False"
+    # lsb = LinkSearcher.create(config)
+    # input_dict = {}
+    # with codecs.open("./PictureGathering/v2/api_response_like_json.txt", "r", "utf-8") as fin:
+    #     input_dict = json.load(fin)
+    # res = like.to_convert_ExternalLink(input_dict, lsb)
+    # pprint.pprint(res)
+    # print(len(res))
+
+    # via取得
+    ids = ["1619144454337892353", "1619144806143500289"]
+    res = like._get_tweets_via(ids)
     pprint.pprint(res)
-    print(len(res))

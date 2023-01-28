@@ -3,7 +3,7 @@
         "tweet_cap": {
             "access_level": "Elevated",
             "max_count": 2000000,
-            "reset_date": 17,
+            "reset_date": 12,
             "last_reset_utc": "2022-11-17 01:37:31",
             "estimated_now_count": 0
         }
@@ -64,6 +64,13 @@
             "path_params_num": 0,
             "template": "https://api.twitter.com/2/users/me",
             "url": "https://api.twitter.com/2/users/me"
+        },
+        {
+            "name": "TWEETS_LOOKUP_v1_1",
+            "method": "GET",
+            "path_params_num": 0,
+            "template": "https://api.twitter.com/1.1/statuses/lookup.json",
+            "url": "https://api.twitter.com/1.1/statuses/lookup.json"
         }
     ]
 }

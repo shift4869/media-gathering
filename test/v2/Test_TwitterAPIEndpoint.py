@@ -37,6 +37,7 @@ class TestTwitterAPI(unittest.TestCase):
             "TWEETS_LOOKUP",
             "LIKED_TWEET",
             "USER_LOOKUP_ME",
+            "TWEETS_LOOKUP_v1_1",
         ]
         actual = [name.name for name in TwitterAPIEndpointName]
         self.assertEqual(expect, actual)
