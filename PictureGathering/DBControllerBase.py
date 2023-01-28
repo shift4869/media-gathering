@@ -186,7 +186,7 @@ class DBControllerBase(metaclass=ABCMeta):
             record.delete_done = True
             record.deleted_at = t.strftime("%Y-%m-%d %H:%M:%S")
 
-        res_dict = [r.toDict() for r in records]  # 辞書リストに変換
+        res_dict = [r.to_dict() for r in records]  # 辞書リストに変換
 
         session.commit()
         session.close()
@@ -239,7 +239,7 @@ class DBControllerBase(metaclass=ABCMeta):
         session = Session()
 
         res = session.query(ExternalLink).filter_by(external_link_url=target_external_link).all()
-        res_dict = [r.toDict() for r in res]  # 辞書リストに変換
+        res_dict = [r.to_dict() for r in res]  # 辞書リストに変換
 
         session.close()
         return res_dict

@@ -96,7 +96,7 @@ class FavDBController(DBControllerBase):
         session = Session()
 
         res = session.query(Favorite).order_by(desc(Favorite.id)).limit(limit).all()
-        res_dict = [r.toDict() for r in res]  # 辞書リストに変換
+        res_dict = [r.to_dict() for r in res]  # 辞書リストに変換
 
         session.close()
         return res_dict
@@ -117,7 +117,7 @@ class FavDBController(DBControllerBase):
         session = Session()
 
         res = session.query(Favorite).filter_by(img_filename=filename).all()
-        res_dict = [r.toDict() for r in res]  # 辞書リストに変換
+        res_dict = [r.to_dict() for r in res]  # 辞書リストに変換
 
         session.close()
         return res_dict
@@ -144,7 +144,7 @@ class FavDBController(DBControllerBase):
         for record in records:
             record.is_exist_saved_file = flag
 
-        res_dict = [r.toDict() for r in records]  # 辞書リストに変換
+        res_dict = [r.to_dict() for r in records]  # 辞書リストに変換
 
         session.commit()
         session.close()

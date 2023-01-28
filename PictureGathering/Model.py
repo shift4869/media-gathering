@@ -78,7 +78,7 @@ class Favorite(Base):
     def __eq__(self, other):
         return isinstance(other, Favorite) and other.img_filename == self.img_filename
 
-    def toDict(self):
+    def to_dict(self):
         return {
             "id": self.id,
             "is_exist_saved_file": self.is_exist_saved_file,
@@ -210,7 +210,7 @@ class Retweet(Base):
     def __eq__(self, other):
         return isinstance(other, Retweet) and other.img_filename == self.img_filename
 
-    def toDict(self):
+    def to_dict(self):
         return {
             "id": self.id,
             "is_exist_saved_file": self.is_exist_saved_file,
@@ -328,7 +328,7 @@ class ExternalLink(Base):
     def __eq__(self, other):
         return isinstance(other, ExternalLink) and other.external_link_url == self.external_link_url and other.tweet_url == self.tweet_url
 
-    def toDict(self):
+    def to_dict(self):
         return {
             "id": self.id,
             "external_link_url": self.external_link_url,
@@ -419,7 +419,7 @@ class DeleteTarget(Base):
     def __eq__(self, other):
         return isinstance(other, DeleteTarget) and other.tweet_id == self.tweet_id
 
-    def toDict(self):
+    def to_dict(self):
         return {
             "id": self.id,
             "tweet_id": self.tweet_id,

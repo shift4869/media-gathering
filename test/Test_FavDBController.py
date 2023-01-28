@@ -144,19 +144,19 @@ class TestDBController(unittest.TestCase):
         # 1回目（INSERT）
         img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
         r1 = self._Favorite_sample_factory(img_url_s)
-        controlar.upsert(r1.toDict())
+        controlar.upsert(r1.to_dict())
 
         # 2回目（INSERT）
         img_url_s = "http://www.img.filename.sample.com/media/sample_2.png"
         r2 = self._Favorite_sample_factory(img_url_s)
-        controlar.upsert(r2.toDict())
+        controlar.upsert(r2.to_dict())
 
         # 3回目（UPDATE）
         img_url_s = "http://www.img.filename.sample.com/media/sample_1.png"
         file_name_s = "sample_3.png"
         r3 = self._Favorite_sample_factory(img_url_s)
         r3.img_filename = file_name_s
-        controlar.upsert(r3.toDict())
+        controlar.upsert(r3.to_dict())
 
         r2.id = "2"
         r3.id = "3"
@@ -175,7 +175,7 @@ class TestDBController(unittest.TestCase):
         limit_s = 300
         actual = controlar.select(limit_s)
 
-        expect = [self.f.toDict()]
+        expect = [self.f.to_dict()]
         self.assertEqual(expect, actual)
 
     def test_select_from_media_url(self):
@@ -193,7 +193,7 @@ class TestDBController(unittest.TestCase):
         self.session.add(record)
         self.session.commit()
 
-        expect = [record.toDict()]
+        expect = [record.to_dict()]
         actual = controlar.select_from_media_url(file_name_s)
         self.assertEqual(expect, actual)
 
@@ -215,7 +215,7 @@ class TestDBController(unittest.TestCase):
         r1.is_exist_saved_file = True
         r2.is_exist_saved_file = True
         self.session.commit()
-        expect = [r1.toDict(), r2.toDict()]
+        expect = [r1.to_dict(), r2.to_dict()]
         actual = controlar.update_flag([r1.img_filename, r2.img_filename], 1)
         self.assertEqual(expect[0]["is_exist_saved_file"], actual[0]["is_exist_saved_file"])
         self.assertEqual(expect, actual)
@@ -229,7 +229,7 @@ class TestDBController(unittest.TestCase):
         r1.is_exist_saved_file = False
         r3.is_exist_saved_file = False
         self.session.commit()
-        expect = [r1.toDict(), r3.toDict()]
+        expect = [r1.to_dict(), r3.to_dict()]
         actual = controlar.update_flag([r1.img_filename, r3.img_filename], 0)
         self.assertEqual(expect[0]["is_exist_saved_file"], actual[0]["is_exist_saved_file"])
         self.assertEqual(expect, actual)

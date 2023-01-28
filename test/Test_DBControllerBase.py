@@ -220,7 +220,7 @@ class TestDBController(unittest.TestCase):
             for record in expect_element_list:
                 record.delete_done = True
                 record.deleted_at = t.strftime("%Y-%m-%d %H:%M:%S")
-                expect.append(record.toDict())
+                expect.append(record.to_dict())
             actual = controlar.update_del()
             self.assertEqual(expect, actual)
 
@@ -277,7 +277,7 @@ class TestDBController(unittest.TestCase):
             for record in expect:
                 external_link = controlar.select_external_link(record.external_link_url)
                 actual.append(external_link[0])
-            expect = [e.toDict() for e in expect]
+            expect = [e.to_dict() for e in expect]
             for e, a in zip(expect, actual):
                 del e["id"]
                 del a["id"]
@@ -302,7 +302,7 @@ class TestDBController(unittest.TestCase):
             for record in expect:
                 external_link = controlar.select_external_link(record.external_link_url)
                 actual.append(external_link[0])
-            expect = [e.toDict() for e in expect]
+            expect = [e.to_dict() for e in expect]
             self.assertEqual(expect, actual)
 
 
