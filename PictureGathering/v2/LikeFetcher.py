@@ -389,8 +389,8 @@ class LikeFetcher(V2Base):
         target_data_list.extend(second_level_tweets_list)  # (C)RT先のRT先ツイート（mediaが含まれているかもしれない）
 
         # target_data_list を入力として media 情報を収集
-        seen_ids = []
-        result = []
+        seen_ids: list[str] = []
+        result: list[TweetInfo] = []
         for data in target_data_list:
             match data:
                 case {
@@ -474,13 +474,14 @@ class LikeFetcher(V2Base):
         # via 情報を結合
         via_list = self._get_tweets_via(seen_ids)
         for i, r in enumerate(result):
-            via_element = [d for d in via_list if d.get("id") == r.tweet_id]
-            if len(via_element) == 0:
-                continue
-            via = via_element[0].get("via", "unknown via")
-            r_dict = r.to_dict()
-            r_dict["tweet_via"] = via
-            result[i] = LikeInfo.create(r_dict)
+            if r.tweet_via == "unknown via":
+                via_element = [d for d in via_list if d.get("id") == r.tweet_id]
+                if len(via_element) == 0:
+                    continue
+                via = via_element[0].get("via", "unknown via")
+                r_dict = r.to_dict()
+                r_dict["tweet_via"] = via
+                result[i] = LikeInfo.create(r_dict)
 
         return result
 
@@ -553,8 +554,8 @@ class LikeFetcher(V2Base):
         target_data_list.extend(second_level_tweets_list)  # (C)RT先のRT先ツイート
 
         # target_data_list を入力として外部リンクを探索
-        seen_ids = []
-        result = []
+        seen_ids: list[str] = []
+        result: list[ExternalLink] = []
         for data in target_data_list:
             match data:
                 case {
@@ -629,13 +630,14 @@ class LikeFetcher(V2Base):
         # via 情報を結合
         via_list = self._get_tweets_via(seen_ids)
         for i, r in enumerate(result):
-            via_element = [d for d in via_list if d.get("id") == r.tweet_id]
-            if len(via_element) == 0:
-                continue
-            via = via_element[0].get("via", "unknown via")
-            r_dict = r.to_dict()
-            r_dict["tweet_via"] = via
-            result[i] = ExternalLink.create(r_dict)
+            if r.tweet_via == "unknown via":
+                via_element = [d for d in via_list if d.get("id") == r.tweet_id]
+                if len(via_element) == 0:
+                    continue
+                via = via_element[0].get("via", "unknown via")
+                r_dict = r.to_dict()
+                r_dict["tweet_via"] = via
+                result[i] = ExternalLink.create(r_dict)
 
         return result
 

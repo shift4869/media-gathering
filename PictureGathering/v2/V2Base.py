@@ -254,8 +254,8 @@ class V2Base(ABC):
         url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.TWEETS_LOOKUP_v1_1)
         res = []
 
-        def to_dict(tweet: dict):
-            via_html = tweet.get("source", "unknown via")
+        def to_dict(tweet: dict) -> dict:
+            via_html = tweet.get("source", "<a>unknown via</a>")
             via = re.findall("^<.+?>([^<]*?)<.+?>$", via_html)[0]
             d = {
                 "id": tweet.get("id_str", -1),
@@ -269,7 +269,8 @@ class V2Base(ABC):
             params = {
                 "id": ",".join(ids)
             }
-            tweets = self.twitter.get(url, params=params)
+            # v1.1APIの返り値はtweet辞書のリスト
+            tweets: list[dict] = self.twitter.get(url, params=params)
 
             res.extend([to_dict(t) for t in tweets])
         return res
