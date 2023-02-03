@@ -357,10 +357,53 @@ class Crawler(metaclass=ABCMeta):
             "Content-Type": "application/json"
         }
 
-        # "content": "😎普通の絵文字\r:sunglasses:Discordの絵文字も:ok_woman:"
-        payload = {
-            "content": str
-        }
+        payload = {}
+        is_embed = True
+        if is_embed:
+            # desc_msg = """Retweet PictureGathering run.
+            # 2023/02/03 10:31:30 Process Done !!
+            # add 4 new images. delete 4 old images."""
+            # """https://pbs.twimg.com/media/Fn-iG41aYAAjYb7.jpg
+            # https://pbs.twimg.com/media/Fn_OTxhXEAIMyb0.jpg
+            # https://pbs.twimg.com/media/Fn4DUHSaIAM8Ehz.jpg
+            # https://pbs.twimg.com/media/Fn-2N4UagAAlzEd.jpg"""
+
+            description_msg = ""
+            media_links = []
+            lines = str.split("\n")
+            for line in lines:
+                if line.startswith("http"):
+                    media_links.append(line)
+                else:
+                    description_msg += (line + "\n")
+         
+            embeds = []
+            if len(media_links) > 0:
+                key_url = media_links[0]
+                embeds.append(
+                    {
+                        "description": description_msg,
+                        "url": key_url,
+                        "image": {"url": key_url}
+                    }
+                )
+                for media_link_url in media_links[1:]:
+                    embeds.append(
+                        {
+                            "url": key_url,
+                            "image": {"url": media_link_url}
+                        }
+                    )
+
+            if embeds:
+                payload = {
+                    "embeds": embeds
+                }
+
+        if not payload:
+            payload = {
+                "content": str
+            }
 
         response = requests.post(url, headers=headers, data=json.dumps(payload))
 
