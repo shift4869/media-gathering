@@ -104,8 +104,14 @@ class TestLinkSearcher(unittest.TestCase):
 
             lsc = LinkSearcher.create(config)
 
-            REGISTER_NUM = 5
-            self.assertEqual(REGISTER_NUM, len(lsc.fetcher_list))
+            register_num = [
+                config["pixiv"].getboolean("is_pixiv_trace"),
+                config["pixiv"].getboolean("is_pixiv_trace"),
+                config["nijie"].getboolean("is_nijie_trace"),
+                config["nico_seiga"].getboolean("is_seiga_trace"),
+                config["skeb"].getboolean("is_skeb_trace"),
+            ].count(True)
+            self.assertEqual(register_num, len(lsc.fetcher_list))
 
 
 if __name__ == "__main__":

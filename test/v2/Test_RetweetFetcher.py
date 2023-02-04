@@ -6,7 +6,7 @@ import sys
 import unittest
 from contextlib import ExitStack
 from datetime import datetime, timedelta
-from mock import patch
+from mock import MagicMock, patch
 
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
@@ -45,6 +45,13 @@ class TestRetweetFetcher(unittest.TestCase):
         with codecs.open(JSON_FILE_PATH, "r", "utf-8") as fin:
             lookuped_dict = json.load(fin)
         return lookuped_dict[0]
+
+    def _mock_get_tweets_via(self, ids):
+        result = [{
+            "id": str(n),
+            "via": "tweet via of " + str(n),
+        } for n in ids]
+        return result
 
     def test_RetweetFetcher_init(self):
         userid = "12345"
@@ -311,7 +318,9 @@ class TestRetweetFetcher(unittest.TestCase):
     def test_to_convert_TweetInfo(self):
         with ExitStack() as stack:
             mock_get = stack.enter_context(patch("PictureGathering.v2.RetweetFetcher.TwitterAPI.get"))
+            mock_get_tweets_via = stack.enter_context(patch("PictureGathering.v2.RetweetFetcher.RetweetFetcher._get_tweets_via"))
             mock_get.side_effect = lambda url, params: self._tweet_lookup_sample()
+            mock_get_tweets_via.side_effect = self._mock_get_tweets_via
 
             userid = "12345"
             pages = 3
@@ -328,8 +337,8 @@ class TestRetweetFetcher(unittest.TestCase):
 
                 data_with_referenced_tweets = [data for data in data_list if fetcher._is_include_referenced_tweets(data)]
                 query_need_ids, query_need_tweets = fetcher._find_retweet_tree_with_attachments(data_with_referenced_tweets, tweets_list)
-                seen = []
-                query_need_ids = [i for i in query_need_ids if i not in seen and not seen.append(i)]
+                seen_ids = []
+                query_need_ids = [i for i in query_need_ids if i not in seen_ids and not seen_ids.append(i)]
 
                 MAX_IDS_NUM = 100
                 second_level_tweets_list, lookuped_media_list, lookuped_users_list = fetcher._fetch_tweet_lookup(query_need_ids, MAX_IDS_NUM)
@@ -343,7 +352,7 @@ class TestRetweetFetcher(unittest.TestCase):
                 target_data_list.extend(first_level_tweets_list)
                 target_data_list.extend(second_level_tweets_list)
 
-                seen = []
+                seen_ids = []
                 result = []
                 for data in target_data_list:
                     match data:
@@ -353,14 +362,14 @@ class TestRetweetFetcher(unittest.TestCase):
                             "created_at": created_at,
                             "entities": {"urls": urls},
                             "id": id_str,
-                            "source": via,
+                            # "source": via,
                             "text": text
                         }:
                             referenced_tweet_id = id_str
-                            tweet_via = via
+                            tweet_via = data.get("source", "unknown via")
                             tweet_text = text
 
-                            if referenced_tweet_id in seen:
+                            if referenced_tweet_id in seen_ids:
                                 continue
 
                             user_id = author_id
@@ -400,10 +409,22 @@ class TestRetweetFetcher(unittest.TestCase):
                                 }
                                 result.append(RetweetInfo.create(r))
 
-                                if referenced_tweet_id not in seen:
-                                    seen.append(referenced_tweet_id)
+                                if referenced_tweet_id not in seen_ids:
+                                    seen_ids.append(referenced_tweet_id)
                         case _:
                             continue
+
+                via_list = fetcher._get_tweets_via(seen_ids)
+                for i, r in enumerate(result):
+                    if r.tweet_via == "unknown via":
+                        via_element = [d for d in via_list if d.get("id") == r.tweet_id]
+                        if len(via_element) == 0:
+                            continue
+                        via = via_element[0].get("via", "unknown via")
+                        r_dict = r.to_dict()
+                        r_dict["tweet_via"] = via
+                        result[i] = RetweetInfo.create(r_dict)
+
                 return result
 
             expect = to_convert_TweetInfo(fetcher, input_dict)
@@ -413,7 +434,9 @@ class TestRetweetFetcher(unittest.TestCase):
     def test_to_convert_ExternalLink(self):
         with ExitStack() as stack:
             mock_get = stack.enter_context(patch("PictureGathering.v2.RetweetFetcher.TwitterAPI.get"))
+            mock_get_tweets_via = stack.enter_context(patch("PictureGathering.v2.RetweetFetcher.RetweetFetcher._get_tweets_via"))
             mock_get.side_effect = lambda url, params: self._tweet_lookup_sample()
+            mock_get_tweets_via.side_effect = self._mock_get_tweets_via
 
             class SampleLinksearcher(FetcherBase):
                 def is_target_url(self, url: URL) -> bool:
@@ -441,8 +464,8 @@ class TestRetweetFetcher(unittest.TestCase):
 
                 data_with_referenced_tweets = [data for data in data_list if fetcher._is_include_referenced_tweets(data)]
                 query_need_ids, first_level_tweets_list = fetcher._find_retweet_tree_with_entities(data_with_referenced_tweets, tweets_list)
-                seen = []
-                query_need_ids = [i for i in query_need_ids if i not in seen and not seen.append(i)]
+                seen_ids = []
+                query_need_ids = [i for i in query_need_ids if i not in seen_ids and not seen_ids.append(i)]
 
                 MAX_IDS_NUM = 100
                 second_level_tweets_list, lookuped_media_list, lookuped_users_list = fetcher._fetch_tweet_lookup(query_need_ids, MAX_IDS_NUM)
@@ -453,7 +476,7 @@ class TestRetweetFetcher(unittest.TestCase):
                 target_data_list.extend(first_level_tweets_list)
                 target_data_list.extend(second_level_tweets_list)
 
-                seen = []
+                seen_ids = []
                 result = []
                 for data in target_data_list:
                     match data:
@@ -462,15 +485,15 @@ class TestRetweetFetcher(unittest.TestCase):
                             "created_at": created_at,
                             "entities": {"urls": urls},
                             "id": id_str,
-                            "source": via,
+                            # "source": via,
                             "text": text
                         }:
                             tweet_id = id_str
-                            tweet_via = via
+                            tweet_via = data.get("source", "unknown via")
                             tweet_text = text
                             link_type = ""
 
-                            if tweet_id in seen:
+                            if tweet_id in seen_ids:
                                 continue
 
                             user_id = author_id
@@ -508,10 +531,22 @@ class TestRetweetFetcher(unittest.TestCase):
                                 }
                                 result.append(ExternalLink.create(r))
 
-                                if tweet_id not in seen:
-                                    seen.append(tweet_id)
+                                if tweet_id not in seen_ids:
+                                    seen_ids.append(tweet_id)
                         case _:
                             continue
+
+                via_list = fetcher._get_tweets_via(seen_ids)
+                for i, r in enumerate(result):
+                    if r.tweet_via == "unknown via":
+                        via_element = [d for d in via_list if d.get("id") == r.tweet_id]
+                        if len(via_element) == 0:
+                            continue
+                        via = via_element[0].get("via", "unknown via")
+                        r_dict = r.to_dict()
+                        r_dict["tweet_via"] = via
+                        result[i] = ExternalLink.create(r_dict)
+
                 return result
 
             expect = to_convert_ExternalLink(fetcher, input_dict, lsb)

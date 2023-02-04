@@ -19,7 +19,6 @@
                     ]
                 },
                 "id": "00001",
-                "source": "Twitter Web App",
                 "text": "(1)画像photo添付あり"
             },
             {
@@ -34,7 +33,6 @@
                                        "start": 102,
                                        "url": "https://t.co/abcde"}]},
                 "id": "00002",
-                "source": "Twitter Web Client",
                 "text": "(2)動画video添付あり"
             },
             {
@@ -64,7 +62,6 @@
                                        "start": 99,
                                        "url": "https://t.co/abcde"}]},
                 "id": "00003",
-                "source": "Twitter Web App",
                 "text": "(3)photo添付あり、pixivアドレスつき"
             },
             {
@@ -87,7 +84,6 @@
                 "id": "00004",
                 "referenced_tweets": [{"id": "10004",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(4)RT元0階層目、添付あり"
             },
             {
@@ -110,7 +106,6 @@
                 "id": "00005",
                 "referenced_tweets": [{"id": "10005",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(5)RT元0階層目、添付あり"
             },
             {
@@ -133,7 +128,6 @@
                 "id": "00006",
                 "referenced_tweets": [{"id": "10006",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(6)RT元0階層目、添付あり"
             },
             {
@@ -154,7 +148,6 @@
                 "id": "00007",
                 "referenced_tweets": [{"id": "10007",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(7)RT元0階層目、添付なし"
             },
             {
@@ -175,7 +168,6 @@
                 "id": "00008",
                 "referenced_tweets": [{"id": "10008",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(8)RT元0階層目、添付なし"
             },
             {
@@ -196,7 +188,6 @@
                 "id": "00009",
                 "referenced_tweets": [{"id": "10009",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(9)RT元0階層目、添付なし"
             }
         ],
@@ -303,7 +294,6 @@
                     "id": "10004",
                     "referenced_tweets": [{"id": "20004",
                                           "type": "quoted"}],
-                    "source": "Twitter Web App",
                     "text": "(4)RT先1階層目、添付あり、RT先あり"
                 },
                 {
@@ -324,7 +314,6 @@
                         ]
                     },
                     "id": "10005",
-                    "source": "Twitter Web App",
                     "text": "(5)RT先1階層目、添付あり、RT先なし"
                 },
                 {
@@ -353,7 +342,6 @@
                     "id": "10006",
                     "referenced_tweets": [{"id": "20006",
                                           "type": "quoted"}],
-                    "source": "Twitter Web App",
                     "text": "(6)RT先1階層目、添付なし、RT先あり"
                 },
                 {
@@ -384,7 +372,6 @@
                     "id": "10007",
                     "referenced_tweets": [{"id": "20007",
                                           "type": "quoted"}],
-                    "source": "Twitter Web App",
                     "text": "(7)RT先1階層目、添付あり、RT先あり"
                 },
                 {
@@ -405,7 +392,6 @@
                         ]
                     },
                     "id": "10008",
-                    "source": "Twitter Web App",
                     "text": "(8)RT先1階層目、添付あり、RT先なし"
                 },
                 {
@@ -434,7 +420,6 @@
                     "id": "10009",
                     "referenced_tweets": [{"id": "20009",
                                           "type": "quoted"}],
-                    "source": "Twitter Web App",
                     "text": "(9)RT先1階層目、添付なし、RT先あり"
                 }
             ]
@@ -464,7 +449,6 @@
                     ]
                 },
                 "id": "00001",
-                "source": "Twitter Web App",
                 "text": "(1)画像photo添付あり"
             },
             {
@@ -479,7 +463,6 @@
                                        "start": 102,
                                        "url": "https://t.co/abcde"}]},
                 "id": "00002",
-                "source": "Twitter Web Client",
                 "text": "(2)動画video添付あり"
             },
             {
@@ -509,7 +492,6 @@
                                        "start": 99,
                                        "url": "https://t.co/abcde"}]},
                 "id": "00003",
-                "source": "Twitter Web App",
                 "text": "(3)photo添付あり、pixivアドレスつき"
             },
             {
@@ -532,7 +514,6 @@
                 "id": "00004",
                 "referenced_tweets": [{"id": "10004",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(4)RT元0階層目、添付あり"
             },
             {
@@ -555,7 +536,6 @@
                 "id": "00005",
                 "referenced_tweets": [{"id": "10005",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(5)RT元0階層目、添付あり"
             },
             {
@@ -578,7 +558,6 @@
                 "id": "00006",
                 "referenced_tweets": [{"id": "10006",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(6)RT元0階層目、添付あり"
             },
             {
@@ -599,7 +578,6 @@
                 "id": "00007",
                 "referenced_tweets": [{"id": "10007",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(7)RT元0階層目、添付なし"
             },
             {
@@ -620,7 +598,6 @@
                 "id": "00008",
                 "referenced_tweets": [{"id": "10008",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(8)RT元0階層目、添付なし"
             },
             {
@@ -641,7 +618,6 @@
                 "id": "00009",
                 "referenced_tweets": [{"id": "10009",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(9)RT元0階層目、添付なし"
             }
         ],
@@ -748,7 +724,6 @@
                     "id": "10004",
                     "referenced_tweets": [{"id": "20004",
                                           "type": "quoted"}],
-                    "source": "Twitter Web App",
                     "text": "(4)RT先1階層目、添付あり、RT先あり"
                 },
                 {
@@ -769,7 +744,6 @@
                         ]
                     },
                     "id": "10005",
-                    "source": "Twitter Web App",
                     "text": "(5)RT先1階層目、添付あり、RT先なし"
                 },
                 {
@@ -798,7 +772,6 @@
                     "id": "10006",
                     "referenced_tweets": [{"id": "20006",
                                           "type": "quoted"}],
-                    "source": "Twitter Web App",
                     "text": "(6)RT先1階層目、添付なし、RT先あり"
                 },
                 {
@@ -829,7 +802,6 @@
                     "id": "10007",
                     "referenced_tweets": [{"id": "20007",
                                           "type": "quoted"}],
-                    "source": "Twitter Web App",
                     "text": "(7)RT先1階層目、添付あり、RT先あり"
                 },
                 {
@@ -850,7 +822,6 @@
                         ]
                     },
                     "id": "10008",
-                    "source": "Twitter Web App",
                     "text": "(8)RT先1階層目、添付あり、RT先なし"
                 },
                 {
@@ -879,7 +850,6 @@
                     "id": "10009",
                     "referenced_tweets": [{"id": "20009",
                                           "type": "quoted"}],
-                    "source": "Twitter Web App",
                     "text": "(9)RT先1階層目、添付なし、RT先あり"
                 }
             ]
@@ -910,7 +880,6 @@
                     ]
                 },
                 "id": "00001",
-                "source": "Twitter Web App",
                 "text": "(1)画像photo添付あり"
             },
             {
@@ -925,7 +894,6 @@
                                        "start": 102,
                                        "url": "https://t.co/abcde"}]},
                 "id": "00002",
-                "source": "Twitter Web Client",
                 "text": "(2)動画video添付あり"
             },
             {
@@ -955,7 +923,6 @@
                                        "start": 99,
                                        "url": "https://t.co/abcde"}]},
                 "id": "00003",
-                "source": "Twitter Web App",
                 "text": "(3)photo添付あり、pixivアドレスつき"
             },
             {
@@ -978,7 +945,6 @@
                 "id": "00004",
                 "referenced_tweets": [{"id": "10004",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(4)RT元0階層目、添付あり"
             },
             {
@@ -1001,7 +967,6 @@
                 "id": "00005",
                 "referenced_tweets": [{"id": "10005",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(5)RT元0階層目、添付あり"
             },
             {
@@ -1024,7 +989,6 @@
                 "id": "00006",
                 "referenced_tweets": [{"id": "10006",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(6)RT元0階層目、添付あり"
             },
             {
@@ -1045,7 +1009,6 @@
                 "id": "00007",
                 "referenced_tweets": [{"id": "10007",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(7)RT元0階層目、添付なし"
             },
             {
@@ -1066,7 +1029,6 @@
                 "id": "00008",
                 "referenced_tweets": [{"id": "10008",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(8)RT元0階層目、添付なし"
             },
             {
@@ -1087,7 +1049,6 @@
                 "id": "00009",
                 "referenced_tweets": [{"id": "10009",
                                       "type": "retweeted"}],
-                "source": "Twitter Web App",
                 "text": "(9)RT元0階層目、添付なし"
             }
         ],
@@ -1194,7 +1155,6 @@
                     "id": "10004",
                     "referenced_tweets": [{"id": "20004",
                                           "type": "quoted"}],
-                    "source": "Twitter Web App",
                     "text": "(4)RT先1階層目、添付あり、RT先あり"
                 },
                 {
@@ -1215,7 +1175,6 @@
                         ]
                     },
                     "id": "10005",
-                    "source": "Twitter Web App",
                     "text": "(5)RT先1階層目、添付あり、RT先なし"
                 },
                 {
@@ -1244,7 +1203,6 @@
                     "id": "10006",
                     "referenced_tweets": [{"id": "20006",
                                           "type": "quoted"}],
-                    "source": "Twitter Web App",
                     "text": "(6)RT先1階層目、添付なし、RT先あり"
                 },
                 {
@@ -1275,7 +1233,6 @@
                     "id": "10007",
                     "referenced_tweets": [{"id": "20007",
                                           "type": "quoted"}],
-                    "source": "Twitter Web App",
                     "text": "(7)RT先1階層目、添付あり、RT先あり"
                 },
                 {
@@ -1296,7 +1253,6 @@
                         ]
                     },
                     "id": "10008",
-                    "source": "Twitter Web App",
                     "text": "(8)RT先1階層目、添付あり、RT先なし"
                 },
                 {
@@ -1325,7 +1281,6 @@
                     "id": "10009",
                     "referenced_tweets": [{"id": "20009",
                                           "type": "quoted"}],
-                    "source": "Twitter Web App",
                     "text": "(9)RT先1階層目、添付なし、RT先あり"
                 }
             ]
