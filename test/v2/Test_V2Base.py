@@ -335,6 +335,7 @@ class TestV2Base(unittest.TestCase):
         with self.assertRaises(Exception):
             actual = fetcher._get_tweets_via(ids)
 
+
 if __name__ == "__main__":
     if sys.argv:
         del sys.argv[1:]

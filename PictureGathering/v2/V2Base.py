@@ -251,6 +251,19 @@ class V2Base(ABC):
         return [url.get("expanded_url", "") for url in urls if "expanded_url" in url]
 
     def _get_tweets_via(self, id_list: list[str]) -> list[dict]:
+        """id_list 内の id について、v1.1APIを使用してviaを取得する
+            v1.1API: https://api.twitter.com/1.1/statuses/lookup.json
+
+        Args:
+            id_list (list[str]): ツイートidのリスト
+
+        Returns:
+            via_list (list[dict]): 以下の属性を持つ辞書リスト
+                via_list: [{
+                    "id": (str),
+                    "via": (str),
+                }]
+        """
         url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.TWEETS_LOOKUP_v1_1)
         res = []
 
@@ -266,6 +279,7 @@ class V2Base(ABC):
         MAX_IDS_NUM = 100
         for i in range(0, len(id_list), MAX_IDS_NUM):
             ids = id_list[i:i + MAX_IDS_NUM]
+            # パスパラメータ"id"にカンマ区切りでidを渡す
             params = {
                 "id": ",".join(ids)
             }
