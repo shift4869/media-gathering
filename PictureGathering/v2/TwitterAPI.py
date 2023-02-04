@@ -78,6 +78,8 @@ class TwitterAPI():
                 "x-rate-limit-remaining": remain_count,
                 "x-rate-limit-reset": dt_unix,
             }:
+                remain_count = int(remain_count)
+                dt_unix = float(dt_unix)
                 dt_jst_aware = datetime.fromtimestamp(dt_unix, timezone(timedelta(hours=9)))
                 remain_seconds = dt_unix - time.mktime(datetime.now().timetuple())
                 logger.debug("リクエストURL {}".format(response.url))
@@ -177,7 +179,7 @@ class TwitterAPI():
                 self._wait_until_reset(response)
             except Exception as e:
                 # 原因不明：徐々に待機時間を増やしてとりあえず待つ(exp backoff)
-                wair_seconds = 2 ** i
+                wair_seconds = 8 ** i
                 n = time.mktime(datetime.now().timetuple())
                 self._wait(n + wair_seconds)
             logger.warning(f"retry ({i+1}/{RETRY_NUM}) ...")
