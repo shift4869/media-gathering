@@ -7,7 +7,7 @@ import urllib
 import warnings
 from contextlib import ExitStack
 from logging import WARNING, getLogger
-from mock import patch
+from mock import MagicMock, patch
 from pathlib import Path
 
 import requests
@@ -295,6 +295,45 @@ class TestV2Base(unittest.TestCase):
         with self.assertRaises(ValueError):
             actual = fetcher._match_expanded_url(["invalid_urls"])
 
+    def test_get_tweets_via(self):
+        api_endpoint_url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
+        params = {"dummy_params": "dummy_params"}
+        pages = 3
+        twitter = self._mock_twitter()
+
+        fetcher = ConcreteV2Base(api_endpoint_url, params, pages, twitter)
+
+        def make_tweet_dict(url, params):
+            ids = params.get("id").split(",")
+            res = [{
+                "id_str": str(n),
+                "source": "<a>" + "tweet via of " + str(n) + "</a>",
+            } for n in ids]
+            return res
+
+        fetcher.twitter = MagicMock()
+        fetcher.twitter.get = make_tweet_dict
+
+        ids = ["1619144454337892353", "1619144806143500289"]
+        actual = fetcher._get_tweets_via(ids)
+        expect = [{
+            "id": str(n),
+            "via": "tweet via of " + str(n),
+        } for n in ids]
+        self.assertEqual(expect, actual)
+
+        ids = []
+        actual = fetcher._get_tweets_via(ids)
+        expect = []
+        self.assertEqual(expect, actual)
+
+        def make_exception(url, params):
+            raise Exception(url, params)
+
+        ids = ["1619144454337892353", "1619144806143500289"]
+        fetcher.twitter.get = make_exception
+        with self.assertRaises(Exception):
+            actual = fetcher._get_tweets_via(ids)
 
 if __name__ == "__main__":
     if sys.argv:
