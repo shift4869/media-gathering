@@ -7,9 +7,9 @@ from pathlib import Path
 from PictureGathering.Crawler import Crawler
 from PictureGathering.FavDBController import FavDBController
 from PictureGathering.LogMessage import MSG
+from PictureGathering.noapi.NoAPILikeFetcher import NoAPILikeFetcher
 from PictureGathering.v2.LikeFetcher import LikeFetcher
 from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
-from PictureGathering.noapi.NoAPILikeFetcher import NoAPILikeFetcher
 
 logger = getLogger(__name__)
 logger.setLevel(INFO)
