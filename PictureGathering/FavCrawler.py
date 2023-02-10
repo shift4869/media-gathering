@@ -62,7 +62,8 @@ class FavCrawler(Crawler):
 
             username = self.config["twitter_noapi"]["username"]
             password = self.config["twitter_noapi"]["password"]
-            like = NoAPILikeFetcher(username, password)
+            target_username = self.config["twitter_noapi"]["target_username"]
+            like = NoAPILikeFetcher(username, password, target_username)
             fetched_tweets = like.fetch()
 
             # メディア取得

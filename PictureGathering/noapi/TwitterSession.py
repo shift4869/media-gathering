@@ -317,6 +317,7 @@ class TwitterSession():
         Returns:
             TwitterSession: TwitterSessionインスタンス
         """
+        logger.info("Getting Twitter session -> start")
         # アクセスに使用するクッキーファイル置き場
         scp = Path(TwitterSession.TWITTER_COOKIE_PATH)
         # アクセスに使用するローカルストレージファイル置き場
@@ -361,12 +362,13 @@ class TwitterSession():
                             rest={"HttpOnly": bool(sc["httponly"])}
                         )
 
+                logger.info("Local_storage and cookies is loaded.")
                 # TwitterSessionインスタンスを生成する
                 # エラーが発生した場合は以降の処理に続いて
                 # 再度クッキーとローカルストレージを取得することを試みる
                 try:
                     twitter_session = TwitterSession(username, password, cookies, local_storage)
-                    logger.info("Getting Twitter session is success.")
+                    logger.info("Getting Twitter session -> done")
                     return twitter_session
                 except Exception as e:
                     logger.info(f"Local_storage and cookies loading retry ... ({i+1}/{RETRY_NUM}).")
@@ -379,8 +381,7 @@ class TwitterSession():
         loop = asyncio.new_event_loop()
         cookies, local_storage = loop.run_until_complete(TwitterSession.get_cookies_from_oauth(username, password))
         twitter_session = TwitterSession(username, password, cookies, local_storage)
-        logger.info("Getting Twitter session is success.")
-
+        logger.info("Getting Twitter session -> done")
         return twitter_session
 
 
