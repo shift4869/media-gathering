@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Password():
-    _password: str  # 投稿者名
+    _password: str
 
     def __post_init__(self) -> None:
         """初期化後処理
