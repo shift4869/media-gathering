@@ -39,6 +39,7 @@ class TestFavCrawler(unittest.TestCase):
             mock_fav_db_controller = stack.enter_context(patch("PictureGathering.FavCrawler.FavDBController"))
             fc = FavCrawler()
             fc.lsb = MagicMock()
+            fc.config["twitter_noapi"]["is_twitter_noapi"] = "False"
             return fc
 
     def test_FavCrawlerInit(self):
