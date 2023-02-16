@@ -1,17 +1,17 @@
 # coding: utf-8
+import asyncio
+import random
+import re
 from dataclasses import dataclass
 from logging import INFO, getLogger
 from pathlib import Path
 from typing import ClassVar
-import asyncio
-import random
-import re
 
-from requests_html import AsyncHTMLSession
-from requests.models import Response
 import pyppeteer
 import requests.cookies
 import requests.utils
+from requests.models import Response
+from requests_html import AsyncHTMLSession
 
 from PictureGathering.noapi.Password import Password
 from PictureGathering.noapi.Username import Username

@@ -2,7 +2,6 @@
 import sys
 import unittest
 
-
 from PictureGathering.v2.TweetInfo import TweetInfo
 
 

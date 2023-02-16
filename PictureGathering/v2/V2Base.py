@@ -15,7 +15,6 @@ from PictureGathering.v2.TweetInfo import TweetInfo
 from PictureGathering.v2.TwitterAPI import TwitterAPI
 from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 
-
 logger = getLogger(__name__)
 logger.setLevel(INFO)
 
@@ -301,6 +300,7 @@ class V2Base(ABC):
 if __name__ == "__main__":
     import codecs
     import configparser
+
     from PictureGathering.v2.LikeFetcher import LikeFetcher
     CONFIG_FILE_NAME = "./config/config.ini"
     config_parser = configparser.ConfigParser()

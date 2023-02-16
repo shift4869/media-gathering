@@ -2,8 +2,9 @@
 import sys
 import unittest
 from contextlib import ExitStack
-from mock import MagicMock, patch, mock_open
 from pathlib import Path
+
+from mock import MagicMock, mock_open, patch
 
 from PictureGathering.LinkSearch.Password import Password
 from PictureGathering.LinkSearch.Pixiv.PixivFetcher import PixivFetcher

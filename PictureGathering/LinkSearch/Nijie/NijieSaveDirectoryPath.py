@@ -65,8 +65,9 @@ class NijieSaveDirectoryPath():
 
 if __name__ == "__main__":
     import configparser
-    from PictureGathering.LinkSearch.Password import Password
+
     from PictureGathering.LinkSearch.Nijie.NijieFetcher import NijieFetcher
+    from PictureGathering.LinkSearch.Password import Password
     from PictureGathering.LinkSearch.Username import Username
 
     CONFIG_FILE_NAME = "./config/config.ini"

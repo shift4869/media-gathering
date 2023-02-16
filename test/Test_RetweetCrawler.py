@@ -11,10 +11,10 @@ import unittest
 from contextlib import ExitStack
 from datetime import datetime
 from logging import WARNING, getLogger
-from mock import MagicMock, patch
 from pathlib import Path
 
 from freezegun import freeze_time
+from mock import MagicMock, patch
 
 from PictureGathering.RetweetCrawler import RetweetCrawler
 from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName

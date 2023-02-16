@@ -3,11 +3,12 @@
 
 NicoSeigaSessionを表すクラスをテストする
 """
-import requests
 import sys
 import unittest
 from contextlib import ExitStack
-from unittest.mock import call, MagicMock, patch
+from unittest.mock import MagicMock, call, patch
+
+import requests
 from urllib3.util import Retry
 
 from PictureGathering.LinkSearch.NicoSeiga.Authorid import Authorid

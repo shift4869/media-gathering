@@ -5,11 +5,11 @@ import sys
 import unittest
 from contextlib import ExitStack
 from logging import WARNING, getLogger
-from mock import MagicMock, patch
 from pathlib import Path
 from unittest.mock import call, mock_open
 
 from freezegun import freeze_time
+from mock import MagicMock, patch
 
 from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 

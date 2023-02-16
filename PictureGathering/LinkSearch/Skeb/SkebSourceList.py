@@ -1,7 +1,7 @@
 # coding: utf-8
 from dataclasses import dataclass
-from typing import Iterable
 from pathlib import Path
+from typing import Iterable
 
 from PictureGathering.LinkSearch.Skeb.SaveFilename import Extension
 from PictureGathering.LinkSearch.Skeb.SkebSession import SkebSession
@@ -111,6 +111,7 @@ if __name__ == "__main__":
     import configparser
     import logging.config
     from pathlib import Path
+
     from PictureGathering.LinkSearch.Password import Password
     from PictureGathering.LinkSearch.Skeb.SkebFetcher import SkebFetcher
     from PictureGathering.LinkSearch.Username import Username

@@ -7,10 +7,10 @@ import urllib
 import warnings
 from contextlib import ExitStack
 from logging import WARNING, getLogger
-from mock import MagicMock, patch
 from pathlib import Path
 
 import requests
+from mock import MagicMock, patch
 
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.Model import ExternalLink
@@ -18,7 +18,6 @@ from PictureGathering.v2.TweetInfo import TweetInfo
 from PictureGathering.v2.TwitterAPI import TwitterAPI
 from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 from PictureGathering.v2.V2Base import V2Base
-
 
 logger = getLogger("PictureGathering.v2.V2Base")
 logger.setLevel(WARNING)

@@ -4,8 +4,8 @@
 URLを表すクラスをテストする
 """
 import sys
-import urllib.parse
 import unittest
+import urllib.parse
 
 from PictureGathering.LinkSearch.URL import URL
 

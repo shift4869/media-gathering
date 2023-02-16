@@ -2,13 +2,12 @@
 from pathlib import Path
 
 from sqlalchemy import *
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import *
 from sqlalchemy.orm.exc import *
-from sqlalchemy.exc import NoResultFound
 
 from PictureGathering.DBControllerBase import DBControllerBase
 from PictureGathering.Model import *
-
 
 DEBUG = False
 

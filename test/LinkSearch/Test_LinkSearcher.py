@@ -6,13 +6,12 @@
 import configparser
 import sys
 import unittest
-
 from contextlib import ExitStack
 from logging import WARNING, getLogger
+
 from mock import MagicMock, patch
 
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
-
 
 logger = getLogger("PictureGathering.LinkSearch.LinkSearcher")
 logger.setLevel(WARNING)

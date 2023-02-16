@@ -7,14 +7,14 @@ import shutil
 import sys
 import unittest
 from contextlib import ExitStack
-from mock import MagicMock, patch, mock_open
 from pathlib import Path
+
+from mock import MagicMock, mock_open, patch
 
 from PictureGathering.LinkSearch.NicoSeiga.Authorid import Authorid
 from PictureGathering.LinkSearch.NicoSeiga.Authorname import Authorname
 from PictureGathering.LinkSearch.NicoSeiga.Illustname import Illustname
-from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaDownloader import DownloadResult
-from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaDownloader import NicoSeigaDownloader
+from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaDownloader import DownloadResult, NicoSeigaDownloader
 from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaInfo import NicoSeigaInfo
 from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaSaveDirectoryPath import NicoSeigaSaveDirectoryPath
 from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaSession import NicoSeigaSession

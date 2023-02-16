@@ -16,9 +16,10 @@ import unittest
 import warnings
 from contextlib import ExitStack
 from logging import WARNING, getLogger
-from mock import MagicMock, PropertyMock, patch
 from pathlib import Path
 from unittest.mock import call
+
+from mock import MagicMock, PropertyMock, patch
 
 from PictureGathering import Crawler
 from PictureGathering.Model import ExternalLink

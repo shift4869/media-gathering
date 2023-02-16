@@ -1,16 +1,15 @@
 # coding: utf-8
 import re
+from abc import ABCMeta, abstractmethod
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from abc import ABCMeta, abstractmethod
 from sqlalchemy import *
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import *
 from sqlalchemy.orm.exc import *
-from sqlalchemy.exc import NoResultFound
 
 from PictureGathering.Model import *
-
 
 DEBUG = False
 

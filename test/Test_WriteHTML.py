@@ -1,10 +1,9 @@
 # coding: utf-8
 import configparser
-from contextlib import ExitStack
-from mock import MagicMock, PropertyMock, patch
 import re
 import sys
 import unittest
+from contextlib import ExitStack
 from logging import WARNING, getLogger
 from pathlib import Path
 

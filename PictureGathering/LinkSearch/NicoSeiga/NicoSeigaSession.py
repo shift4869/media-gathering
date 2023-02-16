@@ -1,7 +1,8 @@
 # coding: utf-8
+from dataclasses import dataclass
+
 import requests
 from bs4 import BeautifulSoup
-from dataclasses import dataclass
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 

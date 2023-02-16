@@ -8,13 +8,12 @@ from typing import ClassVar
 
 import requests
 
-from PictureGathering.LinkSearch.Skeb.SaveFilename import SaveFilename, Extension
+from PictureGathering.LinkSearch.Skeb.SaveFilename import Extension, SaveFilename
 from PictureGathering.LinkSearch.Skeb.SkebSaveDirectoryPath import SkebSaveDirectoryPath
 from PictureGathering.LinkSearch.Skeb.SkebSession import SkebSession
 from PictureGathering.LinkSearch.Skeb.SkebSourceList import SkebSourceList
 from PictureGathering.LinkSearch.Skeb.SkebURL import SkebURL
 from PictureGathering.LinkSearch.URL import URL
-
 
 logger = getLogger(__name__)
 logger.setLevel(INFO)
@@ -144,6 +143,7 @@ if __name__ == "__main__":
     import configparser
     import logging.config
     from pathlib import Path
+
     from PictureGathering.LinkSearch.Password import Password
     from PictureGathering.LinkSearch.Skeb.SkebFetcher import SkebFetcher
     from PictureGathering.LinkSearch.Username import Username

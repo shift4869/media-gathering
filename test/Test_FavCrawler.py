@@ -14,7 +14,6 @@ from logging import WARNING, getLogger
 from pathlib import Path
 
 from freezegun import freeze_time
-
 from mock import MagicMock, patch
 
 from PictureGathering.FavCrawler import FavCrawler

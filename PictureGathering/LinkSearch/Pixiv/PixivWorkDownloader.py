@@ -110,6 +110,7 @@ class PixivWorkDownloader():
 if __name__ == "__main__":
     import configparser
     import logging.config
+
     from PictureGathering.LinkSearch.Password import Password
     from PictureGathering.LinkSearch.Pixiv.PixivFetcher import PixivFetcher
     from PictureGathering.LinkSearch.Username import Username

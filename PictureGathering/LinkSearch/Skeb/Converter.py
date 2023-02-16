@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import ClassVar
 
-
 from PictureGathering.LinkSearch.Skeb.IllustConvertor import IllustConvertor
 from PictureGathering.LinkSearch.Skeb.SaveFilename import Extension
 
@@ -75,6 +74,7 @@ if __name__ == "__main__":
     import configparser
     import logging.config
     from pathlib import Path
+
     from PictureGathering.LinkSearch.Password import Password
     from PictureGathering.LinkSearch.Skeb.SkebFetcher import SkebFetcher
     from PictureGathering.LinkSearch.Username import Username

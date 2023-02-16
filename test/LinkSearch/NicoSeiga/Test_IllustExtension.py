@@ -6,8 +6,7 @@
 import sys
 import unittest
 
-from PictureGathering.LinkSearch.NicoSeiga.IllustExtension import Extension
-from PictureGathering.LinkSearch.NicoSeiga.IllustExtension import IllustExtension
+from PictureGathering.LinkSearch.NicoSeiga.IllustExtension import Extension, IllustExtension
 
 
 class TestIllustExtension(unittest.TestCase):

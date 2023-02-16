@@ -2,15 +2,15 @@
 import asyncio
 import random
 import re
-from typing import ClassVar
 from dataclasses import dataclass
 from logging import INFO, getLogger
 from pathlib import Path
-from httplib2 import Response
+from typing import ClassVar
 
 import pyppeteer
 import requests.cookies
 import requests.utils
+from httplib2 import Response
 from requests_html import AsyncHTMLSession
 
 from PictureGathering.LinkSearch.Password import Password
@@ -412,6 +412,7 @@ if __name__ == "__main__":
     import configparser
     import logging.config
     from pathlib import Path
+
     from PictureGathering.LinkSearch.Password import Password
     from PictureGathering.LinkSearch.Skeb.SkebFetcher import SkebFetcher
     from PictureGathering.LinkSearch.Username import Username

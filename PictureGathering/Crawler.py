@@ -21,7 +21,7 @@ import requests
 import slackweb
 from plyer import notification
 
-from PictureGathering import WriteHTML, Archiver, GoogleDrive
+from PictureGathering import Archiver, GoogleDrive, WriteHTML
 from PictureGathering.DBControllerBase import DBControllerBase
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LogMessage import MSG

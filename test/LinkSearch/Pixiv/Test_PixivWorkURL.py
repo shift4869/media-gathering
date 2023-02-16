@@ -4,8 +4,8 @@
 PixivWorkURLを表すクラスをテストする
 """
 import sys
-import urllib.parse
 import unittest
+import urllib.parse
 
 from PictureGathering.LinkSearch.Pixiv.PixivWorkURL import PixivWorkURL
 

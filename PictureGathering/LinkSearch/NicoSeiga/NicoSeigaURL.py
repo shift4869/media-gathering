@@ -1,7 +1,7 @@
 # coding: utf-8
-from pathlib import Path
 import re
 from dataclasses import dataclass
+from pathlib import Path
 
 from PictureGathering.LinkSearch.NicoSeiga.Illustid import Illustid
 from PictureGathering.LinkSearch.URL import URL

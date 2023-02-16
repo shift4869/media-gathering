@@ -6,6 +6,7 @@ import sys
 import unittest
 from contextlib import ExitStack
 from datetime import datetime, timedelta
+
 from mock import MagicMock, patch
 
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase

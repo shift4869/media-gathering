@@ -111,9 +111,10 @@ if __name__ == "__main__":
     import configparser
     import logging.config
     from pathlib import Path
+
+    from PictureGathering.LinkSearch.Password import Password
     from PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher import PixivNovelFetcher
     from PictureGathering.LinkSearch.Username import Username
-    from PictureGathering.LinkSearch.Password import Password
 
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
     CONFIG_FILE_NAME = "./config/config.ini"

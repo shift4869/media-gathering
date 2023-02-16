@@ -4,8 +4,8 @@
 NicoSeigaURLを表すクラスをテストする
 """
 import sys
-import urllib.parse
 import unittest
+import urllib.parse
 
 from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaURL import NicoSeigaURL
 

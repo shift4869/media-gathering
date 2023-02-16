@@ -11,7 +11,6 @@ from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaSaveDirectoryPath import Nic
 from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaSession import NicoSeigaSession
 from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaURL import NicoSeigaURL
 
-
 logger = getLogger(__name__)
 logger.setLevel(INFO)
 
@@ -97,6 +96,7 @@ class NicoSeigaDownloader():
 if __name__ == "__main__":
     import configparser
     import logging.config
+
     from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaFetcher import NicoSeigaFetcher
     from PictureGathering.LinkSearch.Password import Password
     from PictureGathering.LinkSearch.Username import Username

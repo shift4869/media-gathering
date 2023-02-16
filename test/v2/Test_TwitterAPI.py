@@ -6,12 +6,12 @@ import unittest
 from contextlib import ExitStack
 from datetime import datetime
 from logging import WARNING, getLogger
-from mock import MagicMock, patch
 from unittest.mock import call
 
 import requests
-from requests_oauthlib import OAuth1Session
 from freezegun import freeze_time
+from mock import MagicMock, patch
+from requests_oauthlib import OAuth1Session
 
 from PictureGathering.v2.TwitterAPI import TwitterAPI
 from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName

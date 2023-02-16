@@ -5,8 +5,8 @@ from logging import INFO, getLogger
 from pathlib import Path
 from time import sleep
 
-from bs4 import BeautifulSoup
 import requests
+from bs4 import BeautifulSoup
 
 from PictureGathering.LinkSearch.Nijie.NijieCookie import NijieCookie
 from PictureGathering.LinkSearch.Nijie.NijiePageInfo import NijiePageInfo
@@ -123,8 +123,9 @@ class NijieDownloader():
 if __name__ == "__main__":
     import configparser
     import logging.config
-    from PictureGathering.LinkSearch.Password import Password
+
     from PictureGathering.LinkSearch.Nijie.NijieFetcher import NijieFetcher
+    from PictureGathering.LinkSearch.Password import Password
     from PictureGathering.LinkSearch.Username import Username
 
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
