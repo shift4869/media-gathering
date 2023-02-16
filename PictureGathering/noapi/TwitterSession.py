@@ -4,7 +4,6 @@ import random
 import re
 from dataclasses import dataclass
 from logging import INFO, getLogger
-from pathlib import Path
 from typing import ClassVar
 
 import pyppeteer
@@ -13,6 +12,8 @@ import requests.utils
 from requests.models import Response
 from requests_html import AsyncHTMLSession
 
+from PictureGathering.noapi.Cookies import Cookies
+from PictureGathering.noapi.LocalStorage import LocalStorage
 from PictureGathering.noapi.Password import Password
 from PictureGathering.noapi.Username import Username
 
@@ -27,12 +28,12 @@ class TwitterSession():
     通常の接続ではページがうまく取得できないので
     クッキーとローカルストレージを予め設定したページセッションを用いる
     """
-    username: Username  # ユーザーネーム(@除外)
-    password: Password  # パスワード
-    cookies: requests.cookies.RequestsCookieJar  # 接続時に使うクッキー
-    local_storage: list[str]                     # 接続時に使うローカルストレージ
-    session: ClassVar[AsyncHTMLSession]          # 非同期セッション
-    loop: ClassVar[asyncio.AbstractEventLoop]    # イベントループ
+    username: Username           # ユーザーネーム(@除外)
+    password: Password           # パスワード
+    cookies: Cookies             # 接続時に使うクッキー
+    local_storage: LocalStorage  # 接続時に使うローカルストレージ
+    session: ClassVar[AsyncHTMLSession]        # 非同期セッション
+    loop: ClassVar[asyncio.AbstractEventLoop]  # イベントループ
 
     # 接続時に使用するヘッダー
     HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"}
@@ -43,14 +44,7 @@ class TwitterSession():
     # Likesページのテンプレート
     LIKES_URL_TEMPLATE = "https://twitter.com/{}/likes"
 
-    # クッキーファイルパス
-    TWITTER_COOKIE_PATH = "./config/twitter_cookie.ini"
-    # ローカルストレージファイルパス
-    TWITTER_LOCAL_STORAGE_PATH = "./config/twitter_localstorage.ini"
-
     def __post_init__(self) -> None:
-        """初期化処理
-        """
         # 引数チェック
         self._is_valid_args()
 
@@ -73,24 +67,21 @@ class TwitterSession():
     def _is_valid_args(self) -> bool:
         """属性の型チェック
 
-        TODO::簡易的にクッキーとローカルストレージのキーも調べる
-
         Returns:
             bool: 問題なければTrue
 
         Raise:
             TypeError: 属性の型が不正な場合
-            ValueError: クッキーまたはローカルストレージに想定されるキーが含まれていない場合
         """
         # 属性型チェック
         if not isinstance(self.username, Username):
             raise TypeError("username is not Username, invalid TwitterSession.")
         if not isinstance(self.password, Password):
             raise TypeError("password is not Password, invalid TwitterSession.")
-        if not isinstance(self.cookies, requests.cookies.RequestsCookieJar):
-            raise TypeError("cookies is not requests.cookies.RequestsCookieJar, invalid TwitterSession.")
-        if not isinstance(self.local_storage, list):
-            raise TypeError("local_storage is not list, invalid TwitterSession.")
+        if not isinstance(self.cookies, Cookies):
+            raise TypeError("cookies is not Cookies, invalid TwitterSession.")
+        if not isinstance(self.local_storage, LocalStorage):
+            raise TypeError("local_storage is not LocalStorage, invalid TwitterSession.")
         return True
 
     def _is_valid_session(self) -> bool:
@@ -102,6 +93,9 @@ class TwitterSession():
         url = self.LIKES_URL_TEMPLATE.format(self.username.name)
         response: Response = self.loop.run_until_complete(self.get(url))
         response.raise_for_status()
+
+        # TODO::正しく取得できたかチェック
+
         return True
 
     async def _get_session(self) -> AsyncHTMLSession:
@@ -121,14 +115,14 @@ class TwitterSession():
 
         # ローカルストレージをセットする
         javascript_func1 = "localStorage.setItem('{}', '{}');"
-        for line in self.local_storage:
+        for line in self.local_storage.local_storage:
             elements = re.split(" : |\n", line)
             key = elements[0]
             value = elements[1]
             await page.evaluate(javascript_func1.format(key, value), force_expr=True)
 
         # クッキーをセットする
-        for c in self.cookies:
+        for c in self.cookies.cookies:
             d = {
                 "name": c.name,
                 "value": c.value,
@@ -162,7 +156,7 @@ class TwitterSession():
         Returns:
             Response: htmlページレスポンス
         """
-        response: Response = await self.session.get(request_url, headers=self.headers, cookies=self.cookies)
+        response: Response = await self.session.get(request_url, headers=self.headers, cookies=self.cookies.cookies)
         response.raise_for_status()
         return response
 
@@ -184,7 +178,7 @@ class TwitterSession():
         await response.html.arender()
 
     @classmethod
-    async def get_cookies_from_oauth(cls, username: Username, password: Password) -> tuple[requests.cookies.RequestsCookieJar, list[str]]:
+    async def get_cookies_from_oauth(cls, username: Username, password: Password) -> tuple[Cookies, LocalStorage]:
         """ツイッターログインを行いクッキーとローカルストレージを取得する
 
         pyppeteerを通してheadless chromeを操作する
@@ -259,52 +253,30 @@ class TwitterSession():
             }
             allStorage()
         """
-        local_storage = await page.evaluate(localstorage_get_js, force_expr=True)
-
-        # ローカルストレージ情報が取得できたことを確認
-        if not local_storage:
-            raise ValueError("Getting local_storage is failed.")
+        RETRY_NUM = 5
+        for _ in range(RETRY_NUM):
+            local_storage = await page.evaluate(localstorage_get_js, force_expr=True)
+            if local_storage:
+                break
+        else:
+            # ローカルストレージ情報が取得できたことを確認
+            # 空白もあり得る？
+            # raise ValueError("Getting local_storage is failed.")
+            pass
 
         # 取得したローカルストレージ情報を保存
-        slsp = Path(TwitterSession.TWITTER_LOCAL_STORAGE_PATH)
-        with slsp.open("w") as fout:
-            for ls in local_storage:
-                fout.write(ls + "\n")
+        LocalStorage.save(local_storage)
         logger.info("Getting local_storage is success.")
 
         # クッキー情報が取得できたことを確認
         if not cookies:
             raise ValueError("Getting cookies is failed.")
 
-        # クッキー解析用
-        def CookieToString(c):
-            name = c["name"]
-            value = c["value"]
-            expires = c["expires"]
-            path = c["path"]
-            domain = c["domain"]
-            httponly = c["httpOnly"]
-            secure = c["secure"]
-            return f'name="{name}", value="{value}", expires={expires}, path="{path}", domain="{domain}", httponly="{httponly}", secure="{secure}"'
-
         # クッキー情報をファイルに保存する
-        # 取得したクッキーはRequestsCookieJarのインスタンスではないので変換もここで行う
-        requests_cookies = requests.cookies.RequestsCookieJar()
-        scp = Path(TwitterSession.TWITTER_COOKIE_PATH)
-        with scp.open(mode="w") as fout:
-            for c in cookies:
-                requests_cookies.set(
-                    c["name"],
-                    c["value"],
-                    expires=c["expires"],
-                    path=c["path"],
-                    domain=c["domain"],
-                    secure=c["secure"],
-                    rest={"HttpOnly": c["httpOnly"]})
-                fout.write(CookieToString(c) + "\n")
+        Cookies.save(cookies)
         logger.info("Getting cookies is success.")
 
-        return requests_cookies, local_storage
+        return Cookies.create(), LocalStorage.create()
 
     @classmethod
     def create(cls, username: Username, password: Password) -> "TwitterSession":
@@ -318,62 +290,23 @@ class TwitterSession():
             TwitterSession: TwitterSessionインスタンス
         """
         logger.info("Getting Twitter session -> start")
-        # アクセスに使用するクッキーファイル置き場
-        scp = Path(TwitterSession.TWITTER_COOKIE_PATH)
-        # アクセスに使用するローカルストレージファイル置き場
-        slsp = Path(TwitterSession.TWITTER_LOCAL_STORAGE_PATH)
 
         # 以前に接続した時のクッキーとローカルストレージのファイルが存在しているならば
-        if scp.exists() and slsp.exists():
-            RETRY_NUM = 5
-            for i in range(RETRY_NUM):
-                # ローカルストレージを読み込む
-                local_storage = []
-                with slsp.open(mode="r") as fin:
-                    for line in fin:
-                        if line == "":
-                            break
-                        local_storage.append(line)
-
-                # クッキーを読み込む
-                cookies = requests.cookies.RequestsCookieJar()
-                with scp.open(mode="r") as fin:
-                    for line in fin:
-                        if line == "":
-                            break
-
-                        sc = {}
-                        elements = re.split("[,\n]", line)
-                        for element in elements:
-                            element = element.strip().replace('"', "")  # 左右の空白とダブルクォートを除去
-                            if element == "":
-                                break
-
-                            key, val = element.split("=", 1)  # =で分割
-                            sc[key] = val
-
-                        cookies.set(
-                            sc["name"],
-                            sc["value"],
-                            expires=sc["expires"],
-                            path=sc["path"],
-                            domain=sc["domain"],
-                            secure=bool(sc["secure"]),
-                            rest={"HttpOnly": bool(sc["httponly"])}
-                        )
-
-                logger.info("Local_storage and cookies is loaded.")
-                # TwitterSessionインスタンスを生成する
-                # エラーが発生した場合は以降の処理に続いて
-                # 再度クッキーとローカルストレージを取得することを試みる
-                try:
-                    twitter_session = TwitterSession(username, password, cookies, local_storage)
-                    logger.info("Getting Twitter session -> done")
-                    return twitter_session
-                except Exception as e:
-                    logger.info(f"Local_storage and cookies loading retry ... ({i+1}/{RETRY_NUM}).")
-            else:
-                logger.info(f"Retry num is exceed RETRY_NUM={RETRY_NUM}.")
+        RETRY_NUM = 5
+        for i in range(RETRY_NUM):
+            try:
+                cookies = Cookies.create()
+                local_storage = LocalStorage.create()
+                twitter_session = TwitterSession(username, password, cookies, local_storage)
+                logger.info("Getting Twitter session -> done")
+                return twitter_session
+            except FileNotFoundError as e:
+                logger.info(f"No exist Cookies and LocalStorage file.")
+                break
+            except Exception as e:
+                logger.info(f"Cookies and LocalStorage loading retry ... ({i+1}/{RETRY_NUM}).")
+        else:
+            logger.info(f"Retry num is exceed RETRY_NUM={RETRY_NUM}.")
 
         # クッキーとローカルストレージのファイルがない場合
         # または有効なセッションが取得できなかった場合
