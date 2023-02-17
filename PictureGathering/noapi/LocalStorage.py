@@ -15,14 +15,18 @@ class LocalStorage():
     TWITTER_LOCAL_STORAGE_PATH = "./config/twitter_localstorage.ini"
 
     def __post_init__(self) -> None:
-        self._is_valid_local_storage()
-
-    def _is_valid_local_storage(self) -> bool:
         # _local_storage = [] は許容する
         if (not self._local_storage) and (self._local_storage != []):
             raise ValueError("LocalStorage is None.")
         if not isinstance(self._local_storage, list):
-            raise TypeError("local_storage is not list, invalid LocalStorage.")
+            raise TypeError("LocalStorage is not list, invalid LocalStorage.")
+        if not self._is_valid_local_storage():
+            raise ValueError("LocalStorage is invalid.")
+
+    def _is_valid_local_storage(self) -> bool:
+        for line in self._local_storage:
+            if not self.validate_line(line):
+                return False
         return True
 
     @property
@@ -55,12 +59,9 @@ class LocalStorage():
 
     @classmethod
     def save(cls, local_storage: list[str]) -> list[str]:
-        # if not local_storage:
-        #     raise ValueError("local_storage is empty.")
+        # _local_storage = [] は許容する
         if not isinstance(local_storage, list):
             raise TypeError("local_storage is not list.")
-        # if not isinstance(local_storage[0], str):
-        #     raise TypeError("local_storage is not list[str].")
 
         # ローカルストレージ情報を保存
         slsp = Path(cls.TWITTER_LOCAL_STORAGE_PATH)

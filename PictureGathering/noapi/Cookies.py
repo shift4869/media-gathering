@@ -20,14 +20,14 @@ class Cookies():
     COOKIE_KEYS_LIST = ["name", "value", "expires", "path", "domain", "httponly", "secure"]
 
     def __post_init__(self) -> None:
-        self._is_valid_cookies()
-
-    def _is_valid_cookies(self) -> bool:
         if not self._cookies:
             raise ValueError("Cookies is None.")
         if not isinstance(self._cookies, requests.cookies.RequestsCookieJar):
             raise TypeError("cookies is not RequestsCookieJar, invalid Cookies.")
+        if not self._is_valid_cookies():
+            raise ValueError("Cookies is invalid.")
 
+    def _is_valid_cookies(self) -> bool:
         for cookie in self._cookies:
             line = self.cookie_to_string(cookie)
             if not self.validate_line(line):
@@ -55,10 +55,15 @@ class Cookies():
         return self._cookies
 
     @classmethod
-    def get_requests_cookie_jar(cls, cookies_list: list[dict]) -> requests.cookies.RequestsCookieJar:
-        result_cookies = requests.cookies.RequestsCookieJar()
+    def cookies_list_to_requests_cookie_jar(cls, cookies_list: list[dict]) -> requests.cookies.RequestsCookieJar:
         if cookies_list == []:
             raise ValueError("cookies_list is empty.")
+        if not isinstance(cookies_list, list):
+            raise TypeError("cookies_list is not list.")
+        if not isinstance(cookies_list[0], dict):
+            raise TypeError("cookies_list is not list[dict].")
+
+        result_cookies = requests.cookies.RequestsCookieJar()
         for c in cookies_list:
             match c:
                 case {
@@ -158,7 +163,7 @@ class Cookies():
     @classmethod
     def save(cls, cookies: requests.cookies.RequestsCookieJar | list[dict]) -> requests.cookies.RequestsCookieJar:
         if cookies and isinstance(cookies, list) and isinstance(cookies[0], dict):
-            cookies = cls.get_requests_cookie_jar(cookies)
+            cookies = cls.cookies_list_to_requests_cookie_jar(cookies)
 
         if not isinstance(cookies, requests.cookies.RequestsCookieJar):
             raise TypeError("cookies is not RequestsCookieJar | list[dict].")
@@ -178,8 +183,9 @@ class Cookies():
 
 if __name__ == "__main__":
     try:
-        c = Cookies.create()
-        Cookies.save(c.cookies)
-        # pprint.pprint(c.cookies)
+        cookies = Cookies.create()
+        # Cookies.save(c.cookies)
+        for cookie in cookies.cookies:
+            pprint.pprint(cookie)
     except Exception as e:
         pprint.pprint(e)
