@@ -7,10 +7,8 @@ from logging import INFO, getLogger
 from typing import ClassVar
 
 import pyppeteer
-import requests.cookies
-import requests.utils
 from requests.models import Response
-from requests_html import AsyncHTMLSession
+from requests_html import HTML, AsyncHTMLSession, Element
 
 from PictureGathering.noapi.Cookies import Cookies
 from PictureGathering.noapi.LocalStorage import LocalStorage
@@ -93,10 +91,22 @@ class TwitterSession():
         url = self.LIKES_URL_TEMPLATE.format(self.username.name)
         response: Response = self.loop.run_until_complete(self.get(url))
         response.raise_for_status()
+        html: HTML = response.html
+        self.loop.run_until_complete(html.arender(sleep=2))
 
-        # TODO::正しく取得できたかチェック
-
-        return True
+        # 取得結果の確認
+        # 左下のアカウントメニューの領域を参照する
+        # プロフィール画像に設定されているaltを取得し
+        # username.name と一致するかどうかで判定する
+        try:
+            div_tags: list[Element] = html.find("div")
+            div_tag = [dt for dt in div_tags if "アカウントメニュー" in dt.attrs.get("aria-label", "")][0]
+            img_tags: list[Element] = div_tag.find("img")
+            result = [self.username.name == it.attrs.get("alt", "") for it in img_tags]
+            return any(result)
+        except Exception as e:
+            pass
+        return False
 
     async def _get_session(self) -> AsyncHTMLSession:
         """セッション取得
@@ -173,8 +183,10 @@ class TwitterSession():
 
     async def prepare(self) -> None:
         """セッションを使う準備
+
+        リファラの関係？でTOPページを取得してレンダリングを試みる
         """
-        response = await self.session.get(self.TOP_URL)
+        response: Response = await self._async_get(self.TOP_URL)
         await response.html.arender()
 
     @classmethod
@@ -189,8 +201,8 @@ class TwitterSession():
             password (Password): ユーザーIDのパスワード(ツイッターIDのパスワード)
 
         Returns:
-            requests.cookies.RequestsCookieJar: ログイン後のクッキー
-            list[str]: ログイン後のローカルストレージ
+            Cookies: ログイン後のクッキー
+            LocalStorage: ログイン後のローカルストレージ
         """
         login_url = TwitterSession.LOGIN_URL
 
@@ -254,6 +266,7 @@ class TwitterSession():
             allStorage()
         """
         RETRY_NUM = 5
+        local_storage = []
         for _ in range(RETRY_NUM):
             local_storage = await page.evaluate(localstorage_get_js, force_expr=True)
             if local_storage:
@@ -332,5 +345,6 @@ if __name__ == "__main__":
             username = config["twitter_noapi"]["username"]
             password = config["twitter_noapi"]["password"]
             twitter_session = TwitterSession.create(Username(username), Password(password))
+            twitter_session.loop.run_until_complete(twitter_session.prepare())
     except Exception as e:
         logger.exception(e)
