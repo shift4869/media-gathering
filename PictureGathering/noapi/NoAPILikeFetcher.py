@@ -31,6 +31,8 @@ class NoAPILikeFetcher():
     password: Password
     target_username: Username
     twitter_session: TwitterSession
+    redirect_urls: list[str]
+    content_list: list[str]
 
     # キャッシュファイルパス
     TWITTER_CACHE_PATH = Path(__file__).parent / "cache/"
@@ -54,16 +56,40 @@ class NoAPILikeFetcher():
         self.password = password
         self.target_username = target_username
         self.twitter_session = TwitterSession.create(username=username, password=password)
+        self.redirect_urls = []
+        self.content_list = []
 
-    async def get_like_jsons(self) -> list[dict]:
+    async def _response_listener(self, response: Response) -> None:
+        base_path = Path(self.TWITTER_CACHE_PATH)
+        base_path.mkdir(parents=True, exist_ok=True)
+
+        # レスポンス監視用リスナー
+        if "Like" in response.url:
+            # レスポンスが Like 関連ならば
+            self.redirect_urls.append(response.url)
+            if "application/json" in response.headers.get("content-type", ""):
+                # レスポンスがJSONならばキャッシュに保存
+                content = await response.json()
+                n = len(self.content_list)
+                with Path(base_path / f"content_cache{n}.txt").open("w", encoding="utf8") as fout:
+                    json.dump(content, fout)
+                self.content_list.append(content)
+
+    async def get_like_jsons(self, max_scroll: int = 40, each_scroll_wait: float = 1.5) -> list[dict]:
         """Likes ページをクロールしてロード時のJSONをキャプチャする
+
+        Args:
+            max_scroll (int): 画面スクロールの最大回数. デフォルトは40[回].
+            each_scroll_wait (float): それぞれの画面スクロール時に待つ秒数. デフォルトは1.5[s].
 
         Notes:
             対象URLは "https://twitter.com/{self.target_username.name}/likes"
                 (self.twitter_session.LIKES_URL_TEMPLATE.format(self.target_username.name))
+            実行には少なくとも max_scroll * each_scroll_wait [s] 秒かかる
+            キャッシュは self.TWITTER_CACHE_PATH に保存される
 
         Returns:
-            list[str]: ツイートオブジェクトを表すJSONリスト
+            list[dict]: ツイートオブジェクトを表すJSONリスト
         """
         logger.info("Fetched Tweet by No API -> start")
 
@@ -81,40 +107,27 @@ class NoAPILikeFetcher():
         logger.info("Getting Likes page is success.")
 
         # キャッシュ保存場所の準備
-        redirect_urls = []
-        content_list = []
+        self.redirect_urls = []
+        self.content_list = []
         base_path = Path(self.TWITTER_CACHE_PATH)
         if base_path.is_dir():
             shutil.rmtree(base_path)
         base_path.mkdir(parents=True, exist_ok=True)
 
         # レスポンス監視用リスナー
-        async def response_listener(response: Response):
-            if "Like" in response.url:
-                # レスポンスが Like 関連ならば
-                redirect_urls.append(response.url)
-                if "application/json" in response.headers.get("content-type", ""):
-                    # レスポンスがJSONならばキャッシュに保存
-                    content = await response.json()
-                    n = len(content_list)
-                    with Path(base_path / f"content_cache{n}.txt").open("w", encoding="utf8") as fout:
-                        json.dump(content, fout)
-                    content_list.append(content)
-        page.on("response", lambda response: asyncio.ensure_future(response_listener(response)))
+        page.on("response", lambda response: asyncio.ensure_future(self._response_listener(response)))
 
         # スクロール時の待ち秒数をランダムに生成するメソッド
         def get_wait_millisecond() -> float:
             pn = (random.random() - 0.5) * 1.0  # [-0.5, 0.5)
-            candidate_sec = (pn + EACH_SCROLL_WAIT_AVERAGE_SECONDS) * 1000.0
+            candidate_sec = (pn + each_scroll_wait) * 1000.0
             return float(max(candidate_sec, 1000.0))  # [1000.0, 2000.0)
 
         # Likes ページをスクロールして読み込んでいく
         # ページ下部に達した時に次のツイートが読み込まれる
         # このときレスポンス監視用リスナーがレスポンスをキャッチする
-        FAV_GET_MAX_LOOP = 40
-        EACH_SCROLL_WAIT_AVERAGE_SECONDS = 1.5
         logger.info("Getting Likes page fetched -> start")
-        for i in range(FAV_GET_MAX_LOOP):
+        for i in range(max_scroll):
             await page.evaluate("""
                 () => {
                     let elm = document.documentElement;
@@ -125,20 +138,20 @@ class NoAPILikeFetcher():
             await page.waitFor(
                 get_wait_millisecond()
             )
-            logger.info(f"({i+1}/{FAV_GET_MAX_LOOP}) pages fetched.")
+            logger.info(f"({i+1}/{max_scroll}) pages fetched.")
         await page.waitFor(2000)
         logger.info("Getting Likes page fetched -> done")
 
         # リダイレクトURLをキャッシュに保存
-        if redirect_urls:
+        if self.redirect_urls:
             with Path(base_path / "redirect_urls.txt").open("w", encoding="utf8") as fout:
-                fout.write(pprint.pformat(redirect_urls))
+                fout.write(pprint.pformat(self.redirect_urls))
 
         # キャッシュから読み込み
         # content_list と result はほぼ同一の内容になる
         # 違いは result は json.dump→json.load したときに、エンコード等が吸収されていること
         result: list[dict] = []
-        for i, content in enumerate(content_list):
+        for i, content in enumerate(self.content_list):
             with Path(base_path / f"content_cache{i}.txt").open("r", encoding="utf8") as fin:
                 json_dict = json.load(fin)
                 result.append(json_dict)
@@ -150,16 +163,16 @@ class NoAPILikeFetcher():
         """ツイートオブジェクトの辞書構成をたどり、ツイートがメディアを含むかどうか調べる
 
         Note:
-           legacyを直下に含むツイートオブジェクトを引数として受け取り、以下のようにresultを返す
-           (1)tweet.legacyにメディアが添付されている場合、resultにtweetを追加
-           (2)tweet.legacyに外部リンクが含まれている場合、resultにtweetを追加
-           (3)RTされているツイートにメディアが添付されている場合、resultにtweet.retweeted_status_result.resultを追加
-           (3)引用RTされているツイートにメディアが添付されている場合、resultにtweet.quoted_status_result.resultを追加
-           (5)引用RTがRTされているツイートの場合、
-              resultにtweet.retweeted_status_result.result.quoted_status_result.resultを追加
+            legacyを直下に含むツイートオブジェクトを引数として受け取り、以下のようにresultを返す
+            (1)tweet.legacyにメディアが添付されている場合、resultにtweetを追加
+            (2)tweet.legacyに外部リンクが含まれている場合、resultにtweetを追加
+            (3)RTされているツイートにメディアが添付されている場合、resultにtweet.retweeted_status_result.resultを追加
+            (3)引用RTされているツイートにメディアが添付されている場合、resultにtweet.quoted_status_result.resultを追加
+            (5)引用RTがRTされているツイートの場合、
+                resultにtweet.retweeted_status_result.result.quoted_status_result.resultを追加
 
-           引用RTはRTできるがRTは引用RTできないので無限ループにはならない（最大深さ2）
-           id_strが重複しているツイートは格納しない
+            引用RTはRTできるがRTは引用RTできないので無限ループにはならない（最大深さ2）
+            id_strが重複しているツイートは格納しない
 
         Args:
             tweet (dict): legacyを直下に含むツイートオブジェクト
@@ -320,7 +333,7 @@ class NoAPILikeFetcher():
             entities (dict): _match_entities_tweet.entities
 
         Returns:
-            expanded_urls (dict): entities に含まれる expanded_url を含む辞書, 解析失敗時は空辞書
+            expanded_urls (dict): entities に含まれる expanded_url のみを抽出した辞書, 解析失敗時は空辞書
         """
         match entities:
             case {"urls": urls_dict}:
@@ -391,10 +404,15 @@ class NoAPILikeFetcher():
         Returns:
             list[TweetInfo]: TweetInfo リスト
         """
+        if not isinstance(fetched_tweets, list):
+            return []
+        if not isinstance(fetched_tweets[0], dict):
+            return []
+
         # 辞書パース
         # fetched_tweets は Likes のツイートが入っている想定
         # media を含むかどうかはこの時点では don't care
-        target_data_list = []
+        target_data_list: list[dict] = []
         for r in fetched_tweets:
             r1 = r.get("data", {}) \
                   .get("user", {}) \
@@ -502,6 +520,13 @@ class NoAPILikeFetcher():
         Returns:
             list[ExternalLink]: ExternalLink リスト
         """
+        if not isinstance(fetched_tweets, list):
+            return []
+        if not isinstance(fetched_tweets[0], dict):
+            return []
+        if not isinstance(link_searcher, LinkSearcher):
+            return []
+
         # 辞書パース
         # 外部リンクを含むかどうかはこの時点では don't care
         target_data_list = []
