@@ -113,7 +113,8 @@ class TestFavCrawler(unittest.TestCase):
         """
         with ExitStack() as stack:
             mock_logger = stack.enter_context(patch.object(logger, "info"))
-            mock_like = stack.enter_context(patch("PictureGathering.FavCrawler.LikeFetcher"))
+            mock_v2_like_fetcher = stack.enter_context(patch("PictureGathering.FavCrawler.LikeFetcher"))
+            mock_noapi_like_fetcher = stack.enter_context(patch("PictureGathering.FavCrawler.NoAPILikeFetcher"))
             mock_interpret_tweets = stack.enter_context(patch("PictureGathering.FavCrawler.FavCrawler.interpret_tweets_v2"))
             mock_trace_external_link = stack.enter_context(patch("PictureGathering.FavCrawler.FavCrawler.trace_external_link"))
             mock_shrink_folder = stack.enter_context(patch("PictureGathering.FavCrawler.FavCrawler.shrink_folder"))
@@ -121,12 +122,13 @@ class TestFavCrawler(unittest.TestCase):
 
             fc = self._get_instance()
 
+            # v2 API use mode
             fc.twitter.get.side_effect = lambda url: {"data": {"id": "00001"}}
             mock_like_instance = MagicMock()
             mock_like_instance.fetch.side_effect = lambda: ["fetched_tweets"]
             mock_like_instance.to_convert_TweetInfo.side_effect = lambda ft: ["to_convert_TweetInfo"]
             mock_like_instance.to_convert_ExternalLink.side_effect = lambda ft, lsb: ["to_convert_ExternalLink"]
-            mock_like.side_effect = lambda userid, pages, max_results, twitter: mock_like_instance
+            mock_v2_like_fetcher.side_effect = lambda userid, pages, max_results, twitter: mock_like_instance
 
             res = fc.crawl()
 
@@ -135,7 +137,42 @@ class TestFavCrawler(unittest.TestCase):
 
             each_max_count = int(fc.config["tweet_timeline"]["each_max_count"])
             fav_get_max_loop = int(fc.config["tweet_timeline"]["fav_get_max_loop"])
-            mock_like.assert_called_once_with(userid="00001", pages=fav_get_max_loop, max_results=each_max_count, twitter=fc.twitter)
+            mock_v2_like_fetcher.assert_called_once_with(userid="00001", pages=fav_get_max_loop, max_results=each_max_count, twitter=fc.twitter)
+            mock_like_instance.fetch.assert_called_once_with()
+
+            mock_like_instance.to_convert_TweetInfo.assert_called_once_with(["fetched_tweets"])
+            mock_interpret_tweets.assert_called_once_with(["to_convert_TweetInfo"])
+
+            mock_like_instance.to_convert_ExternalLink.assert_called_once_with(["fetched_tweets"], fc.lsb)
+            mock_trace_external_link.assert_called_once_with(["to_convert_ExternalLink"])
+
+            mock_shrink_folder.assert_called_once_with(int(fc.config["holding"]["holding_file_num"]))
+            mock_end_of_process.assert_called_once_with()
+
+            # No API use mode
+            mock_interpret_tweets.reset_mock()
+            mock_trace_external_link.reset_mock()
+            mock_shrink_folder.reset_mock()
+            mock_end_of_process.reset_mock()
+
+            mock_like_instance.reset_mock()
+            mock_like_instance.fetch.side_effect = lambda: ["fetched_tweets"]
+            mock_like_instance.to_convert_TweetInfo.side_effect = lambda ft: ["to_convert_TweetInfo"]
+            mock_like_instance.to_convert_ExternalLink.side_effect = lambda ft, lsb: ["to_convert_ExternalLink"]
+
+            mock_noapi_like_fetcher.side_effect = lambda username, password, target_username: mock_like_instance
+
+            fc.config["twitter_noapi"]["is_twitter_noapi"] = "True"
+            fc.config["twitter_noapi"]["username"] = "dummy_username"
+            fc.config["twitter_noapi"]["password"] = "dummy_password"
+            fc.config["twitter_noapi"]["target_username"] = "dummy_target_username"
+
+            res = fc.crawl()
+
+            url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
+            fc.twitter.get.assert_called_once_with(url)
+
+            mock_noapi_like_fetcher.assert_called_once_with("dummy_username", "dummy_password", "dummy_target_username")
             mock_like_instance.fetch.assert_called_once_with()
 
             mock_like_instance.to_convert_TweetInfo.assert_called_once_with(["fetched_tweets"])
