@@ -231,6 +231,7 @@ class TestTwitterSession(unittest.TestCase):
             allStorage()
         """
         with ExitStack() as stack:
+            mock_logger_info = stack.enter_context(patch("PictureGathering.noapi.TwitterSession.logger.info"))
             mock_pyppeteer = stack.enter_context(patch("PictureGathering.noapi.TwitterSession.pyppeteer", AsyncMock()))
             mock_local_storage = stack.enter_context(patch("PictureGathering.noapi.TwitterSession.LocalStorage"))
             mock_cookies = stack.enter_context(patch("PictureGathering.noapi.TwitterSession.Cookies"))
@@ -280,6 +281,7 @@ class TestTwitterSession(unittest.TestCase):
 
     def test_create(self):
         with ExitStack() as stack:
+            mock_logger_info = stack.enter_context(patch("PictureGathering.noapi.TwitterSession.logger.info"))
             mock_cookies = stack.enter_context(patch("PictureGathering.noapi.TwitterSession.Cookies"))
             mock_local_storage = stack.enter_context(patch("PictureGathering.noapi.TwitterSession.LocalStorage"))
             mock_twitter_session = stack.enter_context(patch("PictureGathering.noapi.TwitterSession.TwitterSession"))
@@ -320,5 +322,4 @@ class TestTwitterSession(unittest.TestCase):
 if __name__ == "__main__":
     if sys.argv:
         del sys.argv[1:]
-    unittest.main(warnings="ignore")
     unittest.main(warnings="ignore")
