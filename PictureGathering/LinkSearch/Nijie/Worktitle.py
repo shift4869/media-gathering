@@ -1,20 +1,30 @@
 # coding: utf-8
+import re
 from dataclasses import dataclass
+from typing import ClassVar
+
+import emoji
 
 
 @dataclass(frozen=True)
 class Worktitle():
-    _title: str
+    _original_title: str
+    _title: ClassVar[str]
 
     def __post_init__(self) -> None:
         """初期化後処理
 
         バリデーションのみ
         """
-        if not isinstance(self._title, str):
-            raise TypeError("name is not string, invalid Worktitle.")
-        if self._title == "":
+        if not isinstance(self._original_title, str):
+            raise TypeError("title is not string, invalid Worktitle.")
+        if self._original_title == "":
             raise ValueError("empty string, invalid Worktitle")
+
+        regex = re.compile(r'[\\/:*?"<>|]')
+        trimed_title = regex.sub("", self._original_title)
+        non_emoji_title = emoji.replace_emoji(trimed_title, "")
+        object.__setattr__(self, "_title", non_emoji_title)
 
     @property
     def title(self) -> str:
@@ -23,7 +33,9 @@ class Worktitle():
 
 if __name__ == "__main__":
     titles = [
-        "作成者1",
+        "作品名1",
+        "作成者2?****//",
+        "作成者3😀",
         "",
         -1,
     ]
