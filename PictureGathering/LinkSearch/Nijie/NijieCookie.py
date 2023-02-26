@@ -25,7 +25,7 @@ class NijieCookie():
             raise TypeError("_headers is not dict.")
 
         if not (self._headers and self._cookies):
-            return ValueError("NijieCookie _headers or _cookies is invalid.")
+            raise ValueError("NijieCookie _headers or _cookies is invalid.")
 
         # トップページをGETしてクッキーが有効かどうか調べる
         res = requests.get(self.NIJIE_TOP_URL, headers=self._headers, cookies=self._cookies)

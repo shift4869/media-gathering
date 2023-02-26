@@ -1,20 +1,30 @@
 # coding: utf-8
+import re
 from dataclasses import dataclass
+from typing import ClassVar
+
+import emoji
 
 
 @dataclass(frozen=True)
 class Authorname():
-    _name: str
+    _original_name: str
+    _name: ClassVar[str]
 
     def __post_init__(self) -> None:
         """初期化後処理
 
-        バリデーションのみ
+        サニタイズを行う
         """
-        if not isinstance(self._name, str):
+        if not isinstance(self._original_name, str):
             raise TypeError("name is not string, invalid Authorname.")
-        if self._name == "":
+        if self._original_name == "":
             raise ValueError("empty string, invalid Authorname")
+
+        regex = re.compile(r'[\\/:*?"<>|]')
+        trimed_name = regex.sub("", self._original_name)
+        non_emoji_name = emoji.replace_emoji(trimed_name, "")
+        object.__setattr__(self, "_name", non_emoji_name)
 
     @property
     def name(self) -> str:
