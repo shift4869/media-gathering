@@ -159,77 +159,130 @@ class NoAPILikeFetcher():
         logger.info("Fetched Tweet by No API -> done")
         return result
 
-    def interpret_json(self, tweet: dict, id_str_list: list[str] = None) -> list[dict]:
+    def interpret_json(self, tweet: dict) -> list[dict]:
         """ツイートオブジェクトの辞書構成をたどり、ツイートがメディアを含むかどうか調べる
 
         Note:
-            legacyを直下に含むツイートオブジェクトを引数として受け取り、以下のようにresultを返す
-            (1)tweet.legacyにメディアが添付されている場合、resultにtweetを追加
-            (2)tweet.legacyに外部リンクが含まれている場合、resultにtweetを追加
-            (3)RTされているツイートにメディアが添付されている場合、resultにtweet.retweeted_status_result.resultを追加
-            (3)引用RTされているツイートにメディアが添付されている場合、resultにtweet.quoted_status_result.resultを追加
-            (5)引用RTがRTされているツイートの場合、
-                resultにtweet.retweeted_status_result.result.quoted_status_result.resultを追加
+            主に legacy を直下に含むツイートオブジェクトを引数として受け取り
+            以下のように result を返す
+            (1)ツイートにメディアが添付されている場合
+                result に tweet を追加
+            (2)ツイートに外部リンクが含まれている場合
+                result に tweet を追加
+            (3)メディアが添付されているツイートがRTされている場合
+                result に tweet.retweeted_status_result.result を追加
+            (4)メディアが添付されているツイートが引用RTされている場合
+                result に tweet.quoted_status_result.result を追加
+            (5)メディアが添付されているツイートの引用RTがRTされている場合
+                result に tweet.retweeted_status_result.result.quoted_status_result.result を追加
 
-            引用RTはRTできるがRTは引用RTできないので無限ループにはならない（最大深さ2）
+            引用RTはRTできるがRTは引用RTできない
+            (3)~(5)のケースで、メディアを含んでいるツイートがたどる途中にあった場合、それもresultに格納する
             id_strが重複しているツイートは格納しない
 
         Args:
-            tweet (dict): legacyを直下に含むツイートオブジェクト
-            id_str_list (list[str] | None): 格納済みツイートのid_strリスト
+            tweet (dict): ツイートオブジェクト辞書
 
         Returns:
             result list[dict]: 上記にて出力された辞書リスト
         """
+        if not isinstance(tweet, dict):
+            raise TypeError("argument tweet is not dict.")
+
         result = []
+        id_str_list = []
 
-        # デフォルト引数の処理
-        if id_str_list is None:
-            id_str_list = []
-            id_str_list.append(None)
-
-        tweet_legacy = tweet.get("legacy", {})
-
-        # ツイートオブジェクトにRTフラグが立っている場合
-        if tweet_legacy.get("retweeted") and tweet.get("retweeted_status_result"):
-            retweeted_tweet = tweet.get("retweeted_status_result", {}).get("result", {})
-            retweeted_tweet_legacy = retweeted_tweet.get("legacy", {})
-            if retweeted_tweet_legacy.get("extended_entities"):
-                if retweeted_tweet_legacy.get("id_str") not in id_str_list:
-                    result.append(retweeted_tweet)
-                    id_str_list.append(retweeted_tweet_legacy.get("id_str"))
-            # リツイートオブジェクトに引用RTフラグも立っている場合
-            if retweeted_tweet.get("is_quote_status") and retweeted_tweet.get("quoted_status_result"):
-                quoted_tweet = retweeted_tweet.get("quoted_status_result", {}).get("result", {})
-                quoted_tweet_legacy = quoted_tweet.get("legacy", {})
-                if quoted_tweet_legacy.get("extended_entities"):
-                    if quoted_tweet_legacy.get("id_str") not in id_str_list:
-                        result.append(quoted_tweet)
-                        id_str_list.append(quoted_tweet_legacy.get("id_str"))
-        # ツイートオブジェクトに引用RTフラグが立っている場合
-        elif tweet_legacy.get("is_quote_status") and tweet.get("quoted_status_result"):
-            quoted_tweet = tweet.get("quoted_status_result", {}).get("result", {})
-            quoted_tweet_legacy = quoted_tweet.get("legacy", {})
-            if quoted_tweet_legacy.get("extended_entities"):
-                if quoted_tweet_legacy.get("id_str") not in id_str_list:
-                    result.append(quoted_tweet)
-                    id_str_list.append(quoted_tweet_legacy.get("id_str"))
-
-        # ツイートオブジェクトにメディアがある場合
-        if tweet_legacy.get("extended_entities", {}).get("media"):
-            if tweet_legacy.get("id_str") not in id_str_list:
+        # (1)ツイートにメディアが添付されている場合
+        match tweet:
+            case {
+                "legacy": {
+                    "extended_entities": {
+                        "media": _
+                    },
+                    "id_str": id_str,
+                },
+            } if id_str not in id_str_list:
                 result.append(tweet)
-                id_str_list.append(tweet_legacy.get("id_str"))
+                id_str_list.append(id_str)
 
-        # ツイートに外部リンクが含まれている場合
-        if tweet_legacy.get("entities", {}).get("urls"):
-            urls = tweet_legacy.get("entities", {}).get("urls", [{}])
-            url = urls[0].get("expanded_url")
-            if url:
-                # 何かしらのリンクを含むかどうかだけ見るので、収集対象かどうかはdon't care
-                if tweet_legacy.get("id_str") not in id_str_list:
-                    result.append(tweet)
-                    id_str_list.append(tweet_legacy.get("id_str"))
+        # (2)ツイートに外部リンクが含まれている場合
+        match tweet:
+            case {
+                "legacy": {
+                    "entities": {
+                        "urls": urls_dict,
+                    },
+                    "id_str": id_str,
+                },
+            } if id_str not in id_str_list:
+                if isinstance(urls_dict, list):
+                    url_flags = [url_dict.get("expanded_url", "") != "" for url_dict in urls_dict]
+                    if any(url_flags):
+                        result.append(tweet)
+                        id_str_list.append(id_str)
+
+        # (3)メディアが添付されているツイートがRTされている場合
+        match tweet:
+            case {
+                "legacy": {
+                    "retweeted": True,
+                },
+                "retweeted_status_result": {
+                    "result": {
+                        "legacy": {
+                            "extended_entities": _,
+                            "id_str": id_str,
+                        },
+                    },
+                },
+            } if id_str not in id_str_list:
+                retweeted_tweet = tweet.get("retweeted_status_result", {}).get("result", {})
+                result.append(retweeted_tweet)
+                id_str_list.append(id_str)
+
+        # (4)メディアが添付されているツイートが引用RTされている場合
+        match tweet:
+            case {
+                "legacy": {
+                    "is_quote_status": True,
+                },
+                "quoted_status_result": {
+                    "result": {
+                        "legacy": {
+                            "extended_entities": _,
+                            "id_str": id_str,
+                        },
+                    },
+                },
+            } if id_str not in id_str_list:
+                quoted_tweet = tweet.get("quoted_status_result", {}).get("result", {})
+                result.append(quoted_tweet)
+                id_str_list.append(id_str)
+
+        # (5)メディアが添付されているツイートの引用RTがRTされている場合
+        match tweet:
+            case {
+                "legacy": {
+                    "retweeted": True,
+                },
+                "retweeted_status_result": {
+                    "result": {
+                        "is_quote_status": True,
+                        "quoted_status_result": {
+                            "result": {
+                                "legacy": {
+                                    "extended_entities": _,
+                                    "id_str": id_str,
+                                },
+                            },
+                        },
+                    },
+                },
+            } if id_str not in id_str_list:
+                retweeted_tweet = tweet.get("retweeted_status_result", {}).get("result", {})
+                quoted_tweet = retweeted_tweet.get("quoted_status_result", {}).get("result", {})
+                result.append(quoted_tweet)
+                id_str_list.append(id_str)
 
         return result
 

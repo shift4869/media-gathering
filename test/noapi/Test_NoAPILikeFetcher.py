@@ -202,7 +202,7 @@ class TestNoAPILikeFetcher(unittest.TestCase):
         ]
         self.assertEqual(expect, actual)
 
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(TypeError):
             self.fetcher.interpret_json(-1)
 
     def test_fetch(self):
