@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "picturegatheringPKG"
+name = "mgPKG"
 version = "0.1.0"
 description = ""
 authors = ["shift <fantasy_world4423-git@yahoo.co.jp>"]

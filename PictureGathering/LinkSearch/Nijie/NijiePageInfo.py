@@ -2,7 +2,7 @@
 import urllib.parse
 from dataclasses import dataclass
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 from PictureGathering.LinkSearch.Nijie.Authorid import Authorid
 from PictureGathering.LinkSearch.Nijie.Authorname import Authorname
@@ -52,15 +52,18 @@ class NijiePageInfo():
         Returns:
             NijiePageInfo: nijieページの詳細情報オブジェクト
         """
-        urls = []
+        if not isinstance(soup, BeautifulSoup):
+            raise TypeError("soup must be BeautifulSoup instance.")
+
+        urls: list[str] = []
 
         # メディアへの直リンクを取得する
         # メディアは画像（jpg, png）、うごイラ（gif, mp4）などがある
         # メディアが置かれているdiv
-        div_imgs = soup.find_all("div", id="img_filter")
+        div_imgs: list[Tag] = soup.find_all("div", id="img_filter")
         for div_img in div_imgs:
             # うごイラがないかvideoタグを探す
-            video_s = div_img.find_all("video")
+            video_s: list[Tag] = div_img.find_all("video")
             video_url = ""
             for video in video_s:
                 if video.get("src") is not None:
@@ -73,7 +76,7 @@ class NijiePageInfo():
                 continue
 
             # 一枚絵、漫画がないかaタグを探す
-            a_s = div_img.find_all("a")
+            a_s: list[Tag] = div_img.find_all("a")
             img_url = ""
             for a in a_s:
                 if a.get("href") is not None:
@@ -86,8 +89,8 @@ class NijiePageInfo():
             raise ValueError("NijiePageInfo create error")
 
         # 作者IDを1枚目の直リンクから取得する
-        ps = urllib.parse.urlparse(urls[0]).path
-        pt = ps.split("/")[-3]
+        ps: str = urllib.parse.urlparse(urls[0]).path
+        pt: str = ps.split("/")[-3]
         author_id = int(pt)
 
         # 作品タイトル、作者名はページタイトルから取得する
@@ -97,12 +100,12 @@ class NijiePageInfo():
         author_name = title[1].strip()
 
         # ValueObject 変換
-        urls = NijieSourceList.create(urls)
+        source_list = NijieSourceList.create(urls)
         author_name = Authorname(author_name)
         author_id = Authorid(author_id)
         illust_name = Worktitle(illust_name)
 
-        return NijiePageInfo(urls, author_name, author_id, illust_name)
+        return NijiePageInfo(source_list, author_name, author_id, illust_name)
 
 
 if __name__ == "__main__":
