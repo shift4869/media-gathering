@@ -1,4 +1,5 @@
 # coding: utf-8
+import pprint
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -48,6 +49,11 @@ class PixivSourceList(Iterable):
         Returns:
             PixivSourceList: pixiv作品の直リンクURLリスト
         """
+        if not isinstance(aapi, AppPixivAPI):
+            raise TypeError("aapi must be AppPixivAPI instance.")
+        if not isinstance(pixiv_url, PixivWorkURL):
+            raise TypeError("pixiv_url must be PixivWorkURL.")
+
         work_id = pixiv_url.work_id.id
 
         # イラスト情報取得
@@ -69,4 +75,7 @@ class PixivSourceList(Iterable):
 
 
 if __name__ == "__main__":
-    pass
+    work_url = "https://www.pixiv.net/artworks/1111111{}"
+    work_urls = [URL(work_url.format(i)) for i in range(10)]
+    source_list = PixivSourceList(work_urls)
+    pprint.pprint(source_list)
