@@ -2,6 +2,7 @@
 import re
 import urllib.parse
 from dataclasses import dataclass
+from http.cookiejar import Cookie
 from logging import INFO, getLogger
 from pathlib import Path
 
@@ -64,6 +65,11 @@ class NijieFetcher(FetcherBase):
         Returns:
             cookies (NijieCookie): ログイン情報を保持したクッキー
         """
+        if not isinstance(username, Username):
+            raise TypeError("username is not Username.")
+        if not isinstance(password, Password):
+            raise TypeError("password is not Password.")
+
         ncp = Path(self.NIJIE_COOKIE_PATH)
 
         res = None
@@ -126,13 +132,13 @@ class NijieFetcher(FetcherBase):
         res = NijieCookie(cookies, self.HEADERS)
 
         # クッキー解析用
-        def CookieToString(c):
+        def cookie_to_string(c: Cookie):
             return f'name="{c.name}", value="{c.value}", expires={c.expires}, path="{c.path}", domain="{c.domain}"'
 
         # クッキー情報をファイルに保存する
         with ncp.open(mode="w") as fout:
             for c in cookies:
-                fout.write(CookieToString(c) + "\n")
+                fout.write(cookie_to_string(c) + "\n")
 
         return res
 
@@ -147,9 +153,11 @@ class NijieFetcher(FetcherBase):
         Returns:
             bool: 担当urlだった場合True, そうでない場合False
         """
+        if not isinstance(url, URL):
+            raise TypeError("url is not Username.")
         return NijieURL.is_valid(url.original_url)
 
-    def fetch(self, url: URL) -> None:
+    def fetch(self, url: str | URL) -> None:
         """担当処理：nijie作品を取得する
 
         FetcherBaseオーバーライド
@@ -157,6 +165,8 @@ class NijieFetcher(FetcherBase):
         Args:
             url (URL): 処理対象url
         """
+        if not isinstance(url, str | URL):
+            raise TypeError("url is not str | URL.")
         novel_url = NijieURL.create(url)
         NijieDownloader(novel_url, self.base_path, self.cookies).download()
 
