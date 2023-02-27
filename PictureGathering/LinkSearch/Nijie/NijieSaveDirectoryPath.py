@@ -34,6 +34,13 @@ class NijieSaveDirectoryPath():
             NijieSaveDirectoryPath: 保存先ディレクトリパス
                 {base_path}/{作者名}({作者ID})/{作品タイトル}({作品ID})/の形を想定している
         """
+        if not isinstance(nijie_url, NijieURL):
+            raise TypeError("nijie_url must be NijieURL.")
+        if not isinstance(page_info, NijiePageInfo):
+            raise TypeError("page_info must be NijiePageInfo.")
+        if not isinstance(base_path, Path):
+            raise TypeError("base_path must be Path.")
+
         author_name = page_info.author_name.name
         author_id = page_info.author_id.id
         work_title = page_info.work_title.title
