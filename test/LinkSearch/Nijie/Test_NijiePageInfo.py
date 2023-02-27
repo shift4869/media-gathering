@@ -62,7 +62,7 @@ class TestNijiePageInfo(unittest.TestCase):
             </a>
             </div>
         """
-        soup = BeautifulSoup(html_img)
+        soup = BeautifulSoup(html_img, "html.parser")
         actual = NijiePageInfo.create(soup)
 
         urls = ["http://pic.nijie.net/04/nijie/23m02/24/11111111/illust/sample_01.jpg"]
@@ -83,7 +83,7 @@ class TestNijiePageInfo(unittest.TestCase):
             </a>
             </div>
         """
-        soup = BeautifulSoup(html_video)
+        soup = BeautifulSoup(html_video, "html.parser")
         actual = NijiePageInfo.create(soup)
 
         urls = ["http://pic.nijie.net/02/nijie/23m02/12/11111111/illust/sample_01.mp4"]
@@ -95,7 +95,7 @@ class TestNijiePageInfo(unittest.TestCase):
         self.assertEqual(expect, actual)
 
         with self.assertRaises(ValueError):
-            soup = BeautifulSoup("")
+            soup = BeautifulSoup("", "html.parser")
             actual = NijiePageInfo.create(soup)
 
         with self.assertRaises(TypeError):
