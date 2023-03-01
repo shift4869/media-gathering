@@ -64,10 +64,12 @@ class PixivSourceList(Iterable):
 
         source_list = []
         if work.page_count > 1:  # 漫画形式
+            # https://i.pximg.net/c/600x1200_90/img-master/img/2022/06/03/05/01/37/98789839_p{i}_master1200.jpg
             for page_info in work.meta_pages:
                 image_url = URL(page_info.image_urls.large)
                 source_list.append(image_url)
         else:  # 一枚絵
+            # https://i.pximg.net/c/600x1200_90/img-master/img/2022/06/03/22/46/49/98804653_p0_master1200.jpg
             image_url = URL(work.image_urls.large)
             source_list.append(image_url)
 
