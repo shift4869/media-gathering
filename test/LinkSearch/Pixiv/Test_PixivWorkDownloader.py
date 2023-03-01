@@ -22,6 +22,7 @@ from PictureGathering.LinkSearch.URL import URL
 class TestPixivWorkDownloader(unittest.TestCase):
     def mock_aapi(self) -> MagicMock:
         aapi = MagicMock(spec=AppPixivAPI)
+
         def download(url: str, path: str, name: str):
             p = Path(path) / name
             with p.open("w") as fout:
