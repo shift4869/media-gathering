@@ -56,14 +56,13 @@ class SkebSourceList(Iterable):
 
         # イラスト
         # imgタグ、src属性のリンクURL形式が次のいずれかの場合
-        # "https://skeb.imgix.net/uploads/"で始まる
-        # "https://skeb.imgix.net/requests/"で始まる
+        # TODO:対象URLの形式を正規表現でまとめる
         img_tags = response.html.find("img")
         for img_tag in img_tags:
             src_url = img_tag.attrs.get("src", "")
-            # src_url = unquote(src_url).replace("#", "%23")
             if "https://skeb.imgix.net/uploads/" in src_url or \
-               "https://skeb.imgix.net/requests/" in src_url:
+               "https://skeb.imgix.net/requests/" in src_url or \
+               "https://si.imgix.net/" in src_url:
                 source = SkebSourceInfo(URL(src_url), Extension.WEBP)
                 source_list.append(source)
 
