@@ -62,7 +62,7 @@ class PixivUgoiraDownloader():
 
         if work.type != "ugoira":
             return DownloadResult.PASSED  # うごイラではなかった
-        
+
         logger.info("\t\t: ugoira download -> see below ...")
 
         # ValueObject生成

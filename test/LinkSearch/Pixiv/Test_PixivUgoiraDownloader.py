@@ -4,6 +4,7 @@ import shutil
 import sys
 import unittest
 from contextlib import ExitStack
+from logging import WARNING, getLogger
 from pathlib import Path
 
 from mock import MagicMock, call, patch
@@ -14,6 +15,9 @@ from PictureGathering.LinkSearch.Pixiv.Authorname import Authorname
 from PictureGathering.LinkSearch.Pixiv.PixivUgoiraDownloader import DownloadResult, PixivUgoiraDownloader
 from PictureGathering.LinkSearch.Pixiv.Workid import Workid
 from PictureGathering.LinkSearch.Pixiv.Worktitle import Worktitle
+
+logger = getLogger("PictureGathering.LinkSearch.Pixiv.PixivUgoiraDownloader")
+logger.setLevel(WARNING)
 
 
 class TestPixivUgoiraDownloader(unittest.TestCase):
@@ -80,6 +84,7 @@ class TestPixivUgoiraDownloader(unittest.TestCase):
         with ExitStack() as stack:
             mock_sleep = stack.enter_context(patch("PictureGathering.LinkSearch.Pixiv.PixivUgoiraDownloader.sleep"))
             mock_image = stack.enter_context(patch("PictureGathering.LinkSearch.Pixiv.PixivUgoiraDownloader.Image"))
+            mock_logger_info = stack.enter_context(patch.object(logger, "info"))
 
             work_id = Workid(123456789)
             work_title = Worktitle("作品名1")

@@ -4,19 +4,20 @@ import shutil
 import sys
 import unittest
 from contextlib import ExitStack
+from logging import WARNING, getLogger
 from pathlib import Path
 
 from mock import MagicMock, call, patch
 from pixivpy3 import AppPixivAPI
 
-from PictureGathering.LinkSearch.Pixiv.Authorid import Authorid
-from PictureGathering.LinkSearch.Pixiv.Authorname import Authorname
 from PictureGathering.LinkSearch.Pixiv.PixivSaveDirectoryPath import PixivSaveDirectoryPath
 from PictureGathering.LinkSearch.Pixiv.PixivSourceList import PixivSourceList
 from PictureGathering.LinkSearch.Pixiv.PixivWorkDownloader import DownloadResult, PixivWorkDownloader
 from PictureGathering.LinkSearch.Pixiv.Workid import Workid
-from PictureGathering.LinkSearch.Pixiv.Worktitle import Worktitle
 from PictureGathering.LinkSearch.URL import URL
+
+logger = getLogger("PictureGathering.LinkSearch.Pixiv.PixivWorkDownloader")
+logger.setLevel(WARNING)
 
 
 class TestPixivWorkDownloader(unittest.TestCase):
@@ -67,6 +68,7 @@ class TestPixivWorkDownloader(unittest.TestCase):
         with ExitStack() as stack:
             mock_sleep = stack.enter_context(patch("PictureGathering.LinkSearch.Pixiv.PixivWorkDownloader.sleep"))
             mock_ugoira = stack.enter_context(patch("PictureGathering.LinkSearch.Pixiv.PixivWorkDownloader.PixivUgoiraDownloader"))
+            mock_logger_info = stack.enter_context(patch.object(logger, "info"))
 
             # 一枚絵
             source_url = "https://i.pximg.net/c/600x1200_90/img-master/img/2023/03/01/00/00/00/12345678_p0_master1200.jpg"
