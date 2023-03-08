@@ -15,7 +15,7 @@ from PictureGathering.LinkSearch.Username import Username
 
 class TestPixivFetcher(unittest.TestCase):
     def setUp(self):
-        self.TBP = Path("./test")
+        self.TBP = Path("./test/LinkSearch/Pixiv")
 
     def get_instance(self):
         with ExitStack() as stack:
