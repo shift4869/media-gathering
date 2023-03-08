@@ -53,23 +53,24 @@ class TestPixivNovelFetcher(unittest.TestCase):
                 fetcher = PixivNovelFetcher(username, password, "invalid args")
 
     def test_login(self):
-        return
         with ExitStack() as stack:
-            m_aapi = stack.enter_context(patch("PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher.AppPixivNovelAPI"))
-            m_open = stack.enter_context(patch("PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher.Path.open", mock_open()))
+            mock_aapi = stack.enter_context(patch("PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher.AppPixivAPI"))
 
             username = Username("ユーザー1_ID")
             password = Password("ユーザー1_PW")
             fetcher = self.get_instance()
 
-            refresh_token_path = Path(fetcher.REFRESH_TOKEN_PATH)
-            refresh_token_path.touch(exist_ok=True)
+            refresh_token = "dummy_refresh_token"
+            rt_path = Path(fetcher.REFRESH_TOKEN_PATH)
+            with rt_path.open(mode="w") as fout:
+                fout.write(refresh_token)
 
-            expect = m_aapi()
             actual = fetcher.login(username, password)
+            mock_aapi().auth.assert_called_once_with(refresh_token=refresh_token)
+            expect = mock_aapi()
             self.assertEqual(expect, actual)
 
-            refresh_token_path.unlink(missing_ok=True)
+            rt_path.unlink(missing_ok=True)
 
     def test_is_target_url(self):
         fetcher = self.get_instance()
