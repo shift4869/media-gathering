@@ -73,9 +73,9 @@ jobs:
     - name: Coverage report
       run: |
         dir
-        python -m coverage run --source . -m unittest discover
-        python -m coverage report --format=total --precision=2
-        echo coverage=$(python -m coverage report --format=total --precision=2) >> $env:GITHUB_ENV
+        python -m coverage run --source=. --rcfile=./.github/.coveragerc -m unittest discover
+        python -m coverage report --rcfile=./.github/.coveragerc --format=total --precision=2
+        echo coverage=$(python -m coverage report --rcfile=./.github/.coveragerc --format=total --precision=2) >> $env:GITHUB_ENV
       working-directory: ./
 
     - name: Create Coverage Badge
