@@ -1,6 +1,5 @@
 # coding: utf-8
 from dataclasses import dataclass
-from logging import INFO, getLogger
 from pathlib import Path
 
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase
@@ -13,9 +12,6 @@ from PictureGathering.LinkSearch.Skeb.SkebSourceList import SkebSourceList
 from PictureGathering.LinkSearch.Skeb.SkebURL import SkebURL
 from PictureGathering.LinkSearch.URL import URL
 from PictureGathering.LinkSearch.Username import Username
-
-logger = getLogger(__name__)
-logger.setLevel(INFO)
 
 
 @dataclass(frozen=True)
