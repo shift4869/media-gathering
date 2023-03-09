@@ -13,12 +13,6 @@ from PictureGathering.LinkSearch.Skeb.Authorname import Authorname
 
 
 class TestAuthorname(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
     def _sanitize(self, _original_name: str) -> str:
         regex = re.compile(r'[\\/:*?"<>|]')
         trimed_name = regex.sub("", _original_name)
