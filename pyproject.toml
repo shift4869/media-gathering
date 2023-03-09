@@ -8,7 +8,6 @@ license = "MIT License"
 [tool.poetry.dependencies]
 beautifulsoup4 = "^4.11.2"
 coverage = "^7.2.1"
-coverage-badge = "^1.1.0"
 cryptography = "^39.0.1"
 emoji = "^1.7.0"
 freezegun = "^1.2.2"
