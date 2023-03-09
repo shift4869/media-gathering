@@ -12,6 +12,24 @@ class IllustConvertor():
     _source: Path
     _extension: str = ".png"
 
+    SOURCE_EXTENSION = ".webp"
+
+    def __post_init__(self):
+        self._is_valid()
+
+    def _is_valid(self):
+        if not isinstance(self._source, Path):
+            raise TypeError("_source is not Path, invalid args.")
+        if not isinstance(self._extension, str):
+            raise TypeError("_extension is not str, invalid args.")
+
+        if not self._source.is_file():
+            raise FileNotFoundError("_source file is not found.")
+        if self._source.suffix != self.SOURCE_EXTENSION:
+            raise TypeError(f"_source file is not {self.SOURCE_EXTENSION} file.")
+
+        return True
+
     def convert(self) -> Path:
         """.webpから.pngに変換する
 

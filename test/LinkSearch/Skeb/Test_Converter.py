@@ -63,7 +63,7 @@ class TestConverter(unittest.TestCase):
             src_file_template = str(base_path / "123/作者名_123_{:03}.webp")
             src_file_pathlist = [Path(src_file_template.format(i)) for i in range(FILE_NUM)]
             src_file_pathlist[0].parent.mkdir(parents=True, exist_ok=True)
-            list(map(lambda p: p.touch(), src_file_pathlist))
+            list(map(lambda p: p.touch(exist_ok=True), src_file_pathlist))
             converter = Converter(src_file_pathlist)
 
             actual = converter.convert()
@@ -87,7 +87,7 @@ class TestConverter(unittest.TestCase):
             src_file_template = str(base_path / "123/作者名_123_{:03}.mp4")
             src_file_pathlist = [Path(src_file_template.format(i)) for i in range(FILE_NUM)]
             src_file_pathlist[0].parent.mkdir(parents=True, exist_ok=True)
-            list(map(lambda p: p.touch(), src_file_pathlist))
+            list(map(lambda p: p.touch(exist_ok=True), src_file_pathlist))
             converter = Converter(src_file_pathlist)
 
             actual = converter.convert()

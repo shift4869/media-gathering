@@ -25,7 +25,7 @@ class SaveFilename():
     def __post_init__(self) -> None:
         self._is_valid()
 
-    def _is_valid(self):
+    def _is_valid(self) -> bool:
         if not isinstance(self._name, str):
             raise TypeError("name is not string, invalid SaveFilename.")
 
@@ -34,6 +34,7 @@ class SaveFilename():
         # f2 = re.search(SaveFilename.SEVERAL_PATTERN, self.name) is not None
         # if not (f1 or f2):
         #     raise ValueError("invalid SaveFilename.")
+        return True
 
     # def _is_single(self):
     #     return re.search(SaveFilename.SINGLE_PATTERN, self.name) is not None
@@ -43,24 +44,24 @@ class SaveFilename():
         return self._name
 
     @classmethod
-    def create(cls, author_name: Authorname, illust_id: Workid, index: int = -1, extension: Extension = Extension.UNKNOWN):
+    def create(cls, author_name: Authorname, work_id: Workid, index: int = -1, extension: Extension = Extension.UNKNOWN) -> "SaveFilename":
         if not isinstance(author_name, Authorname):
             raise TypeError("author_name is not Authorname, invalid SaveFilename.")
-        if not isinstance(illust_id, Workid):
-            raise TypeError("illust_id is not Illustid, invalid SaveFilename.")
+        if not isinstance(work_id, Workid):
+            raise TypeError("work_id is not Illustid, invalid SaveFilename.")
         if not isinstance(index, int):
             raise TypeError("index is not int, invalid SaveFilename.")
         if not isinstance(extension, Extension):
             raise TypeError("extension is not Extension, invalid SaveFilename.")
 
-        file_name = ""
-        if index == -1:
+        filename = ""
+        if index <= -1:
             # 連番なし
-            file_name = f"{author_name.name}_{illust_id.id:03}{extension.value}"
+            filename = f"{author_name.name}_{work_id.id:03}{extension.value}"
         else:
             # 連番あり
-            file_name = f"{author_name.name}_{illust_id.id:03}_{index:03}{extension.value}"
-        return SaveFilename(file_name)
+            filename = f"{author_name.name}_{work_id.id:03}_{index:03}{extension.value}"
+        return SaveFilename(filename)
 
 
 if __name__ == "__main__":
@@ -77,7 +78,7 @@ if __name__ == "__main__":
 
     for name in names:
         try:
-            username = SaveFilename(name)
-            print(username.name)
+            save_filename = SaveFilename(name)
+            print(save_filename.name)
         except (ValueError, TypeError) as e:
             print(e.args[0])
