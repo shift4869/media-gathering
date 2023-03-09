@@ -12,6 +12,16 @@ class SkebSourceInfo():
     _url: URL              # 直リンク
     _extension: Extension  # 拡張子
 
+    def __post_init__(self) -> None:
+        self._is_valid()
+
+    def _is_valid(self) -> bool:
+        if not isinstance(self._url, URL):
+            raise TypeError("_url is not URL.")
+        if not isinstance(self._extension, Extension):
+            raise TypeError("_extension is not Extension.")
+        return True
+
     @property
     def url(self) -> URL:
         return self._url

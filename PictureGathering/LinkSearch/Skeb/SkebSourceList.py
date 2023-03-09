@@ -17,10 +17,6 @@ class SkebSourceList(Iterable):
     _list: list[SkebSourceInfo]
 
     def __post_init__(self) -> None:
-        """初期化後処理
-
-        バリデーションのみ
-        """
         if not isinstance(self._list, list):
             raise TypeError("list is not list[], invalid SkebSourceList.")
         if self._list:
@@ -42,16 +38,13 @@ class SkebSourceList(Iterable):
 
         Args:
             skeb_url (SkebURL): skeb作品URL
-            top_url (URL): skebトップページURL
-            cookies (SkebCookie): 接続用クッキー
-            headers (dict): 接続用ヘッダー
+            session (SkebSession): skebセッション
 
         Returns:
             SkebSourceList: skebの直リンク情報リスト
         """
         source_list = []
 
-        # loop = asyncio.new_event_loop()
         response = session.get(skeb_url.non_query_url)
 
         # イラスト
