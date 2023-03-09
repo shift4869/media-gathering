@@ -69,3 +69,23 @@ jobs:
         dir
         python -m unittest
       working-directory: ./
+
+    - name: Coverage report
+      run: |
+        dir
+        python -m coverage run --source . -m unittest discover
+        python -m coverage report --format=total --precision=2
+        echo coverage=$(python -m coverage report --format=total --precision=2) >> $env:GITHUB_ENV
+      working-directory: ./
+
+    - name: Create Coverage Badge
+      uses: schneegans/dynamic-badges-action@v1.6.0
+      with:
+        auth: ${{ secrets.GIST_SECRET }}
+        gistID: ad61760f15c4a67a5c421cf479e3c7e7
+        filename: 01_MediaGathering.json 
+        label: Coverage
+        message: ${{ env.coverage }}%
+        valColorRange: ${{ env.coverage }}
+        maxColorRange: 80
+        minColorRange: 30

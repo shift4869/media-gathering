@@ -1,5 +1,6 @@
 # PictureGathering
 
+![Coverage reports](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/shift4869/ad61760f15c4a67a5c421cf479e3c7e7/raw/712eb6cd91a3274ac819ecdcf4213c5b0e7e8ea8/01_MediaGathering.json)
 
 ## 概要
 ツイッターでfav/RTしたメディア（=画像と動画の総称）含みツイートからメディアを収集し、
