@@ -46,8 +46,9 @@ class SkebDownloader():
             raise TypeError("source_list is not SkebSourceList.")
         if not isinstance(self.save_directory_path, SkebSaveDirectoryPath):
             raise TypeError("save_directory_path is not SkebSaveDirectoryPath.")
-        # if not isinstance(self.headers, dict):
-        #     raise TypeError("headers is not dict.")
+        if not isinstance(self.session, SkebSession):
+            raise TypeError("session is not SkebSession.")
+
         return True
 
     def download(self) -> DownloadResult:
@@ -70,7 +71,7 @@ class SkebDownloader():
                 logger.info("\t\t: exist -> skip")
                 return DownloadResult.PASSED
 
-            # {作者名}/{作品名}ディレクトリ作成
+            # {作者名}/{作品名} ディレクトリ作成
             sd_path.mkdir(parents=True, exist_ok=True)
 
             # 作品をDLする
@@ -134,7 +135,7 @@ class SkebDownloader():
             self.dl_file_pathlist.append(dst_path)
             logger.info("Download Skeb work: " + dst_path.name + " -> done")
         else:  # エラー
-            raise ValueError("download skeb work failed.")
+            raise ValueError("Download skeb work failed.")
 
         return DownloadResult.SUCCESS
 

@@ -39,7 +39,7 @@ class TestSaveFilename(unittest.TestCase):
             save_filename = SaveFilename(-1)
 
     def test_create(self):
-        def get_filename(name: Authorname, id: Workid, index: int = -1, extension: Extension = Extension.UNKNOWN):
+        def get_filename(author_name: Authorname, work_id: Workid, index: int = -1, extension: Extension = Extension.UNKNOWN):
             filename = ""
             if index == -1:
                 filename = f"{author_name.name}_{work_id.id:03}{extension.value}"
