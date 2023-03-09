@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     for id in ids:
         try:
-            userid = Workid(id)
-            print(userid)
+            workid = Workid(id)
+            print(workid)
         except (ValueError, TypeError) as e:
             print(e.args[0])

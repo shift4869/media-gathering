@@ -58,6 +58,7 @@ class SkebSession():
 
         # 正しくセッションが作成されたか確認
         if not self._is_valid_session():
+            self.loop.close()
             raise ValueError("SkebSession: session setting failed.")
 
     @property
@@ -172,7 +173,9 @@ class SkebSession():
         Returns:
             Response: レンダリング済htmlページレスポンス
         """
-        response = await self.session.get(request_url_str, headers=self.headers, cookies=self.cookies)
+        response = await self.session.get(
+            request_url_str, headers=self.headers, cookies=self.cookies
+        )
         response.raise_for_status()
         await response.html.arender(sleep=2)
         return response
@@ -209,16 +212,16 @@ class SkebSession():
         # トップページURL
         top_url = URL(SkebSession.TOP_URL)
 
-        urls = []
+        # urls = []
         browser = await pyppeteer.launch(headless=True)
         page = await browser.newPage()
         logger.info("Browsing start.")
 
         # レスポンスを監視してコールバックURLをキャッチする
-        async def ResponseListener(response):
-            if (top_url.original_url + "callback") in response.url:
-                urls.append(response.url)
-        page.on("response", lambda response: asyncio.ensure_future(ResponseListener(response)))
+        # async def ResponseListener(response):
+        #     if (top_url.original_url + "callback") in response.url:
+        #         urls.append(response.url)
+        # page.on("response", lambda response: asyncio.ensure_future(ResponseListener(response)))
 
         # トップページに遷移
         await asyncio.gather(page.goto(top_url.original_url), page.waitForNavigation())
@@ -238,15 +241,27 @@ class SkebSession():
         cookies = await page.cookies()
         logger.info("Twitter Login Page loaded.")
 
-        # ツイッターログイン情報を入力し、3-Leg認証を進める
-        await page.waitFor(random.random() * 3 * 1000)
-        selector = 'input[name="session[username_or_email]"]'
-        await page.type(selector, username.name)
-        await page.waitFor(random.random() * 3 * 1000)
-        selector = 'input[name="session[password]"]'
-        await page.type(selector, password.password)
+        # ツイッター連携確認のボタンを押す
         await page.waitFor(random.random() * 3 * 1000)
         selector = 'input[id="allow"]'
+        await asyncio.gather(page.click(selector), page.waitForNavigation())
+        logger.info("Twitter oauth confirm...")
+
+        # ツイッターログイン情報を入力し、3-Leg認証を進める
+        # ユーザーネーム入力
+        await page.waitFor(random.random() * 3 * 1000)
+        selector = 'input[name="text"]'
+        await page.type(selector, username.name)
+        await page.waitFor(random.random() * 3 * 1000)
+        selector = 'div[style="color: rgb(255, 255, 255);"]'
+        await page.click(selector)
+
+        # パスワード入力
+        await page.waitFor(random.random() * 3 * 1000)
+        selector = 'input[name="password"]'
+        await page.type(selector, password.password)
+        await page.waitFor(random.random() * 3 * 1000)
+        selector = 'div[style="color: rgb(255, 255, 255);"]'
         await asyncio.gather(page.click(selector), page.waitForNavigation())
         logger.info("Twitter oauth running...")
 
@@ -257,8 +272,8 @@ class SkebSession():
         cookies = await page.cookies()
 
         # コールバックURLがキャッチできたことを確認
-        if len(urls) == 0:
-            raise ValueError("Getting Skeb session is failed.")
+        # if len(urls) == 0:
+        #     raise ValueError("Getting Skeb session is failed.")
         logger.info("Twitter oauth success.")
 
         # コールバックURLからtokenを切り出す
@@ -268,6 +283,7 @@ class SkebSession():
         # token = qs.get("token", [""])[0]
 
         # ローカルストレージ情報を取り出す
+        await page.waitFor(random.random() * 3 * 1000)
         localstorage_get_js = """
             function allStorage() {
                 var values = [],
@@ -290,7 +306,7 @@ class SkebSession():
         logger.info("Getting local_storage success.")
 
         # 取得したローカルストレージ情報を保存
-        slsp = Path("./config/skeb_localstorage.ini")
+        slsp = Path(SkebSession.SKEB_LOCAL_STORAGE_PATH)
         with slsp.open("w") as fout:
             for ls in local_storage:
                 fout.write(ls + "\n")
@@ -302,7 +318,7 @@ class SkebSession():
         logger.info("Getting cookies success.")
 
         # クッキー解析用
-        def CookieToString(c):
+        def cookie_to_string(c):
             name = c["name"]
             value = c["value"]
             expires = c["expires"]
@@ -325,8 +341,9 @@ class SkebSession():
                     path=c["path"],
                     domain=c["domain"],
                     secure=c["secure"],
-                    rest={"HttpOnly": c["httpOnly"]})
-                fout.write(CookieToString(c) + "\n")
+                    rest={"HttpOnly": c["httpOnly"]}
+                )
+                fout.write(cookie_to_string(c) + "\n")
 
         return requests_cookies, local_storage
 
@@ -356,7 +373,7 @@ class SkebSession():
                     for line in fin:
                         if line == "":
                             break
-                        local_storage.append(line)
+                        local_storage.append(line.strip())
 
                 # クッキーを読み込む
                 cookies = requests.cookies.RequestsCookieJar()
@@ -366,7 +383,7 @@ class SkebSession():
                             break
 
                         sc = {}
-                        elements = re.split("[,\n]", line)
+                        elements = re.split("[,\n]", line.strip())
                         for element in elements:
                             element = element.strip().replace('"', "")  # 左右の空白とダブルクォートを除去
                             if element == "":
@@ -391,18 +408,20 @@ class SkebSession():
                 # 再度クッキーとローカルストレージを取得することを試みる
                 try:
                     skeb_session = SkebSession(cookies, local_storage)
-                    # logger.info("Getting Skeb session is success.")
                     return skeb_session
                 except Exception:
                     logger.info(f"Local_storage and cookies loading retry ... ({i+1}/{RETRY_NUM}).")
             else:
                 logger.info(f"Retry num is exceed RETRY_NUM={RETRY_NUM}.")
 
-        # クッキーとローカルストレージのファイルがない場合
+        # クッキーとローカルストレージのファイルが存在しない場合
         # または有効なセッションが取得できなかった場合
         # 認証してクッキーとローカルストレージの取得を試みる
         loop = asyncio.new_event_loop()
-        cookies, local_storage = loop.run_until_complete(SkebSession.get_cookies_from_oauth(username, password))
+        cookies, local_storage = loop.run_until_complete(
+            SkebSession.get_cookies_from_oauth(username, password)
+        )
+        loop.close()
         skeb_session = SkebSession(cookies, local_storage)
 
         return skeb_session

@@ -56,6 +56,7 @@ class TwitterSession():
 
         # 正しくセッションが作成されたか確認
         if not self._is_valid_session():
+            self.loop.close()
             raise ValueError("TwitterSession: session setting failed.")
 
     @property
@@ -325,7 +326,10 @@ class TwitterSession():
         # または有効なセッションが取得できなかった場合
         # 認証してクッキーとローカルストレージの取得を試みる
         loop = asyncio.new_event_loop()
-        cookies, local_storage = loop.run_until_complete(TwitterSession.get_cookies_from_oauth(username, password))
+        cookies, local_storage = loop.run_until_complete(
+            TwitterSession.get_cookies_from_oauth(username, password)
+        )
+        loop.close()
         twitter_session = TwitterSession(username, password, cookies, local_storage)
         logger.info("Getting Twitter session -> done")
         return twitter_session
