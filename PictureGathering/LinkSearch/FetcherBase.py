@@ -41,27 +41,25 @@ class FetcherBase(metaclass=ABCMeta):
         pass
 
 
-class ConcreteFetcher_0(FetcherBase):
-    """具体的な担当者その0
-    """
-    def __init__(self):
-        super().__init__()
-
-    def is_target_url(self, url: URL) -> bool:
-        pattern = r"^https://www.anyurl/sample/index_0.html$"
-        is_target = re.search(pattern, url.original_url) is not None
-        if is_target:
-            print("ConcreteFetcher_0.is_target_url catch")
-        return is_target
-
-    def fetch(self, url: URL) -> None:
-        print("ConcreteFetcher_0.fetch called")
-
-
 if __name__ == "__main__":
-    url = URL("https://www.anyurl/sample/index_0.html")
+    class ConcreteFetcher_0(FetcherBase):
+        """具体的な担当者その0
+        """
+        def __init__(self):
+            super().__init__()
+
+        def is_target_url(self, url: URL) -> bool:
+            pattern = r"^https://www.anyurl/sample/index_0.html$"
+            is_target = re.search(pattern, url.original_url) is not None
+            if is_target:
+                print("ConcreteFetcher_0.is_target_url catch")
+            return is_target
+
+        def fetch(self, url: URL) -> None:
+            print("ConcreteFetcher_0.fetch called")
 
     # 具体的な担当者のインスタンスを生成
     fetcher = ConcreteFetcher_0()
+    url = URL("https://www.anyurl/sample/index_0.html")
     print(fetcher.is_target_url(url))
     print(fetcher.fetch(url))

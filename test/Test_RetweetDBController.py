@@ -50,8 +50,10 @@ class TestDBController(unittest.TestCase):
         if self.engine.url.database == ":memory:":
             Base.metadata.drop_all(self.engine)
 
+    @classmethod
+    def tearDownClass(cls):
         if Path(TEST_DB_FULLPATH).is_file():
-            Path(TEST_DB_FULLPATH).unlink()
+            Path(TEST_DB_FULLPATH).unlink(missing_ok=True)
 
     def _Retweet_sample_factory(self, img_url: str) -> Retweet:
         """Retweetオブジェクトを生成する
