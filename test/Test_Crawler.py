@@ -481,16 +481,18 @@ class TestCrawler(unittest.TestCase):
         """
         with ExitStack() as stack:
             mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
-            mock_slack = stack.enter_context(patch("PictureGathering.Crawler.slackweb.Slack.notify"))
+            mock_slack = stack.enter_context(patch("PictureGathering.Crawler.WebhookClient"))
+            mock_logger_error = stack.enter_context(patch.object(logger, "error"))
 
             crawler = ConcreteCrawler()
 
-            # mock設定
-            mock_slack.return_value = 0
-
             str = "text"
+            mock_slack.return_value.send.return_value.status_code = 200
             self.assertEqual(0, crawler.post_slack_notify(str))
-            mock_slack.assert_called_once_with(text="<!here> " + str)
+            mock_slack.return_value.send.assert_called_once_with(text="<!here> " + str)
+
+            mock_slack.return_value.send.return_value.status_code = 503
+            self.assertEqual(-1, crawler.post_slack_notify(str))
 
     def test_tweet_media_saver_v2(self):
         """指定URLのメディアを保存する機能をチェックする

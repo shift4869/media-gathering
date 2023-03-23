@@ -4,12 +4,12 @@
 Fav/Retweetクローラーのベースとなるクローラークラス
 設定ファイルとして {CONFIG_FILE_NAME} にあるconfig.iniファイルを使用する
 """
-
 import configparser
 import json
 import logging.config
 import os
 import shutil
+import ssl
 import time
 import urllib
 from abc import ABCMeta, abstractmethod
@@ -17,9 +17,10 @@ from datetime import datetime
 from logging import INFO, getLogger
 from pathlib import Path
 
+import certifi
 import requests
-import slackweb
 from plyer import notification
+from slack_sdk.webhook import WebhookClient
 
 from PictureGathering import Archiver, GoogleDrive, WriteHTML
 from PictureGathering.DBControllerBase import DBControllerBase
@@ -445,13 +446,13 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             int: 0(成功)
         """
-        try:
-            slack = slackweb.Slack(url=self.SLACK_WEBHOOK_URL)
-            slack.notify(text="<!here> " + str)
-        except ValueError:
-            logger.error("Webhook URL error: {0} is invalid".format(self.SLACK_WEBHOOK_URL))
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        webhook = WebhookClient(self.SLACK_WEBHOOK_URL, ssl=ssl_context)
+        post_text = "<!here> " + str
+        response = webhook.send(text=post_text)
+        if response.status_code != 200:
+            logger.error("Error code: {0}".format(response.status_code))
             return -1
-
         return 0
 
     def tweet_media_saver_v2(self, tweet_info: TweetInfo, atime: float, mtime: float) -> int:
