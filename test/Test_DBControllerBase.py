@@ -13,8 +13,6 @@ from sqlalchemy.orm.exc import *
 from PictureGathering import DBControllerBase
 from PictureGathering.Model import *
 
-TEST_DB_FULLPATH = "./test/test.db"
-
 
 class ConcreteDBControllerBase(DBControllerBase.DBControllerBase):
     """テスト用の具体化コントローラー
@@ -22,7 +20,7 @@ class ConcreteDBControllerBase(DBControllerBase.DBControllerBase):
     DBControllerBase.DBControllerBase()の抽象クラスメソッドを最低限実装したテスト用の派生クラス
     """
 
-    def __init__(self, db_fullpath=TEST_DB_FULLPATH):
+    def __init__(self, db_fullpath=":memory:"):
         super().__init__(db_fullpath)
 
     def upsert(self, params: dict) -> None:
@@ -55,8 +53,6 @@ class TestDBController(unittest.TestCase):
         self.session.close()
         if self.engine.url.database == ":memory:":
             Base.metadata.drop_all(self.engine)
-
-        Path(TEST_DB_FULLPATH).unlink(missing_ok=True)
 
     def _make_post_tweet_response_sample(self, created_at, add_num, del_num) -> dict:
         """ツイートオブジェクトのサンプルを生成する

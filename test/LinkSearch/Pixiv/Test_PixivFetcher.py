@@ -20,12 +20,13 @@ class TestPixivFetcher(unittest.TestCase):
     def get_instance(self):
         with ExitStack() as stack:
             m_login = stack.enter_context(patch("PictureGathering.LinkSearch.Pixiv.PixivFetcher.PixivFetcher.login"))
-
             username = Username("ユーザー1_ID")
             password = Password("ユーザー1_PW")
             base_path = Path(self.TBP)
+            fetcher = PixivFetcher(username, password, base_path)
 
-            return PixivFetcher(username, password, base_path)
+            object.__setattr__(fetcher, "REFRESH_TOKEN_PATH", self.TBP / "refresh_token.ini")
+            return fetcher
 
     def test_PixivFetcher(self):
         with ExitStack() as stack:
