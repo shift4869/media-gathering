@@ -10,7 +10,7 @@ from typing import ClassVar
 import pyppeteer
 import requests.cookies
 import requests.utils
-from httplib2 import Response
+from requests import Response
 from requests_html import AsyncHTMLSession
 
 from PictureGathering.LinkSearch.Password import Password
