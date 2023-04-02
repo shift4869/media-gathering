@@ -245,7 +245,7 @@ class TestTwitterSession(unittest.TestCase):
             )
 
             login_url = TwitterSession.LOGIN_URL
-            username_selector = 'input[autocomplete="username"]'
+            username_selector = 'input[name="text"]'
             username_click_selector = 'div[style="color: rgb(255, 255, 255);"]'
             password_selector = 'input[name="password"]'
             password_click_selector = 'div[style="color: rgb(255, 255, 255);"]'
@@ -258,9 +258,11 @@ class TestTwitterSession(unittest.TestCase):
                 call.launch().newPage().cookies(),
                 call.launch().newPage().waitFor(FIXED_RANDOM_NUM * 3 * 1000),
                 call.launch().newPage().type(username_selector, self.username.name),
+                call.launch().newPage().waitFor(FIXED_RANDOM_NUM * 3 * 1000),
                 call.launch().newPage().click(username_click_selector),
                 call.launch().newPage().waitFor(FIXED_RANDOM_NUM * 3 * 1000),
                 call.launch().newPage().type(password_selector, self.password.password),
+                call.launch().newPage().waitFor(FIXED_RANDOM_NUM * 3 * 1000),
                 call.launch().newPage().click(password_click_selector),
                 call.launch().newPage().waitForNavigation(),
                 call.launch().newPage().waitFor(3000),

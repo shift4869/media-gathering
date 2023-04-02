@@ -41,6 +41,8 @@ class TwitterSession():
     LOGIN_URL = "https://twitter.com/i/flow/login"
     # Likesページのテンプレート
     LIKES_URL_TEMPLATE = "https://twitter.com/{}/likes"
+    # RT取得用のTLページのテンプレート
+    RETWEET_URL_TEMPLATE = "https://twitter.com/{}/with_replies"
 
     def __post_init__(self) -> None:
         # 引数チェック
@@ -223,8 +225,9 @@ class TwitterSession():
         # ツイッターログイン情報を入力し、ログインする
         # ツイッターIDを入力
         await page.waitFor(random.random() * 3 * 1000)
-        selector = 'input[autocomplete="username"]'
+        selector = 'input[name="text"]'
         await page.type(selector, username.name)
+        await page.waitFor(random.random() * 3 * 1000)
         selector = 'div[style="color: rgb(255, 255, 255);"]'
         await page.click(selector)
         logger.info("Twitter Login Page username input.")
@@ -239,6 +242,7 @@ class TwitterSession():
         await page.waitFor(random.random() * 3 * 1000)
         selector = 'input[name="password"]'
         await page.type(selector, password.password)
+        await page.waitFor(random.random() * 3 * 1000)
         selector = 'div[style="color: rgb(255, 255, 255);"]'
         await asyncio.gather(page.click(selector), page.waitForNavigation())
         logger.info("Twitter Login Page password input.")
