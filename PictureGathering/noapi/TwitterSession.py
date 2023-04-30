@@ -102,11 +102,14 @@ class TwitterSession():
         # プロフィール画像に設定されているaltを取得し
         # username.name と一致するかどうかで判定する
         try:
-            div_tags: list[Element] = html.find("div")
-            div_tag = [dt for dt in div_tags if "アカウントメニュー" in dt.attrs.get("aria-label", "")][0]
-            img_tags: list[Element] = div_tag.find("img")
-            result = [self.username.name == it.attrs.get("alt", "") for it in img_tags]
-            return any(result)
+            # div_tags: list[Element] = html.find("div")
+            # div_tag = [dt for dt in div_tags if "アカウントメニュー" in dt.attrs.get("aria-label", "")][0]
+            # img_tags: list[Element] = div_tag.find("img")
+            # result = [self.username.name == it.attrs.get("alt", "") for it in img_tags]
+            # return any(result)
+            a_tags: list[Element] = html.find("a")
+            a_tag = [dt for dt in a_tags if "プロフィール" in dt.attrs.get("aria-label", "")][0]
+            return "/" + self.username.name == a_tag.attrs.get("href", "")
         except Exception as e:
             pass
         return False

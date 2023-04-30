@@ -7,7 +7,7 @@ import re
 import shutil
 import sys
 import urllib.parse
-from datetime import datetime
+from datetime import datetime, timedelta
 from logging import INFO, getLogger
 from pathlib import Path
 
@@ -530,7 +530,8 @@ class NoAPILikeFetcher():
             # Like した時点の時間が取得できる？
             td_format = "%a %b %d %H:%M:%S +0000 %Y"
             dts_format = "%Y-%m-%d %H:%M:%S"
-            dst = datetime.strptime(created_at, td_format).strftime(dts_format)
+            jst = datetime.strptime(created_at, td_format) + timedelta(hours=9)
+            dst = jst.strftime(dts_format)
 
             # media 情報について収集する
             # 1ツイートに対して media は最大4つ添付されている
@@ -646,7 +647,8 @@ class NoAPILikeFetcher():
             # Like した時点の時間が取得できる？
             td_format = "%a %b %d %H:%M:%S +0000 %Y"
             dts_format = "%Y-%m-%d %H:%M:%S"
-            dst = datetime.strptime(created_at, td_format).strftime(dts_format)
+            jst = datetime.strptime(created_at, td_format) + timedelta(hours=9)
+            dst = jst.strftime(dts_format)
 
             # 保存時間は現在時刻とする
             saved_created_at = datetime.now().strftime(dts_format)
