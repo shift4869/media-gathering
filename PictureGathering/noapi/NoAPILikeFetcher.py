@@ -72,7 +72,7 @@ class NoAPILikeFetcher():
                 content = await response.json()
                 n = len(self.content_list)
                 with Path(base_path / f"content_cache{n}.txt").open("w", encoding="utf8") as fout:
-                    json.dump(content, fout)
+                    json.dump(content, fout, indent=4)
                 self.content_list.append(content)
 
     async def get_like_jsons(self, max_scroll: int = 40, each_scroll_wait: float = 1.5) -> list[dict]:
@@ -562,6 +562,7 @@ class NoAPILikeFetcher():
 
                 if liked_tweet_id not in seen_ids:
                     seen_ids.append(liked_tweet_id)
+        result.reverse()
         return result
 
     def to_convert_ExternalLink(self, fetched_tweets: list[dict], link_searcher: LinkSearcher) -> list[ExternalLink]:
@@ -679,6 +680,7 @@ class NoAPILikeFetcher():
 
                 if tweet_id not in seen_ids:
                     seen_ids.append(tweet_id)
+        result.reverse()
         return result
 
 

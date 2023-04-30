@@ -72,7 +72,7 @@ class NoAPIRetweetFetcher():
                 content = await response.json()
                 n = len(self.content_list)
                 with Path(base_path / f"content_cache{n}.txt").open("w", encoding="utf8") as fout:
-                    json.dump(content, fout)
+                    json.dump(content, fout, indent=4)
                 self.content_list.append(content)
 
     async def get_retweet_jsons(self, max_scroll: int = 40, each_scroll_wait: float = 1.5) -> list[dict]:
@@ -225,7 +225,7 @@ class NoAPIRetweetFetcher():
         match tweet:
             case {
                 "legacy": {
-                    "retweeted": True,
+                    # "retweeted": True,
                     "retweeted_status_result": {
                         "result": {
                             "legacy": {
@@ -244,9 +244,9 @@ class NoAPIRetweetFetcher():
         # (4)メディアが添付されているツイートが引用RTされている場合
         match tweet:
             case {
-                "legacy": {
-                    "is_quote_status": True,
-                },
+                # "legacy": {
+                #     "is_quote_status": True,
+                # },
                 "quoted_status_result": {
                     "result": {
                         "legacy": {
@@ -264,7 +264,7 @@ class NoAPIRetweetFetcher():
         match tweet:
             case {
                 "legacy": {
-                    "retweeted": True,
+                    # "retweeted": True,
                     "retweeted_status_result": {
                         "result": {
                             "legacy": {
@@ -567,6 +567,7 @@ class NoAPIRetweetFetcher():
 
                 if retweeted_tweet_id not in seen_ids:
                     seen_ids.append(retweeted_tweet_id)
+        result.reverse()
         return result
 
     def to_convert_ExternalLink(self, fetched_tweets: list[dict], link_searcher: LinkSearcher) -> list[ExternalLink]:
@@ -685,6 +686,7 @@ class NoAPIRetweetFetcher():
 
                 if tweet_id not in seen_ids:
                     seen_ids.append(tweet_id)
+        result.reverse()
         return result
 
 
