@@ -93,17 +93,20 @@ class Crawler(metaclass=ABCMeta):
             Path(config["save_fav_path"]).mkdir(parents=True, exist_ok=True)
             Path(config["save_retweet_path"]).mkdir(parents=True, exist_ok=True)
 
-            config = self.config["twitter_token_keys_v2"]
-            self.TW_V2_API_KEY = config["api_key"]
-            self.TW_V2_API_KEY_SECRET = config["api_key_secret"]
-            self.TW_V2_ACCESS_TOKEN = config["access_token"]
-            self.TW_V2_ACCESS_TOKEN_SECRET = config["access_token_secret"]
-            self.twitter = TwitterAPI(
-                self.TW_V2_API_KEY,
-                self.TW_V2_API_KEY_SECRET,
-                self.TW_V2_ACCESS_TOKEN,
-                self.TW_V2_ACCESS_TOKEN_SECRET
-            )
+            if not self.config["twitter_noapi"].getboolean("is_twitter_noapi"):
+                config = self.config["twitter_token_keys_v2"]
+                self.TW_V2_API_KEY = config["api_key"]
+                self.TW_V2_API_KEY_SECRET = config["api_key_secret"]
+                self.TW_V2_ACCESS_TOKEN = config["access_token"]
+                self.TW_V2_ACCESS_TOKEN_SECRET = config["access_token_secret"]
+                self.twitter = TwitterAPI(
+                    self.TW_V2_API_KEY,
+                    self.TW_V2_API_KEY_SECRET,
+                    self.TW_V2_ACCESS_TOKEN,
+                    self.TW_V2_ACCESS_TOKEN_SECRET
+                )
+            else:
+                self.twitter = None
 
             config = self.config["discord_webhook_url"]
             self.DISCORD_WEBHOOK_URL = config["webhook_url"]
