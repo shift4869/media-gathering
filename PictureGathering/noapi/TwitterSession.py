@@ -102,11 +102,6 @@ class TwitterSession():
         # プロフィール画像に設定されているaltを取得し
         # username.name と一致するかどうかで判定する
         try:
-            # div_tags: list[Element] = html.find("div")
-            # div_tag = [dt for dt in div_tags if "アカウントメニュー" in dt.attrs.get("aria-label", "")][0]
-            # img_tags: list[Element] = div_tag.find("img")
-            # result = [self.username.name == it.attrs.get("alt", "") for it in img_tags]
-            # return any(result)
             a_tags: list[Element] = html.find("a")
             a_tag = [dt for dt in a_tags if "プロフィール" in dt.attrs.get("aria-label", "")][0]
             return "/" + self.username.name == a_tag.attrs.get("href", "")
@@ -352,10 +347,9 @@ if __name__ == "__main__":
     config.read(CONFIG_FILE_NAME, encoding="utf8")
 
     try:
-        if config["twitter_noapi"].getboolean("is_twitter_noapi"):
-            username = config["twitter_noapi"]["username"]
-            password = config["twitter_noapi"]["password"]
-            twitter_session = TwitterSession.create(Username(username), Password(password))
-            twitter_session.loop.run_until_complete(twitter_session.prepare())
+        username = config["twitter_noapi"]["username"]
+        password = config["twitter_noapi"]["password"]
+        twitter_session = TwitterSession.create(Username(username), Password(password))
+        twitter_session.loop.run_until_complete(twitter_session.prepare())
     except Exception as e:
         logger.exception(e)

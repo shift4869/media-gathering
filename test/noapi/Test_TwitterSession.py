@@ -84,30 +84,30 @@ class TestTwitterSession(unittest.TestCase):
                 actual = twitter_session._is_valid_args()
 
     def test_is_valid_session(self):
-        r1 = MagicMock()
-        r2 = MagicMock()
-        html = f"""
-            <div aria-label="アカウントメニュー">
-            <img alt="{self.twitter_session.username.name}">
-            </div>
-        """
-        r2.html = HTML(html=html)
+        with ExitStack() as stack:
+            # mock_post_init = stack.enter_context(patch("PictureGathering.noapi.TwitterSession.TwitterSession._is_valid_session"))
+            r1 = MagicMock()
+            r2 = MagicMock()
+            html = f"""
+                <a aria-label="プロフィール" href="/{self.twitter_session.username.name}"></a>
+            """
+            r2.html = HTML(html=html)
 
-        def coroutine_close(x):
-            x.close()
-            return r2
+            def coroutine_close(x):
+                x.close()
+                return r2
 
-        r1.run_until_complete.side_effect = coroutine_close
-        object.__setattr__(self.twitter_session, "loop", r1)
-        actual = self.twitter_session._is_valid_session()
-        self.assertTrue(actual)
+            r1.run_until_complete.side_effect = coroutine_close
+            object.__setattr__(self.twitter_session, "loop", r1)
+            actual = self.twitter_session._is_valid_session()
+            self.assertTrue(actual)
 
-        html = "invalid html"
-        r2.html = HTML(html=html)
-        r1.run_until_complete.side_effect = coroutine_close
-        object.__setattr__(self.twitter_session, "loop", r1)
-        actual = self.twitter_session._is_valid_session()
-        self.assertFalse(actual)
+            html = "invalid html"
+            r2.html = HTML(html=html)
+            r1.run_until_complete.side_effect = coroutine_close
+            object.__setattr__(self.twitter_session, "loop", r1)
+            actual = self.twitter_session._is_valid_session()
+            self.assertFalse(actual)
 
     def test_get_session(self):
         with ExitStack() as stack:

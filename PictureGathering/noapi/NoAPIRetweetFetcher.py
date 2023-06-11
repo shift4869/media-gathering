@@ -701,33 +701,31 @@ if __name__ == "__main__":
         raise IOError
 
     config = config_parser["twitter_noapi"]
+    username = config["username"]
+    password = config["password"]
+    target_username = config["target_username"]
+    retweet = NoAPIRetweetFetcher(Username(username), Password(password), Username(target_username))
 
-    if config.getboolean("is_twitter_noapi"):
-        username = config["username"]
-        password = config["password"]
-        target_username = config["target_username"]
-        retweet = NoAPIRetweetFetcher(Username(username), Password(password), Username(target_username))
+    # retweet取得
+    fetched_tweets = retweet.fetch()
 
-        # retweet取得
-        fetched_tweets = retweet.fetch()
+    # キャッシュから読み込み
+    base_path = Path(retweet.TWITTER_CACHE_PATH)
+    fetched_tweets = []
+    for cache_path in base_path.glob("*content_cache*"):
+        with cache_path.open("r", encoding="utf8") as fin:
+            json_dict = json.load(fin)
+            fetched_tweets.append(json_dict)
 
-        # キャッシュから読み込み
-        base_path = Path(retweet.TWITTER_CACHE_PATH)
-        fetched_tweets = []
-        for cache_path in base_path.glob("*content_cache*"):
-            with cache_path.open("r", encoding="utf8") as fin:
-                json_dict = json.load(fin)
-                fetched_tweets.append(json_dict)
+    # メディア取得
+    tweet_info_list = retweet.to_convert_TweetInfo(fetched_tweets)
+    # pprint.pprint(tweet_info_list)
+    pprint.pprint(len(tweet_info_list))
 
-        # メディア取得
-        tweet_info_list = retweet.to_convert_TweetInfo(fetched_tweets)
-        # pprint.pprint(tweet_info_list)
-        pprint.pprint(len(tweet_info_list))
-
-        # 外部リンク取得
-        config = config_parser
-        config["skeb"]["is_skeb_trace"] = "False"
-        lsb = LinkSearcher.create(config)
-        external_link_list = retweet.to_convert_ExternalLink(fetched_tweets, lsb)
-        # pprint.pprint(external_link_list)
-        pprint.pprint(len(external_link_list))
+    # 外部リンク取得
+    config = config_parser
+    config["skeb"]["is_skeb_trace"] = "False"
+    lsb = LinkSearcher.create(config)
+    external_link_list = retweet.to_convert_ExternalLink(fetched_tweets, lsb)
+    # pprint.pprint(external_link_list)
+    pprint.pprint(len(external_link_list))

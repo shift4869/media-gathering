@@ -8,8 +8,6 @@ from PictureGathering.Crawler import Crawler
 from PictureGathering.LogMessage import MSG
 from PictureGathering.noapi.NoAPIRetweetFetcher import NoAPIRetweetFetcher
 from PictureGathering.RetweetDBController import RetweetDBController
-from PictureGathering.v2.RetweetFetcher import RetweetFetcher
-from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 
 logger = getLogger(__name__)
 logger.setLevel(INFO)
@@ -56,45 +54,21 @@ class RetweetCrawler(Crawler):
 
     def crawl(self):
         logger.info(MSG.RTCRAWLER_CRAWL_START.value)
+        logger.info("No API use mode...")
 
-        if self.config["twitter_noapi"].getboolean("is_twitter_noapi"):
-            logger.info("No API use mode...")
+        username = self.config["twitter_noapi"]["username"]
+        password = self.config["twitter_noapi"]["password"]
+        target_username = self.config["twitter_noapi"]["target_username"]
+        retweet = NoAPIRetweetFetcher(username, password, target_username)
+        fetched_tweets = retweet.fetch()
 
-            username = self.config["twitter_noapi"]["username"]
-            password = self.config["twitter_noapi"]["password"]
-            target_username = self.config["twitter_noapi"]["target_username"]
-            retweet = NoAPIRetweetFetcher(username, password, target_username)
-            fetched_tweets = retweet.fetch()
+        # メディア取得
+        tweet_info_list = retweet.to_convert_TweetInfo(fetched_tweets)
+        self.interpret_tweets_v2(tweet_info_list)
 
-            # メディア取得
-            tweet_info_list = retweet.to_convert_TweetInfo(fetched_tweets)
-            self.interpret_tweets_v2(tweet_info_list)
-
-            # 外部リンク収集
-            external_link_list = retweet.to_convert_ExternalLink(fetched_tweets, self.lsb)
-            self.trace_external_link(external_link_list)
-        else:
-            logger.info("v2 API use mode...")
-            # each_max_count * retweet_get_max_loop だけツイートをさかのぼる。
-            each_max_count = int(self.config["tweet_timeline"]["each_max_count"])
-            retweet_get_max_loop = int(self.config["tweet_timeline"]["retweet_get_max_loop"])
-
-            # 対象ユーザーのユーザーIDを取得する
-            url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
-            my_user_info = self.twitter.get(url)
-            my_userid = my_user_info.get("data", {}).get("id", "")
-
-            # retweet取得
-            retweet = RetweetFetcher(userid=my_userid, pages=retweet_get_max_loop, max_results=each_max_count, twitter=self.twitter)
-            fetched_tweets = retweet.fetch()
-
-            # メディア取得
-            tweet_info_list = retweet.to_convert_TweetInfo(fetched_tweets)
-            self.interpret_tweets_v2(tweet_info_list)
-
-            # 外部リンク取得
-            external_link_list = retweet.to_convert_ExternalLink(fetched_tweets, self.lsb)
-            self.trace_external_link(external_link_list)
+        # 外部リンク収集
+        external_link_list = retweet.to_convert_ExternalLink(fetched_tweets, self.lsb)
+        self.trace_external_link(external_link_list)
 
         # 後処理
         self.shrink_folder(int(self.config["holding"]["holding_file_num"]))

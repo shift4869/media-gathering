@@ -11,7 +11,7 @@ import os
 import shutil
 import ssl
 import time
-import urllib
+import urllib.request
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from logging import INFO, getLogger
@@ -27,9 +27,7 @@ from PictureGathering.DBControllerBase import DBControllerBase
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LogMessage import MSG
 from PictureGathering.Model import ExternalLink
-from PictureGathering.v2.TweetInfo import TweetInfo
-from PictureGathering.v2.TwitterAPI import TwitterAPI
-from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
+from PictureGathering.noapi.TweetInfo import TweetInfo
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 for name in logging.root.manager.loggerDict:
@@ -92,21 +90,6 @@ class Crawler(metaclass=ABCMeta):
             config = self.config["save_directory"]
             Path(config["save_fav_path"]).mkdir(parents=True, exist_ok=True)
             Path(config["save_retweet_path"]).mkdir(parents=True, exist_ok=True)
-
-            if not self.config["twitter_noapi"].getboolean("is_twitter_noapi"):
-                config = self.config["twitter_token_keys_v2"]
-                self.TW_V2_API_KEY = config["api_key"]
-                self.TW_V2_API_KEY_SECRET = config["api_key_secret"]
-                self.TW_V2_ACCESS_TOKEN = config["access_token"]
-                self.TW_V2_ACCESS_TOKEN_SECRET = config["access_token_secret"]
-                self.twitter = TwitterAPI(
-                    self.TW_V2_API_KEY,
-                    self.TW_V2_API_KEY_SECRET,
-                    self.TW_V2_ACCESS_TOKEN,
-                    self.TW_V2_ACCESS_TOKEN_SECRET
-                )
-            else:
-                self.twitter = None
 
             config = self.config["discord_webhook_url"]
             self.DISCORD_WEBHOOK_URL = config["webhook_url"]
@@ -270,14 +253,6 @@ class Crawler(metaclass=ABCMeta):
                 for url in self.del_url_list:
                     logger.info(url)
 
-            if self.type == "Fav" and config.getboolean("is_post_fav_done_reply"):
-                self.post_tweet(done_msg)
-                logger.info("Reply posted.")
-
-            if self.type == "RT" and config.getboolean("is_post_retweet_done_reply"):
-                self.post_tweet(done_msg)
-                logger.info("Reply posted.")
-
             if config.getboolean("is_post_discord_notify"):
                 self.post_discord_notify(done_msg)
                 logger.info("Discord Notify posted.")
@@ -299,51 +274,7 @@ class Crawler(metaclass=ABCMeta):
                     GoogleDrive.UploadToGoogleDrive(zipfile_path, config.get("google_service_account_credentials"))
                     logger.info("Google Drive Send.")
 
-        # 古い通知リプライを消す
-        config = self.config["notification"]
-        if config.getboolean("is_post_fav_done_reply") or config.getboolean("is_post_retweet_done_reply"):
-            targets = self.db_cont.update_del()
-            for target in targets:
-                tweet_id = target.get("tweet_id")
-                url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.DELETE_TWEET, tweet_id)
-                response = self.twitter.delete(url)
-
         logger.info("End Of " + self.type + " Crawl Process.")
-        return 0
-
-    def post_tweet(self, tweet_str: str) -> int:
-        """実行完了ツイートをポストする
-
-        Args:
-            str (str): ポストする文字列
-
-        Returns:
-            int: 成功時0、失敗時-1
-        """
-        reply_user_name = self.config["notification"]["reply_to_user_name"]
-        url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.POST_TWEET)
-
-        tweet_str = "@" + reply_user_name + " " + tweet_str
-        params = {
-            "text": tweet_str,
-        }
-
-        response = self.twitter.post(url, params)
-        if not response:
-            logger.error("post_tweet failed.")
-            return -1
-
-        # 削除用DBにUPSERTする
-        # レスポンスは以下の形で返ってくる
-        # {
-        #     "data": {
-        #         "id": {id},
-        #         "text": {tweet_str}
-        #     }
-        # }
-        tweet = response
-        self.db_cont.upsert_del(tweet)
-
         return 0
 
     def post_discord_notify(self, str: str) -> int:

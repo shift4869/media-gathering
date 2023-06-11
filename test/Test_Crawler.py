@@ -23,8 +23,7 @@ from mock import MagicMock, PropertyMock, patch
 
 from PictureGathering import Crawler
 from PictureGathering.Model import ExternalLink
-from PictureGathering.v2.TweetInfo import TweetInfo
-from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
+from PictureGathering.noapi.TweetInfo import TweetInfo
 
 logger = getLogger("PictureGathering.Crawler")
 logger.setLevel(WARNING)
@@ -40,10 +39,8 @@ class ConcreteCrawler(Crawler.Crawler):
         save_path (Path): 画像保存先パス
         type (str): 継承先を表すタイプ識別子
     """
-
     def __init__(self, error_occur=""):
         with ExitStack() as stack:
-            mock_twitter = stack.enter_context(patch("PictureGathering.Crawler.TwitterAPI"))
             mock_logger_info = stack.enter_context(patch.object(logger, "info"))
             mock_logger_exception = stack.enter_context(patch.object(logger, "exception"))
 
@@ -170,16 +167,6 @@ class TestCrawler(unittest.TestCase):
             # 設定値比較
             self.assertIsInstance(crawler.config, configparser.ConfigParser)
             self.assertIsInstance(expect_config, configparser.ConfigParser)
-
-            self.assertEqual(expect_config["twitter_token_keys_v2"]["api_key"],
-                             crawler.TW_V2_API_KEY)
-            self.assertEqual(expect_config["twitter_token_keys_v2"]["api_key_secret"],
-                             crawler.TW_V2_API_KEY_SECRET)
-            self.assertEqual(expect_config["twitter_token_keys_v2"]["access_token"],
-                             crawler.TW_V2_ACCESS_TOKEN)
-            self.assertEqual(expect_config["twitter_token_keys_v2"]["access_token_secret"],
-                             crawler.TW_V2_ACCESS_TOKEN_SECRET)
-
             self.assertEqual(expect_config["line_token_keys"]["token_key"],
                              crawler.LN_TOKEN_KEY)
 
@@ -199,22 +186,20 @@ class TestCrawler(unittest.TestCase):
 
             # dbはTest_DBControllerBaseで確認
 
-            self.assertEqual(int(expect_config["tweet_timeline"]["fav_get_max_loop"]),
-                             int(crawler.config["tweet_timeline"]["fav_get_max_loop"]))
+            self.assertEqual(int(expect_config["tweet_timeline"]["likes_get_max_loop"]),
+                             int(crawler.config["tweet_timeline"]["likes_get_max_loop"]))
+            self.assertEqual(int(expect_config["tweet_timeline"]["likes_get_max_count"]),
+                             int(crawler.config["tweet_timeline"]["likes_get_max_count"]))
             self.assertEqual(int(expect_config["tweet_timeline"]["retweet_get_max_loop"]),
                              int(crawler.config["tweet_timeline"]["retweet_get_max_loop"]))
-            self.assertEqual(int(expect_config["tweet_timeline"]["each_max_count"]),
-                             int(crawler.config["tweet_timeline"]["each_max_count"]))
+            self.assertEqual(int(expect_config["tweet_timeline"]["retweet_get_max_count"]),
+                             int(crawler.config["tweet_timeline"]["retweet_get_max_count"]))
 
             self.assertEqual(expect_config["timestamp"]["timestamp_created_at"],
                              crawler.config["timestamp"]["timestamp_created_at"])
 
             self.assertEqual(expect_config["notification"]["reply_to_user_name"],
                              crawler.config["notification"]["reply_to_user_name"])
-            self.assertEqual(expect_config["notification"]["is_post_fav_done_reply"],
-                             crawler.config["notification"]["is_post_fav_done_reply"])
-            self.assertEqual(expect_config["notification"]["is_post_retweet_done_reply"],
-                             crawler.config["notification"]["is_post_retweet_done_reply"])
             self.assertEqual(expect_config["notification"]["is_post_discord_notify"],
                              crawler.config["notification"]["is_post_discord_notify"])
             self.assertEqual(expect_config["notification"]["is_post_line_notify"],
@@ -370,7 +355,6 @@ class TestCrawler(unittest.TestCase):
         with ExitStack() as stack:
             mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
             mock_whtml = stack.enter_context(patch("PictureGathering.WriteHTML.WriteResultHTML"))
-            mock_cptweet = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_tweet"))
             mock_cplnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_line_notify"))
             mock_cpsnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_slack_notify"))
             mock_cpdnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_discord_notify"))
@@ -385,56 +369,15 @@ class TestCrawler(unittest.TestCase):
             mock_db_cont.update_del = MagicMock()
             mock_db_cont.update_del.side_effect = lambda: [{"tweet_id": dummy_id}]
 
-            mock_twitter = crawler.twitter
-            mock_twitter.delete = MagicMock()
-
             crawler.add_cnt = 1
             crawler.type = "Fav"
             actual = crawler.end_of_process()
             self.assertEqual(0, actual)
 
             mock_whtml.assert_called_once()
-            mock_cptweet.assert_called_once()
             mock_cplnotify.assert_called_once()
             mock_cpsnotify.assert_called_once()
             mock_cpdnotify.assert_called_once()
-            # mock_amzf.assert_called_once()
-            # mock_gdutgd.assert_called_once()
-
-            expect_url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.DELETE_TWEET, dummy_id)
-            mock_db_cont.update_del.assert_called_once_with()
-            mock_twitter.delete.assert_called_once_with(expect_url)
-
-    def test_post_tweet(self):
-        """ツイートポスト機能をチェックする
-        """
-        with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
-            mock_logger_error = stack.enter_context(patch.object(logger, "error"))
-
-            crawler = ConcreteCrawler()
-
-            tweet_str = "test"
-            reply_user_name = crawler.config["notification"]["reply_to_user_name"]
-            url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.POST_TWEET)
-            params = {
-                "text": "@" + reply_user_name + " " + tweet_str,
-            }
-            response = "response"
-
-            mock_db_cont = crawler.db_cont
-            mock_db_cont.upsert_del = MagicMock()
-
-            mock_twitter = crawler.twitter
-            mock_twitter.post = MagicMock()
-            mock_twitter.post.side_effect = lambda url, params: response
-
-            self.assertEqual(0, crawler.post_tweet(tweet_str))
-            mock_db_cont.upsert_del.assert_called_once_with(response)
-            mock_twitter.post.assert_called_once_with(url, params)
-
-            mock_twitter.post.side_effect = lambda url, params: ""
-            self.assertEqual(-1, crawler.post_tweet(tweet_str))
 
     def test_post_discord_notify(self):
         """Discord通知ポスト機能をチェックする

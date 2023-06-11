@@ -10,13 +10,12 @@ from sqlalchemy.orm.exc import *
 
 from PictureGathering import RetweetDBController
 from PictureGathering.Model import *
-from PictureGathering.v2.TweetInfo import TweetInfo
+from PictureGathering.noapi.TweetInfo import TweetInfo
 
 TEST_DB_FULLPATH = "./test/test.db"
 
 
 class TestDBController(unittest.TestCase):
-
     def setUp(self):
         self.engine = create_engine("sqlite:///:memory:", echo=False)
         Base.metadata.create_all(self.engine)

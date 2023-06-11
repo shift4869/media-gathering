@@ -8,8 +8,6 @@ from PictureGathering.Crawler import Crawler
 from PictureGathering.FavDBController import FavDBController
 from PictureGathering.LogMessage import MSG
 from PictureGathering.noapi.NoAPILikeFetcher import NoAPILikeFetcher
-from PictureGathering.v2.LikeFetcher import LikeFetcher
-from PictureGathering.v2.TwitterAPIEndpoint import TwitterAPIEndpoint, TwitterAPIEndpointName
 
 logger = getLogger(__name__)
 logger.setLevel(INFO)
@@ -56,46 +54,21 @@ class FavCrawler(Crawler):
 
     def crawl(self):
         logger.info(MSG.FAVCRAWLER_CRAWL_START.value)
+        logger.info("No API use mode...")
 
-        if self.config["twitter_noapi"].getboolean("is_twitter_noapi"):
-            logger.info("No API use mode...")
+        username = self.config["twitter_noapi"]["username"]
+        password = self.config["twitter_noapi"]["password"]
+        target_username = self.config["twitter_noapi"]["target_username"]
+        like = NoAPILikeFetcher(username, password, target_username)
+        fetched_tweets = like.fetch()
 
-            username = self.config["twitter_noapi"]["username"]
-            password = self.config["twitter_noapi"]["password"]
-            target_username = self.config["twitter_noapi"]["target_username"]
-            like = NoAPILikeFetcher(username, password, target_username)
-            fetched_tweets = like.fetch()
+        # メディア取得
+        tweet_info_list = like.to_convert_TweetInfo(fetched_tweets)
+        self.interpret_tweets_v2(tweet_info_list)
 
-            # メディア取得
-            tweet_info_list = like.to_convert_TweetInfo(fetched_tweets)
-            self.interpret_tweets_v2(tweet_info_list)
-
-            # 外部リンク収集
-            external_link_list = like.to_convert_ExternalLink(fetched_tweets, self.lsb)
-            self.trace_external_link(external_link_list)
-        else:
-            logger.info("v2 API use mode...")
-
-            # each_max_count * fav_get_max_loop だけツイートをさかのぼる。
-            each_max_count = int(self.config["tweet_timeline"]["each_max_count"])
-            fav_get_max_loop = int(self.config["tweet_timeline"]["fav_get_max_loop"])
-
-            # 対象ユーザーのユーザーIDを取得する
-            url = TwitterAPIEndpoint.make_url(TwitterAPIEndpointName.USER_LOOKUP_ME)
-            my_user_info = self.twitter.get(url)
-            my_userid = my_user_info.get("data", {}).get("id", "")
-
-            # like取得
-            like = LikeFetcher(userid=my_userid, pages=fav_get_max_loop, max_results=each_max_count, twitter=self.twitter)
-            fetched_tweets = like.fetch()
-
-            # メディア取得
-            tweet_info_list = like.to_convert_TweetInfo(fetched_tweets)
-            self.interpret_tweets_v2(tweet_info_list)
-
-            # 外部リンク収集
-            external_link_list = like.to_convert_ExternalLink(fetched_tweets, self.lsb)
-            self.trace_external_link(external_link_list)
+        # 外部リンク収集
+        external_link_list = like.to_convert_ExternalLink(fetched_tweets, self.lsb)
+        self.trace_external_link(external_link_list)
 
         # 後処理
         self.shrink_folder(int(self.config["holding"]["holding_file_num"]))

@@ -7,7 +7,7 @@ import sys
 import unittest
 import urllib.parse
 from contextlib import ExitStack
-from datetime import datetime
+from datetime import datetime, timedelta
 from itertools import chain
 from pathlib import Path
 
@@ -465,7 +465,8 @@ class TestNoAPILikeFetcher(unittest.TestCase):
                 tweet_url = extended_entities.get("media", [{}])[0].get("expanded_url", "")
                 td_format = "%a %b %d %H:%M:%S +0000 %Y"
                 dts_format = "%Y-%m-%d %H:%M:%S"
-                dst = datetime.strptime(created_at, td_format).strftime(dts_format)
+                jst = datetime.strptime(created_at, td_format) + timedelta(hours=9)
+                dst = jst.strftime(dts_format)
 
                 media_list = extended_entities.get("media", [])
                 for media in media_list:
@@ -492,6 +493,7 @@ class TestNoAPILikeFetcher(unittest.TestCase):
 
                     if liked_tweet_id not in seen_ids:
                         seen_ids.append(liked_tweet_id)
+            result.reverse()
             return result
 
         expect = to_convert_TweetInfo(fetched_tweets)
@@ -588,7 +590,8 @@ class TestNoAPILikeFetcher(unittest.TestCase):
                 # Like した時点の時間が取得できる？
                 td_format = "%a %b %d %H:%M:%S +0000 %Y"
                 dts_format = "%Y-%m-%d %H:%M:%S"
-                dst = datetime.strptime(created_at, td_format).strftime(dts_format)
+                jst = datetime.strptime(created_at, td_format) + timedelta(hours=9)
+                dst = jst.strftime(dts_format)
 
                 # 保存時間は現在時刻とする
                 saved_created_at = datetime.now().strftime(dts_format)
@@ -619,6 +622,7 @@ class TestNoAPILikeFetcher(unittest.TestCase):
 
                     if tweet_id not in seen_ids:
                         seen_ids.append(tweet_id)
+            result.reverse()
             return result
 
         expect = to_convert_ExternalLink(fetched_tweets, ls)
