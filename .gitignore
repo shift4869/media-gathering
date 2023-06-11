@@ -125,3 +125,4 @@ log*.txt*
 *.svg
 *.ps1
 /script/
+/sample/
