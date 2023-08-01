@@ -34,6 +34,14 @@ class URL():
         if isinstance(url, URL):
             url = url.original_url
 
+        # 先頭がHだった場合置き換える
+        if url.startswith("Http"):
+            url = "h" + url[1:]
+
+        # 先頭がh抜きのttpだった場合補完する
+        if url.startswith("ttp"):
+            url = "h" + url
+
         if not self.is_valid(url):
             raise ValueError("args is not URL string.")
 

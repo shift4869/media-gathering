@@ -207,7 +207,7 @@ class TwitterSession():
         """
         login_url = TwitterSession.LOGIN_URL
 
-        browser = await pyppeteer.launch(headless=True)
+        browser = await pyppeteer.launch(headless=False)
         page = await browser.newPage()
         logger.info("Login flow start.")
 
