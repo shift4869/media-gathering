@@ -56,10 +56,12 @@ class RetweetCrawler(Crawler):
         logger.info(MSG.RTCRAWLER_CRAWL_START.value)
         logger.info("No API use mode...")
 
-        username = self.config["twitter_noapi"]["username"]
-        password = self.config["twitter_noapi"]["password"]
-        target_username = self.config["twitter_noapi"]["target_username"]
-        retweet = NoAPIRetweetFetcher(username, password, target_username)
+        config = self.config["twitter_api_client"]
+        ct0 = config["ct0"]
+        auth_token = config["auth_token"]
+        target_screen_name = config["target_screen_name"]
+        target_id = config["target_id"]
+        retweet = NoAPIRetweetFetcher(ct0, auth_token, target_screen_name, target_id)
         fetched_tweets = retweet.fetch()
 
         # メディア取得
