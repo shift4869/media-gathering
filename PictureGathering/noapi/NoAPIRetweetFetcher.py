@@ -50,7 +50,7 @@ class NoAPIRetweetFetcher():
 
         # TAC で TL をスクレイピング
         scraper = Scraper(cookies={"ct0": self.ct0, "auth_token": self.auth_token}, pbar=False)
-        timeline_tweets = scraper.tweets([self.target_id])
+        timeline_tweets = scraper.tweets([self.target_id], limit=400)
 
         # キャッシュに保存
         for i, tweet in enumerate(timeline_tweets):

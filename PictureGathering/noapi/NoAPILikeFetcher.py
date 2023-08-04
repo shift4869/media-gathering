@@ -48,7 +48,7 @@ class NoAPILikeFetcher():
 
         # TAC で likes ページをスクレイピング
         scraper = Scraper(cookies={"ct0": self.ct0, "auth_token": self.auth_token}, pbar=False)
-        likes = scraper.likes([self.target_id])
+        likes = scraper.likes([self.target_id], limit=400)
 
         # キャッシュに保存
         for i, like in enumerate(likes):
