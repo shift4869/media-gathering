@@ -1,8 +1,6 @@
 # coding: utf-8
-import asyncio
 import json
 import pprint
-import random
 import re
 import shutil
 import sys
@@ -11,15 +9,11 @@ from datetime import datetime, timedelta
 from logging import INFO, getLogger
 from pathlib import Path
 
-from pyppeteer.page import Page
-from requests.models import Response
-from requests_html import HTML
+from twitter.scraper import Scraper
 
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.Model import ExternalLink
-from PictureGathering.noapi.Password import Password
 from PictureGathering.noapi.TweetInfo import TweetInfo
-from PictureGathering.noapi.TwitterSession import TwitterSession
 from PictureGathering.noapi.Username import Username
 
 logger = getLogger(__name__)
@@ -27,84 +21,24 @@ logger.setLevel(INFO)
 
 
 class NoAPIRetweetFetcher():
-    username: Username
-    password: Password
-    target_username: Username
-    twitter_session: TwitterSession
-    redirect_urls: list[str]
-    content_list: list[str]
+    ct0: str
+    auth_token: str
+    target_screen_name: Username
+    target_id: int
 
     # キャッシュファイルパス
     TWITTER_CACHE_PATH = Path(__file__).parent / "cache/"
 
-    def __init__(self, username: Username | str, password: Password | str, target_username: Username | str) -> None:
-        if isinstance(username, str):
-            username = Username(username)
-        if isinstance(password, str):
-            password = Password(password)
-        if isinstance(target_username, str):
-            target_username = Username(target_username)
+    def __init__(self, ct0: str, auth_token: str, target_username: Username | str, target_id: int) -> None:
+        self.ct0 = ct0
+        self.auth_token = auth_token
+        if isinstance(target_username, Username):
+            target_username = target_username.name
+        self.target_username = Username(target_username)
+        self.target_id = int(target_id)
 
-        if not (isinstance(username, Username) and username.name != ""):
-            raise ValueError("username is not Username or empty.")
-        if not (isinstance(password, Password) and password.password != ""):
-            raise ValueError("password is not Password or empty.")
-        if not (isinstance(target_username, Username) and target_username.name != ""):
-            raise ValueError("password is not Username or empty.")
-
-        self.username = username
-        self.password = password
-        self.target_username = target_username
-        self.twitter_session = TwitterSession.create(username=username, password=password)
-        self.redirect_urls = []
-        self.content_list = []
-
-    async def _response_listener(self, response: Response) -> None:
-        base_path = Path(self.TWITTER_CACHE_PATH)
-        base_path.mkdir(parents=True, exist_ok=True)
-
-        # レスポンス監視用リスナー
-        if "UserTweetsAndReplies" in response.url:
-            # レスポンスが TL 関連ならば
-            self.redirect_urls.append(response.url)
-            if "application/json" in response.headers.get("content-type", ""):
-                # レスポンスがJSONならばキャッシュに保存
-                content = await response.json()
-                n = len(self.content_list)
-                with Path(base_path / f"content_cache{n}.txt").open("w", encoding="utf8") as fout:
-                    json.dump(content, fout, indent=4)
-                self.content_list.append(content)
-
-    async def get_retweet_jsons(self, max_scroll: int = 40, each_scroll_wait: float = 1.5) -> list[dict]:
-        """TL ページをクロールしてロード時のJSONをキャプチャする
-
-        Args:
-            max_scroll (int): 画面スクロールの最大回数. デフォルトは40[回].
-            each_scroll_wait (float): それぞれの画面スクロール時に待つ秒数. デフォルトは1.5[s].
-
-        Notes:
-            対象URLは "https://twitter.com/{self.target_username.name}/with_replies"
-                (self.twitter_session.RETWEET_URL_TEMPLATE.format(self.target_username.name))
-            実行には少なくとも max_scroll * each_scroll_wait [s] 秒かかる
-            キャッシュは self.TWITTER_CACHE_PATH に保存される
-
-        Returns:
-            list[dict]: ツイートオブジェクトを表すJSONリスト
-        """
-        logger.info("Fetched Tweet by No API -> start")
-
-        # セッション使用準備
-        await self.twitter_session.prepare()
-        logger.info("session use prepared.")
-
-        # TL ページに遷移
-        # スクロール操作を行うため、pageを保持しておく
-        url = self.twitter_session.RETWEET_URL_TEMPLATE.format(self.target_username.name)
-        res = await self.twitter_session.get(url)
-        await res.html.arender(keep_page=True)
-        html: HTML = res.html
-        page: Page = html.page
-        logger.info("Opening TL page is success.")
+    def get_retweet_jsons(self, max_scroll: int = 40, each_scroll_wait: float = 1.5) -> list[dict]:
+        logger.info("Fetched Tweet by TAC -> start")
 
         # キャッシュ保存場所の準備
         self.redirect_urls = []
@@ -114,49 +48,26 @@ class NoAPIRetweetFetcher():
             shutil.rmtree(base_path)
         base_path.mkdir(parents=True, exist_ok=True)
 
-        # レスポンス監視用リスナー
-        page.on("response", lambda response: asyncio.ensure_future(self._response_listener(response)))
+        # TAC で TL をスクレイピング
+        scraper = Scraper(cookies={"ct0": self.ct0, "auth_token": self.auth_token}, pbar=False)
+        timeline_tweets = scraper.tweets([self.target_id])
 
-        # スクロール時の待ち秒数をランダムに生成するメソッド
-        def get_wait_millisecond() -> float:
-            pn = (random.random() - 0.5) * 1.0  # [-0.5, 0.5)
-            candidate_sec = (pn + each_scroll_wait) * 1000.0
-            return float(max(candidate_sec, 1000.0))  # [1000.0, 2000.0)
-
-        # TL ページをスクロールして読み込んでいく
-        # ページ下部に達した時に次のツイートが読み込まれる
-        # このときレスポンス監視用リスナーがレスポンスをキャッチする
-        logger.info("Getting TL page fetched -> start")
-        for i in range(max_scroll):
-            await page.evaluate("""
-                () => {
-                    let elm = document.documentElement;
-                    let bottom = elm.scrollHeight - elm.clientHeight;
-                    window.scroll(0, bottom);
-                }
-            """)
-            await page.waitFor(
-                get_wait_millisecond()
-            )
-            logger.info(f"({i+1}/{max_scroll}) pages fetched.")
-        await page.waitFor(2000)
-        logger.info("Getting TL page fetched -> done")
-
-        # リダイレクトURLをキャッシュに保存
-        if self.redirect_urls:
-            with Path(base_path / "redirect_urls.txt").open("w", encoding="utf8") as fout:
-                fout.write(pprint.pformat(self.redirect_urls))
+        # キャッシュに保存
+        for i, tweet in enumerate(timeline_tweets):
+            with Path(base_path / f"timeline_tweets_{i:02}.json").open("w", encoding="utf8") as fout:
+                json.dump(tweet, fout, indent=4, sort_keys=True)
 
         # キャッシュから読み込み
-        # content_list と result はほぼ同一の内容になる
+        # 保存して読み込みをするのでほぼ同一の内容になる
         # 違いは result は json.dump→json.load したときに、エンコード等が吸収されていること
         result: list[dict] = []
-        for i, content in enumerate(self.content_list):
-            with Path(base_path / f"content_cache{i}.txt").open("r", encoding="utf8") as fin:
+        n = len(tweet)
+        for i in range(n):
+            with Path(base_path / f"timeline_tweets_{i:02}.json").open("r", encoding="utf8") as fin:
                 json_dict = json.load(fin)
                 result.append(json_dict)
 
-        logger.info("Fetched Tweet by No API -> done")
+        logger.info("Fetched Tweet by TAC -> done")
         return result
 
     def interpret_json(self, tweet: dict) -> list[dict]:
@@ -188,6 +99,10 @@ class NoAPIRetweetFetcher():
         """
         if not isinstance(tweet, dict):
             raise TypeError("argument tweet is not dict.")
+
+        # 返信できるアカウントを制限しているときなど階層が異なる場合がある
+        if "tweet" in tweet:
+            tweet = tweet.get("tweet")
 
         result = []
         id_str_list = []
@@ -296,7 +211,7 @@ class NoAPIRetweetFetcher():
         Returns:
             list[dict]: ツイートオブジェクトを表すJSONリスト
         """
-        result = self.twitter_session.loop.run_until_complete(self.get_retweet_jsons())
+        result = self.get_retweet_jsons()
         return result
 
     def _match_data(self, data: dict) -> dict:
@@ -700,11 +615,12 @@ if __name__ == "__main__":
     if not config_parser.read(CONFIG_FILE_NAME, encoding="utf8"):
         raise IOError
 
-    config = config_parser["twitter_noapi"]
-    username = config["username"]
-    password = config["password"]
-    target_username = config["target_username"]
-    retweet = NoAPIRetweetFetcher(Username(username), Password(password), Username(target_username))
+    config = config_parser["twitter_api_client"]
+    ct0 = config["ct0"]
+    auth_token = config["auth_token"]
+    target_screen_name = config["target_screen_name"]
+    target_id = config["target_id"]
+    retweet = NoAPIRetweetFetcher(ct0, auth_token, target_screen_name, target_id)
 
     # retweet取得
     fetched_tweets = retweet.fetch()
@@ -712,7 +628,7 @@ if __name__ == "__main__":
     # キャッシュから読み込み
     base_path = Path(retweet.TWITTER_CACHE_PATH)
     fetched_tweets = []
-    for cache_path in base_path.glob("*content_cache*"):
+    for cache_path in base_path.glob("*timeline_tweets*"):
         with cache_path.open("r", encoding="utf8") as fin:
             json_dict = json.load(fin)
             fetched_tweets.append(json_dict)

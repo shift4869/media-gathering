@@ -126,3 +126,4 @@ log*.txt*
 *.ps1
 /script/
 /sample/
+/data/
