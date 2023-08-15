@@ -247,9 +247,6 @@ class NoAPILikeFetcher():
             return innner_list
         return _innner_helper(obj, key, [])
 
-    def _find_value(self, obj: dict | list[dict], key: str) -> list:
-        return self._find_values(obj, key)[0]
-
     def _match_data(self, data: dict) -> dict:
         """ツイートオブジェクトのルート解析用match
 
@@ -525,25 +522,11 @@ class NoAPILikeFetcher():
 
         # 辞書パース
         # 外部リンクを含むかどうかはこの時点では don't care
-        target_data_list = []
-        for r in fetched_tweets:
-            r1 = r.get("data", {}) \
-                  .get("user", {}) \
-                  .get("result", {}) \
-                  .get("timeline_v2", {}) \
-                  .get("timeline", {}) \
-                  .get("instructions", [{}])[0]
-            if not r1:
-                continue
-            entries: list[dict] = r1.get("entries", [])
-            for entry in entries:
-                e1 = entry.get("content", {}) \
-                          .get("itemContent", {}) \
-                          .get("tweet_results", {}) \
-                          .get("result", {})
-                t = self.interpret_json(e1)
-                if not t:
-                    continue
+        target_data_list: list[dict] = []
+        tweet_results: list[dict] = self._find_values(fetched_tweets, "tweet_results")
+        tweet_results_result: list[dict] = [d.get("result") for d in tweet_results if "result" in d.keys()]
+        for r in tweet_results_result:
+            if t := self.interpret_json(r):
                 target_data_list.extend(t)
 
         if not target_data_list:
