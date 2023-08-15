@@ -8,6 +8,7 @@ import urllib.parse
 from datetime import datetime, timedelta
 from logging import INFO, getLogger
 from pathlib import Path
+from typing import Any
 
 from twitter.scraper import Scraper
 
@@ -29,15 +30,15 @@ class NoAPILikeFetcher():
     # キャッシュファイルパス
     TWITTER_CACHE_PATH = Path(__file__).parent / "cache/"
 
-    def __init__(self, ct0: str, auth_token: str, target_username: Username | str, target_id: int) -> None:
+    def __init__(self, ct0: str, auth_token: str, target_screen_name: Username | str, target_id: int) -> None:
         self.ct0 = ct0
         self.auth_token = auth_token
-        if isinstance(target_username, Username):
-            target_username = target_username.name
-        self.target_username = Username(target_username)
+        if isinstance(target_screen_name, Username):
+            target_screen_name = target_screen_name.name
+        self.target_username = Username(target_screen_name)
         self.target_id = int(target_id)
 
-    def get_like_jsons(self, max_scroll: int = 40, each_scroll_wait: float = 1.5) -> list[dict]:
+    def get_like_jsons(self, limit: int = 400) -> list[dict]:
         logger.info("Fetched Tweet by TAC -> start")
 
         # キャッシュ保存場所の準備
@@ -48,7 +49,7 @@ class NoAPILikeFetcher():
 
         # TAC で likes ページをスクレイピング
         scraper = Scraper(cookies={"ct0": self.ct0, "auth_token": self.auth_token}, pbar=False)
-        likes = scraper.likes([self.target_id], limit=400)
+        likes = scraper.likes([self.target_id], limit=limit)
 
         # キャッシュに保存
         for i, like in enumerate(likes):
@@ -207,6 +208,47 @@ class NoAPILikeFetcher():
         """
         result = self.get_like_jsons()
         return result
+
+    def _find_values(self, obj: dict | list[dict], key: str) -> list:
+        """辞書オブジェクトから key を探索し、対応する value を収集して返す
+
+        Args:
+            obj (dict | list[dict]): 探索対象の辞書、または辞書のリスト
+            key (str): 探索対象のキー
+
+        Returns:
+            list: 探索対象の辞書内に探索対象のキーが存在した場合、そのキーに対応する値を返す
+                  単一・複数ヒットに関わらず返り値は list になる
+                  探索対象のキーが存在しない場合、空リストを返す
+                  探索対象が辞書、または辞書のリストでない場合、空リストを返す
+        """
+        def _innner_helper(innner_obj: Any | dict | list, innner_key: str, innner_list: list) -> list:
+            """再帰用内部メソッド
+
+            Args:
+                innner_obj: (Any | dict | list): 探索対象の値、辞書、または辞書のリスト
+                innner_key (str): 探索対象のキー
+                innner_list (str): 探索途中の結果を格納するリスト
+
+            Returns:
+                list: innner_obj が辞書の場合、配下の全ての{キー: 値}について再帰する
+                        キーが innner_key と一致する場合、その時の対応する値を innner_list に含める
+                      innner_obj がリストの場合、配下の要素について再帰する
+                      innner_obj が辞書でもリストでもない場合、innner_list を返す
+            """
+            if isinstance(innner_obj, dict) and (target_dict := innner_obj):
+                for k, v in target_dict.items():
+                    if k == innner_key:
+                        innner_list.append(v)
+                    innner_list.extend(_innner_helper(v, innner_key, []))
+            if isinstance(innner_obj, list) and (target_list := innner_obj):
+                for element in target_list:
+                    innner_list.extend(_innner_helper(element, innner_key, []))
+            return innner_list
+        return _innner_helper(obj, key, [])
+
+    def _find_value(self, obj: dict | list[dict], key: str) -> list:
+        return self._find_values(obj, key)[0]
 
     def _match_data(self, data: dict) -> dict:
         """ツイートオブジェクトのルート解析用match
@@ -379,24 +421,10 @@ class NoAPILikeFetcher():
         # fetched_tweets は Likes のツイートが入っている想定
         # media を含むかどうかはこの時点では don't care
         target_data_list: list[dict] = []
-        for r in fetched_tweets:
-            r1 = r.get("data", {}) \
-                  .get("user", {}) \
-                  .get("result", {}) \
-                  .get("timeline_v2", {}) \
-                  .get("timeline", {}) \
-                  .get("instructions", [{}])[0]
-            if not r1:
-                continue
-            entries: list[dict] = r1.get("entries", [])
-            for entry in entries:
-                e1 = entry.get("content", {}) \
-                          .get("itemContent", {}) \
-                          .get("tweet_results", {}) \
-                          .get("result", {})
-                t = self.interpret_json(e1)
-                if not t:
-                    continue
+        tweet_results: list[dict] = self._find_values(fetched_tweets, "tweet_results")
+        tweet_results_result: list[dict] = [d.get("result") for d in tweet_results if "result" in d.keys()]
+        for r in tweet_results_result:
+            if t := self.interpret_json(r):
                 target_data_list.extend(t)
 
         if not target_data_list:
@@ -615,7 +643,7 @@ if __name__ == "__main__":
     like = NoAPILikeFetcher(ct0, auth_token, target_screen_name, target_id)
 
     # like取得
-    fetched_tweets = like.fetch()
+    # fetched_tweets = like.fetch()
 
     # キャッシュから読み込み
     base_path = Path(like.TWITTER_CACHE_PATH)
@@ -624,6 +652,10 @@ if __name__ == "__main__":
         with cache_path.open("r", encoding="utf8") as fin:
             json_dict = json.load(fin)
             fetched_tweets.append(json_dict)
+
+    # find_value テスト
+    # result = like._find_values(fetched_tweets, "tweet_results")
+    # pprint.pprint(result)
 
     # メディア取得
     tweet_info_list = like.to_convert_TweetInfo(fetched_tweets)
