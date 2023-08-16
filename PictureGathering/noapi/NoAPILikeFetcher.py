@@ -15,6 +15,7 @@ from twitter.scraper import Scraper
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.Model import ExternalLink
 from PictureGathering.noapi.TweetInfo import TweetInfo
+from PictureGathering.noapi.TwitterAPIClientAdapter import TwitterAPIClientAdapter
 from PictureGathering.noapi.Username import Username
 
 logger = getLogger(__name__)
@@ -22,21 +23,16 @@ logger.setLevel(INFO)
 
 
 class NoAPILikeFetcher():
-    ct0: str
-    auth_token: str
-    target_screen_name: Username
-    target_id: int
+    twitter: TwitterAPIClientAdapter
 
     # キャッシュファイルパス
     TWITTER_CACHE_PATH = Path(__file__).parent / "cache/"
 
     def __init__(self, ct0: str, auth_token: str, target_screen_name: Username | str, target_id: int) -> None:
-        self.ct0 = ct0
-        self.auth_token = auth_token
-        if isinstance(target_screen_name, Username):
-            target_screen_name = target_screen_name.name
-        self.target_username = Username(target_screen_name)
-        self.target_id = int(target_id)
+        # ct0 と auth_token は同一のアカウントのクッキーから取得しなければならない
+        # target_screen_name と target_id はそれぞれの対応が一致しなければならない（機能上は target_id のみ参照する）
+        # ct0 と auth_token が紐づくアカウントと、 target_id は一致しなくても良い（前者のアカウントで後者の id のTL等を見に行く形になる）
+        self.twitter = TwitterAPIClientAdapter(ct0, auth_token, target_screen_name, target_id)
 
     def get_like_jsons(self, limit: int = 400) -> list[dict]:
         logger.info("Fetched Tweet by TAC -> start")
@@ -48,8 +44,8 @@ class NoAPILikeFetcher():
         base_path.mkdir(parents=True, exist_ok=True)
 
         # TAC で likes ページをスクレイピング
-        scraper = Scraper(cookies={"ct0": self.ct0, "auth_token": self.auth_token}, pbar=False)
-        likes = scraper.likes([self.target_id], limit=limit)
+        scraper = self.twitter.scraper
+        likes = scraper.likes([self.twitter.target_id], limit=limit)
 
         # キャッシュに保存
         for i, like in enumerate(likes):
@@ -622,7 +618,7 @@ if __name__ == "__main__":
     ct0 = config["ct0"]
     auth_token = config["auth_token"]
     target_screen_name = config["target_screen_name"]
-    target_id = config["target_id"]
+    target_id = int(config["target_id"])
     like = NoAPILikeFetcher(ct0, auth_token, target_screen_name, target_id)
 
     # like取得

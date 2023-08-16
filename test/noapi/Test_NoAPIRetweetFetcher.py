@@ -1,5 +1,4 @@
 # coding: utf-8
-import asyncio
 import json
 import re
 import shutil
@@ -11,7 +10,7 @@ from datetime import datetime, timedelta
 from itertools import chain, repeat
 from pathlib import Path
 
-from mock import AsyncMock, MagicMock, call, patch
+from mock import MagicMock, call, patch
 
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
@@ -26,15 +25,19 @@ class TestNoAPIRetweetFetcher(unittest.TestCase):
         self.ct0 = "dummy_ct0"
         self.auth_token = "dummy_auth_token"
         self.target_screen_name = "dummy_target_screen_name"
-        self.target_id = "99999999"  # dummy_target_id
+        self.target_id = 99999999  # dummy_target_id
 
         self.TWITTER_CACHE_PATH = Path(__file__).parent / "cache/actual"
 
         with ExitStack() as stack:
-            # self.mock_twitter_session = stack.enter_context(patch("PictureGathering.noapi.NoAPILikeFetcher.TwitterSession.create"))
-            # self.mock_twitter_session.side_effect = AsyncMock
+            mock_twitter = stack.enter_context(patch("PictureGathering.noapi.NoAPIRetweetFetcher.TwitterAPIClientAdapter"))
+            self.mock_twitter = MagicMock()
+            mock_twitter.side_effect = lambda ct0, auth_token, target_screen_name, target_id: self.mock_twitter
+
             self.fetcher = NoAPIRetweetFetcher(self.ct0, self.auth_token, self.target_screen_name, self.target_id)
             self.fetcher.TWITTER_CACHE_PATH = self.TWITTER_CACHE_PATH
+
+            mock_twitter.assert_called_once_with(self.ct0, self.auth_token, self.target_screen_name, self.target_id)
 
     def tearDown(self):
         if self.TWITTER_CACHE_PATH.exists():
@@ -73,21 +76,18 @@ class TestNoAPIRetweetFetcher(unittest.TestCase):
 
     def test_init(self):
         self.assertEqual(self.TWITTER_CACHE_PATH, self.fetcher.TWITTER_CACHE_PATH)
-        self.assertEqual(self.ct0, self.fetcher.ct0)
-        self.assertEqual(self.auth_token, self.fetcher.auth_token)
-        self.assertEqual(self.target_screen_name, self.fetcher.target_username.name)
-        self.assertEqual(int(self.target_id), self.fetcher.target_id)
+        self.assertEqual(self.mock_twitter, self.fetcher.twitter)
 
     def test_get_retweet_jsons(self):
         with ExitStack() as stack:
             mock_logger_info = stack.enter_context(patch("PictureGathering.noapi.NoAPIRetweetFetcher.logger.info"))
-            mock_scraper = stack.enter_context(patch("PictureGathering.noapi.NoAPIRetweetFetcher.Scraper"))
             r = MagicMock()
 
             DUP_NUM = 3
             sample_jsons = list(repeat(self._get_sample_json(), DUP_NUM))
             r.tweets_and_replies.side_effect = lambda user_ids, limit: sample_jsons
-            mock_scraper.side_effect = lambda cookies, pbar: r
+            self.fetcher.twitter.scraper = r
+            self.fetcher.twitter.target_id = self.target_id
 
             limit = 400
             actual = self.fetcher.get_retweet_jsons(limit)
@@ -100,7 +100,6 @@ class TestNoAPIRetweetFetcher(unittest.TestCase):
             actual.sort()
             self.assertEqual(expect, actual)
 
-            mock_scraper.assert_called_once_with(cookies={"ct0": self.ct0, "auth_token": self.auth_token}, pbar=False)
             r.tweets_and_replies.assert_called_once_with([int(self.target_id)], limit=limit)
 
     def test_interpret_json(self):
