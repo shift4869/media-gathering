@@ -8,6 +8,7 @@ import urllib.parse
 from datetime import datetime, timedelta
 from logging import INFO, getLogger
 from pathlib import Path
+from typing import Any
 
 from twitter.scraper import Scraper
 
@@ -37,7 +38,7 @@ class NoAPIRetweetFetcher():
         self.target_username = Username(target_username)
         self.target_id = int(target_id)
 
-    def get_retweet_jsons(self, max_scroll: int = 40, each_scroll_wait: float = 1.5) -> list[dict]:
+    def get_retweet_jsons(self, limit: int = 400) -> list[dict]:
         logger.info("Fetched Tweet by TAC -> start")
 
         # キャッシュ保存場所の準備
@@ -50,7 +51,7 @@ class NoAPIRetweetFetcher():
 
         # TAC で TL をスクレイピング
         scraper = Scraper(cookies={"ct0": self.ct0, "auth_token": self.auth_token}, pbar=False)
-        timeline_tweets = scraper.tweets_and_replies([self.target_id], limit=400)
+        timeline_tweets = scraper.tweets_and_replies([self.target_id], limit=limit)
 
         # キャッシュに保存
         for i, tweet in enumerate(timeline_tweets):
@@ -61,7 +62,7 @@ class NoAPIRetweetFetcher():
         # 保存して読み込みをするのでほぼ同一の内容になる
         # 違いは result は json.dump→json.load したときに、エンコード等が吸収されていること
         result: list[dict] = []
-        n = len(tweet)
+        n = len(timeline_tweets)
         for i in range(n):
             with Path(base_path / f"timeline_tweets_{i:02}.json").open("r", encoding="utf8") as fin:
                 json_dict = json.load(fin)
@@ -213,6 +214,44 @@ class NoAPIRetweetFetcher():
         """
         result = self.get_retweet_jsons()
         return result
+
+    def _find_values(self, obj: dict | list[dict], key: str) -> list:
+        """辞書オブジェクトから key を探索し、対応する value を収集して返す
+
+        Args:
+            obj (dict | list[dict]): 探索対象の辞書、または辞書のリスト
+            key (str): 探索対象のキー
+
+        Returns:
+            list: 探索対象の辞書内に探索対象のキーが存在した場合、そのキーに対応する値を返す
+                  単一・複数ヒットに関わらず返り値は list になる
+                  探索対象のキーが存在しない場合、空リストを返す
+                  探索対象が辞書、または辞書のリストでない場合、空リストを返す
+        """
+        def _innner_helper(innner_obj: Any | dict | list, innner_key: str, innner_list: list) -> list:
+            """再帰用内部メソッド
+
+            Args:
+                innner_obj: (Any | dict | list): 探索対象の値、辞書、または辞書のリスト
+                innner_key (str): 探索対象のキー
+                innner_list (str): 探索途中の結果を格納するリスト
+
+            Returns:
+                list: innner_obj が辞書の場合、配下の全ての{キー: 値}について再帰する
+                        キーが innner_key と一致する場合、その時の対応する値を innner_list に含める
+                      innner_obj がリストの場合、配下の要素について再帰する
+                      innner_obj が辞書でもリストでもない場合、innner_list を返す
+            """
+            if isinstance(innner_obj, dict) and (target_dict := innner_obj):
+                for k, v in target_dict.items():
+                    if k == innner_key:
+                        innner_list.append(v)
+                    innner_list.extend(_innner_helper(v, innner_key, []))
+            if isinstance(innner_obj, list) and (target_list := innner_obj):
+                for element in target_list:
+                    innner_list.extend(_innner_helper(element, innner_key, []))
+            return innner_list
+        return _innner_helper(obj, key, [])
 
     def _match_data(self, data: dict) -> dict:
         """ツイートオブジェクトのルート解析用match
@@ -385,27 +424,11 @@ class NoAPIRetweetFetcher():
         # fetched_tweets は TL 内のツイートが入っている想定
         # media を含むかどうかはこの時点では don't care
         target_data_list: list[dict] = []
-        for tweet in fetched_tweets:
-            r1 = tweet.get("data", {}) \
-                      .get("user", {}) \
-                      .get("result", {}) \
-                      .get("timeline_v2", {}) \
-                      .get("timeline", {}) \
-                      .get("instructions", [{}])
-            r2 = [r for r in r1 if r.get("type", "") == "TimelineAddEntries"]
-            if not (r2 and len(r2) == 1):
-                continue
-            r3 = r2[0]
-            entries: list[dict] = r3.get("entries", [])
-            for entry in entries:
-                e1 = entry.get("content", {}) \
-                          .get("itemContent", {}) \
-                          .get("tweet_results", {}) \
-                          .get("result", {})
-                t = self.interpret_json(e1)
-                if not t:
-                    continue
-                target_data_list.extend(t)
+        tweet_results: list[dict] = self._find_values(fetched_tweets, "tweet_results")
+        for t in tweet_results:
+            t1 = t.get("result", {})
+            if t2 := self.interpret_json(t1):
+                target_data_list.extend(t2)
 
         if not target_data_list:
             # 辞書パースエラー or 1件も TL にツイートが無かった
@@ -504,28 +527,12 @@ class NoAPIRetweetFetcher():
 
         # 辞書パース
         # 外部リンクを含むかどうかはこの時点では don't care
-        target_data_list = []
-        for r in fetched_tweets:
-            r1 = r.get("data", {}) \
-                  .get("user", {}) \
-                  .get("result", {}) \
-                  .get("timeline_v2", {}) \
-                  .get("timeline", {}) \
-                  .get("instructions", [{}])
-            r2 = [r for r in r1 if r.get("type", "") == "TimelineAddEntries"]
-            if not (r2 and len(r2) == 1):
-                continue
-            r3 = r2[0]
-            entries: list[dict] = r3.get("entries", [])
-            for entry in entries:
-                e1 = entry.get("content", {}) \
-                          .get("itemContent", {}) \
-                          .get("tweet_results", {}) \
-                          .get("result", {})
-                t = self.interpret_json(e1)
-                if not t:
-                    continue
-                target_data_list.extend(t)
+        target_data_list: list[dict] = []
+        tweet_results: list[dict] = self._find_values(fetched_tweets, "tweet_results")
+        for t in tweet_results:
+            t1 = t.get("result", {})
+            if t2 := self.interpret_json(t1):
+                target_data_list.extend(t2)
 
         if not target_data_list:
             # 辞書パースエラー or 1件もツイートが無かった

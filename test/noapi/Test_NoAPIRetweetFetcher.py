@@ -8,7 +8,7 @@ import unittest
 import urllib.parse
 from contextlib import ExitStack
 from datetime import datetime, timedelta
-from itertools import chain
+from itertools import chain, repeat
 from pathlib import Path
 
 from mock import AsyncMock, MagicMock, call, patch
@@ -18,23 +18,22 @@ from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LinkSearch.URL import URL
 from PictureGathering.Model import ExternalLink
 from PictureGathering.noapi.NoAPIRetweetFetcher import NoAPIRetweetFetcher
-from PictureGathering.noapi.Password import Password
 from PictureGathering.noapi.TweetInfo import TweetInfo
-from PictureGathering.noapi.TwitterSession import TwitterSession
-from PictureGathering.noapi.Username import Username
 
 
 class TestNoAPIRetweetFetcher(unittest.TestCase):
     def setUp(self):
-        self.username: Username = Username("dummy_username")
-        self.password: Password = Password("dummy_password")
-        self.target_username: Username = Username("dummy_target_username")
+        self.ct0 = "dummy_ct0"
+        self.auth_token = "dummy_auth_token"
+        self.target_screen_name = "dummy_target_screen_name"
+        self.target_id = "99999999"  # dummy_target_id
+
         self.TWITTER_CACHE_PATH = Path(__file__).parent / "cache/actual"
 
         with ExitStack() as stack:
-            self.mock_twitter_session = stack.enter_context(patch("PictureGathering.noapi.NoAPIRetweetFetcher.TwitterSession.create"))
-            self.mock_twitter_session.side_effect = AsyncMock
-            self.fetcher = NoAPIRetweetFetcher(self.username.name, self.password.password, self.target_username.name)
+            # self.mock_twitter_session = stack.enter_context(patch("PictureGathering.noapi.NoAPILikeFetcher.TwitterSession.create"))
+            # self.mock_twitter_session.side_effect = AsyncMock
+            self.fetcher = NoAPIRetweetFetcher(self.ct0, self.auth_token, self.target_screen_name, self.target_id)
             self.fetcher.TWITTER_CACHE_PATH = self.TWITTER_CACHE_PATH
 
     def tearDown(self):
@@ -74,109 +73,35 @@ class TestNoAPIRetweetFetcher(unittest.TestCase):
 
     def test_init(self):
         self.assertEqual(self.TWITTER_CACHE_PATH, self.fetcher.TWITTER_CACHE_PATH)
-        self.assertEqual(self.username, self.fetcher.username)
-        self.assertEqual(self.password, self.fetcher.password)
-        self.assertEqual(self.target_username, self.fetcher.target_username)
-
-        self.mock_twitter_session.assert_called_with(username=self.username, password=self.password)
-        # self.assertEqual(self.mock_twitter_session, self.fetcher.twitter_session)
-
-    def test_response_listener(self):
-        response_url = "https://test.com/UserTweetsAndReplies"
-        content = {"content_cache": "content_cache"}
-        r = MagicMock()
-        r1 = AsyncMock()
-        r1.side_effect = lambda: content
-        r.url = response_url
-        r.headers = {"content-type": "application/json"}
-        r.json = r1
-        self.fetcher.redirect_urls = []
-        self.fetcher.content_list = []
-        loop = asyncio.new_event_loop()
-        actual = loop.run_until_complete(
-            self.fetcher._response_listener(r)
-        )
-        self.assertEqual(1, len(self.fetcher.redirect_urls))
-        self.assertEqual(response_url, self.fetcher.redirect_urls[0])
-        self.assertEqual(1, len(self.fetcher.content_list))
-        self.assertEqual(content, self.fetcher.content_list[0])
-
-        expect = [f"content_cache{i}.txt" for i in range(1)]
-        actual_cache = self.fetcher.TWITTER_CACHE_PATH.glob("content_cache*.txt")
-        actual = [p.name for p in actual_cache]
-        expect.sort()
-        actual.sort()
-        self.assertEqual(expect, actual)
+        self.assertEqual(self.ct0, self.fetcher.ct0)
+        self.assertEqual(self.auth_token, self.fetcher.auth_token)
+        self.assertEqual(self.target_screen_name, self.fetcher.target_username.name)
+        self.assertEqual(int(self.target_id), self.fetcher.target_id)
 
     def test_get_retweet_jsons(self):
         with ExitStack() as stack:
             mock_logger_info = stack.enter_context(patch("PictureGathering.noapi.NoAPIRetweetFetcher.logger.info"))
-            mock_random = stack.enter_context(patch("PictureGathering.noapi.NoAPIRetweetFetcher.random.random"))
-            mock_random.return_value = 0.5
+            mock_scraper = stack.enter_context(patch("PictureGathering.noapi.NoAPIRetweetFetcher.Scraper"))
+            r = MagicMock()
 
-            r = AsyncMock()
-            r1 = AsyncMock()
-            r2 = AsyncMock()
-            self.count = 0
+            DUP_NUM = 3
+            sample_jsons = list(repeat(self._get_sample_json(), DUP_NUM))
+            r.tweets_and_replies.side_effect = lambda user_ids, limit: sample_jsons
+            mock_scraper.side_effect = lambda cookies, pbar: r
 
-            def evaluate(function_script):
-                count = self.count
-                self.fetcher.redirect_urls.append(f"https://test.com/{count}")
-                content = {"content_cache": f"sample_{count}"}
-                n = len(self.fetcher.content_list)
-                with Path(self.fetcher.TWITTER_CACHE_PATH / f"content_cache{n}.txt").open("w", encoding="utf8") as fout:
-                    json.dump(content, fout)
-                self.fetcher.content_list.append(content)
-                self.count = count + 1
-                return function_script
-            r2.evaluate.side_effect = evaluate
-            r1.html.page = r2
-            r.RETWEET_URL_TEMPLATE = TwitterSession.RETWEET_URL_TEMPLATE
-            r.get.side_effect = lambda url: r1
-            self.fetcher.twitter_session = r
-            self.fetcher.TWITTER_CACHE_PATH = self.TWITTER_CACHE_PATH
-            loop = asyncio.new_event_loop()
-            actual = loop.run_until_complete(
-                self.fetcher.get_retweet_jsons()
-            )
-            del self.count
+            limit = 400
+            actual = self.fetcher.get_retweet_jsons(limit)
+            self.assertEqual(sample_jsons, actual)
 
-            max_scroll = 40
-            each_scroll_wait = 1.5
-            expect = [{"content_cache": f"sample_{i}"} for i in range(max_scroll)]
-            self.assertEqual(expect, actual)
-
-            expect = [f"content_cache{i}.txt" for i in range(max_scroll)]
-            actual_cache = self.fetcher.TWITTER_CACHE_PATH.glob("content_cache*.txt")
+            expect = [f"timeline_tweets_{i:02}.json" for i in range(DUP_NUM)]
+            actual_cache = self.fetcher.TWITTER_CACHE_PATH.glob("timeline_tweets*.json")
             actual = [p.name for p in actual_cache]
             expect.sort()
             actual.sort()
             self.assertEqual(expect, actual)
 
-            expect = "redirect_urls.txt"
-            actual_redirect_urls = self.fetcher.TWITTER_CACHE_PATH.glob("redirect_urls.txt")
-            actual_redirect_urls = list(actual_redirect_urls)
-            self.assertEqual(1, len(actual_redirect_urls))
-            actual = actual_redirect_urls[0].name
-            self.assertEqual(expect, actual)
-
-            s_calls = self.fetcher.twitter_session.mock_calls
-            url = TwitterSession.RETWEET_URL_TEMPLATE.format(self.fetcher.target_username.name)
-            self.assertEqual(2, len(s_calls))
-            self.assertEqual(call.prepare(), s_calls[0])
-            self.assertEqual(call.get(url), s_calls[1])
-
-            p_calls = r2.mock_calls
-            self.assertEqual(max_scroll * 2 + 2, len(p_calls))
-            self.assertEqual("on", p_calls[0][0])
-            self.assertEqual("response", p_calls[0][1][0])
-            self.assertEqual(True, callable(p_calls[0][1][1]))
-            for p_call in p_calls[2::2]:
-                self.assertAlmostEqual(
-                    call.waitFor(each_scroll_wait * 1000),
-                    p_call
-                )
-            self.assertAlmostEqual(call.waitFor(2000), p_calls[-1])
+            mock_scraper.assert_called_once_with(cookies={"ct0": self.ct0, "auth_token": self.auth_token}, pbar=False)
+            r.tweets_and_replies.assert_called_once_with([int(self.target_id)], limit=limit)
 
     def test_interpret_json(self):
         tweets = self._get_tweets()
@@ -212,6 +137,38 @@ class TestNoAPIRetweetFetcher(unittest.TestCase):
             mock_get_retweet_jsons = stack.enter_context(patch("PictureGathering.noapi.NoAPIRetweetFetcher.NoAPIRetweetFetcher.get_retweet_jsons"))
             actual = self.fetcher.fetch()
             mock_get_retweet_jsons.assert_called_once_with()
+
+    def test_find_values(self):
+        fetched_tweets = [self._get_sample_json()]
+        actual = self.fetcher._find_values(fetched_tweets, "tweet_results")
+
+        def find_tweet_results(fetched_tweets: list[dict]):
+            target_data_list: list[dict] = []
+            for r in fetched_tweets:
+                r1 = r.get("data", {}) \
+                      .get("user", {}) \
+                      .get("result", {}) \
+                      .get("timeline_v2", {}) \
+                      .get("timeline", {}) \
+                      .get("instructions", [{}])[0]
+                if not r1:
+                    continue
+                entries: list[dict] = r1.get("entries", [])
+                for entry in entries:
+                    e1 = entry.get("content", {}) \
+                              .get("itemContent", {}) \
+                              .get("tweet_results", {})
+                    target_data_list.append(e1)
+            return target_data_list
+
+        expect = find_tweet_results(fetched_tweets)
+        self.assertEqual(expect, actual)
+
+        actual = self.fetcher._find_values(fetched_tweets, "no_exist_key")
+        self.assertEqual([], actual)
+
+        actual = self.fetcher._find_values("invalid_object", "no_exist_key")
+        self.assertEqual([], actual)
 
     def test_match_data(self):
         tweets = self._get_tweets()
