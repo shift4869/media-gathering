@@ -65,12 +65,16 @@ class FavCrawler(Crawler):
         fetched_tweets = like.fetch()
 
         # メディア取得
+        logger.info(MSG.MEDIA_DOWNLOAD_START.value)
         tweet_info_list = like.to_convert_TweetInfo(fetched_tweets)
         self.interpret_tweets_v2(tweet_info_list)
+        logger.info(MSG.MEDIA_DOWNLOAD_DONE.value)
 
         # 外部リンク収集
+        logger.info(MSG.GETTING_EXTERNAL_LINK_START.value)
         external_link_list = like.to_convert_ExternalLink(fetched_tweets, self.lsb)
         self.trace_external_link(external_link_list)
+        logger.info(MSG.GETTING_EXTERNAL_LINK_DONE.value)
 
         # 後処理
         self.shrink_folder(int(self.config["holding"]["holding_file_num"]))
