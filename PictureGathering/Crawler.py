@@ -244,14 +244,14 @@ class Crawler(metaclass=ABCMeta):
         WriteHTML.WriteResultHTML(self.type, self.db_cont)
         if self.add_cnt != 0 or self.del_cnt != 0:
             if self.add_cnt != 0:
-                logger.info("add url:")
+                logger.debug("add url:")
                 for url in self.add_url_list:
-                    logger.info(url)
+                    logger.debug(url)
 
             if self.del_cnt != 0:
-                logger.info("del url:")
+                logger.debug("del url:")
                 for url in self.del_url_list:
-                    logger.info(url)
+                    logger.debug(url)
 
             if config.getboolean("is_post_discord_notify"):
                 self.post_discord_notify(done_msg)
@@ -423,12 +423,12 @@ class Crawler(metaclass=ABCMeta):
             except Exception:
                 # URLからのメディア取得に失敗
                 # 削除されていた場合など
-                logger.info(save_file_fullpath.name + " -> failed.")
+                logger.info(save_file_fullpath.name + " -> failed (maybe removed).")
                 return -1
             self.add_url_list.append(url_orig)
 
             # DB操作
-            # db_cont.upsert_v2派生クラスによって呼び分けられる
+            # db_cont.upsert_v2 派生クラスによって呼び分けられる
             dts_format = "%Y-%m-%d %H:%M:%S"
             params = {
                 "is_exist_saved_file": True,
@@ -446,18 +446,29 @@ class Crawler(metaclass=ABCMeta):
                 "saved_localpath": str(save_file_fullpath),
                 "saved_created_at": datetime.now().strftime(dts_format),
             }
+            media_size = -1
             include_blob = self.config["db"].getboolean("save_blob")
             try:
                 if include_blob:
                     with open(save_file_fullpath, "rb") as fout:
                         params["media_blob"] = fout.read()
-                        params["media_size"] = len(params["media_blob"])
+                        media_size = len(params["media_blob"])
+                        params["media_size"] = media_size
                 else:
                     params["media_blob"] = None
-                    params["media_size"] = Path(save_file_fullpath).stat().st_size
+                    media_size = Path(save_file_fullpath).stat().st_size
+                    params["media_size"] = media_size
             except Exception:
                 params["media_blob"] = None
                 params["media_size"] = -1
+
+            if media_size <= 0:
+                if media_size == 0:
+                    logger.warning(save_file_fullpath.name + " -> failed (0 byte file).")
+                elif media_size < 0:
+                    logger.warning(save_file_fullpath.name + " -> failed.")
+                return -1
+
             self.db_cont.upsert(params)
 
             # 更新日時を上書き
