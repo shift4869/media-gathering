@@ -82,12 +82,16 @@
 
 ## 外部ライブラリのライセンス表記
 
-@waylan / beautifulsoup beautifulsoup4 4.9.3  
+@waylan / beautifulsoup beautifulsoup4  
 スクレイピングに使用。  
 Beautiful Soup is made available under the MIT license:  
 MIT License  
 
-@pyca pyca / cryptography 3.2.1  
+@nedbat / coveragepy coverage  
+カバレッジの測定に使用。  
+Apache License 2.0  
+
+@pyca / cryptography  
 CIのためのファイル暗号化-復号に使用。  
 LICENSE（※訳）  
 このソフトウェアは、以下のLICENSE.APACHE または LICENSE.BSDの*いずれか*のライセンスの条件の下で利用可能です。  
@@ -103,50 +107,71 @@ OSのランダムエンジンで使われているコードはCPythonから派�
 - LICENSE.PSF
 	- PSF License
 
-@carpedm20 / emoji 1.2.0  
+@carpedm20 / emoji  
 パスに使えない絵文字を検出するために使用。  
 BSD
 
-@spulec spulec / freezegun 1.0.0  
+@spulec / freezegun  
 単体テストの時刻を固定するために使用。  
 Apache License 2.0
 
-@googleapis googleapis / google-api-python-client 1.12.8  
+@googleapis / google-api-python-client  
 GoogleDriveにアップロードするために使用。  
-Apache License 2.0
+Apache License 2.0  
 
-@calvinchengx calvinchengx / python-mock mock 4.0.2  
+@PyCQA / isort  
+importの自動ソートに使用。  
+MIT License
+
+@calvinchengx / python-mock mock  
 単体テストのモック機能利用のために使用。  
 BSD 2-Clause "Simplified" License  
 =2条項BSD
 
-@python-pillow / Pillow Pillow 8.1.2  
+@python-pillow / Pillow  
 外部リンク先のgif保存時に使用。
 HPND License
 
-@upbit upbit / pixivpy 3.5.10  
+@upbit / pixivpy  
 PixivAPIを利用するために使用。  
 The Unlicense
 
-@protocolbuffers protocolbuffers / protobuf 3.14.0  
+@kivy / plyer  
+トースト通知を出すために使用。  
+MIT License
+
+@protocolbuffers / protobuf  
 GoogleAPIの前提。  
 Copyright 2008 Google Inc.  
 BSD（※要約）
 
-@psf psf / requests 2.24.0  
+@PyCQA / pycodestyle    
+リンター。
+Expat License
+=MIT License
+
+@pyppeteer / pyppeteer    
+スクレイピング、ページ操作に使用。
+MIT License
+
+@psf / requests
 各種外部通信に使用。  
 Apache License 2.0
 
-@requests requests / requests-oauthlib 1.3.0  
-oauth認証処理に使用。  
-ISC License
+@psf / requests-html
+外部通信、ページレンダリングに使用。  
+MIT License
 
-@satoshi03 satoshi03 / slack-python-webhook slackweb 1.0.5  
+@slackapi / python-slack-sdk slack-sdk
 SlackAPIを利用するために使用。  
-ライセンス記載なし（The UnlicenseとPSFライセンス？）
+MIT License
 
-@sqlalchemy sqlalchemy / sqlalchemy 1.3.20  
+@sqlalchemy / sqlalchemy 
 DB操作を楽にするために使用。  
+MIT License
+
+@trevorhobenshield / twitter-api-client
+twitterの認証やスクレイピングに使用。
 MIT License
 
 ※今後使用した外部ライブラリが増えた場合は追記する
@@ -184,4 +209,5 @@ MIT License
 
 以上（情報更新され次第追記）
 
-2021/05/18 [shift](https://twitter.com/_shift4869)
+2021/05/18 初稿作成 [shift](https://twitter.com/_shift4869)  
+2023/08/16 追記 [shift](https://twitter.com/_shift4869)

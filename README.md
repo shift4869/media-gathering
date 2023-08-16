@@ -22,24 +22,34 @@
             "pixiv novel": "https://www.pixiv.net/novel/show.php?id=xxxxxxxx",
             "nijie": "http://nijie.info/view_popup.php?id=xxxxxx",
             "seiga": "https://seiga.nicovideo.jp/seiga/imxxxxxxx",
-            "skeb": "https://skeb.jp/@xxxxxxxx/works/xx",
             ```
+            <!-- "skeb": "https://skeb.jp/@xxxxxxxx/works/xx",-->
 - 収集したメディアの情報をDBに蓄積する。  
     - 元ツイートURLなど。  
 - 収集したメディアを一覧で見ることができるhtmlを出力する。  
     - 各メディアのオリジナル(:origや高ビットレート動画)とその元ツイートへのリンクを付与する。  
 - 処理完了時に通知ツイートを送る。（任意）  
     - 前日以前の通知ツイートは自動的に削除されます。  
-    - 各種他媒体へ通知ツイートを連携できます。  
+    - 各種他媒体へ通知の連携が可能。  
         - Line, Slack, Discord  
-- Google Drive へのアーカイブ機能。(wip)  
+<!-- - Google Drive へのアーカイブ機能。(wip)  -->
 
 ※定期的な実行を前提としてますが機能としては同梱していないので「タスクのスケジュール」などOS標準の機能で定期実行してください。  
 ※windows 10でのみ動作確認をしております。  
 
 
 ## 前提として必要なもの
-- Pythonの実行環境(3.10以上)
+- Pythonの実行環境(3.11以上)
+- twitterのセッション情報
+    - ブラウザでログイン済のアカウントについて、以下の値をクッキーから取得
+        - ct0 (クッキー中)
+        - auth_token (クッキー中)
+        - target_screen_name(収集対象の@なしscreen_name)
+        - target_id (クッキー中の"twid"の値について、"u%3D{target_id}"で表される数値列)
+    - ブラウザ上でのクッキーの確認方法
+        - 各ブラウザによって異なるが、概ね `F12を押す→ページ更新→アプリケーションタブ→クッキー` で確認可能
+    - 詳しくは「twitter クッキー ct0 auth_token」等で検索
+<!--
 - twitterアカウントのAPIトークン
     - TwitterAPI(v2)を使用するためのAPIトークン。以下の4つのキーが必要
         - APIキー (API Key)
@@ -49,15 +59,14 @@
     - 自分のtwitterアカウントも必要
         - 加えて上記4つのキーを取得するためにDeveloper登録が必要なのでそのための電話番号の登録が必要
     - 詳しくは「twitter API トークン v2」等で検索
-
+-->
 
 ## 使い方
 1. このリポジトリをDL
     - 右上の「Clone or download」->「Download ZIP」からDLして解凍
 1. config/config_example.iniの中身を自分用に編集してconfig/config.iniにリネーム
-    - 自分のtwitterアカウントのAPIトークンを設定する（必須）
+    - twitterのセッション情報を設定する（必須）
     - ローカルの保存先パスを設定する（必須）
-    - image magickをインストールしておく（任意）
 1. PictureGathering.pyを実行する（以下は一例）
     - ※手動で実行するならパスが通っている環境で以下でOK
     ```
@@ -71,7 +80,7 @@
     ```
     - `--type`を`Fav`でなく`RT`に変更すれば対象がRetweetとなる
     - 作成した.vbsを「タスクのスケジュール」などで実行する
-1. 出力されたhtmlを確認する
+1. 出力されたhtml/配下のhtmlを確認する
 1. ローカルの保存先パスにメディアが保存されたことを確認する
 
 
