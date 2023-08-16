@@ -419,10 +419,10 @@ class NoAPILikeFetcher():
         # media を含むかどうかはこの時点では don't care
         target_data_list: list[dict] = []
         tweet_results: list[dict] = self._find_values(fetched_tweets, "tweet_results")
-        tweet_results_result: list[dict] = [d.get("result") for d in tweet_results if "result" in d.keys()]
-        for r in tweet_results_result:
-            if t := self.interpret_json(r):
-                target_data_list.extend(t)
+        for t in tweet_results:
+            t1 = t.get("result", {})
+            if t2 := self.interpret_json(t1):
+                target_data_list.extend(t2)
 
         if not target_data_list:
             # 辞書パースエラー or 1件も Likes にツイートが無かった
@@ -524,10 +524,10 @@ class NoAPILikeFetcher():
         # 外部リンクを含むかどうかはこの時点では don't care
         target_data_list: list[dict] = []
         tweet_results: list[dict] = self._find_values(fetched_tweets, "tweet_results")
-        tweet_results_result: list[dict] = [d.get("result") for d in tweet_results if "result" in d.keys()]
-        for r in tweet_results_result:
-            if t := self.interpret_json(r):
-                target_data_list.extend(t)
+        for t in tweet_results:
+            t1 = t.get("result", {})
+            if t2 := self.interpret_json(t1):
+                target_data_list.extend(t2)
 
         if not target_data_list:
             # 辞書パースエラー or 1件もツイートが無かった
