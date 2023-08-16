@@ -10,16 +10,13 @@ import sys
 import unittest
 from contextlib import ExitStack
 from datetime import datetime
-from logging import WARNING, getLogger
+from logging import getLogger
 from pathlib import Path
 
 from freezegun import freeze_time
 from mock import MagicMock, patch
 
 from PictureGathering.FavCrawler import FavCrawler
-
-logger = getLogger("PictureGathering.FavCrawler")
-logger.setLevel(WARNING)
 
 
 class TestFavCrawler(unittest.TestCase):
@@ -109,7 +106,7 @@ class TestFavCrawler(unittest.TestCase):
         """全体クロールの呼び出しをチェックする
         """
         with ExitStack() as stack:
-            mock_logger = stack.enter_context(patch.object(logger, "info"))
+            mock_logger = stack.enter_context(patch("PictureGathering.FavCrawler.logger.info"))
             mock_noapi_like_fetcher = stack.enter_context(patch("PictureGathering.FavCrawler.NoAPILikeFetcher"))
             mock_interpret_tweets = stack.enter_context(patch("PictureGathering.FavCrawler.FavCrawler.interpret_tweets_v2"))
             mock_trace_external_link = stack.enter_context(patch("PictureGathering.FavCrawler.FavCrawler.trace_external_link"))
@@ -124,15 +121,16 @@ class TestFavCrawler(unittest.TestCase):
             mock_like_instance.to_convert_TweetInfo.side_effect = lambda ft: ["to_convert_TweetInfo"]
             mock_like_instance.to_convert_ExternalLink.side_effect = lambda ft, lsb: ["to_convert_ExternalLink"]
 
-            mock_noapi_like_fetcher.side_effect = lambda username, password, target_username: mock_like_instance
+            mock_noapi_like_fetcher.side_effect = lambda ct0, auth_token, target_screen_name, target_id: mock_like_instance
 
-            fc.config["twitter_noapi"]["username"] = "dummy_username"
-            fc.config["twitter_noapi"]["password"] = "dummy_password"
-            fc.config["twitter_noapi"]["target_username"] = "dummy_target_username"
+            fc.config["twitter_api_client"]["ct0"] = "dummy_ct0"
+            fc.config["twitter_api_client"]["auth_token"] = "dummy_auth_token"
+            fc.config["twitter_api_client"]["target_screen_name"] = "dummy_target_screen_name"
+            fc.config["twitter_api_client"]["target_id"] = "99999999"  # dummy_target_id
 
             res = fc.crawl()
 
-            mock_noapi_like_fetcher.assert_called_once_with("dummy_username", "dummy_password", "dummy_target_username")
+            mock_noapi_like_fetcher.assert_called_once_with("dummy_ct0", "dummy_auth_token", "dummy_target_screen_name", "99999999")
             mock_like_instance.fetch.assert_called_once_with()
 
             mock_like_instance.to_convert_TweetInfo.assert_called_once_with(["fetched_tweets"])
