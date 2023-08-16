@@ -130,7 +130,7 @@ class TestFavCrawler(unittest.TestCase):
 
             res = fc.crawl()
 
-            mock_noapi_like_fetcher.assert_called_once_with("dummy_ct0", "dummy_auth_token", "dummy_target_screen_name", "99999999")
+            mock_noapi_like_fetcher.assert_called_once_with("dummy_ct0", "dummy_auth_token", "dummy_target_screen_name", 99999999)
             mock_like_instance.fetch.assert_called_once_with()
 
             mock_like_instance.to_convert_TweetInfo.assert_called_once_with(["fetched_tweets"])
