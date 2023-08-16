@@ -60,7 +60,7 @@ class FavCrawler(Crawler):
         ct0 = config["ct0"]
         auth_token = config["auth_token"]
         target_screen_name = config["target_screen_name"]
-        target_id = config["target_id"]
+        target_id = int(config["target_id"])
         like = NoAPILikeFetcher(ct0, auth_token, target_screen_name, target_id)
         fetched_tweets = like.fetch()
 
