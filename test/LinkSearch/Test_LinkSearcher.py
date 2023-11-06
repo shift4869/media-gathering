@@ -93,7 +93,7 @@ class TestLinkSearcher(unittest.TestCase):
             mock_pixiv_novel_fetcher = stack.enter_context(patch("PictureGathering.LinkSearch.LinkSearcher.PixivNovelFetcher"))
             mock_nijie_fetcher = stack.enter_context(patch("PictureGathering.LinkSearch.LinkSearcher.NijieFetcher"))
             mock_nico_seiga_fetcher = stack.enter_context(patch("PictureGathering.LinkSearch.LinkSearcher.NicoSeigaFetcher"))
-            mock_skeb_fetcher = stack.enter_context(patch("PictureGathering.LinkSearch.LinkSearcher.SkebFetcher"))
+            # mock_skeb_fetcher = stack.enter_context(patch("PictureGathering.LinkSearch.LinkSearcher.SkebFetcher"))
 
             # 正常系
             CONFIG_FILE_NAME = "./config/config.ini"

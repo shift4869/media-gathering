@@ -11,7 +11,6 @@ from PictureGathering.LinkSearch.Nijie.NijieFetcher import NijieFetcher
 from PictureGathering.LinkSearch.Password import Password
 from PictureGathering.LinkSearch.Pixiv.PixivFetcher import PixivFetcher
 from PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher import PixivNovelFetcher
-from PictureGathering.LinkSearch.Skeb.SkebFetcher import SkebFetcher
 from PictureGathering.LinkSearch.URL import URL
 from PictureGathering.LinkSearch.Username import Username
 from PictureGathering.LogMessage import MSG

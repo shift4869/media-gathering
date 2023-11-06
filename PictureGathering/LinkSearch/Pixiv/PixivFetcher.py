@@ -7,7 +7,9 @@ from pixivpy3 import AppPixivAPI
 
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase
 from PictureGathering.LinkSearch.Password import Password
-from PictureGathering.LinkSearch.Pixiv.PixivSaveDirectoryPath import PixivSaveDirectoryPath
+from PictureGathering.LinkSearch.Pixiv.PixivSaveDirectoryPath import (
+    PixivSaveDirectoryPath,
+)
 from PictureGathering.LinkSearch.Pixiv.PixivSourceList import PixivSourceList
 from PictureGathering.LinkSearch.Pixiv.PixivWorkDownloader import PixivWorkDownloader
 from PictureGathering.LinkSearch.Pixiv.PixivWorkURL import PixivWorkURL
@@ -89,13 +91,6 @@ class PixivFetcher(FetcherBase):
         logger.info(" or ")
         logger.info("https://gist.github.com/upbit/6edda27cb1644e94183291109b8a5fde")
         logger.info("process abort")
-        raise ValueError("pixiv auth failed.")
-
-        # refresh_tokenを保存
-        refresh_token = api.refresh_token
-        with rt_path.open(mode="w") as fout:
-            fout.write(refresh_token)
-
         raise ValueError("pixiv auth failed.")
 
     def is_target_url(self, url: URL) -> bool:
