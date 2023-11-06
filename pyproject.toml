@@ -34,7 +34,7 @@ line_length = 256
 multi_line_output = 9
 
 [tool.ruff.lint]
-ignore = ["F401"]
+ignore = ["F401", "F841"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
