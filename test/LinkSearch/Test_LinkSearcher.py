@@ -108,7 +108,7 @@ class TestLinkSearcher(unittest.TestCase):
                 config["pixiv"].getboolean("is_pixiv_trace"),
                 config["nijie"].getboolean("is_nijie_trace"),
                 config["nico_seiga"].getboolean("is_seiga_trace"),
-                config["skeb"].getboolean("is_skeb_trace"),
+                # config["skeb"].getboolean("is_skeb_trace"),
             ].count(True)
             self.assertEqual(register_num, len(lsc.fetcher_list))
 

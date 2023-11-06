@@ -101,13 +101,13 @@ class LinkSearcher():
             notify("niconico seiga")
 
         # skeb登録
-        try:
-            c = config["skeb"]
-            if c.getboolean("is_skeb_trace"):
-                fetcher = SkebFetcher(Username(c["twitter_id"]), Password(c["twitter_password"]), Path(c["save_base_path"]))
-                ls.register(fetcher)
-        except Exception:
-            notify("skeb")
+        # try:
+        #     c = config["skeb"]
+        #     if c.getboolean("is_skeb_trace"):
+        #         fetcher = SkebFetcher(Username(c["twitter_id"]), Password(c["twitter_password"]), Path(c["save_base_path"]))
+        #         ls.register(fetcher)
+        # except Exception:
+        #     notify("skeb")
 
         logger.info(MSG.LINKSEARCHER_CREATE_DONE.value)
         return ls
