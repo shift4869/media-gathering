@@ -26,10 +26,10 @@ jobs:
       fail-fast: false
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -47,19 +47,6 @@ jobs:
     - name: Copy config file
       run: |
         copy decrypt.ini ../../config/config.ini
-        cd ../../config/
-        dir
-      working-directory: ./.github\workflows
-
-    - name: Make credentials file
-      run: |
-        python EncryptConfig.py --type="decrypt" --path="./encrypt_credentials_ci.json" --key="${{ secrets.SECRET_KEY }}"
-        dir
-      working-directory: ./.github\workflows
-
-    - name: Copy credentials file
-      run: |
-        copy decrypt.json ../../config/credentials.json
         cd ../../config/
         dir
       working-directory: ./.github\workflows
