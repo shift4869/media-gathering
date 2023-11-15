@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import requests
+import xmltodict
 from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
@@ -12,6 +13,7 @@ from PictureGathering.LinkSearch.NicoSeiga.Illustname import Illustname
 from PictureGathering.LinkSearch.Password import Password
 from PictureGathering.LinkSearch.URL import URL
 from PictureGathering.LinkSearch.Username import Username
+from PictureGathering.Util import find_values
 
 
 @dataclass(frozen=True)
@@ -87,9 +89,9 @@ class NicoSeigaSession():
         response.raise_for_status()
 
         # 静画情報解析
-        soup = BeautifulSoup(response.text, "lxml-xml")
-        xml_image = soup.find("image")
-        author_id = int(xml_image.find("user_id").text)
+        response_dict = xmltodict.parse(response.text)
+        author_id_str = find_values(response_dict, "user_id", [], [], True)
+        author_id = int(author_id_str)
         return Authorid(author_id)
 
     def get_author_name(self, author_id: Authorid) -> Authorname:
@@ -107,9 +109,8 @@ class NicoSeigaSession():
         response.raise_for_status()
 
         # 作者情報解析
-        soup = BeautifulSoup(response.text, "lxml-xml")
-        xml_user = soup.find("user")
-        author_name = xml_user.find("nickname").text
+        response_dict = xmltodict.parse(response.text)
+        author_name = find_values(response_dict, "nickname", [], [], True)
         return Authorname(author_name)
 
     def get_illust_title(self, illust_id: Illustid) -> Illustname:
@@ -127,9 +128,8 @@ class NicoSeigaSession():
         response.raise_for_status()
 
         # 静画情報解析
-        soup = BeautifulSoup(response.text, "lxml-xml")
-        xml_image = soup.find("image")
-        illust_title = xml_image.find("title").text
+        response_dict = xmltodict.parse(response.text)
+        illust_title = find_values(response_dict, "title", [], [], True)
         return Illustname(illust_title)
 
     def get_source_url(self, illust_id: Illustid) -> URL:
@@ -169,3 +169,21 @@ class NicoSeigaSession():
         response = self._session.get(source_url.original_url, headers=self.HEADERS)
         response.raise_for_status()
         return response.content
+
+if __name__ == "__main__":
+    import configparser
+    from pathlib import Path
+
+    from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaFetcher import NicoSeigaFetcher
+
+    CONFIG_FILE_NAME = "./config/config.ini"
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE_NAME, encoding="utf8")
+
+    base_path = Path("./PictureGathering/LinkSearch/")
+    username = Username(config["nico_seiga"]["email"])
+    password = Password(config["nico_seiga"]["password"])
+    fetcher = NicoSeigaFetcher(username, password, base_path)
+    illust_id = 11308865
+    illust_url = f"https://seiga.nicovideo.jp/seiga/im{illust_id}?query=1"
+    fetcher.fetch(illust_url)

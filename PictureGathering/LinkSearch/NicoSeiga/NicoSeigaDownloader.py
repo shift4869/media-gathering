@@ -63,7 +63,7 @@ class NicoSeigaDownloader():
         # 拡張子は実際にDLするまで分からない
         # そのため、対象フォルダ内にillust_idを含むファイル名を持つファイルが存在するか調べることで代用する
         name = sd_path.name
-        pattern = "^.*\(" + str(illust_id.id) + "\).*$"
+        pattern = r"^.*\(" + str(illust_id.id) + r"\).*$"
         same_name_list = [f for f in sd_path.parent.glob("**/*") if re.search(pattern, str(f))]
 
         # 既に存在しているなら再DLしないでスキップ

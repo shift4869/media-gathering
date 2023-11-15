@@ -25,6 +25,7 @@ requests = "^2.31.0"
 slack-sdk = "^3.23.1"
 sqlalchemy = "1.4.46"
 twitter-api-client = "^0.10.12"
+xmltodict = "^0.13.0"
 
 [tool.poetry.dev-dependencies]
 

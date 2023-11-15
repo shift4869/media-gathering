@@ -79,6 +79,6 @@ if __name__ == "__main__":
     base_path = Path("./PictureGathering/LinkSearch/")
     if config["nico_seiga"].getboolean("is_seiga_trace"):
         fetcher = NicoSeigaFetcher(Username(config["nico_seiga"]["email"]), Password(config["nico_seiga"]["password"]), base_path)
-        illust_id = 5360137
+        illust_id = 11308865
         illust_url = f"https://seiga.nicovideo.jp/seiga/im{illust_id}?query=1"
         fetcher.fetch(illust_url)
