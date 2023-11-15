@@ -1,4 +1,3 @@
-# coding: utf-8
 from dataclasses import dataclass
 from logging import INFO, getLogger
 from pathlib import Path

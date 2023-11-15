@@ -1,4 +1,3 @@
-# coding: utf-8
 """IllustExtension のテスト
 
 イラスト拡張子を表すクラスをテストする

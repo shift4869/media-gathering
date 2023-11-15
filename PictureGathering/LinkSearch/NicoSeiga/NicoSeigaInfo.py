@@ -1,4 +1,3 @@
-# coding: utf-8
 from dataclasses import dataclass
 
 from PictureGathering.LinkSearch.NicoSeiga.Authorid import Authorid

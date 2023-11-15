@@ -1,4 +1,3 @@
-# coding: utf-8
 """PixivWorkURL のテスト
 
 PixivWorkURLを表すクラスをテストする

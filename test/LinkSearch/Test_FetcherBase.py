@@ -1,4 +1,3 @@
-# coding: utf-8
 """FetcherBase のテスト
 
 外部リンク探索の基底クラスをテストする

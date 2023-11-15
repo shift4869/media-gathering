@@ -1,4 +1,3 @@
-# coding: utf-8
 """クローラーのテスト
 
 Crawler.Crawler()の各種機能をテストする

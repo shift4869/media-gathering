@@ -1,4 +1,3 @@
-# coding: utf-8
 """RTクローラーのテスト
 
 RetweetCrawler.RetweetCrawler()の各種機能をテストする

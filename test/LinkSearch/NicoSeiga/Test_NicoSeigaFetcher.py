@@ -1,4 +1,3 @@
-# coding: utf-8
 """NicoSeigaDownloader のテスト
 
 ニコニコ静画作品をDLするクラスをテストする

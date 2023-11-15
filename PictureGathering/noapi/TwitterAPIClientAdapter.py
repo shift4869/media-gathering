@@ -1,4 +1,3 @@
-# coding: utf-8
 from logging import INFO, getLogger
 
 from twitter.account import Account

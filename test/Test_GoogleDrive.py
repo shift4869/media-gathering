@@ -1,4 +1,3 @@
-# coding: utf-8
 """GoogleDrive APIのテスト
 
 GoogleDrive APIの各種機能をテストする

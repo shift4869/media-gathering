@@ -1,4 +1,3 @@
-# coding: utf-8
 """Authorname のテスト
 
 作者名を表すクラスをテストする

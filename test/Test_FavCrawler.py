@@ -1,4 +1,3 @@
-# coding: utf-8
 """Favクローラーのテスト
 
 FavCrawler.FavCrawler()の各種機能をテストする

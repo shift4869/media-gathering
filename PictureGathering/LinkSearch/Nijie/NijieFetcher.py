@@ -1,4 +1,3 @@
-# coding: utf-8
 import re
 import urllib.parse
 from dataclasses import dataclass

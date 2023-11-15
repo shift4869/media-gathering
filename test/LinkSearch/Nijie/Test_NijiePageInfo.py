@@ -1,4 +1,3 @@
-# coding: utf-8
 """NijiePageInfo のテスト
 """
 import sys

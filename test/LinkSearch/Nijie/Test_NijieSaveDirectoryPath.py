@@ -1,4 +1,3 @@
-# coding: utf-8
 """NijieSaveDirectoryPath のテスト
 """
 import re

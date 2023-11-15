@@ -1,4 +1,3 @@
-# coding: utf-8
 """NicoSeigaSession のテスト
 
 NicoSeigaSessionを表すクラスをテストする

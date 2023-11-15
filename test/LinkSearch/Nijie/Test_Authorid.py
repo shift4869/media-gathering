@@ -1,4 +1,3 @@
-# coding: utf-8
 """Authorid のテスト
 
 作者IDを表すクラスをテストする

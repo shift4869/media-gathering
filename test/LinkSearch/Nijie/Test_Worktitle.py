@@ -1,4 +1,3 @@
-# coding: utf-8
 """Worktitle のテスト
 
 作者名を表すクラスをテストする

@@ -1,4 +1,3 @@
-# coding: utf-8
 from dataclasses import dataclass
 from logging import INFO, getLogger
 from pathlib import Path
@@ -7,9 +6,7 @@ from pixivpy3 import AppPixivAPI
 
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase
 from PictureGathering.LinkSearch.Password import Password
-from PictureGathering.LinkSearch.Pixiv.PixivSaveDirectoryPath import (
-    PixivSaveDirectoryPath,
-)
+from PictureGathering.LinkSearch.Pixiv.PixivSaveDirectoryPath import PixivSaveDirectoryPath
 from PictureGathering.LinkSearch.Pixiv.PixivSourceList import PixivSourceList
 from PictureGathering.LinkSearch.Pixiv.PixivWorkDownloader import PixivWorkDownloader
 from PictureGathering.LinkSearch.Pixiv.PixivWorkURL import PixivWorkURL

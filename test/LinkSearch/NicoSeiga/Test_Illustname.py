@@ -1,4 +1,3 @@
-# coding: utf-8
 """Illustname のテスト
 
 作者名を表すクラスをテストする

@@ -1,4 +1,3 @@
-# coding: utf-8
 import pprint
 from dataclasses import dataclass
 from typing import Iterable

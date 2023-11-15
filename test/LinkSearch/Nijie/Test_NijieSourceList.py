@@ -1,4 +1,3 @@
-# coding: utf-8
 """NijieSourceList のテスト
 """
 import sys

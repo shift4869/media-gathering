@@ -1,4 +1,3 @@
-# coding: utf-8
 """Illustid のテスト
 
 作者IDを表すクラスをテストする

@@ -1,4 +1,3 @@
-# coding: utf-8
 """LinkSearcher のテスト
 
 外部リンク探索クラスをテストする

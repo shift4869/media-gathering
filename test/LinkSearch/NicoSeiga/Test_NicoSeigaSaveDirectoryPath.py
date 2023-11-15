@@ -1,4 +1,3 @@
-# coding: utf-8
 """NicoSeigaSaveDirectoryPath のテスト
 
 NicoSeigaSaveDirectoryPathを表すクラスをテストする

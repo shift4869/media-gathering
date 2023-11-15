@@ -1,4 +1,3 @@
-# coding: utf-8
 import configparser
 from logging import INFO, getLogger
 from pathlib import Path

@@ -1,4 +1,3 @@
-# coding: utf-8
 """NicoSeigaInfo のテスト
 
 ニコニコ静画の情報をまとめるクラスをテストする

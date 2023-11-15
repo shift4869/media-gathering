@@ -1,4 +1,3 @@
-# coding: utf-8
 import argparse
 import logging.config
 from logging import INFO, getLogger

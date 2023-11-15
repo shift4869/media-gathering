@@ -1,4 +1,3 @@
-# coding: utf-8
 import enum
 from dataclasses import dataclass
 from logging import INFO, getLogger

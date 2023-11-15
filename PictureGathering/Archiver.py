@@ -1,4 +1,3 @@
-# coding: utf-8
 import re
 import zipfile
 from datetime import datetime

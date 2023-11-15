@@ -1,4 +1,3 @@
-# coding: utf-8
 import re
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass

@@ -1,4 +1,3 @@
-# coding: utf-8
 """PixivNovelURL のテスト
 
 PixivNovelURLを表すクラスをテストする
