@@ -21,7 +21,7 @@ import requests
 from plyer import notification
 from slack_sdk.webhook import WebhookClient
 
-from PictureGathering import Archiver, GoogleDrive, WriteHTML
+from PictureGathering import WriteHTML
 from PictureGathering.DBControllerBase import DBControllerBase
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LogMessage import MSG
@@ -263,15 +263,6 @@ class Crawler(metaclass=ABCMeta):
             if config.getboolean("is_post_slack_notify"):
                 self.post_slack_notify(done_msg)
                 logger.info("Slack Notify posted.")
-
-            # アーカイブする設定の場合
-            config = self.config["archive"]
-            if config.getboolean("is_archive"):
-                zipfile_path = Archiver.MakeZipFile(config.get("archive_temp_path"), self.type)
-                logger.info("Archive File Created.")
-                if config.getboolean("is_send_google_drive") and zipfile_path != "":
-                    GoogleDrive.UploadToGoogleDrive(zipfile_path, config.get("google_service_account_credentials"))
-                    logger.info("Google Drive Send.")
 
         logger.info("End Of " + self.type + " Crawl Process.")
         return 0
