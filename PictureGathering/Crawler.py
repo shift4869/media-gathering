@@ -1,10 +1,5 @@
-"""クローラー
-
-Fav/Retweetクローラーのベースとなるクローラークラス
-設定ファイルとして {CONFIG_FILE_NAME} にあるconfig.iniファイルを使用する
-"""
 import configparser
-import json
+import enum
 import logging.config
 import os
 import shutil
@@ -17,6 +12,7 @@ from logging import INFO, getLogger
 from pathlib import Path
 
 import certifi
+import orjson
 import requests
 from plyer import notification
 from slack_sdk.webhook import WebhookClient
@@ -27,6 +23,7 @@ from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LogMessage import MSG
 from PictureGathering.Model import ExternalLink
 from PictureGathering.noapi.TweetInfo import TweetInfo
+from PictureGathering.Util import Result
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 for name in logging.root.manager.loggerDict:
@@ -35,6 +32,13 @@ for name in logging.root.manager.loggerDict:
         getLogger(name).disabled = True
 logger = getLogger(__name__)
 logger.setLevel(INFO)
+
+
+class MediaSaveResult(enum.Enum):
+    success = enum.auto()  # 成功（現在存在せず、過去にも取得したことが無い→DLを実際に実行した）
+    now_exist = enum.auto()  # 現在存在している
+    past_done = enum.auto()  # 過去に取得済
+    failed = enum.auto()  # 失敗（メディア辞書構造がエラー、urlが取得できない）
 
 
 class Crawler(metaclass=ABCMeta):
@@ -51,14 +55,6 @@ class Crawler(metaclass=ABCMeta):
     Attributes:
         CONFIG_FILE_NAME (str): 設定ファイルパス
         config (ConfigParser): 設定ini構造体
-        TW_V2_API_KEY (str): TwitterAPI_v2利用APIキー
-        TW_V2_API_KEY_SECRET (str): TwitterAPI_v2利用APIシークレットキー
-        TW_V2_ACCESS_TOKEN (str): TwitterAPI_v2アクセストークンキー
-        TW_V2_ACCESS_TOKEN_SECRET (str): TwitterAPI_v2アクセストークンシークレットキー
-        DISCORD_WEBHOOK_URL (str): DiscordのWebhook URL
-        LN_TOKEN_KEY (str): LINE notifyのトークン
-        SLACK_WEBHOOK_URL (str): SlackのWebhook URL
-        twitter (TwitterAPI): TwitterAPI利用クラス
         lsb (LinkSearcher): 外部リンク探索機構ベースクラス
         db_cont (DBControllerBase): DB操作用クラス（実体はCrawler派生クラスで規定）
         save_path (str): メディア保存先パス
@@ -70,7 +66,7 @@ class Crawler(metaclass=ABCMeta):
     """
     CONFIG_FILE_NAME = "./config/config.ini"
 
-    def __init__(self):
+    def __init__(self) -> None:
         logger.info(MSG.CRAWLER_INIT_START.value)
 
         def notify(error_message: str):
@@ -81,46 +77,33 @@ class Crawler(metaclass=ABCMeta):
                 timeout=10
             )
 
-        self.config = configparser.ConfigParser()
         try:
-            if not self.config.read(self.CONFIG_FILE_NAME, encoding="utf8"):
-                raise IOError
+            self.validate_config_file(self.CONFIG_FILE_NAME)
+
+            self.config = configparser.ConfigParser()
+            self.config.read(self.CONFIG_FILE_NAME, encoding="utf8")
 
             config = self.config["save_directory"]
             Path(config["save_fav_path"]).mkdir(parents=True, exist_ok=True)
             Path(config["save_retweet_path"]).mkdir(parents=True, exist_ok=True)
 
-            config = self.config["discord_webhook_url"]
-            self.DISCORD_WEBHOOK_URL = config["webhook_url"]
-
-            config = self.config["line_token_keys"]
-            self.LN_TOKEN_KEY = config["token_key"]
-
-            config = self.config["slack_webhook_url"]
-            self.SLACK_WEBHOOK_URL = config["webhook_url"]
-
             # 外部リンク探索機構のセットアップ
             self.link_search_register()
-        except IOError:
-            error_message = self.CONFIG_FILE_NAME + " is not exist or cannot be opened."
-            logger.exception(error_message)
-            notify(error_message)
-            exit(-1)
-        except KeyError:
+        except KeyError as e:
             error_message = "invalid config file error."
-            logger.exception(error_message)
-            notify(error_message)
-            exit(-1)
-        except ValueError as e:
-            error_message = "Twitter API setup error."
             logger.exception(e)
             notify(error_message)
-            exit(-1)
-        except Exception:
-            error_message = "unknown error."
-            logger.exception(error_message)
+            raise
+        except ValueError as e:
+            error_message = e.args[0]
+            logger.exception(e)
             notify(error_message)
-            exit(-1)
+            raise
+        except Exception as e:
+            error_message = "unknown error."
+            logger.exception(e)
+            notify(error_message)
+            raise
 
         # 派生クラスで実体が代入されるメンバ
         # 情報保持DBコントローラー
@@ -137,24 +120,58 @@ class Crawler(metaclass=ABCMeta):
         self.del_url_list = []
         logger.info(MSG.CRAWLER_INIT_DONE.value)
 
-    def link_search_register(self) -> int:
+    def validate_config_file(self, config_file_path: str) -> Result:
+        """コンフィグファイルが正当な内容か簡易的に調べる
+
+        Notes:
+            このメソッドでエラーがraiseしなかったとしても、
+            コンフィグファイルに必要なキーがすべて存在するかは保証されない。
+
+        Args:
+            config_file_path (str): コンフィグファイルパス
+
+        Raise:
+            コンフィグファイルが不正ならばValueError, またはKeyError
+        """
+        if not isinstance(config_file_path, str):
+            raise ValueError("Argument 'config_file_path' must be str.")
+        path: Path = Path(config_file_path)
+        if not path.is_file():
+            raise ValueError(f"{path.name} is not exist.")
+        config = configparser.ConfigParser()
+        if not config.read(path, encoding="utf8"):
+            raise ValueError(f"{path.name} cannot be opened.")
+
+        ct0 = config["twitter_api_client"]["ct0"]
+        auth_token = config["twitter_api_client"]["auth_token"]
+        target_screen_name = config["twitter_api_client"]["target_screen_name"]
+        target_id = config["twitter_api_client"]["target_id"]
+
+        if ct0 == "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx":
+            raise ValueError("'ct0' must be your account 'ct0' value.")
+        if auth_token == "xxxxxxxxxxxxxxxxxxxxxxxxx":
+            raise ValueError("'auth_token' must be your account 'auth_token' value.")
+        if target_screen_name == "{your Twitter ID screen_name (exclude @)}":
+            raise ValueError("'target_screen_name' must be target screen_name for crawl.")
+        if target_id == "{your Twitter ID (numeric)}":
+            raise ValueError("'target_id' must be target account id.")
+        return Result.success
+
+    def link_search_register(self) -> Result:
         """外部リンク探索機構のセットアップ
 
         Notes:
             self.lsbに設定する
-
-        Returns:
-            int: 成功時0
         """
         # 外部リンク探索を登録
         self.lsb = LinkSearcher.create(self.config)
-        return 0
+        return Result.success
 
-    def get_exist_filelist(self) -> list:
+    def get_exist_filelist(self) -> list[str]:
         """self.save_pathに存在するファイル名一覧を取得する
 
         Returns:
-            list: self.save_pathに存在するファイル名一覧
+            list[str]: self.save_pathに存在するファイル名一覧
         """
         filelist = []
         save_path = Path(self.save_path)
@@ -166,17 +183,13 @@ class Crawler(metaclass=ABCMeta):
         # 更新日時（mtime）でソートし、最新のものからfilelistに追加する
         for mtime, path in sorted(filelist_tp, reverse=True):
             filelist.append(path)
-
         return filelist
 
-    def shrink_folder(self, holding_file_num: int) -> int:
+    def shrink_folder(self, holding_file_num: int) -> Result:
         """フォルダ内ファイルの数を一定にする
 
         Args:
             holding_file_num (int): フォルダ内に残すファイルの数
-
-        Returns:
-            int: 0(成功)
         """
         filelist = self.get_exist_filelist()
 
@@ -206,15 +219,15 @@ class Crawler(metaclass=ABCMeta):
 
         # 存在マーキングを更新する
         self.update_db_exist_mark(add_img_filename)
+        return Result.success
 
-        return 0
-
-    def update_db_exist_mark(self, add_img_filename):
+    def update_db_exist_mark(self, add_img_filename) -> Result:
         # 存在マーキングを更新する
         self.db_cont.clear_flag()
         self.db_cont.update_flag(add_img_filename, 1)
+        return Result.success
 
-    def get_media_url(self, filename):
+    def get_media_url(self, filename) -> str:
         # 'https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/b0ZDq8zG_HppFWb6.mp4?tag=10'
         response = self.db_cont.select_from_media_url(filename)
         url = response[0]["url"] if len(response) == 1 else ""
@@ -224,23 +237,22 @@ class Crawler(metaclass=ABCMeta):
     def make_done_message(self) -> str:
         """実行後の結果文字列を生成する
         """
-        pass
+        return ""
 
-    def end_of_process(self) -> int:
+    def end_of_process(self) -> Result:
         """実行後の後処理
 
         Returns:
-            int: 成功時0
+            Result: 成功時Result.success
         """
         logger.info("")
 
         done_msg = self.make_done_message()
+        config = self.config
+        WriteHTML.WriteResultHTML(self.type, self.db_cont)
 
         logger.info("\t".join(done_msg.splitlines()))
 
-        config = self.config["notification"]
-
-        WriteHTML.WriteResultHTML(self.type, self.db_cont)
         if self.add_cnt != 0 or self.del_cnt != 0:
             if self.add_cnt != 0:
                 logger.debug("add url:")
@@ -252,31 +264,43 @@ class Crawler(metaclass=ABCMeta):
                 for url in self.del_url_list:
                     logger.debug(url)
 
-            if config.getboolean("is_post_discord_notify"):
-                self.post_discord_notify(done_msg)
-                logger.info("Discord Notify posted.")
+            if config["discord_webhook_url"].getboolean("is_post_discord_notify"):
+                try:
+                    self.post_discord_notify(done_msg)
+                    logger.info("Discord notify posted.")
+                except Exception as e:
+                    logger.exception(e)
+                    logger.warn("Discord notify post failed.")
+    
+            if config["line_token_keys"].getboolean("is_post_line_notify"):
+                try:
+                    self.post_line_notify(done_msg)
+                    logger.info("Line notify posted.")
+                except:
+                    logger.exception(e)
+                    logger.warn("Line notify post failed.")
 
-            if config.getboolean("is_post_line_notify"):
-                self.post_line_notify(done_msg)
-                logger.info("Line Notify posted.")
-
-            if config.getboolean("is_post_slack_notify"):
-                self.post_slack_notify(done_msg)
-                logger.info("Slack Notify posted.")
+            if config["slack_webhook_url"].getboolean("is_post_slack_notify"):
+                try:
+                    self.post_slack_notify(done_msg)
+                    logger.info("Slack notify posted.")
+                except:
+                    logger.exception(e)
+                    logger.warn("Slack notify post failed.")
 
         logger.info("End Of " + self.type + " Crawl Process.")
-        return 0
+        return Result.success
 
-    def post_discord_notify(self, str: str) -> int:
+    def post_discord_notify(self, str: str) -> Result:
         """Discord通知ポスト
 
         Args:
             str (str): Discordに通知する文字列
 
         Returns:
-            int: 0(成功)
+            Result: 成功時Result.success
         """
-        url = self.DISCORD_WEBHOOK_URL
+        url = self.config["discord_webhook_url"]["webhook_url"]
 
         headers = {
             "Content-Type": "application/json"
@@ -330,56 +354,59 @@ class Crawler(metaclass=ABCMeta):
                 "content": str
             }
 
-        response = requests.post(url, headers=headers, data=json.dumps(payload))
+        response = requests.post(url, headers=headers, data=orjson.dumps(payload).decode())
+        response.raise_for_status()
 
-        if response.status_code != 204:  # 成功すると204 No Contentが返ってくる
-            logger.error("Error code: {0}".format(response.status_code))
-            return -1
+        # if response.status_code != 204:  # 成功すると204 No Contentが返ってくる
+        #     logger.error("Error code: {0}".format(response.status_code))
+        #     return Result.failed
 
-        return 0
+        return Result.success
 
-    def post_line_notify(self, str: str) -> int:
+    def post_line_notify(self, str: str) -> Result:
         """LINE通知ポスト
 
         Args:
             str (str): LINEに通知する文字列
 
         Returns:
-            int: 0(成功)
+            Result: 成功時Result.success
         """
         url = "https://notify-api.line.me/api/notify"
-        token = self.LN_TOKEN_KEY
+        token = self.config["line_token_keys"]["token_key"]
 
         headers = {"Authorization": "Bearer " + token}
         payload = {"message": str}
 
         response = requests.post(url, headers=headers, params=payload)
+        response.raise_for_status()
 
-        if response.status_code != 200:
-            logger.error("Error code: {0}".format(response.status_code))
-            return -1
+        # if response.status_code != 200:
+        #     logger.error("Error code: {0}".format(response.status_code))
+        #     return -1
 
-        return 0
+        return Result.success
 
-    def post_slack_notify(self, str: str) -> int:
+    def post_slack_notify(self, str: str) -> Result:
         """Slack通知ポスト
 
         Args:
             str (str): Slackに通知する文字列
 
         Returns:
-            int: 0(成功)
+            Result: 成功時Result.success, 失敗時Result.failed
         """
+        url = self.config["slack_webhook_url"]["webhook_url"]
         ssl_context = ssl.create_default_context(cafile=certifi.where())
-        webhook = WebhookClient(self.SLACK_WEBHOOK_URL, ssl=ssl_context)
+        webhook = WebhookClient(url, ssl=ssl_context)
         post_text = "<!here> " + str
         response = webhook.send(text=post_text)
         if response.status_code != 200:
             logger.error("Error code: {0}".format(response.status_code))
-            return -1
-        return 0
+            return Result.failed
+        return Result.success
 
-    def tweet_media_saver_v2(self, tweet_info: TweetInfo, atime: float, mtime: float) -> int:
+    def tweet_media_saver(self, tweet_info: TweetInfo, atime: float, mtime: float) -> MediaSaveResult:
         """指定URLのメディアを保存する
 
         Args:
@@ -388,8 +415,11 @@ class Crawler(metaclass=ABCMeta):
             mtime (float): 指定更新日時
 
         Returns:
-            int: 成功時0、既に存在しているメディアだった場合1、過去に取得済のメディアだった場合2、
-                 失敗時（メディア辞書構造がエラー、urlが取得できない）-1
+            MediaSaveResult: 
+                success: 成功（現在存在せず、過去にも取得したことが無い→DLを実際に実行した）
+                now_exist: 現在存在している
+                past_done: 過去に取得済
+                failed: 失敗（メディア辞書構造がエラー、urlが取得できない）
         """
         url_orig = tweet_info.media_url
         url_thumbnail = tweet_info.media_thumbnail_url
@@ -400,7 +430,7 @@ class Crawler(metaclass=ABCMeta):
         # 過去に取得済かどうか調べる
         if self.db_cont.select_from_media_url(file_name) != []:
             logger.debug(save_file_fullpath.name + " -> skip")
-            return 2
+            return MediaSaveResult.past_done
 
         if not save_file_fullpath.is_file():
             # URLからメディアを取得してローカルに保存
@@ -414,11 +444,11 @@ class Crawler(metaclass=ABCMeta):
                 # URLからのメディア取得に失敗
                 # 削除されていた場合など
                 logger.info(save_file_fullpath.name + " -> failed (maybe removed).")
-                return -1
+                return MediaSaveResult.failed
             self.add_url_list.append(url_orig)
 
             # DB操作
-            # db_cont.upsert_v2 派生クラスによって呼び分けられる
+            # db_cont.upsert 派生クラスによって呼び分けられる
             dts_format = "%Y-%m-%d %H:%M:%S"
             params = {
                 "is_exist_saved_file": True,
@@ -457,35 +487,29 @@ class Crawler(metaclass=ABCMeta):
                     logger.warning(save_file_fullpath.name + " -> failed (0 byte file).")
                 elif media_size < 0:
                     logger.warning(save_file_fullpath.name + " -> failed.")
-                return -1
+                return MediaSaveResult.failed
 
             self.db_cont.upsert(params)
 
             # 更新日時を上書き
-            config = self.config["timestamp"]
-            if config.getboolean("timestamp_created_at"):
-                os.utime(save_file_fullpath, (atime, mtime))
+            os.utime(save_file_fullpath, (atime, mtime))
 
             # ログ書き出し
             logger.info(save_file_fullpath.name + " -> done")
             self.add_cnt += 1
 
             # 常に保存する設定の場合はコピーする
-            config = self.config["db"]
-            if config.getboolean("save_permanent_image_flag"):
-                shutil.copy2(save_file_fullpath, config["save_permanent_image_path"])
-
-            # アーカイブする設定の場合
-            config = self.config["archive"]
-            if config.getboolean("is_archive"):
-                shutil.copy2(save_file_fullpath, config["archive_temp_path"])
+            config = self.config["save_permanent"]
+            if config.getboolean("save_permanent_media_flag"):
+                shutil.copy2(save_file_fullpath, config["save_permanent_media_path"])
         else:
             # 既に存在している場合
             logger.debug(save_file_fullpath.name + " -> exist")
-            return 1
-        return 0
+            return MediaSaveResult.now_exist
+        return MediaSaveResult.success
 
-    def interpret_tweets_v2(self, tweet_info_list: list[TweetInfo]) -> None:
+    def interpret_tweets(self, tweet_info_list: list[TweetInfo]) -> Result:
+        result_list = []
         for tweet_info in tweet_info_list:
             """タイムスタンプについて
                 https://srbrnote.work/archives/4054
@@ -494,31 +518,29 @@ class Crawler(metaclass=ABCMeta):
                 ここでは
                     Favならばatime=mtime=ツイート投稿日時 とする
                     RTならばatime=mtime=ツイート投稿日時 とする
-                    （IS_APPLY_NOW_TIMESTAMP == Trueならば収集時の時刻 とする？）
                 収集されたツイートの投稿日時はDBのcreated_at項目に保持される
             """
-            IS_APPLY_NOW_TIMESTAMP = False
-            atime = mtime = -1
-            if IS_APPLY_NOW_TIMESTAMP:
-                atime = mtime = time.time()
-            else:
-                dts_format = "%Y-%m-%d %H:%M:%S"
-                media_tweet_created_time = tweet_info.created_at
-                created_time = time.strptime(media_tweet_created_time, dts_format)
-                atime = mtime = time.mktime(
-                    (created_time.tm_year,
-                     created_time.tm_mon,
-                     created_time.tm_mday,
-                     created_time.tm_hour,
-                     created_time.tm_min,
-                     created_time.tm_sec,
-                     0, 0, -1)
-                )
+            dts_format = "%Y-%m-%d %H:%M:%S"
+            media_tweet_created_time = tweet_info.created_at
+            created_time = time.strptime(media_tweet_created_time, dts_format)
+            atime = mtime = time.mktime(
+                (created_time.tm_year,
+                 created_time.tm_mon,
+                 created_time.tm_mday,
+                 created_time.tm_hour,
+                 created_time.tm_min,
+                 created_time.tm_sec,
+                 0, 0, -1)
+            )
 
             # メディア保存
-            self.tweet_media_saver_v2(tweet_info, atime, mtime)
+            result = self.tweet_media_saver(tweet_info, atime, mtime)
+            result_list.append(result)
+        if [r for r in result_list if r == Result.failed]:
+            return Result.failed
+        return Result.success
 
-    def trace_external_link(self, external_link_list: list[ExternalLink]) -> None:
+    def trace_external_link(self, external_link_list: list[ExternalLink]) -> Result:
         # 外部リンク探索
         for external_link in external_link_list:
             url = external_link.external_link_url
@@ -531,15 +553,16 @@ class Crawler(metaclass=ABCMeta):
                 self.lsb.fetch(url)
                 # DBにアドレス情報を保存
                 self.db_cont.upsert_external_link([external_link])
+        return Result.success
 
     @abstractmethod
-    def crawl(self) -> int:
+    def crawl(self) -> Result:
         """一連の実行メソッドをまとめる
 
         Returns:
-            int: 0(成功)
+            Result: 成功時Result.success
         """
-        return 0
+        return Result.success
 
 
 if __name__ == "__main__":

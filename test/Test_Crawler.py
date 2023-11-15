@@ -20,15 +20,16 @@ from unittest.mock import call
 
 from mock import MagicMock, PropertyMock, patch
 
-from PictureGathering import Crawler
+from PictureGathering.Crawler import Crawler, MediaSaveResult
 from PictureGathering.Model import ExternalLink
 from PictureGathering.noapi.TweetInfo import TweetInfo
+from PictureGathering.Util import Result
 
 logger = getLogger("PictureGathering.Crawler")
 logger.setLevel(WARNING)
 
 
-class ConcreteCrawler(Crawler.Crawler):
+class ConcreteCrawler(Crawler):
     """テスト用の具体化クローラー
 
     Crawler.Crawler()の抽象クラスメソッドを最低限実装したテスト用の派生クラス
@@ -54,7 +55,7 @@ class ConcreteCrawler(Crawler.Crawler):
             elif error_occur == "ValueError":
                 # link_search_register呼び出しを利用して例外を送出するモックを設定する
                 mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
-                mock_lsr.side_effect = ValueError()
+                mock_lsr.side_effect = ValueError("ValueError")
             elif error_occur == "Exception":
                 # link_search_register呼び出しを利用して例外を送出するモックを設定する
                 mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
@@ -139,13 +140,13 @@ class TestCrawler(unittest.TestCase):
             mock_notification = stack.enter_context(patch("PictureGathering.Crawler.notification"))
             mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
             # 例外発生テスト
-            with self.assertRaises(SystemExit):
+            with self.assertRaises(ValueError):
                 crawler = ConcreteCrawler("IOError")
-            with self.assertRaises(SystemExit):
+            with self.assertRaises(KeyError):
                 crawler = ConcreteCrawler("KeyError")
-            with self.assertRaises(SystemExit):
+            with self.assertRaises(ValueError):
                 crawler = ConcreteCrawler("ValueError")
-            with self.assertRaises(SystemExit):
+            with self.assertRaises(Exception):
                 crawler = ConcreteCrawler("Exception")
 
             crawler = ConcreteCrawler()
@@ -166,24 +167,14 @@ class TestCrawler(unittest.TestCase):
             # 設定値比較
             self.assertIsInstance(crawler.config, configparser.ConfigParser)
             self.assertIsInstance(expect_config, configparser.ConfigParser)
-            self.assertEqual(expect_config["line_token_keys"]["token_key"],
-                             crawler.LN_TOKEN_KEY)
-
-            self.assertEqual(expect_config["slack_webhook_url"]["webhook_url"],
-                             crawler.SLACK_WEBHOOK_URL)
-
-            self.assertEqual(expect_config["discord_webhook_url"]["webhook_url"],
-                             crawler.DISCORD_WEBHOOK_URL)
-
-            self.assertEqual(expect_config["save_directory"]["save_fav_path"],
-                             crawler.config["save_directory"]["save_fav_path"])
-            self.assertEqual(expect_config["save_directory"]["save_retweet_path"],
-                             crawler.config["save_directory"]["save_retweet_path"])
-
-            self.assertEqual(expect_config["holding"]["holding_file_num"],
-                             crawler.config["holding"]["holding_file_num"])
-
-            # dbはTest_DBControllerBaseで確認
+            self.assertEqual(expect_config["twitter_api_client"]["ct0"],
+                             crawler.config["twitter_api_client"]["ct0"])
+            self.assertEqual(expect_config["twitter_api_client"]["auth_token"],
+                             crawler.config["twitter_api_client"]["auth_token"])
+            self.assertEqual(expect_config["twitter_api_client"]["target_screen_name"],
+                             crawler.config["twitter_api_client"]["target_screen_name"])
+            self.assertEqual(expect_config["twitter_api_client"]["target_id"],
+                             crawler.config["twitter_api_client"]["target_id"])
 
             self.assertEqual(int(expect_config["tweet_timeline"]["likes_get_max_loop"]),
                              int(crawler.config["tweet_timeline"]["likes_get_max_loop"]))
@@ -194,27 +185,33 @@ class TestCrawler(unittest.TestCase):
             self.assertEqual(int(expect_config["tweet_timeline"]["retweet_get_max_count"]),
                              int(crawler.config["tweet_timeline"]["retweet_get_max_count"]))
 
-            self.assertEqual(expect_config["timestamp"]["timestamp_created_at"],
-                             crawler.config["timestamp"]["timestamp_created_at"])
+            self.assertEqual(expect_config["save_directory"]["save_fav_path"],
+                             crawler.config["save_directory"]["save_fav_path"])
+            self.assertEqual(expect_config["save_directory"]["save_retweet_path"],
+                             crawler.config["save_directory"]["save_retweet_path"])
+
+            self.assertEqual(int(expect_config["holding"]["holding_file_num"]),
+                             int(crawler.config["holding"]["holding_file_num"]))
+
+            # dbはTest_DBControllerBaseで確認
 
             self.assertEqual(expect_config["notification"]["reply_to_user_name"],
                              crawler.config["notification"]["reply_to_user_name"])
-            self.assertEqual(expect_config["notification"]["is_post_discord_notify"],
-                             crawler.config["notification"]["is_post_discord_notify"])
-            self.assertEqual(expect_config["notification"]["is_post_line_notify"],
-                             crawler.config["notification"]["is_post_line_notify"])
-            self.assertEqual(expect_config["notification"]["is_post_slack_notify"],
-                             crawler.config["notification"]["is_post_slack_notify"])
 
-            # TODO::archiverのテストを独立させる
-            self.assertEqual(expect_config["archive"]["is_archive"],
-                             crawler.config["archive"]["is_archive"])
-            self.assertEqual(expect_config["archive"]["archive_temp_path"],
-                             crawler.config["archive"]["archive_temp_path"])
-            self.assertEqual(expect_config["archive"]["is_send_google_drive"],
-                             crawler.config["archive"]["is_send_google_drive"])
-            self.assertEqual(expect_config["archive"]["google_service_account_credentials"],
-                             crawler.config["archive"]["google_service_account_credentials"])
+            self.assertEqual(expect_config["discord_webhook_url"]["is_post_discord_notify"],
+                             crawler.config["discord_webhook_url"]["is_post_discord_notify"])
+            self.assertEqual(expect_config["discord_webhook_url"]["webhook_url"],
+                             crawler.config["discord_webhook_url"]["webhook_url"])
+
+            self.assertEqual(expect_config["line_token_keys"]["is_post_line_notify"],
+                             crawler.config["line_token_keys"]["is_post_line_notify"])
+            self.assertEqual(expect_config["line_token_keys"]["token_key"],
+                             crawler.config["line_token_keys"]["token_key"])
+
+            self.assertEqual(expect_config["slack_webhook_url"]["is_post_slack_notify"],
+                             crawler.config["slack_webhook_url"]["is_post_slack_notify"])
+            self.assertEqual(expect_config["slack_webhook_url"]["webhook_url"],
+                             crawler.config["slack_webhook_url"]["webhook_url"])
 
             self.assertEqual(Path("./test"), crawler.save_path)
             self.assertEqual("Test Crawler", crawler.type)
@@ -286,7 +283,7 @@ class TestCrawler(unittest.TestCase):
             mock_update_db_exist_mark = None
             mock_get_media_url.side_effect = lambda name: [video_base_url.format(v) for v in video_sample if v == name][0]
 
-            self.assertEqual(0, crawler.shrink_folder(holding_file_num - 1))
+            self.assertEqual(Result.success, crawler.shrink_folder(holding_file_num - 1))
 
             def MakeUrl(filename):
                 if ".mp4" in filename:  # media_type == "video":
@@ -357,8 +354,6 @@ class TestCrawler(unittest.TestCase):
             mock_cplnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_line_notify"))
             mock_cpsnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_slack_notify"))
             mock_cpdnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_discord_notify"))
-            mock_amzf = stack.enter_context(patch("PictureGathering.Archiver.MakeZipFile"))
-            mock_gdutgd = stack.enter_context(patch("PictureGathering.GoogleDrive.UploadToGoogleDrive"))
             mock_logger_info = stack.enter_context(patch.object(logger, "info"))
 
             crawler = ConcreteCrawler()
@@ -371,7 +366,7 @@ class TestCrawler(unittest.TestCase):
             crawler.add_cnt = 1
             crawler.type = "Fav"
             actual = crawler.end_of_process()
-            self.assertEqual(0, actual)
+            self.assertEqual(Result.success, actual)
 
             mock_whtml.assert_called_once()
             mock_cplnotify.assert_called_once()
@@ -395,7 +390,7 @@ class TestCrawler(unittest.TestCase):
             mock_req.return_value = response
 
             str = "text"
-            self.assertEqual(0, crawler.post_discord_notify(str))
+            self.assertEqual(Result.success, crawler.post_discord_notify(str))
             mock_req.assert_called_once()
 
     def test_post_line_notify(self):
@@ -415,7 +410,7 @@ class TestCrawler(unittest.TestCase):
             mock_req.return_value = response
 
             str = "text"
-            self.assertEqual(0, crawler.post_line_notify(str))
+            self.assertEqual(Result.success, crawler.post_line_notify(str))
             mock_req.assert_called_once()
 
     def test_post_slack_notify(self):
@@ -430,11 +425,11 @@ class TestCrawler(unittest.TestCase):
 
             str = "text"
             mock_slack.return_value.send.return_value.status_code = 200
-            self.assertEqual(0, crawler.post_slack_notify(str))
+            self.assertEqual(Result.success, crawler.post_slack_notify(str))
             mock_slack.return_value.send.assert_called_once_with(text="<!here> " + str)
 
             mock_slack.return_value.send.return_value.status_code = 503
-            self.assertEqual(-1, crawler.post_slack_notify(str))
+            self.assertEqual(Result.failed, crawler.post_slack_notify(str))
 
     def test_tweet_media_saver_v2(self):
         """指定URLのメディアを保存する機能をチェックする
@@ -473,19 +468,19 @@ class TestCrawler(unittest.TestCase):
 
             # 1回目DL
             for tweet_info in tweet_info_list:
-                actual = crawler.tweet_media_saver_v2(tweet_info, atime, mtime)
-                self.assertEqual(0, actual)
+                actual = crawler.tweet_media_saver(tweet_info, atime, mtime)
+                self.assertEqual(MediaSaveResult.success, actual)
 
             # 2回目DL
             for tweet_info in tweet_info_list:
-                actual = crawler.tweet_media_saver_v2(tweet_info, atime, mtime)
-                self.assertEqual(1, actual)
+                actual = crawler.tweet_media_saver(tweet_info, atime, mtime)
+                self.assertEqual(MediaSaveResult.now_exist, actual)
 
             # DB内にすでに蓄積されていた場合
             mock_db_cont.select_from_media_url.side_effect = lambda file_name: ["already_saved"]
             for tweet_info in tweet_info_list:
-                actual = crawler.tweet_media_saver_v2(tweet_info, atime, mtime)
-                self.assertEqual(2, actual)
+                actual = crawler.tweet_media_saver(tweet_info, atime, mtime)
+                self.assertEqual(MediaSaveResult.past_done, actual)
 
             # テスト用ファイルを削除する
             for tweet_info in tweet_info_list:
@@ -498,15 +493,15 @@ class TestCrawler(unittest.TestCase):
             mock_db_cont.select_from_media_url.side_effect = lambda file_name: []
             mock_urlopen.side_effect = Exception()
             for tweet_info in tweet_info_list:
-                actual = crawler.tweet_media_saver_v2(tweet_info, atime, mtime)
-                self.assertEqual(-1, actual)
+                actual = crawler.tweet_media_saver(tweet_info, atime, mtime)
+                self.assertEqual(MediaSaveResult.failed, actual)
 
-    def test_interpret_tweets_v2(self):
+    def test_interpret_tweets(self):
         """ツイートオブジェクトの解釈をチェックする
         """
         with ExitStack() as stack:
             mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
-            mock_tweet_media_saver_v2 = stack.enter_context(patch("PictureGathering.Crawler.Crawler.tweet_media_saver_v2"))
+            mock_tweet_media_saver = stack.enter_context(patch("PictureGathering.Crawler.Crawler.tweet_media_saver"))
 
             crawler = ConcreteCrawler()
 
@@ -527,10 +522,10 @@ class TestCrawler(unittest.TestCase):
                 )
                 expect_args_list.append((tweet_info, atime, mtime))
 
-            actual = crawler.interpret_tweets_v2(tweet_info_list)
-            self.assertIsNone(actual)
+            actual = crawler.interpret_tweets(tweet_info_list)
+            self.assertEqual(Result.success, actual)
 
-            m_calls = mock_tweet_media_saver_v2.mock_calls
+            m_calls = mock_tweet_media_saver.mock_calls[:len(tweet_info_list)]
             self.assertEqual(len(tweet_info_list), len(m_calls))
             for expect, actual in zip(expect_args_list, m_calls):
                 self.assertEqual(call(expect[0], expect[1], expect[2]), actual)
@@ -563,7 +558,7 @@ class TestCrawler(unittest.TestCase):
                 expect_args_list.append(url)
 
             actual = crawler.trace_external_link(external_link_list)
-            self.assertIsNone(actual)
+            self.assertEqual(Result.success, actual)
 
             select_external_link_calls = mock_db_cont.select_external_link.mock_calls
             self.assertEqual(len(external_link_list), len(select_external_link_calls))
@@ -591,7 +586,7 @@ class TestCrawler(unittest.TestCase):
 
             mock_lsb.can_fetch.side_effect = lambda url: False
             actual = crawler.trace_external_link(external_link_list)
-            self.assertIsNone(actual)
+            self.assertEqual(Result.success, actual)
 
             mock_db_cont.upsert_external_link.assert_not_called()
             mock_db_cont.upsert_external_link.reset_mock()
@@ -602,7 +597,7 @@ class TestCrawler(unittest.TestCase):
             mock_lsb.fetch.reset_mock(side_effect=True)
             mock_db_cont.select_external_link.side_effect = lambda url: [url]
             actual = crawler.trace_external_link(external_link_list)
-            self.assertIsNone(actual)
+            self.assertEqual(Result.success, actual)
 
             mock_db_cont.upsert_external_link.assert_not_called()
             mock_db_cont.upsert_external_link.reset_mock()

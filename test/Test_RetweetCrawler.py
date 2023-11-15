@@ -107,7 +107,7 @@ class TestRetweetCrawler(unittest.TestCase):
         with ExitStack() as stack:
             mock_logger = stack.enter_context(patch("PictureGathering.RetweetCrawler.logger.info"))
             mock_noapi_like_fetcher = stack.enter_context(patch("PictureGathering.RetweetCrawler.NoAPIRetweetFetcher"))
-            mock_interpret_tweets = stack.enter_context(patch("PictureGathering.RetweetCrawler.RetweetCrawler.interpret_tweets_v2"))
+            mock_interpret_tweets = stack.enter_context(patch("PictureGathering.RetweetCrawler.RetweetCrawler.interpret_tweets"))
             mock_trace_external_link = stack.enter_context(patch("PictureGathering.RetweetCrawler.RetweetCrawler.trace_external_link"))
             mock_shrink_folder = stack.enter_context(patch("PictureGathering.RetweetCrawler.RetweetCrawler.shrink_folder"))
             mock_end_of_process = stack.enter_context(patch("PictureGathering.RetweetCrawler.RetweetCrawler.end_of_process"))

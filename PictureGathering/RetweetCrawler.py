@@ -7,13 +7,14 @@ from PictureGathering.Crawler import Crawler
 from PictureGathering.LogMessage import MSG
 from PictureGathering.noapi.NoAPIRetweetFetcher import NoAPIRetweetFetcher
 from PictureGathering.RetweetDBController import RetweetDBController
+from PictureGathering.Util import Result
 
 logger = getLogger(__name__)
 logger.setLevel(INFO)
 
 
 class RetweetCrawler(Crawler):
-    def __init__(self):
+    def __init__(self) -> None:
         logger.info(MSG.RTCRAWLER_INIT_START.value)
         super().__init__()
         try:
@@ -22,17 +23,19 @@ class RetweetCrawler(Crawler):
             save_path.mkdir(parents=True, exist_ok=True)
             db_fullpath = save_path / config["save_file_name"]
             self.db_cont = RetweetDBController(db_fullpath)  # テーブルはRetweetを使用
-            if config.getboolean("save_permanent_image_flag"):
-                Path(config["save_permanent_image_path"]).mkdir(parents=True, exist_ok=True)
+
+            config = self.config["save_permanent"]
+            if config.getboolean("save_permanent_media_flag"):
+                Path(config["save_permanent_media_path"]).mkdir(parents=True, exist_ok=True)
 
             self.save_path = Path(self.config["save_directory"]["save_retweet_path"])
             self.type = "RT"
-        except KeyError:
-            logger.exception("invalid config file eeror.")
-            exit(-1)
+        except KeyError as e:
+            logger.exception(e)
+            raise
         logger.info(MSG.RTCRAWLER_INIT_DONE.value)
 
-    def make_done_message(self):
+    def make_done_message(self) -> str:
         now_str = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
         done_msg = "Retweet PictureGathering run.\n"
         done_msg += now_str
@@ -51,7 +54,7 @@ class RetweetCrawler(Crawler):
 
         return done_msg
 
-    def crawl(self):
+    def crawl(self) -> Result:
         logger.info(MSG.RTCRAWLER_CRAWL_START.value)
         logger.info("No API use mode...")
 
@@ -66,7 +69,7 @@ class RetweetCrawler(Crawler):
         # メディア取得
         logger.info(MSG.MEDIA_DOWNLOAD_START.value)
         tweet_info_list = retweet.to_convert_TweetInfo(fetched_tweets)
-        self.interpret_tweets_v2(tweet_info_list)
+        self.interpret_tweets(tweet_info_list)
         logger.info(MSG.MEDIA_DOWNLOAD_DONE.value)
 
         # 外部リンク収集
@@ -80,15 +83,9 @@ class RetweetCrawler(Crawler):
         self.end_of_process()
         logger.info(MSG.RTCRAWLER_CRAWL_DONE.value)
 
-        return 0
+        return Result.success
 
 
 if __name__ == "__main__":
     c = RetweetCrawler()
-
-    # クロール前に保存場所から指定枚数削除しておく
-    # c.shrink_folder(int(c.config["holding"]["holding_file_num"]) - 10)
-    # c.del_cnt = 0
-    # c.del_url_list = []
-
     c.crawl()
