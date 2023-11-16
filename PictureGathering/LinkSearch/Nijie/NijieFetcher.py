@@ -1,12 +1,11 @@
-import re
 import urllib.parse
 from dataclasses import dataclass
 from http.cookiejar import Cookie
 from logging import INFO, getLogger
 from pathlib import Path
 
-import requests
-import requests.cookies
+import httpx
+import orjson
 
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase
 from PictureGathering.LinkSearch.Nijie.NijieCookie import NijieCookie
@@ -30,7 +29,7 @@ class NijieFetcher(FetcherBase):
     # 接続時に使用するヘッダー
     HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"}
     # ログイン情報を保持するクッキーファイル置き場
-    NIJIE_COOKIE_PATH = "./config/nijie_cookie.ini"
+    NIJIE_COOKIE_PATH = "./config/nijie_cookie.json"
 
     def __init__(self, username: Username, password: Password, base_path: Path):
         """初期化処理
@@ -70,31 +69,17 @@ class NijieFetcher(FetcherBase):
             raise TypeError("password is not Password.")
 
         ncp = Path(self.NIJIE_COOKIE_PATH)
-
-        res = None
-        cookies = requests.cookies.RequestsCookieJar()
         if ncp.is_file():
             # クッキーが既に存在している場合
-            # クッキーを読み込む
-            with ncp.open(mode="r") as fin:
-                for line in fin:
-                    if line == "":
-                        break
-
-                    nc = {}
-                    elements = re.split("[,\n]", line)
-                    for element in elements:
-                        element = element.strip().replace('"', "")  # 左右の空白とダブルクォートを除去
-                        if element == "":
-                            break
-
-                        key, val = element.split("=")  # =で分割
-                        nc[key] = val
-
-                    cookies.set(nc["name"], nc["value"], expires=nc["expires"], path=nc["path"], domain=nc["domain"])
-
-            # クッキーが有効かチェック
             try:
+                # クッキーを読み込む
+                cookies_dict: list[dict] = orjson.loads(ncp.read_bytes())
+                cookies = httpx.Cookies()
+                for c in cookies_dict:
+                    # TODO::expires を反映させたい場合は cookies.jar.set_cookie を参照
+                    cookies.set(c["name"], c["value"], domain=c["domain"], path=c["path"])
+
+                # クッキーが有効かチェック
                 res = NijieCookie(cookies, self.HEADERS)
                 return res
             except Exception:
@@ -102,13 +87,15 @@ class NijieFetcher(FetcherBase):
 
         # クッキーが存在していない場合、または有効なクッキーではなかった場合
         # 年齢確認で「はい」を選択したあとのURLにアクセス
-        response = requests.get("https://nijie.info/age_jump.php?url=", headers=self.HEADERS)
+        auth_url = "https://nijie.info/age_jump.php?url="
+        response = httpx.get(auth_url, headers=self.HEADERS, follow_redirects=True)
         response.raise_for_status()
 
         # 認証用URLクエリを取得する
-        qs = urllib.parse.urlparse(response.url).query
+        response_url = str(response.url)
+        qs = urllib.parse.urlparse(response_url).query
         qd = urllib.parse.parse_qs(qs)
-        url = qd["url"][0]
+        url_param = qd["url"][0]
 
         # ログイン時に必要な情報
         payload = {
@@ -116,29 +103,36 @@ class NijieFetcher(FetcherBase):
             "password": password.password,
             "save": "on",
             "ticket": "",
-            "url": url
+            "url": url_param
         }
 
         # ログインする
         login_url = "https://nijie.info/login_int.php"
-        response = requests.post(login_url, data=payload)
+        response = httpx.post(login_url, data=payload, follow_redirects=True)
         response.raise_for_status()
 
         # 以降はクッキーに認証情報が含まれているため、これを用いて各ページをGETする
-        cookies = response.cookies
+        cookies: httpx.Cookies = response.cookies
 
         # クッキーが有効かチェック
         res = NijieCookie(cookies, self.HEADERS)
 
-        # クッキー解析用
-        def cookie_to_string(c: Cookie):
-            return f'name="{c.name}", value="{c.value}", expires={c.expires}, path="{c.path}", domain="{c.domain}"'
+        # クッキー解析
+        cookies_dict: list[dict] = []
+        cookies_jar: dict[str, dict[str, dict[str, Cookie]]] = cookies.jar._cookies
+        for domain, domain_dict in cookies_jar.items():
+            for path, path_dict in domain_dict.items():
+                for name, cookie in path_dict.items():
+                    cookies_dict.append({
+                        "name": name,
+                        "value": cookie.value,
+                        "expires": int(cookie.expires),
+                        "path": path,
+                        "domain": domain,
+                    })
 
         # クッキー情報をファイルに保存する
-        with ncp.open(mode="w") as fout:
-            for c in cookies:
-                fout.write(cookie_to_string(c) + "\n")
-
+        ncp.write_bytes(orjson.dumps(cookies_dict, option=orjson.OPT_INDENT_2))
         return res
 
     def is_target_url(self, url: URL) -> bool:
@@ -153,7 +147,7 @@ class NijieFetcher(FetcherBase):
             bool: 担当urlだった場合True, そうでない場合False
         """
         if not isinstance(url, URL):
-            raise TypeError("url is not Username.")
+            raise TypeError("url is not URL.")
         return NijieURL.is_valid(url.original_url)
 
     def fetch(self, url: str | URL) -> None:
