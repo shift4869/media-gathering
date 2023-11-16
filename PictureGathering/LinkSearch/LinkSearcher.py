@@ -119,7 +119,7 @@ if __name__ == "__main__":
     # url = "https://www.pixiv.net/artworks/86704541"
     # url = "https://www.pixiv.net/novel/show.php?id=17668373"
     # url = "http://nijie.info/view_popup.php?id=251267"
-    url = f"https://seiga.nicovideo.jp/seiga/im5360137?query=1"
+    url = "https://seiga.nicovideo.jp/seiga/im11308865?query=1"
     # url = "https://skeb.jp/@matsukitchi12/works/25?query=1"
     # url = "https://www.anyurl/sample/index_{}.html"
 
