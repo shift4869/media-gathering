@@ -1,10 +1,8 @@
 from dataclasses import dataclass
 
-import requests
+import httpx
 import xmltodict
 from bs4 import BeautifulSoup
-from requests.adapters import HTTPAdapter
-from urllib3.util import Retry
 
 from PictureGathering.LinkSearch.NicoSeiga.Authorid import Authorid
 from PictureGathering.LinkSearch.NicoSeiga.Authorname import Authorname
@@ -23,7 +21,7 @@ class NicoSeigaSession():
     生成時にusernameとpasswordを受け取り、login()にてセッションを開始し、認証・ログインする
     画像情報等ニコニコ静画とのやりとりには以後この認証済セッションを使う
     """
-    _session: requests.Session  # 認証済セッション
+    _session: httpx.Client  # 認証済セッション
 
     # 接続時に使用するヘッダー
     HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"}
@@ -41,14 +39,14 @@ class NicoSeigaSession():
         self._is_valid()
 
     def _is_valid(self) -> bool:
-        if not isinstance(self._session, requests.Session):
-            raise TypeError("_session is not requests.Session.")
+        if not isinstance(self._session, httpx.Client):
+            raise TypeError("_session is not httpx.Client.")
 
         if not self._session:
             return ValueError("NicoSeigaSession _session is invalid.")
         return True
 
-    def login(self, username: Username, password: Password) -> requests.Session:
+    def login(self, username: Username, password: Password) -> httpx.Client:
         """セッションを開始し、認証・ログインする
 
         Args:
@@ -59,10 +57,8 @@ class NicoSeigaSession():
             session (NicoSeigaSession): 認証済セッション
         """
         # セッション開始
-        session = requests.session()
-        retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
-        session.mount("http://", HTTPAdapter(max_retries=retries))
-        session.mount("https://", HTTPAdapter(max_retries=retries))
+        transport = httpx.HTTPTransport(retries=5)
+        session = httpx.Client(follow_redirects=True, timeout=60.0, transport=transport)
 
         # ログイン
         params = {
@@ -71,7 +67,6 @@ class NicoSeigaSession():
         }
         response = session.post(self.LOGIN_ENDPOINT, data=params, headers=self.HEADERS)
         response.raise_for_status()
-
         return session
 
     def get_author_id(self, illust_id: Illustid) -> Authorid:

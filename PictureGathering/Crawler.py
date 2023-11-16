@@ -12,8 +12,8 @@ from logging import INFO, getLogger
 from pathlib import Path
 
 import certifi
+import httpx
 import orjson
-import requests
 from plyer import notification
 from slack_sdk.webhook import WebhookClient
 
@@ -301,7 +301,6 @@ class Crawler(metaclass=ABCMeta):
             Result: 成功時Result.success
         """
         url = self.config["discord_webhook_url"]["webhook_url"]
-
         headers = {
             "Content-Type": "application/json"
         }
@@ -354,7 +353,7 @@ class Crawler(metaclass=ABCMeta):
                 "content": str
             }
 
-        response = requests.post(url, headers=headers, data=orjson.dumps(payload).decode())
+        response = httpx.post(url, headers=headers, data=orjson.dumps(payload).decode())
         response.raise_for_status()
 
         # if response.status_code != 204:  # 成功すると204 No Contentが返ってくる
@@ -378,7 +377,7 @@ class Crawler(metaclass=ABCMeta):
         headers = {"Authorization": "Bearer " + token}
         payload = {"message": str}
 
-        response = requests.post(url, headers=headers, params=payload)
+        response = httpx.post(url, headers=headers, params=payload)
         response.raise_for_status()
 
         # if response.status_code != 200:
@@ -407,7 +406,7 @@ class Crawler(metaclass=ABCMeta):
         return Result.success
 
     def tweet_media_saver(self, tweet_info: TweetInfo, atime: float, mtime: float) -> MediaSaveResult:
-        """指定URLのメディアを保存する
+        """tweet_infoで指定されるツイートのメディアを保存する
 
         Args:
             tweet_info (TweetInfo): メディア含むツイート情報
