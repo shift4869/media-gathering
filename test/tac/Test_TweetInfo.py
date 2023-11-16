@@ -1,7 +1,7 @@
 import sys
 import unittest
 
-from PictureGathering.noapi.TweetInfo import TweetInfo
+from PictureGathering.tac.TweetInfo import TweetInfo
 
 
 class TestTweetInfo(unittest.TestCase):

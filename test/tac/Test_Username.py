@@ -5,7 +5,7 @@
 import sys
 import unittest
 
-from PictureGathering.noapi.Username import Username
+from PictureGathering.tac.Username import Username
 
 
 class TestUsername(unittest.TestCase):

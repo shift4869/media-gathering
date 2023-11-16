@@ -5,8 +5,8 @@ from pathlib import Path
 
 from PictureGathering.Crawler import Crawler
 from PictureGathering.LogMessage import MSG
-from PictureGathering.noapi.NoAPIRetweetFetcher import NoAPIRetweetFetcher
 from PictureGathering.RetweetDBController import RetweetDBController
+from PictureGathering.tac.RetweetFetcher import RetweetFetcher
 from PictureGathering.Util import Result
 
 logger = getLogger(__name__)
@@ -63,7 +63,7 @@ class RetweetCrawler(Crawler):
         auth_token = config["auth_token"]
         target_screen_name = config["target_screen_name"]
         target_id = int(config["target_id"])
-        retweet = NoAPIRetweetFetcher(ct0, auth_token, target_screen_name, target_id)
+        retweet = RetweetFetcher(ct0, auth_token, target_screen_name, target_id)
         fetched_tweets = retweet.fetch()
 
         # メディア取得

@@ -15,11 +15,11 @@ from PictureGathering.LinkSearch.FetcherBase import FetcherBase
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LinkSearch.URL import URL
 from PictureGathering.Model import ExternalLink
-from PictureGathering.noapi.NoAPILikeFetcher import NoAPILikeFetcher
-from PictureGathering.noapi.TweetInfo import TweetInfo
+from PictureGathering.tac.RetweetFetcher import RetweetFetcher
+from PictureGathering.tac.TweetInfo import TweetInfo
 
 
-class TestNoAPILikeFetcher(unittest.TestCase):
+class TestRetweetFetcher(unittest.TestCase):
     def setUp(self):
         self.ct0 = "dummy_ct0"
         self.auth_token = "dummy_auth_token"
@@ -29,11 +29,11 @@ class TestNoAPILikeFetcher(unittest.TestCase):
         self.TWITTER_CACHE_PATH = Path(__file__).parent / "cache/actual"
 
         with ExitStack() as stack:
-            mock_twitter = stack.enter_context(patch("PictureGathering.noapi.NoAPILikeFetcher.TwitterAPIClientAdapter"))
+            mock_twitter = stack.enter_context(patch("PictureGathering.tac.RetweetFetcher.TwitterAPIClientAdapter"))
             self.mock_twitter = MagicMock()
             mock_twitter.side_effect = lambda ct0, auth_token, target_screen_name, target_id: self.mock_twitter
 
-            self.fetcher = NoAPILikeFetcher(self.ct0, self.auth_token, self.target_screen_name, self.target_id)
+            self.fetcher = RetweetFetcher(self.ct0, self.auth_token, self.target_screen_name, self.target_id)
             self.fetcher.TWITTER_CACHE_PATH = self.TWITTER_CACHE_PATH
 
             mock_twitter.assert_called_once_with(self.ct0, self.auth_token, self.target_screen_name, self.target_id)
@@ -44,7 +44,7 @@ class TestNoAPILikeFetcher(unittest.TestCase):
 
     def _get_sample_json(self) -> list[dict]:
         TEST_CACHE_PATH = self.TWITTER_CACHE_PATH.parent / "expect"
-        with (TEST_CACHE_PATH / "content_cache_likes_test.txt").open("r", encoding="utf8") as fin:
+        with (TEST_CACHE_PATH / "content_cache_timeline_test.txt").open("r", encoding="utf8") as fin:
             return json.load(fin)
 
     def _get_tweets(self):
@@ -77,29 +77,29 @@ class TestNoAPILikeFetcher(unittest.TestCase):
         self.assertEqual(self.TWITTER_CACHE_PATH, self.fetcher.TWITTER_CACHE_PATH)
         self.assertEqual(self.mock_twitter, self.fetcher.twitter)
 
-    def test_get_like_jsons(self):
+    def test_get_retweet_jsons(self):
         with ExitStack() as stack:
-            mock_logger_info = stack.enter_context(patch("PictureGathering.noapi.NoAPILikeFetcher.logger.info"))
+            mock_logger_info = stack.enter_context(patch("PictureGathering.tac.RetweetFetcher.logger.info"))
             r = MagicMock()
 
             DUP_NUM = 3
             sample_jsons = list(repeat(self._get_sample_json(), DUP_NUM))
-            r.likes.side_effect = lambda user_ids, limit: sample_jsons
+            r.tweets_and_replies.side_effect = lambda user_ids, limit: sample_jsons
             self.fetcher.twitter.scraper = r
             self.fetcher.twitter.target_id = self.target_id
 
             limit = 400
-            actual = self.fetcher.get_like_jsons(limit)
+            actual = self.fetcher.get_retweet_jsons(limit)
             self.assertEqual(sample_jsons, actual)
 
-            expect = [f"likes_{i:02}.json" for i in range(DUP_NUM)]
-            actual_cache = self.fetcher.TWITTER_CACHE_PATH.glob("likes*.json")
+            expect = [f"timeline_tweets_{i:02}.json" for i in range(DUP_NUM)]
+            actual_cache = self.fetcher.TWITTER_CACHE_PATH.glob("timeline_tweets*.json")
             actual = [p.name for p in actual_cache]
             expect.sort()
             actual.sort()
             self.assertEqual(expect, actual)
 
-            r.likes.assert_called_once_with([int(self.target_id)], limit=limit)
+            r.tweets_and_replies.assert_called_once_with([int(self.target_id)], limit=limit)
 
     def test_interpret_json(self):
         tweets = self._get_tweets()
@@ -114,11 +114,13 @@ class TestNoAPILikeFetcher(unittest.TestCase):
             [tweets[4]],
             [tweets[5]],
             [tweets[6]],
-            [tweets[7].get("retweeted_status_result", {})
+            [tweets[7].get("legacy", {})
+                      .get("retweeted_status_result", {})
                       .get("result", {})],
             [tweets[8].get("quoted_status_result", {})
                       .get("result", {})],
-            [tweets[9].get("retweeted_status_result", {})
+            [tweets[9].get("legacy", {})
+                      .get("retweeted_status_result", {})
                       .get("result", {})
                       .get("quoted_status_result", {})
                       .get("result", {})],
@@ -130,9 +132,9 @@ class TestNoAPILikeFetcher(unittest.TestCase):
 
     def test_fetch(self):
         with ExitStack() as stack:
-            mock_get_like_jsons = stack.enter_context(patch("PictureGathering.noapi.NoAPILikeFetcher.NoAPILikeFetcher.get_like_jsons"))
+            mock_get_retweet_jsons = stack.enter_context(patch("PictureGathering.tac.RetweetFetcher.RetweetFetcher.get_retweet_jsons"))
             actual = self.fetcher.fetch()
-            mock_get_like_jsons.assert_called_once_with()
+            mock_get_retweet_jsons.assert_called_once_with()
 
     def test_find_values(self):
         fetched_tweets = [self._get_sample_json()]
@@ -542,7 +544,7 @@ class TestNoAPILikeFetcher(unittest.TestCase):
                 tweet_url = f"https://twitter.com/{screan_name}/status/{tweet_id}"
 
                 # created_at を解釈する
-                # Like した時点の時間が取得できる？
+                # Retweet した時点の時間が取得できる？
                 td_format = "%a %b %d %H:%M:%S +0000 %Y"
                 dts_format = "%Y-%m-%d %H:%M:%S"
                 jst = datetime.strptime(created_at, td_format) + timedelta(hours=9)

@@ -106,7 +106,7 @@ class TestRetweetCrawler(unittest.TestCase):
         """
         with ExitStack() as stack:
             mock_logger = stack.enter_context(patch("PictureGathering.RetweetCrawler.logger.info"))
-            mock_noapi_like_fetcher = stack.enter_context(patch("PictureGathering.RetweetCrawler.NoAPIRetweetFetcher"))
+            mock_tac_like_fetcher = stack.enter_context(patch("PictureGathering.RetweetCrawler.RetweetFetcher"))
             mock_interpret_tweets = stack.enter_context(patch("PictureGathering.RetweetCrawler.RetweetCrawler.interpret_tweets"))
             mock_trace_external_link = stack.enter_context(patch("PictureGathering.RetweetCrawler.RetweetCrawler.trace_external_link"))
             mock_shrink_folder = stack.enter_context(patch("PictureGathering.RetweetCrawler.RetweetCrawler.shrink_folder"))
@@ -120,7 +120,7 @@ class TestRetweetCrawler(unittest.TestCase):
             mock_rt_instance.to_convert_TweetInfo.side_effect = lambda ft: ["to_convert_TweetInfo"]
             mock_rt_instance.to_convert_ExternalLink.side_effect = lambda ft, lsb: ["to_convert_ExternalLink"]
 
-            mock_noapi_like_fetcher.side_effect = lambda ct0, auth_token, target_screen_name, target_id: mock_rt_instance
+            mock_tac_like_fetcher.side_effect = lambda ct0, auth_token, target_screen_name, target_id: mock_rt_instance
 
             rc.config["twitter_api_client"]["ct0"] = "dummy_ct0"
             rc.config["twitter_api_client"]["auth_token"] = "dummy_auth_token"
@@ -129,7 +129,7 @@ class TestRetweetCrawler(unittest.TestCase):
 
             res = rc.crawl()
 
-            mock_noapi_like_fetcher.assert_called_once_with("dummy_ct0", "dummy_auth_token", "dummy_target_screen_name", 99999999)
+            mock_tac_like_fetcher.assert_called_once_with("dummy_ct0", "dummy_auth_token", "dummy_target_screen_name", 99999999)
             mock_rt_instance.fetch.assert_called_once_with()
 
             mock_rt_instance.to_convert_TweetInfo.assert_called_once_with(["fetched_tweets"])

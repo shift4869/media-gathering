@@ -22,7 +22,7 @@ from PictureGathering.DBControllerBase import DBControllerBase
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LogMessage import MSG
 from PictureGathering.Model import ExternalLink
-from PictureGathering.noapi.TweetInfo import TweetInfo
+from PictureGathering.tac.TweetInfo import TweetInfo
 from PictureGathering.Util import Result
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)

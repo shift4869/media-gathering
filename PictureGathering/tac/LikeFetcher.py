@@ -9,23 +9,18 @@ from logging import INFO, getLogger
 from pathlib import Path
 from typing import Any
 
-from twitter.scraper import Scraper
-
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.Model import ExternalLink
-from PictureGathering.noapi.TweetInfo import TweetInfo
-from PictureGathering.noapi.TwitterAPIClientAdapter import TwitterAPIClientAdapter
-from PictureGathering.noapi.Username import Username
+from PictureGathering.tac.TweetInfo import TweetInfo
+from PictureGathering.tac.TwitterAPIClientAdapter import TwitterAPIClientAdapter
+from PictureGathering.tac.Username import Username
 
 logger = getLogger(__name__)
 logger.setLevel(INFO)
 
 
-class NoAPIRetweetFetcher():
-    ct0: str
-    auth_token: str
-    target_screen_name: Username
-    target_id: int
+class LikeFetcher():
+    twitter: TwitterAPIClientAdapter
 
     # キャッシュファイルパス
     TWITTER_CACHE_PATH = Path(__file__).parent / "cache/"
@@ -36,33 +31,31 @@ class NoAPIRetweetFetcher():
         # ct0 と auth_token が紐づくアカウントと、 target_id は一致しなくても良い（前者のアカウントで後者の id のTL等を見に行く形になる）
         self.twitter = TwitterAPIClientAdapter(ct0, auth_token, target_screen_name, target_id)
 
-    def get_retweet_jsons(self, limit: int = 400) -> list[dict]:
+    def get_like_jsons(self, limit: int = 400) -> list[dict]:
         logger.info("Fetched Tweet by TAC -> start")
 
         # キャッシュ保存場所の準備
-        self.redirect_urls = []
-        self.content_list = []
         base_path = Path(self.TWITTER_CACHE_PATH)
         if base_path.is_dir():
             shutil.rmtree(base_path)
         base_path.mkdir(parents=True, exist_ok=True)
 
-        # TAC で TL をスクレイピング
+        # TAC で likes ページをスクレイピング
         scraper = self.twitter.scraper
-        timeline_tweets = scraper.tweets_and_replies([self.twitter.target_id], limit=limit)
+        likes = scraper.likes([self.twitter.target_id], limit=limit)
 
         # キャッシュに保存
-        for i, tweet in enumerate(timeline_tweets):
-            with Path(base_path / f"timeline_tweets_{i:02}.json").open("w", encoding="utf8") as fout:
-                json.dump(tweet, fout, indent=4, sort_keys=True)
+        for i, like in enumerate(likes):
+            with Path(base_path / f"likes_{i:02}.json").open("w", encoding="utf8") as fout:
+                json.dump(like, fout, indent=4, sort_keys=True)
 
         # キャッシュから読み込み
         # 保存して読み込みをするのでほぼ同一の内容になる
         # 違いは result は json.dump→json.load したときに、エンコード等が吸収されていること
         result: list[dict] = []
-        n = len(timeline_tweets)
+        n = len(likes)
         for i in range(n):
-            with Path(base_path / f"timeline_tweets_{i:02}.json").open("r", encoding="utf8") as fin:
+            with Path(base_path / f"likes_{i:02}.json").open("r", encoding="utf8") as fin:
                 json_dict = json.load(fin)
                 result.append(json_dict)
 
@@ -139,28 +132,27 @@ class NoAPIRetweetFetcher():
         match tweet:
             case {
                 "legacy": {
-                    # "retweeted": True,
-                    "retweeted_status_result": {
-                        "result": {
-                            "legacy": {
-                                "extended_entities": _,
-                                "id_str": id_str,
-                            },
+                    "retweeted": True,
+                },
+                "retweeted_status_result": {
+                    "result": {
+                        "legacy": {
+                            "extended_entities": _,
+                            "id_str": id_str,
                         },
                     },
                 },
             } if id_str not in id_str_list:
-                legacy_tweet = tweet.get("legacy", {})
-                retweeted_tweet = legacy_tweet.get("retweeted_status_result", {}).get("result", {})
+                retweeted_tweet = tweet.get("retweeted_status_result", {}).get("result", {})
                 result.append(retweeted_tweet)
                 id_str_list.append(id_str)
 
         # (4)メディアが添付されているツイートが引用RTされている場合
         match tweet:
             case {
-                # "legacy": {
-                #     "is_quote_status": True,
-                # },
+                "legacy": {
+                    "is_quote_status": True,
+                },
                 "quoted_status_result": {
                     "result": {
                         "legacy": {
@@ -178,26 +170,23 @@ class NoAPIRetweetFetcher():
         match tweet:
             case {
                 "legacy": {
-                    # "retweeted": True,
-                    "retweeted_status_result": {
-                        "result": {
-                            "legacy": {
-                                "is_quote_status": True,
-                            },
-                            "quoted_status_result": {
-                                "result": {
-                                    "legacy": {
-                                        "extended_entities": _,
-                                        "id_str": id_str,
-                                    }
+                    "retweeted": True,
+                },
+                "retweeted_status_result": {
+                    "result": {
+                        "is_quote_status": True,
+                        "quoted_status_result": {
+                            "result": {
+                                "legacy": {
+                                    "extended_entities": _,
+                                    "id_str": id_str,
                                 },
                             },
                         },
                     },
                 },
             } if id_str not in id_str_list:
-                legacy_tweet = tweet.get("legacy", {})
-                retweeted_tweet = legacy_tweet.get("retweeted_status_result", {}).get("result", {})
+                retweeted_tweet = tweet.get("retweeted_status_result", {}).get("result", {})
                 quoted_tweet = retweeted_tweet.get("quoted_status_result", {}).get("result", {})
                 result.append(quoted_tweet)
                 id_str_list.append(id_str)
@@ -205,12 +194,12 @@ class NoAPIRetweetFetcher():
         return result
 
     def fetch(self) -> list[dict]:
-        """TL ページをクロールしてロード時のJSONをキャプチャする
+        """Likes ページをクロールしてロード時のJSONをキャプチャする
 
         Returns:
             list[dict]: ツイートオブジェクトを表すJSONリスト
         """
-        result = self.get_retweet_jsons()
+        result = self.get_like_jsons()
         return result
 
     def _find_values(self, obj: dict | list[dict], key: str) -> list:
@@ -405,7 +394,7 @@ class NoAPIRetweetFetcher():
         return {}
 
     def to_convert_TweetInfo(self, fetched_tweets: list[dict]) -> list[TweetInfo]:
-        """取得した TL ツイートオブジェクトから TweetInfo リストを作成する
+        """取得した Likes ツイートオブジェクトから TweetInfo リストを作成する
 
         Args:
             fetched_tweets (list[dict]): self.fetch() 後の返り値
@@ -419,7 +408,7 @@ class NoAPIRetweetFetcher():
             return []
 
         # 辞書パース
-        # fetched_tweets は TL 内のツイートが入っている想定
+        # fetched_tweets は Likes のツイートが入っている想定
         # media を含むかどうかはこの時点では don't care
         target_data_list: list[dict] = []
         tweet_results: list[dict] = self._find_values(fetched_tweets, "tweet_results")
@@ -429,7 +418,7 @@ class NoAPIRetweetFetcher():
                 target_data_list.extend(t2)
 
         if not target_data_list:
-            # 辞書パースエラー or 1件も TL にツイートが無かった
+            # 辞書パースエラー or 1件も Likes にツイートが無かった
             # raise ValueError("no tweet included in fetched_tweets.")
             return []
 
@@ -454,10 +443,10 @@ class NoAPIRetweetFetcher():
             author_id = tweet_dict.get("author_id", "")
             id_str = tweet_dict.get("id_str", "")
 
-            retweeted_tweet_id = id_str
+            liked_tweet_id = id_str
             tweet_via = via
 
-            if retweeted_tweet_id in seen_ids:
+            if liked_tweet_id in seen_ids:
                 continue
 
             user_id = author_id
@@ -469,6 +458,7 @@ class NoAPIRetweetFetcher():
             tweet_url = extended_entities.get("media", [{}])[0].get("expanded_url", "")
 
             # created_at を解釈する
+            # Like した時点の時間が取得できる？
             td_format = "%a %b %d %H:%M:%S +0000 %Y"
             dts_format = "%Y-%m-%d %H:%M:%S"
             jst = datetime.strptime(created_at, td_format) + timedelta(hours=9)
@@ -486,11 +476,11 @@ class NoAPIRetweetFetcher():
                 media_thumbnail_url = media_dict.get("media_thumbnail_url", "")
 
                 # resultレコード作成
-                tweet = {
+                r = {
                     "media_filename": media_filename,
                     "media_url": media_url,
                     "media_thumbnail_url": media_thumbnail_url,
-                    "tweet_id": retweeted_tweet_id,
+                    "tweet_id": liked_tweet_id,
                     "tweet_url": tweet_url,
                     "created_at": dst,
                     "user_id": user_id,
@@ -499,15 +489,15 @@ class NoAPIRetweetFetcher():
                     "tweet_text": tweet_text,
                     "tweet_via": tweet_via,
                 }
-                result.append(TweetInfo.create(tweet))
+                result.append(TweetInfo.create(r))
 
-                if retweeted_tweet_id not in seen_ids:
-                    seen_ids.append(retweeted_tweet_id)
+                if liked_tweet_id not in seen_ids:
+                    seen_ids.append(liked_tweet_id)
         result.reverse()
         return result
 
     def to_convert_ExternalLink(self, fetched_tweets: list[dict], link_searcher: LinkSearcher) -> list[ExternalLink]:
-        """取得した TL ツイートオブジェクトから ExternalLink のリストを返す
+        """取得した Likes ツイートオブジェクトから ExternalLink のリストを返す
 
         Args:
             fetched_tweets (list[dict]): self.fetch() 後の返り値
@@ -572,6 +562,7 @@ class NoAPIRetweetFetcher():
             tweet_url = f"https://twitter.com/{screan_name}/status/{tweet_id}"
 
             # created_at を解釈する
+            # Like した時点の時間が取得できる？
             td_format = "%a %b %d %H:%M:%S +0000 %Y"
             dts_format = "%Y-%m-%d %H:%M:%S"
             jst = datetime.strptime(created_at, td_format) + timedelta(hours=9)
@@ -625,21 +616,25 @@ if __name__ == "__main__":
     auth_token = config["auth_token"]
     target_screen_name = config["target_screen_name"]
     target_id = int(config["target_id"])
-    retweet = NoAPIRetweetFetcher(ct0, auth_token, target_screen_name, target_id)
+    like = LikeFetcher(ct0, auth_token, target_screen_name, target_id)
 
-    # retweet取得
-    fetched_tweets = retweet.fetch()
+    # like取得
+    # fetched_tweets = like.fetch()
 
     # キャッシュから読み込み
-    base_path = Path(retweet.TWITTER_CACHE_PATH)
+    base_path = Path(like.TWITTER_CACHE_PATH)
     fetched_tweets = []
-    for cache_path in base_path.glob("*timeline_tweets*"):
+    for cache_path in base_path.glob("*likes*"):
         with cache_path.open("r", encoding="utf8") as fin:
             json_dict = json.load(fin)
             fetched_tweets.append(json_dict)
 
+    # find_value テスト
+    # result = like._find_values(fetched_tweets, "tweet_results")
+    # pprint.pprint(result)
+
     # メディア取得
-    tweet_info_list = retweet.to_convert_TweetInfo(fetched_tweets)
+    tweet_info_list = like.to_convert_TweetInfo(fetched_tweets)
     # pprint.pprint(tweet_info_list)
     pprint.pprint(len(tweet_info_list))
 
@@ -647,6 +642,6 @@ if __name__ == "__main__":
     config = config_parser
     config["skeb"]["is_skeb_trace"] = "False"
     lsb = LinkSearcher.create(config)
-    external_link_list = retweet.to_convert_ExternalLink(fetched_tweets, lsb)
+    external_link_list = like.to_convert_ExternalLink(fetched_tweets, lsb)
     # pprint.pprint(external_link_list)
     pprint.pprint(len(external_link_list))

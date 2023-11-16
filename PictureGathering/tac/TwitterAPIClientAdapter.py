@@ -3,7 +3,7 @@ from logging import INFO, getLogger
 from twitter.account import Account
 from twitter.scraper import Scraper
 
-from PictureGathering.noapi.Username import Username
+from PictureGathering.tac.Username import Username
 
 logger = getLogger(__name__)
 logger.setLevel(INFO)

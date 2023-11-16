@@ -22,7 +22,7 @@ from mock import MagicMock, PropertyMock, patch
 
 from PictureGathering.Crawler import Crawler, MediaSaveResult
 from PictureGathering.Model import ExternalLink
-from PictureGathering.noapi.TweetInfo import TweetInfo
+from PictureGathering.tac.TweetInfo import TweetInfo
 from PictureGathering.Util import Result
 
 logger = getLogger("PictureGathering.Crawler")
