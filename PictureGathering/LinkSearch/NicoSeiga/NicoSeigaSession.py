@@ -90,7 +90,7 @@ class NicoSeigaSession():
 
         # 静画情報解析
         response_dict = xmltodict.parse(response.text)
-        author_id_str = find_values(response_dict, "user_id", [], [], True)
+        author_id_str = find_values(response_dict, "user_id", True, [], [])
         author_id = int(author_id_str)
         return Authorid(author_id)
 
@@ -110,7 +110,7 @@ class NicoSeigaSession():
 
         # 作者情報解析
         response_dict = xmltodict.parse(response.text)
-        author_name = find_values(response_dict, "nickname", [], [], True)
+        author_name = find_values(response_dict, "nickname", True, [], [])
         return Authorname(author_name)
 
     def get_illust_title(self, illust_id: Illustid) -> Illustname:
@@ -129,7 +129,7 @@ class NicoSeigaSession():
 
         # 静画情報解析
         response_dict = xmltodict.parse(response.text)
-        illust_title = find_values(response_dict, "title", [], [], True)
+        illust_title = find_values(response_dict, "title", True, [], [])
         return Illustname(illust_title)
 
     def get_source_url(self, illust_id: Illustid) -> URL:
