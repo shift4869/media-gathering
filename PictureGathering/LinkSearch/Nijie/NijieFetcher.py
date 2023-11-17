@@ -126,7 +126,7 @@ class NijieFetcher(FetcherBase):
                     cookies_dict.append({
                         "name": name,
                         "value": cookie.value,
-                        "expires": int(cookie.expires),
+                        "expires": int(cookie.expires) if cookie.expires else None,
                         "path": path,
                         "domain": domain,
                     })

@@ -41,9 +41,6 @@ class NicoSeigaSession():
     def _is_valid(self) -> bool:
         if not isinstance(self._session, httpx.Client):
             raise TypeError("_session is not httpx.Client.")
-
-        if not self._session:
-            return ValueError("NicoSeigaSession _session is invalid.")
         return True
 
     def login(self, username: Username, password: Password) -> httpx.Client:

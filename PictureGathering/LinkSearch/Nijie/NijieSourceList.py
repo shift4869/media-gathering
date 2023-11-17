@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable, Iterator, Self
 
 from PictureGathering.LinkSearch.URL import URL
 
@@ -21,17 +21,17 @@ class NijieSourceList(Iterable):
             if not all([isinstance(r, URL) for r in self._list]):
                 raise ValueError("include not URL element, invalid NijieSourceList")
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[URL]:
         return self._list.__iter__()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self._list.__len__()
 
-    def __getitem__(self, i):
+    def __getitem__(self, i) -> URL:
         return self._list.__getitem__(i)
 
     @classmethod
-    def create(cls, nijie_url_list: list[URL] | list[str]) -> "NijieSourceList":
+    def create(cls, nijie_url_list: list[URL] | list[str]) -> Self:
         if not isinstance(nijie_url_list, list):
             raise TypeError("Args is not list.")
         if not nijie_url_list:

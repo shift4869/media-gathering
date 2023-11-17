@@ -7,8 +7,7 @@ import unittest
 from contextlib import ExitStack
 from unittest.mock import MagicMock, call, patch
 
-import requests
-from urllib3.util import Retry
+import httpx
 
 from PictureGathering.LinkSearch.NicoSeiga.Authorid import Authorid
 from PictureGathering.LinkSearch.NicoSeiga.Authorname import Authorname
@@ -23,14 +22,14 @@ from PictureGathering.LinkSearch.Username import Username
 class TestNicoSeigaSession(unittest.TestCase):
     def _get_session(self):
         with ExitStack() as stack:
-            mock_session = stack.enter_context(patch("PictureGathering.LinkSearch.NicoSeiga.NicoSeigaSession.requests.session"))
+            mock_session = stack.enter_context(patch("PictureGathering.LinkSearch.NicoSeiga.NicoSeigaSession.httpx.Client"))
             mock_is_valid = stack.enter_context(patch("PictureGathering.LinkSearch.NicoSeiga.NicoSeigaSession.NicoSeigaSession._is_valid"))
 
             IMAGE_INFO_API_ENDPOINT_BASE = "http://seiga.nicovideo.jp/api/illust/info?id="
             USERNAME_API_ENDPOINT_BASE = "https://seiga.nicovideo.jp/api/user/info?id="
             IMAGE_SOUECE_API_ENDPOINT_BASE = "http://seiga.nicovideo.jp/image/source?id="
 
-            def return_get_lxml(url, headers):
+            def return_get_html(url, headers):
                 r = MagicMock()
                 if IMAGE_INFO_API_ENDPOINT_BASE in url:
                     r.text = "<image><user_id>1234567</user_id><title>title_1</title></image>"
@@ -44,11 +43,11 @@ class TestNicoSeigaSession(unittest.TestCase):
                 return r
 
             return_get = MagicMock()
-            return_get.get = return_get_lxml
+            return_get.get = return_get_html
 
-            mock_session.side_effect = lambda: return_get
-            username = Username("name")
-            password = Password("pass")
+            mock_session.side_effect = lambda follow_redirects, timeout, transport: return_get
+            username = Username("dummy_name")
+            password = Password("dummy_pass")
             return NicoSeigaSession(username, password)
 
     def test_NicoSeigaSession(self):
@@ -69,7 +68,7 @@ class TestNicoSeigaSession(unittest.TestCase):
     def test_is_valid(self):
         session = self._get_session()
 
-        object.__setattr__(session, "_session", requests.Session())
+        object.__setattr__(session, "_session", httpx.Client())
         actual = session._is_valid()
         self.assertTrue(actual)
 
@@ -82,16 +81,14 @@ class TestNicoSeigaSession(unittest.TestCase):
         session_mock: MagicMock = session._session
         mock_calls = session_mock.mock_calls
 
-        username = "name"
-        password = "pass"
+        username = "dummy_name"
+        password = "dummy_pass"
         params = {
             "mail_tel": username,
             "password": password,
         }
-        self.assertEqual("http://", mock_calls[0].args[0])
-        self.assertEqual("https://", mock_calls[1].args[0])
-        self.assertEqual(call.post(session.LOGIN_ENDPOINT, data=params, headers=session.HEADERS), mock_calls[2])
-        self.assertEqual(call.post().raise_for_status(), mock_calls[3])
+        self.assertEqual(call.post(session.LOGIN_ENDPOINT, data=params, headers=session.HEADERS), mock_calls[0])
+        self.assertEqual(call.post().raise_for_status(), mock_calls[1])
 
     def test_get_author_id(self):
         session = self._get_session()

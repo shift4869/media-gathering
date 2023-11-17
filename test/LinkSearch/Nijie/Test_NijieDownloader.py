@@ -56,7 +56,7 @@ class TestNijieDownloader(unittest.TestCase):
 
     def test_download(self):
         with ExitStack() as stack:
-            mock_get = stack.enter_context(patch("PictureGathering.LinkSearch.Nijie.NijieDownloader.requests.get"))
+            mock_session = stack.enter_context(patch("PictureGathering.LinkSearch.Nijie.NijieDownloader.httpx.Client"))
             mock_logger_info = stack.enter_context(patch("PictureGathering.LinkSearch.Nijie.NijieDownloader.logger.info"))
             mock_sleep = stack.enter_context(patch("PictureGathering.LinkSearch.Nijie.NijieDownloader.sleep"))
 
@@ -72,7 +72,9 @@ class TestNijieDownloader(unittest.TestCase):
                 </div>
             """
             mock_res.content = b"dummy_content"
-            mock_get.side_effect = lambda url, headers, cookies: mock_res
+            mock_get = MagicMock()
+            mock_get.get.side_effect = lambda url, headers, cookies: mock_res
+            mock_session.side_effect = lambda follow_redirects, timeout, transport: mock_get
 
             nijie_url = NijieURL.create(f"http://nijie.info/view_popup.php?id={work_id}")
             base_path = Path(self.TBP)

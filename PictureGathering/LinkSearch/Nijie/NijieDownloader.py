@@ -4,7 +4,7 @@ from logging import INFO, getLogger
 from pathlib import Path
 from time import sleep
 
-import requests
+import httpx
 from bs4 import BeautifulSoup
 
 from PictureGathering.LinkSearch.Nijie.NijieCookie import NijieCookie
@@ -51,7 +51,9 @@ class NijieDownloader():
         work_url = f"http://nijie.info/view_popup.php?id={work_id}"
         headers = self.cookies._headers
         cookies = self.cookies._cookies
-        res = requests.get(work_url, headers=headers, cookies=cookies)
+        transport = httpx.HTTPTransport(retries=5)
+        session = httpx.Client(follow_redirects=True, timeout=60.0, transport=transport)
+        res = session.get(work_url, headers=headers, cookies=cookies)
         res.raise_for_status()
 
         # BeautifulSoupを用いてhtml解析を行う
@@ -80,7 +82,7 @@ class NijieDownloader():
             # 画像をDLする
             # ファイル名は{イラストタイトル}({イラストID})_{3ケタの連番}.{拡張子}
             for i, url in enumerate(urls):
-                res = requests.get(url.original_url, headers=headers, cookies=cookies)
+                res = session.get(url.original_url, headers=headers, cookies=cookies)
                 res.raise_for_status()
 
                 ext = Path(url.original_url).suffix
@@ -106,7 +108,7 @@ class NijieDownloader():
                 return DownloadResult.PASSED
 
             # 画像をDLする
-            res = requests.get(url.original_url, headers=headers, cookies=cookies)
+            res = session.get(url.original_url, headers=headers, cookies=cookies)
             res.raise_for_status()
 
             # {作者名}ディレクトリ直下に保存
@@ -136,8 +138,8 @@ if __name__ == "__main__":
     if config["nijie"].getboolean("is_nijie_trace"):
         fetcher = NijieFetcher(Username(config["nijie"]["email"]), Password(config["nijie"]["password"]), base_path)
 
-        work_id = 251267  # 一枚絵
-        # work_id = 251197  # 漫画
+        # work_id = 251267  # 一枚絵
+        work_id = 251197  # 漫画
         # work_id = 414793  # うごイラ一枚
         # work_id = 409587  # うごイラ複数
 

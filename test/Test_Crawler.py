@@ -77,11 +77,6 @@ class ConcreteCrawler(Crawler):
 class TestCrawler(unittest.TestCase):
     """テストメインクラス
     """
-
-    def setUp(self):
-        # requestsのResourceWarning抑制
-        warnings.simplefilter("ignore", ResourceWarning)
-
     def _make_tweet_info(self, i: int) -> TweetInfo:
         arg_dict = {
             "media_filename": f"sample_photo_{i:02}.mp4",
@@ -378,7 +373,7 @@ class TestCrawler(unittest.TestCase):
         """
         with ExitStack() as stack:
             mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
-            mock_req = stack.enter_context(patch("PictureGathering.Crawler.requests.post"))
+            mock_req = stack.enter_context(patch("PictureGathering.Crawler.httpx.post"))
 
             crawler = ConcreteCrawler()
 
@@ -398,7 +393,7 @@ class TestCrawler(unittest.TestCase):
         """
         with ExitStack() as stack:
             mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
-            mock_req = stack.enter_context(patch("PictureGathering.Crawler.requests.post"))
+            mock_req = stack.enter_context(patch("PictureGathering.Crawler.httpx.post"))
 
             crawler = ConcreteCrawler()
 

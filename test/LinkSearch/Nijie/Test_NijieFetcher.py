@@ -1,4 +1,4 @@
-"""NijieDownloader のテスト
+"""NijieFetcher のテスト
 """
 import shutil
 import sys
@@ -6,7 +6,7 @@ import unittest
 from contextlib import ExitStack
 from pathlib import Path
 
-import requests.cookies
+import httpx
 from mock import MagicMock, call, mock_open, patch
 
 from PictureGathering.LinkSearch.Nijie.NijieFetcher import NijieFetcher
@@ -46,7 +46,7 @@ class TestNijieFetcher(unittest.TestCase):
 
         expect = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"}
         self.assertEqual(expect, actual.HEADERS)
-        expect = "./config/nijie_cookie.ini"
+        expect = "./config/nijie_cookie.json"
         self.assertEqual(expect, actual.NIJIE_COOKIE_PATH)
 
         # 異常系
@@ -64,8 +64,8 @@ class TestNijieFetcher(unittest.TestCase):
 
         with ExitStack() as stack:
             mock_path_open = stack.enter_context(patch("PictureGathering.LinkSearch.Nijie.NijieFetcher.Path.open", mock_open()))
-            mock_get = stack.enter_context(patch("PictureGathering.LinkSearch.Nijie.NijieFetcher.requests.get"))
-            mock_post = stack.enter_context(patch("PictureGathering.LinkSearch.Nijie.NijieFetcher.requests.post"))
+            mock_get = stack.enter_context(patch("PictureGathering.LinkSearch.Nijie.NijieFetcher.httpx.get"))
+            mock_post = stack.enter_context(patch("PictureGathering.LinkSearch.Nijie.NijieFetcher.httpx.post"))
             mock_nijie_cookie = stack.enter_context(patch("PictureGathering.LinkSearch.Nijie.NijieFetcher.NijieCookie"))
 
             # クッキーが存在しない場合
@@ -75,26 +75,26 @@ class TestNijieFetcher(unittest.TestCase):
 
             mock_get_res = MagicMock()
             mock_get_res.url = "https://nijie.info/for_login_url?url=for_login_url"
-            mock_get.side_effect = lambda url, headers: mock_get_res
+            mock_get.side_effect = lambda url, headers, follow_redirects: mock_get_res
 
-            jar = requests.cookies.RequestsCookieJar()
+            jar = httpx.Cookies()
             jar.set(
                 name="dummy_name",
                 value="dummy_value",
-                expires=99999999,
                 path="/",
-                domain=".",
+                domain=".dummy.domain",
             )
             mock_post_res = MagicMock()
             mock_post_res.cookies = jar
-            mock_post.side_effect = lambda url, data: mock_post_res
+            mock_post.side_effect = lambda url, data, follow_redirects: mock_post_res
 
             mock_nijie_cookie.side_effect = lambda cookies, headers: "dummy_nijie_cookies"
             actual = fetcher.login(self.username, self.password)
 
             mock_get.assert_called_once_with(
                 "https://nijie.info/age_jump.php?url=",
-                headers=fetcher.HEADERS
+                headers=fetcher.HEADERS,
+                follow_redirects=True
             )
             mock_get_res.raise_for_status.assert_called_once_with()
 
@@ -107,16 +107,24 @@ class TestNijieFetcher(unittest.TestCase):
             }
             mock_post.assert_called_once_with(
                 "https://nijie.info/login_int.php",
-                data=payload
+                data=payload,
+                follow_redirects=True
             )
             mock_post_res.raise_for_status.assert_called_once_with()
             mock_nijie_cookie.assert_called_once_with(jar, fetcher.HEADERS)
 
         with ExitStack() as stack:
-            read_data = 'name="dummy_name", value="dummy_value", expires=99999999, path="/", domain="."'
-            mock_path_open = stack.enter_context(patch("PictureGathering.LinkSearch.Nijie.NijieFetcher.Path.open", mock_open(read_data=read_data)))
+            mock_read_bytes = stack.enter_context(patch("PictureGathering.LinkSearch.Nijie.NijieFetcher.Path.read_bytes"))
             mock_nijie_cookie = stack.enter_context(patch("PictureGathering.LinkSearch.Nijie.NijieFetcher.NijieCookie"))
 
+            read_data = '''[{
+                "name": "dummy_name",
+                "value": "dummy_value",
+                "expires": null,
+                "path": "/",
+                "domain": ".dummy.domain"
+            }]'''
+            mock_read_bytes.return_value = read_data
             # クッキーが既に存在している場合
             ncp = Path(fetcher.NIJIE_COOKIE_PATH)
             ncp.parent.mkdir(parents=True, exist_ok=True)
@@ -124,13 +132,12 @@ class TestNijieFetcher(unittest.TestCase):
 
             actual = fetcher.login(self.username, self.password)
 
-            jar = requests.cookies.RequestsCookieJar()
+            jar = httpx.Cookies()
             jar.set(
                 name="dummy_name",
                 value="dummy_value",
-                expires=99999999,
                 path="/",
-                domain=".",
+                domain=".dummy.domain",
             )
             mock_nijie_cookie.assert_called_once_with(jar, fetcher.HEADERS)
 
