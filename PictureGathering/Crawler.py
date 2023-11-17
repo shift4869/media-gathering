@@ -17,7 +17,7 @@ import orjson
 from plyer import notification
 from slack_sdk.webhook import WebhookClient
 
-from PictureGathering import WriteHTML
+from PictureGathering.html_writer.HtmlWriter import HtmlWriter
 from PictureGathering.DBControllerBase import DBControllerBase
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LogMessage import MSG
@@ -249,7 +249,7 @@ class Crawler(metaclass=ABCMeta):
 
         done_msg = self.make_done_message()
         config = self.config
-        WriteHTML.WriteResultHTML(self.type, self.db_cont)
+        HtmlWriter(self.type, self.db_cont).write_result_html()
 
         logger.info("\t".join(done_msg.splitlines()))
 
