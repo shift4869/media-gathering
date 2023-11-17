@@ -114,7 +114,7 @@ class TestRetweetCrawler(unittest.TestCase):
 
             rc = self._get_instance()
 
-            # No API use mode
+            # TAC use mode
             mock_rt_instance = MagicMock()
             mock_rt_instance.fetch.side_effect = lambda: ["fetched_tweets"]
             mock_rt_instance.to_convert_TweetInfo.side_effect = lambda ft: ["to_convert_TweetInfo"]

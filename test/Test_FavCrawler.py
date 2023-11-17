@@ -114,7 +114,7 @@ class TestFavCrawler(unittest.TestCase):
 
             fc = self._get_instance()
 
-            # No API use mode
+            # TAC use mode
             mock_like_instance = MagicMock()
             mock_like_instance.fetch.side_effect = lambda: ["fetched_tweets"]
             mock_like_instance.to_convert_TweetInfo.side_effect = lambda ft: ["to_convert_TweetInfo"]

@@ -35,10 +35,10 @@ logger.setLevel(INFO)
 
 
 class MediaSaveResult(enum.Enum):
-    success = enum.auto()  # 成功（現在存在せず、過去にも取得したことが無い→DLを実際に実行した）
+    success = enum.auto()    # 成功（現在存在せず、過去にも取得したことが無い→今回でDLを実際に実行した）
     now_exist = enum.auto()  # 現在存在している
     past_done = enum.auto()  # 過去に取得済
-    failed = enum.auto()  # 失敗（メディア辞書構造がエラー、urlが取得できない）
+    failed = enum.auto()     # 失敗（メディア辞書構造がエラー、urlが取得できない）
 
 
 class Crawler(metaclass=ABCMeta):
