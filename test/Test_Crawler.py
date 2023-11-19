@@ -21,6 +21,7 @@ from unittest.mock import call
 from mock import MagicMock, PropertyMock, patch
 
 from PictureGathering.Crawler import Crawler, MediaSaveResult
+from PictureGathering.DBControllerBase import DBControllerBase
 from PictureGathering.Model import ExternalLink
 from PictureGathering.tac.TweetInfo import TweetInfo
 from PictureGathering.Util import Result
@@ -345,7 +346,7 @@ class TestCrawler(unittest.TestCase):
         """
         with ExitStack() as stack:
             mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
-            mock_whtml = stack.enter_context(patch("PictureGathering.WriteHTML.WriteResultHTML"))
+            mock_whtml = stack.enter_context(patch("PictureGathering.Crawler.HtmlWriter"))
             mock_cplnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_line_notify"))
             mock_cpsnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_slack_notify"))
             mock_cpdnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_discord_notify"))
