@@ -1,5 +1,6 @@
 
 from pathlib import Path
+from typing import Literal
 
 from jinja2 import Template
 
@@ -12,7 +13,14 @@ class HtmlWriter():
     FAV_HTML_PATH = "./html/FavPictureGathering.html"
     RETWEET_HTML_PATH = "./html/RetweetPictureGathering.html"
 
-    def __init__(self, op_type: str, db_controller: DBControllerBase, limit=300, column_num: int = 6, pic_width: int = 256) -> None:
+    def __init__(self, op_type: Literal["Fav", "RT"], db_controller: DBControllerBase,
+                 limit=300, column_num: int = 6, pic_width: int = 256) -> None:
+        if not isinstance(op_type, str):
+            raise ValueError('op_type must be type str ["Fav", "RT"].')
+        if op_type not in ["Fav", "RT"]:
+            raise ValueError('op_type must be ["Fav", "RT"].')
+        if not isinstance(db_controller, DBControllerBase):
+            raise ValueError('db_controller must be DBControllerBase.')
         self.op_type = op_type
         self.db_controller = db_controller
         self.limit = limit

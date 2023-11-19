@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>PictureGathering</title>
+    </head>
+    <body>
+        <table>
+            {%- for source in source_list -%}
+                {%- if loop.index0 % column_num == 0 -%}
+                    <tr>
+                {%- endif -%}
+
+                <th>
+                    <div style="position: relative; width: {{ pic_width }}px;" >
+                        <a href="{{ source.url }}" target="_blank">
+                            <img border="0" src="{{ source.url_thumbnail }}" alt="{{ source.url }}" width="{{ pic_width }}px">
+                        </a>
+                        <a href="{{ source.tweet_url }}" target="_blank">
+                            <img src="{{ pointer_path }}" alt="pointer" style="opacity: 0.5; position: absolute; right: 10px; bottom: 10px;"  />
+                        </a>
+                    </div>
+                </th>
+
+                {%- if ((loop.index0 % column_num) == (column_num - 1)) and not loop.last -%}
+                    </tr>
+                {%- endif -%}
+
+                {%- if loop.last -%}
+                    {%- set remain = column_num - (loop.index0 % column_num) -%}
+                    {%- for k in range(remain - 1) -%}
+                        <th></th>
+                    {%- endfor -%}
+                    </tr>
+                {%- endif -%}
+            {%- endfor -%}
+        </table>
+    </body>
+</html>
