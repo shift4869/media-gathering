@@ -5,14 +5,14 @@ Crawler.Crawler()の各種機能をテストする
 設定ファイルとして {CONFIG_FILE_NAME} にあるconfig.iniファイルを使用する
 各種トークン類もAPI利用のテストのために使用する
 """
-
 import configparser
 import os
 import random
+import re
+import shutil
 import sys
 import time
 import unittest
-import warnings
 from contextlib import ExitStack
 from logging import WARNING, getLogger
 from pathlib import Path
@@ -21,7 +21,6 @@ from unittest.mock import call
 from mock import MagicMock, PropertyMock, patch
 
 from PictureGathering.Crawler import Crawler, MediaSaveResult
-from PictureGathering.DBControllerBase import DBControllerBase
 from PictureGathering.Model import ExternalLink
 from PictureGathering.tac.TweetInfo import TweetInfo
 from PictureGathering.Util import Result
@@ -44,11 +43,13 @@ class ConcreteCrawler(Crawler):
         with ExitStack() as stack:
             mock_logger_info = stack.enter_context(patch.object(logger, "info"))
             mock_logger_exception = stack.enter_context(patch.object(logger, "exception"))
-
+            mock_validate_config = stack.enter_context(patch("PictureGathering.Crawler.Crawler.validate_config_file"))
+            
             # Crawler.__init__()で意図的にエラーを起こすための設定
             if error_occur == "IOError":
-                # configファイルのパスエラーは変数置き換えで自動的に処理される
-                self.CONFIG_FILE_NAME = "error_file_path"
+                def ioerror():
+                    raise ValueError("ValueError")
+                mock_validate_config.side_effect = lambda config_file_path: ioerror()
             elif error_occur == "KeyError":
                 # link_search_register呼び出しを利用して例外を送出するモックを設定する
                 mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
@@ -217,6 +218,74 @@ class TestCrawler(unittest.TestCase):
             self.assertEqual([], crawler.add_url_list)
             self.assertEqual([], crawler.del_url_list)
 
+    def test_validate_config_file(self):
+        with ExitStack() as stack:
+            mock_lsc = stack.enter_context(patch("PictureGathering.Crawler.LinkSearcher.create"))
+
+            crawler = ConcreteCrawler()
+            # 元となるコンフィグファイルをコピー
+            config_file_path: Path = Path(crawler.CONFIG_FILE_NAME)
+            shutil.copy2(config_file_path, crawler.save_path)
+            config_file_path = crawler.save_path / config_file_path.name
+
+            # 正常
+            actual = crawler.validate_config_file(str(config_file_path))
+            self.assertEqual(Result.success, actual)
+
+            # target_id がデフォルト
+            setting = config_file_path.read_text(encoding="utf8")
+            setting = re.sub(r"target_id\s+= \d+\n", "target_id = {your Twitter ID (numeric)}\n", setting)
+            config_file_path.write_text(setting, encoding="utf8")
+            with self.assertRaises(ValueError):
+                actual = crawler.validate_config_file(str(config_file_path))
+
+            # target_screen_name がデフォルト
+            setting = config_file_path.read_text(encoding="utf8")
+            setting = re.sub(r"target_screen_name\s+= .+\n", "target_screen_name = {your Twitter ID screen_name (exclude @)}\n", setting)
+            config_file_path.write_text(setting, encoding="utf8")
+            with self.assertRaises(ValueError):
+                actual = crawler.validate_config_file(str(config_file_path))
+
+            # auth_token がデフォルト
+            setting = config_file_path.read_text(encoding="utf8")
+            setting = re.sub(r"auth_token\s+= .+\n", "auth_token = xxxxxxxxxxxxxxxxxxxxxxxxx\n", setting)
+            config_file_path.write_text(setting, encoding="utf8")
+            with self.assertRaises(ValueError):
+                actual = crawler.validate_config_file(str(config_file_path))
+
+            # ct0 がデフォルト
+            setting = config_file_path.read_text(encoding="utf8")
+            setting = re.sub(r"ct0\s+= .+\n", "ct0 = xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n", setting)
+            config_file_path.write_text(setting, encoding="utf8")
+            with self.assertRaises(ValueError):
+                actual = crawler.validate_config_file(str(config_file_path))
+
+            # twitter_api_client が存在しない
+            setting = config_file_path.read_text(encoding="utf8")
+            setting = re.sub(r"\[twitter_api_client\]\n", "[invalid_section]\n", setting)
+            config_file_path.write_text(setting, encoding="utf8")
+            with self.assertRaises(KeyError):
+                actual = crawler.validate_config_file(str(config_file_path))
+
+            # configparser としてreadできない
+            setting = config_file_path.read_text(encoding="utf8")
+            setting = re.sub(r"\[invalid_section\]\n", "[invalid_section___\n", setting)
+            config_file_path.write_text(setting, encoding="utf8")
+            with self.assertRaises(configparser.MissingSectionHeaderError):
+                actual = crawler.validate_config_file(str(config_file_path))
+
+            # path が存在しない
+            config_file_path.unlink(missing_ok=True)
+            with self.assertRaises(ValueError):
+                actual = crawler.validate_config_file(str(config_file_path))
+
+            # config_file_path が不正
+            with self.assertRaises(ValueError):
+                actual = crawler.validate_config_file(-1)
+
+            # 後始末
+            config_file_path.unlink(missing_ok=True)
+
     def test_link_search_register(self):
         """外部リンク探索機構のセットアップをチェックする
         """
@@ -347,10 +416,13 @@ class TestCrawler(unittest.TestCase):
         with ExitStack() as stack:
             mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
             mock_whtml = stack.enter_context(patch("PictureGathering.Crawler.HtmlWriter"))
+            mock_cpdnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_discord_notify"))
             mock_cplnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_line_notify"))
             mock_cpsnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_slack_notify"))
-            mock_cpdnotify = stack.enter_context(patch("PictureGathering.Crawler.Crawler.post_discord_notify"))
+            mock_logger_debug = stack.enter_context(patch.object(logger, "debug"))
             mock_logger_info = stack.enter_context(patch.object(logger, "info"))
+            mock_logger_warn = stack.enter_context(patch.object(logger, "warn"))
+            mock_logger_exception = stack.enter_context(patch.object(logger, "exception"))
 
             crawler = ConcreteCrawler()
 
@@ -359,15 +431,94 @@ class TestCrawler(unittest.TestCase):
             mock_db_cont.update_del = MagicMock()
             mock_db_cont.update_del.side_effect = lambda: [{"tweet_id": dummy_id}]
 
-            crawler.add_cnt = 1
-            crawler.type = "Fav"
-            actual = crawler.end_of_process()
-            self.assertEqual(Result.success, actual)
+            def make_branch(crawler, add_url_list, del_url_list, 
+                            discord_notify, line_notify, slack_notify, error_occar):
+                crawler.add_cnt = len(add_url_list)
+                crawler.add_url_list = add_url_list
+                crawler.del_cnt = len(del_url_list)
+                crawler.del_url_list = del_url_list
+                crawler.config["discord_webhook_url"]["is_post_discord_notify"] = "True" if discord_notify else "False"
+                crawler.config["line_token_keys"]["is_post_line_notify"] =  "True" if line_notify else "False"
+                crawler.config["slack_webhook_url"]["is_post_slack_notify"] =  "True" if slack_notify else "False"
 
-            mock_whtml.assert_called_once()
-            mock_cplnotify.assert_called_once()
-            mock_cpsnotify.assert_called_once()
-            mock_cpdnotify.assert_called_once()
+                mock_whtml.reset_mock()
+                mock_logger_warn.reset_mock()
+                mock_logger_info.reset_mock()
+                mock_logger_debug.reset_mock()
+                mock_cpdnotify.reset_mock(side_effect=True)
+                mock_cplnotify.reset_mock(side_effect=True)
+                mock_cpsnotify.reset_mock(side_effect=True)
+
+                if error_occar:
+                    if discord_notify:
+                        mock_cpdnotify.side_effect = ValueError
+                    elif line_notify:
+                        mock_cplnotify.side_effect = ValueError
+                    elif slack_notify:
+                        mock_cpsnotify.side_effect = ValueError
+
+                return crawler
+
+            def assert_branch(crawler, add_url_list, del_url_list, 
+                              discord_notify, line_notify, slack_notify, error_occar):
+                self.assertEqual(
+                    [call(crawler.type, crawler.db_cont),
+                     call().write_result_html()], mock_whtml.mock_calls
+                )
+                done_msg = crawler.make_done_message()
+                add_cnt = len(add_url_list)
+                del_cnt = len(del_url_list)
+                if add_cnt != 0 or del_cnt != 0:
+                    if add_cnt != 0:
+                        mock_logger_debug.assert_any_call("add url:")
+                        for url in add_url_list:
+                            mock_logger_debug.assert_any_call(url)
+                    if del_cnt != 0:
+                        mock_logger_debug.assert_any_call("del url:")
+                        for url in del_url_list:
+                            mock_logger_debug.assert_any_call(url)
+                    if discord_notify:
+                        mock_cpdnotify.assert_called_once_with(done_msg)
+                        if error_occar:
+                            mock_logger_warn.assert_called_once_with("Discord notify post failed.")
+                    if line_notify:
+                        mock_cplnotify.assert_called_once_with(done_msg)
+                        if error_occar:
+                            mock_logger_warn.assert_called_once_with("Line notify post failed.")
+                    if slack_notify:
+                        mock_cpsnotify.assert_called_once_with(done_msg)
+                        if error_occar:
+                            mock_logger_warn.assert_called_once_with("Slack notify post failed.")
+
+            params_list = [
+                ([], [], False, False, False, False),
+                (["add_url_1"], [], False, False, False, False),
+                (["add_url_1", "add_url_2"], [], False, False, False, False),
+                ([], ["del_url_1"], False, False, False, False),
+                ([], ["del_url_1", "del_url_2"], False, False, False, False),
+                (["add_url_1"], [], True, False, False, False),
+                (["add_url_1"], [], False, True, False, False),
+                (["add_url_1"], [], False, False, True, False),
+                (["add_url_1"], [], True, True, True, False),
+                (["add_url_1"], [], True, False, False, True),
+                (["add_url_1"], [], False, True, False, True),
+                (["add_url_1"], [], False, False, True, True),
+            ]
+            for params in params_list:
+                crawler = make_branch(
+                    crawler,
+                    params[0], params[1],
+                    params[2], params[3], params[4],
+                    params[5]
+                )
+                actual = crawler.end_of_process()
+                self.assertEqual(Result.success, actual)
+                assert_branch(
+                    crawler,
+                    params[0], params[1],
+                    params[2], params[3], params[4],
+                    params[5]
+                )
 
     def test_post_discord_notify(self):
         """Discord通知ポスト機能をチェックする
@@ -434,17 +585,19 @@ class TestCrawler(unittest.TestCase):
         """
         with ExitStack() as stack:
             mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
-            mock_urlopen = stack.enter_context(patch("PictureGathering.Crawler.urllib.request.urlopen"))
+            mock_client = stack.enter_context(patch("PictureGathering.Crawler.httpx.Client"))
             # mock_file_open: MagicMock = stack.enter_context(patch("PictureGathering.Crawler.Path.open", mock_open()))
             mock_shutil = stack.enter_context(patch("PictureGathering.Crawler.shutil.copy2"))
             mock_logger_info = stack.enter_context(patch.object(logger, "info"))
             mock_logger_debug = stack.enter_context(patch.object(logger, "debug"))
 
-            def return_urlopen(url):
+            mock_get = MagicMock()
+            def return_get(url):
                 r = MagicMock()
-                r.read.side_effect = lambda: bytes(url.encode())
+                r.content = bytes(url.encode())
                 return r
-            mock_urlopen.side_effect = lambda url, timeout: return_urlopen(url)
+            mock_get.get.side_effect = lambda url, timeout: return_get(url)
+            mock_client.side_effect = lambda follow_redirects: mock_get
 
             crawler = ConcreteCrawler()
             mock_db_cont = crawler.db_cont
@@ -487,7 +640,7 @@ class TestCrawler(unittest.TestCase):
 
             # DL時に例外発生
             mock_db_cont.select_from_media_url.side_effect = lambda file_name: []
-            mock_urlopen.side_effect = Exception()
+            mock_get.get.side_effect = Exception()
             for tweet_info in tweet_info_list:
                 actual = crawler.tweet_media_saver(tweet_info, atime, mtime)
                 self.assertEqual(MediaSaveResult.failed, actual)
@@ -498,6 +651,7 @@ class TestCrawler(unittest.TestCase):
         with ExitStack() as stack:
             mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
             mock_tweet_media_saver = stack.enter_context(patch("PictureGathering.Crawler.Crawler.tweet_media_saver"))
+            mock_client = stack.enter_context(patch("PictureGathering.Crawler.httpx.Client"))
 
             crawler = ConcreteCrawler()
 
@@ -524,7 +678,7 @@ class TestCrawler(unittest.TestCase):
             m_calls = mock_tweet_media_saver.mock_calls[:len(tweet_info_list)]
             self.assertEqual(len(tweet_info_list), len(m_calls))
             for expect, actual in zip(expect_args_list, m_calls):
-                self.assertEqual(call(expect[0], expect[1], expect[2]), actual)
+                self.assertEqual(call(expect[0], expect[1], expect[2], mock_client()), actual)
 
     def test_trace_external_link(self):
         """外部リンク探索をチェックする

@@ -5,7 +5,6 @@ import os
 import shutil
 import ssl
 import time
-import urllib.request
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from logging import INFO, getLogger
@@ -17,8 +16,8 @@ import orjson
 from plyer import notification
 from slack_sdk.webhook import WebhookClient
 
-from PictureGathering.html_writer.HtmlWriter import HtmlWriter
 from PictureGathering.DBControllerBase import DBControllerBase
+from PictureGathering.html_writer.HtmlWriter import HtmlWriter
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.LogMessage import MSG
 from PictureGathering.Model import ExternalLink
@@ -139,8 +138,7 @@ class Crawler(metaclass=ABCMeta):
         if not path.is_file():
             raise ValueError(f"{path.name} is not exist.")
         config = configparser.ConfigParser()
-        if not config.read(path, encoding="utf8"):
-            raise ValueError(f"{path.name} cannot be opened.")
+        config.read(path, encoding="utf8")
 
         ct0 = config["twitter_api_client"]["ct0"]
         auth_token = config["twitter_api_client"]["auth_token"]
@@ -276,7 +274,7 @@ class Crawler(metaclass=ABCMeta):
                 try:
                     self.post_line_notify(done_msg)
                     logger.info("Line notify posted.")
-                except:
+                except Exception as e:
                     logger.exception(e)
                     logger.warn("Line notify post failed.")
 
@@ -284,7 +282,7 @@ class Crawler(metaclass=ABCMeta):
                 try:
                     self.post_slack_notify(done_msg)
                     logger.info("Slack notify posted.")
-                except:
+                except Exception as e:
                     logger.exception(e)
                     logger.warn("Slack notify post failed.")
 
@@ -405,13 +403,14 @@ class Crawler(metaclass=ABCMeta):
             return Result.failed
         return Result.success
 
-    def tweet_media_saver(self, tweet_info: TweetInfo, atime: float, mtime: float) -> MediaSaveResult:
+    def tweet_media_saver(self, tweet_info: TweetInfo, atime: float, mtime: float, session: httpx.Client | None = None) -> MediaSaveResult:
         """tweet_infoで指定されるツイートのメディアを保存する
 
         Args:
             tweet_info (TweetInfo): メディア含むツイート情報
             atime (float): 指定更新日時
             mtime (float): 指定更新日時
+            session (httpx.Client | None): 保存時に使うセッション
 
         Returns:
             MediaSaveResult: 
@@ -420,6 +419,8 @@ class Crawler(metaclass=ABCMeta):
                 past_done: 過去に取得済
                 failed: 失敗（メディア辞書構造がエラー、urlが取得できない）
         """
+        if not session:
+            session = httpx.Client(follow_redirects=True)
         url_orig = tweet_info.media_url
         url_thumbnail = tweet_info.media_thumbnail_url
         file_name = tweet_info.media_filename
@@ -433,12 +434,10 @@ class Crawler(metaclass=ABCMeta):
 
         if not save_file_fullpath.is_file():
             # URLからメディアを取得してローカルに保存
-            # タイムアウトを設定するためにurlopenを利用
-            # urllib.request.urlretrieve(url_orig, save_file_fullpath)
             try:
-                data = urllib.request.urlopen(url_orig, timeout=60).read()
-                with save_file_fullpath.open(mode="wb") as f:
-                    f.write(data)
+                response = session.get(url_orig, timeout=60)
+                response.raise_for_status()
+                save_file_fullpath.write_bytes(response.content)
             except Exception:
                 # URLからのメディア取得に失敗
                 # 削除されていた場合など
@@ -509,6 +508,7 @@ class Crawler(metaclass=ABCMeta):
 
     def interpret_tweets(self, tweet_info_list: list[TweetInfo]) -> Result:
         result_list = []
+        session = httpx.Client(follow_redirects=True)
         for tweet_info in tweet_info_list:
             """タイムスタンプについて
                 https://srbrnote.work/archives/4054
@@ -533,7 +533,7 @@ class Crawler(metaclass=ABCMeta):
             )
 
             # メディア保存
-            result = self.tweet_media_saver(tweet_info, atime, mtime)
+            result = self.tweet_media_saver(tweet_info, atime, mtime, session)
             result_list.append(result)
         if [r for r in result_list if r == Result.failed]:
             return Result.failed
