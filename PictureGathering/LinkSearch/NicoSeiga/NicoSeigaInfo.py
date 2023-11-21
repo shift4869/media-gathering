@@ -19,10 +19,6 @@ class NicoSeigaInfo():
     author_name: Authorname
 
     def __post_init__(self) -> None:
-        """初期化処理
-
-        バリデーションのみ
-        """
         self._is_valid()
 
     def _is_valid(self) -> bool:

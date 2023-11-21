@@ -82,12 +82,12 @@ class PixivFetcher(FetcherBase):
         # 2021/05/20 現在PixivPyで新規ログインができない
         # https://gist.github.com/ZipFile/c9ebedb224406f4f11845ab700124362
         # https://gist.github.com/upbit/6edda27cb1644e94183291109b8a5fde
-        logger.info(f"not found {self.REFRESH_TOKEN_PATH}")
-        logger.info("please access to make refresh_token.ini for below way:")
-        logger.info("https://gist.github.com/ZipFile/c9ebedb224406f4f11845ab700124362")
-        logger.info(" or ")
-        logger.info("https://gist.github.com/upbit/6edda27cb1644e94183291109b8a5fde")
-        logger.info("process abort")
+        logger.error(f"not found {self.REFRESH_TOKEN_PATH}")
+        logger.error("please access to make refresh_token.ini for below way:")
+        logger.error("https://gist.github.com/ZipFile/c9ebedb224406f4f11845ab700124362")
+        logger.error(" or ")
+        logger.error("https://gist.github.com/upbit/6edda27cb1644e94183291109b8a5fde")
+        logger.error("process abort")
         raise ValueError("pixiv auth failed.")
 
     def is_target_url(self, url: URL) -> bool:

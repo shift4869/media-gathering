@@ -1,7 +1,3 @@
-"""NicoSeigaInfo のテスト
-
-ニコニコ静画の情報をまとめるクラスをテストする
-"""
 import sys
 import unittest
 
@@ -13,14 +9,7 @@ from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaInfo import NicoSeigaInfo
 
 
 class TestNicoSeigaInfo(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
     def test_NicoSeigaInfo(self):
-        # 正常系
         author_id = Authorid(12345678)
         illust_id = Illustid(11111111)
         illust_name = Illustname("作品名1")
@@ -32,10 +21,6 @@ class TestNicoSeigaInfo(unittest.TestCase):
         self.assertEqual(author_id, illust_info.author_id)
         self.assertEqual(author_name, illust_info.author_name)
 
-        # 異常系
-        with self.assertRaises(TypeError):
-            illust_info = NicoSeigaInfo("invalid illust_id", illust_name, author_id, author_name)
-
     def test_is_valid(self):
         author_id = Authorid(12345678)
         illust_id = Illustid(11111111)
@@ -44,6 +29,15 @@ class TestNicoSeigaInfo(unittest.TestCase):
         illust_info = NicoSeigaInfo(illust_id, illust_name, author_id, author_name)
 
         self.assertEqual(True, illust_info._is_valid())
+
+        with self.assertRaises(TypeError):
+            illust_info = NicoSeigaInfo("invalid illust_id", illust_name, author_id, author_name)
+        with self.assertRaises(TypeError):
+            illust_info = NicoSeigaInfo(illust_id, "invalid illust_name", author_id, author_name)
+        with self.assertRaises(TypeError):
+            illust_info = NicoSeigaInfo(illust_id, illust_name, "invalid author_id", author_name)
+        with self.assertRaises(TypeError):
+            illust_info = NicoSeigaInfo(illust_id, illust_name, author_id, "invalid author_name")
 
 
 if __name__ == "__main__":

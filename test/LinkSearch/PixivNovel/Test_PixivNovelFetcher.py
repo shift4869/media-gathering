@@ -1,15 +1,19 @@
 import sys
 import unittest
 from contextlib import ExitStack
+from logging import WARNING, getLogger
 from pathlib import Path
 
-from mock import MagicMock, mock_open, patch
+from mock import patch
 
 from PictureGathering.LinkSearch.Password import Password
 from PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher import PixivNovelFetcher
 from PictureGathering.LinkSearch.PixivNovel.PixivNovelURL import PixivNovelURL
 from PictureGathering.LinkSearch.URL import URL
 from PictureGathering.LinkSearch.Username import Username
+
+logger = getLogger("PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher")
+logger.setLevel(WARNING)
 
 
 class TestPixivNovelFetcher(unittest.TestCase):
@@ -25,7 +29,6 @@ class TestPixivNovelFetcher(unittest.TestCase):
             base_path = Path(self.TBP)
             fetcher = PixivNovelFetcher(username, password, base_path)
             object.__setattr__(fetcher, "REFRESH_TOKEN_PATH", str(self.TBP / "refresh_token.ini"))
-
             return fetcher
 
     def test_PixivNovelFetcher(self):
@@ -54,6 +57,7 @@ class TestPixivNovelFetcher(unittest.TestCase):
     def test_login(self):
         with ExitStack() as stack:
             mock_aapi = stack.enter_context(patch("PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher.AppPixivAPI"))
+            mock_logger_error = stack.enter_context(patch.object(logger, "error"))
 
             username = Username("ユーザー1_ID")
             password = Password("ユーザー1_PW")
@@ -69,7 +73,19 @@ class TestPixivNovelFetcher(unittest.TestCase):
             expect = mock_aapi()
             self.assertEqual(expect, actual)
 
+            mock_aapi().auth.reset_mock()
+            mock_aapi().access_token = None
+            with self.assertRaises(ValueError):
+                actual = fetcher.login(username, password)
+
+            mock_aapi().auth.side_effect = ValueError
+            with self.assertRaises(ValueError):
+                actual = fetcher.login(username, password)
+
             rt_path.unlink(missing_ok=True)
+
+            with self.assertRaises(ValueError):
+                actual = fetcher.login(username, password)
 
     def test_is_target_url(self):
         fetcher = self.get_instance()
