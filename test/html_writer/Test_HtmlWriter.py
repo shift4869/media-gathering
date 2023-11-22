@@ -13,19 +13,41 @@ from PictureGathering.Util import Result
 
 class TestHtmlWriter(unittest.TestCase):
     def test_init(self):
+        op_type = "Fav"
         db_controller = MagicMock(spec=DBControllerBase)
+        limit = 300
+        column_num = 6
+        pic_width = 256
         template = (Path(__file__).parent / "template/template.txt").read_text(encoding="utf-8")
-        html_writer = HtmlWriter("Fav", db_controller)
-
-        self.assertEqual("Fav", html_writer.op_type)
+        html_writer = HtmlWriter(op_type, db_controller, limit, column_num, pic_width)
+        self.assertEqual(op_type, html_writer.op_type)
         self.assertEqual(db_controller, html_writer.db_controller)
-        self.assertEqual(300, html_writer.limit)
-        self.assertEqual(6, html_writer.column_num)
-        self.assertEqual(256, html_writer.pic_width)
+        self.assertEqual(limit, html_writer.limit)
+        self.assertEqual(column_num, html_writer.column_num)
+        self.assertEqual(pic_width, html_writer.pic_width)
         self.assertEqual(template, html_writer.template)
         self.assertEqual("./pointer.png", HtmlWriter.POINTER_PATH)
         self.assertEqual("./html/FavPictureGathering.html", HtmlWriter.FAV_HTML_PATH)
         self.assertEqual("./html/RetweetPictureGathering.html", HtmlWriter.RETWEET_HTML_PATH)
+
+        with self.assertRaises(TypeError):
+            html_writer = HtmlWriter(-1, db_controller)
+        with self.assertRaises(TypeError):
+            html_writer = HtmlWriter(op_type, "invalid_db_controller")
+        with self.assertRaises(TypeError):
+            html_writer = HtmlWriter(op_type, db_controller, "invalid_limit")
+        with self.assertRaises(TypeError):
+            html_writer = HtmlWriter(op_type, db_controller, limit, "invalid_column_num")
+        with self.assertRaises(TypeError):
+            html_writer = HtmlWriter(op_type, db_controller, limit, column_num, "invalid_pic_width")
+        with self.assertRaises(ValueError):
+            html_writer = HtmlWriter("invalid_op_type", db_controller)
+        with self.assertRaises(ValueError):
+            html_writer = HtmlWriter(op_type, db_controller, -1)
+        with self.assertRaises(ValueError):
+            html_writer = HtmlWriter(op_type, db_controller, limit, -1)
+        with self.assertRaises(ValueError):
+            html_writer = HtmlWriter(op_type, db_controller, limit, column_num, -1)
 
     def test_write_result_html(self):
         with ExitStack() as stack:

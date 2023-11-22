@@ -1,16 +1,17 @@
 import sys
 import unittest
-from contextlib import ExitStack
-from datetime import datetime, timedelta
 from pathlib import Path
 
-import freezegun
 import orjson
 
 from PictureGathering.Util import Result, find_values
 
 
-class TestCrawler(unittest.TestCase):
+class TestUtil(unittest.TestCase):
+    def test_Result(self):
+        self.assertEqual(True, hasattr(Result, "success"))
+        self.assertEqual(True, hasattr(Result, "failed"))
+
     def test_find_values(self):
         cache_filepath = Path("./test/cache/test_notes_with_reactions.json")
         sample_dict = orjson.loads(

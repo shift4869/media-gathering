@@ -432,7 +432,7 @@ class TestCrawler(unittest.TestCase):
             mock_db_cont.update_del.side_effect = lambda: [{"tweet_id": dummy_id}]
 
             def make_branch(crawler, add_url_list, del_url_list, 
-                            discord_notify, line_notify, slack_notify, error_occar):
+                            discord_notify, line_notify, slack_notify, error_occur):
                 crawler.add_cnt = len(add_url_list)
                 crawler.add_url_list = add_url_list
                 crawler.del_cnt = len(del_url_list)
@@ -449,7 +449,7 @@ class TestCrawler(unittest.TestCase):
                 mock_cplnotify.reset_mock(side_effect=True)
                 mock_cpsnotify.reset_mock(side_effect=True)
 
-                if error_occar:
+                if error_occur:
                     if discord_notify:
                         mock_cpdnotify.side_effect = ValueError
                     elif line_notify:
@@ -460,7 +460,7 @@ class TestCrawler(unittest.TestCase):
                 return crawler
 
             def assert_branch(crawler, add_url_list, del_url_list, 
-                              discord_notify, line_notify, slack_notify, error_occar):
+                              discord_notify, line_notify, slack_notify, error_occur):
                 self.assertEqual(
                     [call(crawler.type, crawler.db_cont),
                      call().write_result_html()], mock_whtml.mock_calls
@@ -479,15 +479,15 @@ class TestCrawler(unittest.TestCase):
                             mock_logger_debug.assert_any_call(url)
                     if discord_notify:
                         mock_cpdnotify.assert_called_once_with(done_msg)
-                        if error_occar:
+                        if error_occur:
                             mock_logger_warn.assert_called_once_with("Discord notify post failed.")
                     if line_notify:
                         mock_cplnotify.assert_called_once_with(done_msg)
-                        if error_occar:
+                        if error_occur:
                             mock_logger_warn.assert_called_once_with("Line notify post failed.")
                     if slack_notify:
                         mock_cpsnotify.assert_called_once_with(done_msg)
-                        if error_occar:
+                        if error_occur:
                             mock_logger_warn.assert_called_once_with("Slack notify post failed.")
 
             params_list = [

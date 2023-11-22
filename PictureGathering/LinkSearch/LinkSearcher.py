@@ -1,6 +1,7 @@
 import configparser
 from logging import INFO, getLogger
 from pathlib import Path
+from typing import Self
 
 from plyer import notification
 
@@ -49,7 +50,7 @@ class LinkSearcher():
         return False
 
     @classmethod
-    def create(self, config: configparser.ConfigParser) -> "LinkSearcher":
+    def create(self, config: configparser.ConfigParser) -> Self:
         logger.info(MSG.LINKSEARCHER_CREATE_START.value)
         ls = LinkSearcher()
 

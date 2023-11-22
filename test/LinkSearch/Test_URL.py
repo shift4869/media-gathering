@@ -1,7 +1,3 @@
-"""URL のテスト
-
-URLを表すクラスをテストする
-"""
 import sys
 import unittest
 import urllib.parse
@@ -27,7 +23,16 @@ class TestURL(unittest.TestCase):
         # クエリ付き
         url_str = "https://www.pixiv.net/artworks/86704541?some_query=1"
         non_query_url = urllib.parse.urlunparse(
-            urllib.parse.urlparse(str(url_str))._replace(query=None)
+            urllib.parse.urlparse(str(url_str))._replace(query=None, fragment=None)
+        )
+        url = URL(url_str)
+        self.assertEqual(non_query_url, url.non_query_url)
+        self.assertEqual(url_str, url.original_url)
+
+        # クエリとフラグメント付き
+        url_str = "https://www.pixiv.net/artworks/86704541?some_query=1#123"
+        non_query_url = urllib.parse.urlunparse(
+            urllib.parse.urlparse(str(url_str))._replace(query=None, fragment=None)
         )
         url = URL(url_str)
         self.assertEqual(non_query_url, url.non_query_url)
@@ -36,6 +41,20 @@ class TestURL(unittest.TestCase):
         # URLオブジェクトから再生成
         url_another = URL(url)
         self.assertEqual(url, url_another)
+
+        # 先頭がH
+        url_str = "Https://www.pixiv.net/artworks/86704541"
+        url = URL(url_str)
+        url_h_str = "h" + url_str[1:]
+        self.assertEqual(url_h_str, url.non_query_url)
+        self.assertEqual(url_h_str, url.original_url)
+
+        # 先頭がh抜きのttp
+        url_str = "ttps://www.pixiv.net/artworks/86704541"
+        url = URL(url_str)
+        url_interpolate_str = "h" + url_str
+        self.assertEqual(url_interpolate_str, url.non_query_url)
+        self.assertEqual(url_interpolate_str, url.original_url)
 
         # 異常系
         # 不正なURLアドレス

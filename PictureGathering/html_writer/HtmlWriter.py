@@ -14,13 +14,25 @@ class HtmlWriter():
     RETWEET_HTML_PATH = "./html/RetweetPictureGathering.html"
 
     def __init__(self, op_type: Literal["Fav", "RT"], db_controller: DBControllerBase,
-                 limit=300, column_num: int = 6, pic_width: int = 256) -> None:
+                 limit: int = 300, column_num: int = 6, pic_width: int = 256) -> None:
         if not isinstance(op_type, str):
-            raise ValueError('op_type must be type str ["Fav", "RT"].')
+            raise TypeError('op_type must be type str ["Fav", "RT"].')
+        if not isinstance(db_controller, DBControllerBase):
+            raise TypeError('db_controller must be DBControllerBase.')
+        if not isinstance(limit, int):
+            raise TypeError('limit must be int.')
+        if not isinstance(column_num, int):
+            raise TypeError('column_num must be int.')
+        if not isinstance(pic_width, int):
+            raise TypeError('limit must be int.')
         if op_type not in ["Fav", "RT"]:
             raise ValueError('op_type must be ["Fav", "RT"].')
-        if not isinstance(db_controller, DBControllerBase):
-            raise ValueError('db_controller must be DBControllerBase.')
+        if limit < 0:
+            raise ValueError('limit must be 0 < limit.')
+        if column_num < 0:
+            raise ValueError('column_num must be 0 < column_num.')
+        if pic_width < 0:
+            raise ValueError('pic_width must be 0 < pic_width.')
         self.op_type = op_type
         self.db_controller = db_controller
         self.limit = limit
