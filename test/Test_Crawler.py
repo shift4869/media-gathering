@@ -629,7 +629,7 @@ class TestCrawler(unittest.TestCase):
             mock_slack.return_value.send.return_value.status_code = 503
             self.assertEqual(Result.failed, crawler.post_slack_notify(str))
 
-    def test_tweet_media_saver_v2(self):
+    def test_tweet_media_saver(self):
         """指定URLのメディアを保存する機能をチェックする
 
             実際にファイル保存する
@@ -638,9 +638,13 @@ class TestCrawler(unittest.TestCase):
             mock_lsr = stack.enter_context(patch("PictureGathering.Crawler.Crawler.link_search_register"))
             mock_client = stack.enter_context(patch("PictureGathering.Crawler.httpx.Client"))
             # mock_file_open: MagicMock = stack.enter_context(patch("PictureGathering.Crawler.Path.open", mock_open()))
+            mock_read_bytes = stack.enter_context(patch("PictureGathering.Crawler.Path.read_bytes"))
             mock_shutil = stack.enter_context(patch("PictureGathering.Crawler.shutil.copy2"))
+            mock_logger_warning = stack.enter_context(patch.object(logger, "warning"))
             mock_logger_info = stack.enter_context(patch.object(logger, "info"))
             mock_logger_debug = stack.enter_context(patch.object(logger, "debug"))
+
+            mock_read_bytes.side_effect = lambda: "media_blob".encode(encoding="utf8")
 
             mock_get = MagicMock()
             def return_get(url):
@@ -651,10 +655,11 @@ class TestCrawler(unittest.TestCase):
             mock_client.side_effect = lambda follow_redirects: mock_get
 
             crawler = ConcreteCrawler()
+            crawler.config["db"]["save_blob"] = "False"
             mock_db_cont = crawler.db_cont
             mock_db_cont.select_from_media_url = MagicMock()
             mock_db_cont.select_from_media_url.side_effect = lambda file_name: []
-            mock_db_cont.upsert_v2 = MagicMock()
+            mock_db_cont.upsert = MagicMock()
 
             tweet_info_list = [self._make_tweet_info(i) for i in range(1, 5)]
             atime = mtime = time.time()
@@ -676,11 +681,63 @@ class TestCrawler(unittest.TestCase):
                 actual = crawler.tweet_media_saver(tweet_info, atime, mtime)
                 self.assertEqual(MediaSaveResult.now_exist, actual)
 
+            # session指定
+            session = mock_client(follow_redirects=True)
+            mock_client.reset_mock()
+            for tweet_info in tweet_info_list:
+                actual = crawler.tweet_media_saver(tweet_info, atime, mtime, session)
+                self.assertEqual(MediaSaveResult.now_exist, actual)
+                mock_client.assert_not_called()
+
             # DB内にすでに蓄積されていた場合
             mock_db_cont.select_from_media_url.side_effect = lambda file_name: ["already_saved"]
             for tweet_info in tweet_info_list:
                 actual = crawler.tweet_media_saver(tweet_info, atime, mtime)
                 self.assertEqual(MediaSaveResult.past_done, actual)
+            mock_db_cont.select_from_media_url.side_effect = lambda file_name: []
+
+            # テスト用ファイルを削除する
+            for tweet_info in tweet_info_list:
+                file_name = tweet_info.media_filename
+                save_file_path = Path(crawler.save_path) / file_name
+                save_file_fullpath = save_file_path.absolute()
+                save_file_fullpath.unlink(missing_ok=True)
+
+            # save_blob_flag が True
+            crawler.config["db"]["save_blob"] = "True"
+            tweet_info = TweetInfo.create(tweet_info_list[0].to_dict())
+            actual = crawler.tweet_media_saver(tweet_info, atime, mtime)
+            self.assertEqual(MediaSaveResult.success, actual)
+
+            # save_blob_flag が True、ファイルが0byte
+            mock_logger_warning.reset_mock()
+            crawler.config["db"]["save_blob"] = "True"
+            mock_read_bytes.side_effect = lambda: "".encode(encoding="utf8")
+            tweet_info = TweetInfo.create(tweet_info_list[1].to_dict())
+            actual = crawler.tweet_media_saver(tweet_info, atime, mtime)
+            self.assertEqual(MediaSaveResult.failed, actual)
+            mock_logger_warning.assert_called_once()
+            mock_logger_warning.reset_mock()
+
+            # save_blob_flag が True、read_bytes時にエラー
+            mock_logger_warning.reset_mock()
+            crawler.config["db"]["save_blob"] = "True"
+            mock_read_bytes.side_effect = Exception
+            tweet_info = TweetInfo.create(tweet_info_list[2].to_dict())
+            actual = crawler.tweet_media_saver(tweet_info, atime, mtime)
+            self.assertEqual(MediaSaveResult.failed, actual)
+            mock_logger_warning.assert_called_once()
+            mock_logger_warning.reset_mock()
+
+            # save_permanent_media_flag が False
+            mock_shutil.reset_mock()
+            crawler.config["db"]["save_blob"] = "False"
+            crawler.config["save_permanent"]["save_permanent_media_flag"] = "False"
+            tweet_info = TweetInfo.create(tweet_info_list[3].to_dict())
+            actual = crawler.tweet_media_saver(tweet_info, atime, mtime)
+            self.assertEqual(MediaSaveResult.success, actual)
+            mock_shutil.assert_not_called()
+            mock_shutil.reset_mock()
 
             # テスト用ファイルを削除する
             for tweet_info in tweet_info_list:
@@ -691,7 +748,7 @@ class TestCrawler(unittest.TestCase):
 
             # DL時に例外発生
             mock_db_cont.select_from_media_url.side_effect = lambda file_name: []
-            mock_get.get.side_effect = Exception()
+            mock_get.get.side_effect = Exception
             for tweet_info in tweet_info_list:
                 actual = crawler.tweet_media_saver(tweet_info, atime, mtime)
                 self.assertEqual(MediaSaveResult.failed, actual)
@@ -730,6 +787,10 @@ class TestCrawler(unittest.TestCase):
             self.assertEqual(len(tweet_info_list), len(m_calls))
             for expect, actual in zip(expect_args_list, m_calls):
                 self.assertEqual(call(expect[0], expect[1], expect[2], mock_client()), actual)
+
+            mock_tweet_media_saver.side_effect = lambda tweet_info, atime, mtime, session: MediaSaveResult.failed
+            actual = crawler.interpret_tweets(tweet_info_list)
+            self.assertEqual(Result.failed, actual)
 
     def test_trace_external_link(self):
         """外部リンク探索をチェックする

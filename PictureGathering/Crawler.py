@@ -323,7 +323,7 @@ class Crawler(metaclass=ABCMeta):
                     media_links.append(line)
                 else:
                     description_msg += (line + "\n")
-         
+
             embeds = []
             if len(media_links) > 0:
                 key_url = media_links[0]
@@ -471,16 +471,15 @@ class Crawler(metaclass=ABCMeta):
                 "saved_created_at": datetime.now().strftime(dts_format),
             }
             media_size = -1
-            include_blob = self.config["db"].getboolean("save_blob")
+            save_blob_flag = self.config["db"].getboolean("save_blob")
             try:
-                if include_blob:
-                    with open(save_file_fullpath, "rb") as fout:
-                        params["media_blob"] = fout.read()
-                        media_size = len(params["media_blob"])
-                        params["media_size"] = media_size
+                if save_blob_flag:
+                    params["media_blob"] = save_file_fullpath.read_bytes()
+                    media_size = len(params["media_blob"])
+                    params["media_size"] = media_size
                 else:
                     params["media_blob"] = None
-                    media_size = Path(save_file_fullpath).stat().st_size
+                    media_size = save_file_fullpath.stat().st_size
                     params["media_size"] = media_size
             except Exception:
                 params["media_blob"] = None
@@ -489,7 +488,7 @@ class Crawler(metaclass=ABCMeta):
             if media_size <= 0:
                 if media_size == 0:
                     logger.warning(save_file_fullpath.name + " -> failed (0 byte file).")
-                elif media_size < 0:
+                else:
                     logger.warning(save_file_fullpath.name + " -> failed.")
                 return MediaSaveResult.failed
 
