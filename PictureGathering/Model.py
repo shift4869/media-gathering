@@ -1,3 +1,6 @@
+from types import NoneType
+from typing import Self
+
 from sqlalchemy import *
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import *
@@ -48,12 +51,59 @@ class Favorite(Base):
     media_size = Column(INTEGER())
     media_blob = deferred(Column(BLOB()))
 
-    def __init__(self, *args, **kwargs):
-        super(Base, self).__init__(*args, **kwargs)
-        self.is_exist_saved_file = True
+    def __init__(self,
+                 is_exist_saved_file: bool,
+                 img_filename: str,
+                 url: str,
+                 url_thumbnail: str,
+                 tweet_id: str,
+                 tweet_url: str,
+                 created_at: str,
+                 user_id: str,
+                 user_name: str,
+                 screan_name: str,
+                 tweet_text: str,
+                 tweet_via: str,
+                 saved_localpath: str,
+                 saved_created_at: str,
+                 media_size: int,
+                 media_blob: bytes | None) -> None:
+        if not isinstance(is_exist_saved_file, bool):
+            raise TypeError("is_exist_saved_file must be bool.")
+        if not isinstance(img_filename, str):
+            raise TypeError("img_filename must be str.")
+        if not isinstance(url, str):
+            raise TypeError("url must be str.")
+        if not isinstance(url_thumbnail, str):
+            raise TypeError("url_thumbnail must be str.")
+        if not isinstance(tweet_id, str):
+            raise TypeError("tweet_id must be str.")
+        if not isinstance(tweet_url, str):
+            raise TypeError("tweet_url must be str.")
+        if not isinstance(created_at, str):
+            raise TypeError("created_at must be str.")
+        if not isinstance(user_id, str):
+            raise TypeError("user_id must be str.")
+        if not isinstance(user_name, str):
+            raise TypeError("user_name must be str.")
+        if not isinstance(screan_name, str):
+            raise TypeError("screan_name must be str.")
+        if not isinstance(tweet_text, str):
+            raise TypeError("tweet_text must be str.")
+        if not isinstance(tweet_via, str):
+            raise TypeError("tweet_via must be str.")
+        if not isinstance(saved_localpath, str):
+            raise TypeError("saved_localpath must be str.")
+        if not isinstance(saved_created_at, str):
+            raise TypeError("saved_created_at must be str.")
+        if not isinstance(media_size, int):
+            raise TypeError("media_size must be int.")
+        if media_blob and not isinstance(media_blob, bytes):
+            raise TypeError("media_blob must be none or bytes.")
 
-    def __init__(self, is_exist_saved_file, img_filename, url, url_thumbnail, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, tweet_via, saved_localpath, saved_created_at, media_size, media_blob):
-        # self.id = id
+        if media_size <= 0:
+            raise ValueError("media_size must be 0 < media_size.")
+
         self.is_exist_saved_file = is_exist_saved_file
         self.img_filename = img_filename
         self.url = url
@@ -71,13 +121,17 @@ class Favorite(Base):
         self.media_size = media_size
         self.media_blob = media_blob
 
-    def __repr__(self):
-        return "<Favorite(id='%s', img_filename='%s', url='%s')>" % (self.id, self.img_filename, self.url)
+    def __repr__(self) -> str:
+        columns = ", ".join([
+            f"{k}={v}"
+            for k, v in self.__dict__.items() if k[0] != "_"
+        ])
+        return f"<{self.__class__.__name__}({columns})>"
 
-    def __eq__(self, other):
+    def __eq__(self, other: Self) -> bool:
         return isinstance(other, Favorite) and other.img_filename == self.img_filename
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
             "id": self.id,
             "is_exist_saved_file": self.is_exist_saved_file,
@@ -95,11 +149,11 @@ class Favorite(Base):
             "saved_localpath": self.saved_localpath,
             "saved_created_at": self.saved_created_at,
             "media_size": self.media_size,
-            "media_blob": None,
+            "media_blob": self.media_blob,
         }
 
     @classmethod
-    def create(cls, arg_dict: dict) -> "Favorite":
+    def create(cls, arg_dict: dict) -> Self:
         match arg_dict:
             case {
                 "is_exist_saved_file": is_exist_saved_file,
@@ -180,12 +234,59 @@ class Retweet(Base):
     media_size = Column(INTEGER())
     media_blob = deferred(Column(BLOB()))
 
-    def __init__(self, *args, **kwargs):
-        super(Base, self).__init__(*args, **kwargs)
-        self.is_exist_saved_file = True
+    def __init__(self,
+                 is_exist_saved_file: bool,
+                 img_filename: str,
+                 url: str,
+                 url_thumbnail: str,
+                 tweet_id: str,
+                 tweet_url: str,
+                 created_at: str,
+                 user_id: str,
+                 user_name: str,
+                 screan_name: str,
+                 tweet_text: str,
+                 tweet_via: str,
+                 saved_localpath: str,
+                 saved_created_at: str,
+                 media_size: int,
+                 media_blob: bytes | None) -> None:
+        if not isinstance(is_exist_saved_file, bool):
+            raise TypeError("is_exist_saved_file must be bool.")
+        if not isinstance(img_filename, str):
+            raise TypeError("img_filename must be str.")
+        if not isinstance(url, str):
+            raise TypeError("url must be str.")
+        if not isinstance(url_thumbnail, str):
+            raise TypeError("url_thumbnail must be str.")
+        if not isinstance(tweet_id, str):
+            raise TypeError("tweet_id must be str.")
+        if not isinstance(tweet_url, str):
+            raise TypeError("tweet_url must be str.")
+        if not isinstance(created_at, str):
+            raise TypeError("created_at must be str.")
+        if not isinstance(user_id, str):
+            raise TypeError("user_id must be str.")
+        if not isinstance(user_name, str):
+            raise TypeError("user_name must be str.")
+        if not isinstance(screan_name, str):
+            raise TypeError("screan_name must be str.")
+        if not isinstance(tweet_text, str):
+            raise TypeError("tweet_text must be str.")
+        if not isinstance(tweet_via, str):
+            raise TypeError("tweet_via must be str.")
+        if not isinstance(saved_localpath, str):
+            raise TypeError("saved_localpath must be str.")
+        if not isinstance(saved_created_at, str):
+            raise TypeError("saved_created_at must be str.")
+        if not isinstance(media_size, int):
+            raise TypeError("media_size must be int.")
+        if media_blob and not isinstance(media_blob, bytes):
+            raise TypeError("media_blob must be none or bytes.")
 
-    def __init__(self, is_exist_saved_file, img_filename, url, url_thumbnail, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, tweet_via, saved_localpath, saved_created_at, media_size, media_blob):
-        # self.id = id
+        if media_size <= 0:
+            raise ValueError("media_size must be 0 < media_size.")
+
         self.is_exist_saved_file = is_exist_saved_file
         self.img_filename = img_filename
         self.url = url
@@ -203,13 +304,17 @@ class Retweet(Base):
         self.media_size = media_size
         self.media_blob = media_blob
 
-    def __repr__(self):
-        return "<Retweet(id='%s', img_filename='%s', url='%s')>" % (self.id, self.img_filename, self.url)
+    def __repr__(self) -> str:
+        columns = ", ".join([
+            f"{k}={v}"
+            for k, v in self.__dict__.items() if k[0] != "_"
+        ])
+        return f"<{self.__class__.__name__}({columns})>"
 
-    def __eq__(self, other):
+    def __eq__(self, other: Self) -> bool:
         return isinstance(other, Retweet) and other.img_filename == self.img_filename
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
             "id": self.id,
             "is_exist_saved_file": self.is_exist_saved_file,
@@ -227,11 +332,11 @@ class Retweet(Base):
             "saved_localpath": self.saved_localpath,
             "saved_created_at": self.saved_created_at,
             "media_size": self.media_size,
-            "media_blob": None,
+            "media_blob": self.media_blob,
         }
 
     @classmethod
-    def create(cls, arg_dict: dict) -> "Retweet":
+    def create(cls, arg_dict: dict) -> Self:
         match arg_dict:
             case {
                 "is_exist_saved_file": is_exist_saved_file,
@@ -304,11 +409,41 @@ class ExternalLink(Base):
     saved_created_at = Column(String(32))
     link_type = Column(String(256))
 
-    def __init__(self, *args, **kwargs):
-        super(Base, self).__init__(*args, **kwargs)
+    def __init__(self,
+                 external_link_url: str,
+                 tweet_id: str,
+                 tweet_url: str,
+                 created_at: str,
+                 user_id: str,
+                 user_name: str,
+                 screan_name: str,
+                 tweet_text: str,
+                 tweet_via: str,
+                 saved_created_at : str,
+                 link_type: str):
+        if not isinstance(external_link_url, str):
+            raise TypeError("external_link_url must be str.")
+        if not isinstance(tweet_id, str):
+            raise TypeError("tweet_id must be str.")
+        if not isinstance(tweet_url, str):
+            raise TypeError("tweet_url must be str.")
+        if not isinstance(created_at, str):
+            raise TypeError("created_at must be str.")
+        if not isinstance(user_id, str):
+            raise TypeError("user_id must be str.")
+        if not isinstance(user_name, str):
+            raise TypeError("user_name must be str.")
+        if not isinstance(screan_name, str):
+            raise TypeError("screan_name must be str.")
+        if not isinstance(tweet_text, str):
+            raise TypeError("tweet_text must be str.")
+        if not isinstance(tweet_via, str):
+            raise TypeError("tweet_via must be str.")
+        if not isinstance(saved_created_at, str):
+            raise TypeError("saved_created_at must be str.")
+        if not isinstance(link_type, str):
+            raise TypeError("link_type must be str.")
 
-    def __init__(self, external_link_url, tweet_id, tweet_url, created_at, user_id, user_name, screan_name, tweet_text, tweet_via, saved_created_at, link_type):
-        # self.id = id
         self.external_link_url = external_link_url
         self.tweet_id = tweet_id
         self.tweet_url = tweet_url
@@ -321,13 +456,17 @@ class ExternalLink(Base):
         self.saved_created_at = saved_created_at
         self.link_type = link_type
 
-    def __repr__(self):
-        return "<ExternalLink(id='%s', external_link_url='%s', tweet_url='%s')>" % (self.id, self.external_link_url, self.tweet_url)
+    def __repr__(self) -> str:
+        columns = ", ".join([
+            f"{k}={v}"
+            for k, v in self.__dict__.items() if k[0] != "_"
+        ])
+        return f"<{self.__class__.__name__}({columns})>"
 
-    def __eq__(self, other):
+    def __eq__(self, other: Self) -> bool:
         return isinstance(other, ExternalLink) and other.external_link_url == self.external_link_url and other.tweet_url == self.tweet_url
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
             "id": self.id,
             "external_link_url": self.external_link_url,
@@ -344,7 +483,7 @@ class ExternalLink(Base):
         }
 
     @classmethod
-    def create(cls, arg_dict: dict) -> "ExternalLink":
+    def create(cls, arg_dict: dict) -> Self:
         match arg_dict:
             case {
                 "external_link_url": external_link_url,
@@ -398,12 +537,34 @@ class DeleteTarget(Base):
     add_num = Column(Integer, nullable=False)
     del_num = Column(Integer, nullable=False)
 
-    def __init__(self, *args, **kwargs):
-        super(Base, self).__init__(*args, **kwargs)
-        self.delete_done = False
+    def __init__(self,
+                 tweet_id,
+                 delete_done,
+                 created_at,
+                 deleted_at,
+                 tweet_text,
+                 add_num,
+                 del_num):
+        if not isinstance(tweet_id, str):
+            raise TypeError("tweet_id must be str.")
+        if not isinstance(delete_done, bool):
+            raise TypeError("delete_done must be bool.")
+        if not isinstance(created_at, str):
+            raise TypeError("created_at must be str.")
+        if deleted_at and not isinstance(deleted_at, str):
+            raise TypeError("deleted_at must be str.")
+        if not isinstance(tweet_text, str):
+            raise TypeError("tweet_text must be str.")
+        if not isinstance(add_num, int):
+            raise TypeError("add_num must be int.")
+        if not isinstance(del_num, int):
+            raise TypeError("del_num must be int.")
 
-    def __init__(self, tweet_id, delete_done, created_at, deleted_at, tweet_text, add_num, del_num):
-        # self.id = id
+        if add_num < 0:
+            raise ValueError("add_num must be 0 <= add_num.")
+        if del_num < 0:
+            raise ValueError("del_num must be 0 <= del_num.")
+
         self.tweet_id = tweet_id
         self.delete_done = delete_done
         self.created_at = created_at
@@ -412,13 +573,17 @@ class DeleteTarget(Base):
         self.add_num = add_num
         self.del_num = del_num
 
-    def __repr__(self):
-        return "<DeleteTarget(id='%s', tweet_id='%s', delete_done='%s')>" % (self.id, self.tweet_id, self.delete_done)
+    def __repr__(self) -> str:
+        columns = ", ".join([
+            f"{k}={v}"
+            for k, v in self.__dict__.items() if k[0] != "_"
+        ])
+        return f"<{self.__class__.__name__}({columns})>"
 
-    def __eq__(self, other):
+    def __eq__(self, other: Self) -> bool:
         return isinstance(other, DeleteTarget) and other.tweet_id == self.tweet_id
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
             "id": self.id,
             "tweet_id": self.tweet_id,
@@ -429,6 +594,28 @@ class DeleteTarget(Base):
             "add_num": self.add_num,
             "del_num": self.del_num,
         }
+
+    @classmethod
+    def create(cls, arg_dict: dict) -> Self:
+        match arg_dict:
+            case {
+                "tweet_id": tweet_id,
+                "delete_done": delete_done,
+                "created_at": created_at,
+                "deleted_at": deleted_at,
+                "tweet_text": tweet_text,
+                "add_num": add_num,
+                "del_num": del_num,
+            }:
+                return cls(tweet_id,
+                           delete_done,
+                           created_at,
+                           deleted_at,
+                           tweet_text,
+                           add_num,
+                           del_num)
+            case _:
+                raise ValueError(f"{type(cls)} create failed.")
 
 
 if __name__ == "__main__":
