@@ -289,11 +289,12 @@ class Crawler(metaclass=ABCMeta):
         logger.info("End Of " + self.type + " Crawl Process.")
         return Result.success
 
-    def post_discord_notify(self, str: str) -> Result:
+    def post_discord_notify(self, message: str, is_embed: bool = True) -> Result:
         """Discord通知ポスト
 
         Args:
-            str (str): Discordに通知する文字列
+            message (str): Discordに通知する文字列
+            is_embed (bool): 埋め込んで投稿するかどうか
 
         Returns:
             Result: 成功時Result.success
@@ -304,7 +305,6 @@ class Crawler(metaclass=ABCMeta):
         }
 
         payload = {}
-        is_embed = True
         if is_embed:
             # desc_msg = """Retweet PictureGathering run.
             # 2023/02/03 10:31:30 Process Done !!
@@ -316,8 +316,9 @@ class Crawler(metaclass=ABCMeta):
 
             description_msg = ""
             media_links = []
-            lines = str.split("\n")
+            lines = message.split("\n")
             for line in lines:
+                line = line.strip()
                 if line.startswith("http"):
                     media_links.append(line)
                 else:
@@ -326,32 +327,33 @@ class Crawler(metaclass=ABCMeta):
             embeds = []
             if len(media_links) > 0:
                 key_url = media_links[0]
-                embeds.append(
-                    {
-                        "description": description_msg,
-                        "url": key_url,
-                        "image": {"url": key_url}
-                    }
-                )
+                embeds.append({
+                    "description": description_msg,
+                    "url": key_url,
+                    "image": {"url": key_url}
+                })
                 for media_link_url in media_links[1:]:
-                    embeds.append(
-                        {
-                            "url": key_url,
-                            "image": {"url": media_link_url}
-                        }
-                    )
+                    embeds.append({
+                        "url": key_url,
+                        "image": {"url": media_link_url}
+                    })
+            else:
+                embeds.append({
+                    "description": description_msg
+                })
 
-            if embeds:
-                payload = {
-                    "embeds": embeds
-                }
+            payload = {
+                "embeds": embeds
+            }
 
         if not payload:
             payload = {
-                "content": str
+                "content": message
             }
 
-        response = httpx.post(url, headers=headers, data=orjson.dumps(payload).decode())
+        response = httpx.post(
+            url, headers=headers, data=orjson.dumps(payload).decode()
+        )
         response.raise_for_status()
 
         # if response.status_code != 204:  # 成功すると204 No Contentが返ってくる
@@ -403,7 +405,11 @@ class Crawler(metaclass=ABCMeta):
             return Result.failed
         return Result.success
 
-    def tweet_media_saver(self, tweet_info: TweetInfo, atime: float, mtime: float, session: httpx.Client | None = None) -> MediaSaveResult:
+    def tweet_media_saver(self,
+                          tweet_info: TweetInfo,
+                          atime: float,
+                          mtime: float,
+                          session: httpx.Client | None = None) -> MediaSaveResult:
         """tweet_infoで指定されるツイートのメディアを保存する
 
         Args:
@@ -507,7 +513,7 @@ class Crawler(metaclass=ABCMeta):
         return MediaSaveResult.success
 
     def interpret_tweets(self, tweet_info_list: list[TweetInfo]) -> Result:
-        result_list = []
+        result_list: list[MediaSaveResult] = []
         session = httpx.Client(follow_redirects=True)
         for tweet_info in tweet_info_list:
             """タイムスタンプについて
@@ -533,9 +539,9 @@ class Crawler(metaclass=ABCMeta):
             )
 
             # メディア保存
-            result = self.tweet_media_saver(tweet_info, atime, mtime, session)
+            result: MediaSaveResult = self.tweet_media_saver(tweet_info, atime, mtime, session)
             result_list.append(result)
-        if [r for r in result_list if r == Result.failed]:
+        if [r for r in result_list if r == MediaSaveResult.failed]:
             return Result.failed
         return Result.success
 

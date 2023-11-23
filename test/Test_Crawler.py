@@ -1,10 +1,3 @@
-"""クローラーのテスト
-
-Crawler.Crawler()の各種機能をテストする
-実際に使用する派生クラスのテストについてはそれぞれのファイルに記述する
-設定ファイルとして {CONFIG_FILE_NAME} にあるconfig.iniファイルを使用する
-各種トークン類もAPI利用のテストのために使用する
-"""
 import configparser
 import os
 import random
@@ -18,6 +11,7 @@ from logging import WARNING, getLogger
 from pathlib import Path
 from unittest.mock import call
 
+import orjson
 from mock import MagicMock, PropertyMock, patch
 
 from PictureGathering.Crawler import Crawler, MediaSaveResult
@@ -528,17 +522,74 @@ class TestCrawler(unittest.TestCase):
             mock_req = stack.enter_context(patch("PictureGathering.Crawler.httpx.post"))
 
             crawler = ConcreteCrawler()
+            url = crawler.config["discord_webhook_url"]["webhook_url"]
+            headers = {
+                "Content-Type": "application/json"
+            }
 
-            # mock設定
-            response = MagicMock()
-            status_code = PropertyMock()
-            status_code.return_value = 204  # 成功すると204 No Contentが返ってくる
-            type(response).status_code = status_code
-            mock_req.return_value = response
+            message = """Retweet PictureGathering run.
+            2023/11/23 12:34:56 Process Done !!
+            add 4 new images. delete 4 old images.
+            https://pbs.twimg.com/media/Fn-iG41aYAAjYb7.jpg
+            https://pbs.twimg.com/media/Fn_OTxhXEAIMyb0.jpg
+            https://pbs.twimg.com/media/Fn4DUHSaIAM8Ehz.jpg
+            https://pbs.twimg.com/media/Fn-2N4UagAAlzEd.jpg"""
+            description_msg = ""
+            media_links = []
+            lines = message.split("\n")
+            for line in lines:
+                line = line.strip()
+                if line.startswith("http"):
+                    media_links.append(line)
+                else:
+                    description_msg += (line + "\n")
+            embeds = []
+            if len(media_links) > 0:
+                key_url = media_links[0]
+                embeds.append({
+                    "description": description_msg,
+                    "url": key_url,
+                    "image": {"url": key_url}
+                })
+                for media_link_url in media_links[1:]:
+                    embeds.append({
+                        "url": key_url,
+                        "image": {"url": media_link_url}
+                    })
+            payload = {
+                "embeds": embeds
+            }
+            actual = crawler.post_discord_notify(message, True)
+            self.assertEqual(Result.success, actual)
+            mock_req.assert_called_once_with(url, headers=headers, data=orjson.dumps(payload).decode())
+            mock_req.reset_mock()
 
-            str = "text"
-            self.assertEqual(Result.success, crawler.post_discord_notify(str))
-            mock_req.assert_called_once()
+            no_media_message = """Retweet PictureGathering run.
+            2023/11/23 12:34:56 Process Done !!
+            add 0 new images. delete 0 old images."""
+            description_msg = ""
+            lines = no_media_message.split("\n")
+            for line in lines:
+                line = line.strip()
+                description_msg += (line + "\n")
+            embeds = [{
+                "description": description_msg
+            }]
+            payload = {
+                "embeds": embeds
+            }
+            actual = crawler.post_discord_notify(no_media_message, True)
+            self.assertEqual(Result.success, actual)
+            mock_req.assert_called_once_with(url, headers=headers, data=orjson.dumps(payload).decode())
+            mock_req.reset_mock()
+
+            payload = {
+                "content": message
+            }
+            actual = crawler.post_discord_notify(message, False)
+            self.assertEqual(Result.success, actual)
+            mock_req.assert_called_once_with(url, headers=headers, data=orjson.dumps(payload).decode())
+            mock_req.reset_mock()
 
     def test_post_line_notify(self):
         """LINE通知ポスト機能をチェックする
