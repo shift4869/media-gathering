@@ -7,13 +7,13 @@ import urllib.parse
 from datetime import datetime, timedelta
 from logging import INFO, getLogger
 from pathlib import Path
-from typing import Any
 
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
 from PictureGathering.Model import ExternalLink
 from PictureGathering.tac.TweetInfo import TweetInfo
 from PictureGathering.tac.TwitterAPIClientAdapter import TwitterAPIClientAdapter
 from PictureGathering.tac.Username import Username
+from PictureGathering.Util import find_values
 
 logger = getLogger(__name__)
 logger.setLevel(INFO)
@@ -202,44 +202,6 @@ class LikeFetcher():
         result = self.get_like_jsons()
         return result
 
-    def _find_values(self, obj: dict | list[dict], key: str) -> list:
-        """辞書オブジェクトから key を探索し、対応する value を収集して返す
-
-        Args:
-            obj (dict | list[dict]): 探索対象の辞書、または辞書のリスト
-            key (str): 探索対象のキー
-
-        Returns:
-            list: 探索対象の辞書内に探索対象のキーが存在した場合、そのキーに対応する値を返す
-                  単一・複数ヒットに関わらず返り値は list になる
-                  探索対象のキーが存在しない場合、空リストを返す
-                  探索対象が辞書、または辞書のリストでない場合、空リストを返す
-        """
-        def _innner_helper(innner_obj: Any | dict | list, innner_key: str, innner_list: list) -> list:
-            """再帰用内部メソッド
-
-            Args:
-                innner_obj: (Any | dict | list): 探索対象の値、辞書、または辞書のリスト
-                innner_key (str): 探索対象のキー
-                innner_list (str): 探索途中の結果を格納するリスト
-
-            Returns:
-                list: innner_obj が辞書の場合、配下の全ての{キー: 値}について再帰する
-                        キーが innner_key と一致する場合、その時の対応する値を innner_list に含める
-                      innner_obj がリストの場合、配下の要素について再帰する
-                      innner_obj が辞書でもリストでもない場合、innner_list を返す
-            """
-            if isinstance(innner_obj, dict) and (target_dict := innner_obj):
-                for k, v in target_dict.items():
-                    if k == innner_key:
-                        innner_list.append(v)
-                    innner_list.extend(_innner_helper(v, innner_key, []))
-            if isinstance(innner_obj, list) and (target_list := innner_obj):
-                for element in target_list:
-                    innner_list.extend(_innner_helper(element, innner_key, []))
-            return innner_list
-        return _innner_helper(obj, key, [])
-
     def _match_data(self, data: dict) -> dict:
         """ツイートオブジェクトのルート解析用match
 
@@ -255,7 +217,7 @@ class LikeFetcher():
                 "legacy": tweet,
                 "source": via_html,
             }:
-                via = re.findall("^<.+?>([^<]*?)<.+?>$", via_html)[0]
+                via = re.findall(r"^<.+?>([^<]*?)<.+?>$", via_html)[0]
                 result = {
                     "author": author,
                     "tweet": tweet,
@@ -411,7 +373,7 @@ class LikeFetcher():
         # fetched_tweets は Likes のツイートが入っている想定
         # media を含むかどうかはこの時点では don't care
         target_data_list: list[dict] = []
-        tweet_results: list[dict] = self._find_values(fetched_tweets, "tweet_results")
+        tweet_results: list[dict] = find_values(fetched_tweets, "tweet_results")
         for t in tweet_results:
             t1 = t.get("result", {})
             if t2 := self.interpret_json(t1):
@@ -516,7 +478,7 @@ class LikeFetcher():
         # 辞書パース
         # 外部リンクを含むかどうかはこの時点では don't care
         target_data_list: list[dict] = []
-        tweet_results: list[dict] = self._find_values(fetched_tweets, "tweet_results")
+        tweet_results: list[dict] = find_values(fetched_tweets, "tweet_results")
         for t in tweet_results:
             t1 = t.get("result", {})
             if t2 := self.interpret_json(t1):
@@ -628,10 +590,6 @@ if __name__ == "__main__":
         with cache_path.open("r", encoding="utf8") as fin:
             json_dict = json.load(fin)
             fetched_tweets.append(json_dict)
-
-    # find_value テスト
-    # result = like._find_values(fetched_tweets, "tweet_results")
-    # pprint.pprint(result)
 
     # メディア取得
     tweet_info_list = like.to_convert_TweetInfo(fetched_tweets)

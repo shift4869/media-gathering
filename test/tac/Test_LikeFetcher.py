@@ -1,4 +1,3 @@
-import json
 import re
 import shutil
 import sys
@@ -9,7 +8,8 @@ from datetime import datetime, timedelta
 from itertools import chain, repeat
 from pathlib import Path
 
-from mock import MagicMock, call, patch
+from mock import MagicMock, patch
+import orjson
 
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
@@ -43,9 +43,8 @@ class TestLikeFetcher(unittest.TestCase):
             shutil.rmtree(self.TWITTER_CACHE_PATH)
 
     def _get_sample_json(self) -> list[dict]:
-        TEST_CACHE_PATH = self.TWITTER_CACHE_PATH.parent / "expect"
-        with (TEST_CACHE_PATH / "content_cache_likes_test.txt").open("r", encoding="utf8") as fin:
-            return json.load(fin)
+        cache_path = self.TWITTER_CACHE_PATH.parent / "expect"
+        return orjson.loads((cache_path / "content_cache_likes_test.txt").read_bytes())
 
     def _get_tweets(self):
         data = self._get_sample_json()
@@ -133,38 +132,6 @@ class TestLikeFetcher(unittest.TestCase):
             mock_get_like_jsons = stack.enter_context(patch("PictureGathering.tac.LikeFetcher.LikeFetcher.get_like_jsons"))
             actual = self.fetcher.fetch()
             mock_get_like_jsons.assert_called_once_with()
-
-    def test_find_values(self):
-        fetched_tweets = [self._get_sample_json()]
-        actual = self.fetcher._find_values(fetched_tweets, "tweet_results")
-
-        def find_tweet_results(fetched_tweets: list[dict]):
-            target_data_list: list[dict] = []
-            for r in fetched_tweets:
-                r1 = r.get("data", {}) \
-                      .get("user", {}) \
-                      .get("result", {}) \
-                      .get("timeline_v2", {}) \
-                      .get("timeline", {}) \
-                      .get("instructions", [{}])[0]
-                if not r1:
-                    continue
-                entries: list[dict] = r1.get("entries", [])
-                for entry in entries:
-                    e1 = entry.get("content", {}) \
-                              .get("itemContent", {}) \
-                              .get("tweet_results", {})
-                    target_data_list.append(e1)
-            return target_data_list
-
-        expect = find_tweet_results(fetched_tweets)
-        self.assertEqual(expect, actual)
-
-        actual = self.fetcher._find_values(fetched_tweets, "no_exist_key")
-        self.assertEqual([], actual)
-
-        actual = self.fetcher._find_values("invalid_object", "no_exist_key")
-        self.assertEqual([], actual)
 
     def test_match_data(self):
         tweets = self._get_tweets()
