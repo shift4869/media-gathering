@@ -44,7 +44,7 @@ class TestRetweetFetcher(unittest.TestCase):
 
     def _get_sample_json(self) -> list[dict]:
         cache_path = self.TWITTER_CACHE_PATH.parent / "expect"
-        return orjson.loads((cache_path / "content_cache_timeline_test.txt").read_bytes())
+        return orjson.loads((cache_path / "content_cache_timeline_test.json").read_bytes())
 
     def _get_tweets(self):
         data = self._get_sample_json()

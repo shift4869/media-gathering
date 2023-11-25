@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 from itertools import chain, repeat
 from pathlib import Path
 
-from mock import MagicMock, patch
 import orjson
+from mock import MagicMock, patch
 
 from PictureGathering.LinkSearch.FetcherBase import FetcherBase
 from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
@@ -44,7 +44,7 @@ class TestLikeFetcher(unittest.TestCase):
 
     def _get_sample_json(self) -> list[dict]:
         cache_path = self.TWITTER_CACHE_PATH.parent / "expect"
-        return orjson.loads((cache_path / "content_cache_likes_test.txt").read_bytes())
+        return orjson.loads((cache_path / "content_cache_likes_test.json").read_bytes())
 
     def _get_tweets(self):
         data = self._get_sample_json()

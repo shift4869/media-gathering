@@ -11,7 +11,7 @@ def find_values(obj: Any,
                 key: str,
                 is_predict_one: bool = False,
                 key_white_list: list[str] = None,
-                key_black_list: list[str] = None) -> list:
+                key_black_list: list[str] = None) -> list | Any:
     if not key_white_list:
         key_white_list = []
     if not key_black_list:

@@ -190,7 +190,7 @@ class Favorite(Base):
                            media_size,
                            media_blob)
             case _:
-                raise ValueError(f"{type(cls)} create failed.")
+                raise ValueError("Favorite create failed.")
 
 
 class Retweet(Base):
@@ -373,7 +373,7 @@ class Retweet(Base):
                            media_size,
                            media_blob)
             case _:
-                raise ValueError(f"{type(cls)} create failed.")
+                raise ValueError("Retweet create failed.")
 
 
 class ExternalLink(Base):
@@ -510,7 +510,7 @@ class ExternalLink(Base):
                            saved_created_at,
                            link_type)
             case _:
-                raise ValueError(f"{type(cls)} create failed.")
+                raise ValueError("ExternalLink create failed.")
 
 
 class DeleteTarget(Base):
@@ -615,7 +615,7 @@ class DeleteTarget(Base):
                            add_num,
                            del_num)
             case _:
-                raise ValueError(f"{type(cls)} create failed.")
+                raise ValueError("DeleteTarget create failed.")
 
 
 if __name__ == "__main__":
