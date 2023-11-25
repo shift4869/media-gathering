@@ -593,18 +593,18 @@
                             "legacy": {
                               "retweeted_status_result": {
                                 "result": {
-                                  "legacy": {
-                                    "core": {
-                                      "user_results": {
-                                        "result": {
-                                          "legacy": {
-                                            "name": "テストユーザー7_RT",
-                                            "screen_name": "test_user_7_rt"
-                                          }
+                                  "core": {
+                                    "user_results": {
+                                      "result": {
+                                        "legacy": {
+                                          "name": "テストユーザー7_RT",
+                                          "screen_name": "test_user_7_rt"
                                         }
                                       }
-                                    },
-                                    "source": "<a href=\"http://\" rel=\"nofollow\">via_7_rt</a>",
+                                    }
+                                  },
+                                  "source": "<a href=\"http://\" rel=\"nofollow\">via_7_rt</a>",
+                                  "legacy": {
                                     "created_at": "Tue Feb 07 01:01:07 +0000 2023",
                                     "entities": {
                                       "media": [
