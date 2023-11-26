@@ -8,10 +8,17 @@ sequenceDiagram
     participant fetcher as LikeFetcher.py\<br/>RetweetFetcher.py
     participant LinkSearcher.py
     participant db as FavDBController.py\<br/>RetweetDBController.py
+    participant parser as LikeParser.py\<br/>RetweetParser.py
     participant TwitterAPIClientAdapter.py
+
+    box DarkBlue External Library
     participant twitter-api-client
+    end
+
+    box DarkGreen External Network
     participant twitter
-    participant external website
+    participant website
+    end
 
     User ->> PictureGathering.py: python PictureGathering.py --type="Fav/RT"
     PictureGathering.py ->> crawler : make instance, and call
@@ -32,19 +39,21 @@ sequenceDiagram
     twitter-api-client ->> TwitterAPIClientAdapter.py: fetched data
     TwitterAPIClientAdapter.py ->> fetcher: fetched data
 
-    fetcher ->> fetcher: to_convert_TweetInfo()
+    fetcher ->> parser: parse call
+    parser ->> fetcher: parse_to_TweetInfo()
     fetcher ->> crawler: fetch call
     crawler ->> twitter: interpret_tweets(), fetch media file
     twitter ->> crawler: media file binary
-    crawler ->> User: save media file
+    crawler -->> User: save media file
     crawler ->> fetcher: return 
 
-    fetcher ->> fetcher: to_convert_ExternalLink
+    fetcher ->> parser: parse call
+    parser ->> fetcher: parse_to_ExternalLink()
     fetcher ->> crawler: trace call
     crawler ->> LinkSearcher.py: trace_external_link()
-    LinkSearcher.py ->> external website: fetch ExternalLink
-    external website ->> LinkSearcher.py: media file binary from ExternalLink
-    LinkSearcher.py ->> User: save media file
+    LinkSearcher.py ->> website: fetch ExternalLink
+    website ->> LinkSearcher.py: media file binary from ExternalLink
+    LinkSearcher.py -->> User: save media file
     LinkSearcher.py ->> fetcher: return 
 
     fetcher ->> crawler: do end_of_process()
