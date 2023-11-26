@@ -539,6 +539,11 @@
                                 ],
                                 "urls": [
                                   {
+                                    "display_url": "empty.expanded_url…",
+                                    "expanded_url": "",
+                                    "url": "empty.url"
+                                  },
+                                  {
                                     "display_url": "pixiv.net/artworks/12345…",
                                     "expanded_url": "https://www.pixiv.net/artworks/123456789",
                                     "url": "https://t.co/sample_6"
@@ -1116,6 +1121,60 @@
                               "retweeted": true,
                               "user_id_str": "99999",
                               "id_str": "10009"
+                            }
+                          }
+                        },
+                        "tweetDisplayType": "Tweet"
+                      }
+                    }
+                  },
+                  {
+                    "content": {
+                      "itemContent": {
+                        "tweet_results": {
+                          "result": {
+                            "core": {
+                              "user_results": {
+                                "result": {
+                                  "legacy": {
+                                    "name": "テストユーザーa",
+                                    "screen_name": "test_user_10"
+                                  }
+                                }
+                              }
+                            },
+                            "source": "<a href=\"http://\" rel=\"nofollow\">via_6</a>",
+                            "legacy": {
+                              "created_at": "Tue Feb 07 01:00:06 +0000 2023",
+                              "entities": {
+                                "media": [
+                                  {
+                                    "display_url": "pic.twitter.com/sample_a",
+                                    "expanded_url": "https://twitter.com/test_user_a/status/1000a/photo/1",
+                                    "id_str": "1000a",
+                                    "media_url_https": "https://pbs.twimg.com/media/1000a.jpg",
+                                    "type": "photo",
+                                    "url": "https://t.co/sample_a"
+                                  }
+                                ],
+                                "urls": [
+                                  {
+                                    "display_url": "pixiv.net/artworks/12345…",
+                                    "expanded_url": "https://www.pixiv.net/artworks/123456789",
+                                    "url": "https://t.co/sample_a"
+                                  },
+                                  {
+                                    "display_url": "skeb.jp/@test_user_a…",
+                                    "expanded_url": "https://skeb.jp/@test_user_a/works/123",
+                                    "url": "https://t.co/sample_a"
+                                  }
+                                ]
+                              },
+                              "full_text": "(10)外部リンク含み_entitiesのみ",
+                              "is_quote_status": false,
+                              "retweeted": false,
+                              "user_id_str": "aaaaa",
+                              "id_str": "1000a"
                             }
                           }
                         },

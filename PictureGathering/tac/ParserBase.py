@@ -21,7 +21,7 @@ class ParserBase(metaclass=ABCMeta):
     def __init__(self, fetched_tweets: list[dict], link_searcher: LinkSearcher) -> None:
         if not isinstance(fetched_tweets, list):
             raise TypeError("fetched_tweets must be list.")
-        if not isinstance(fetched_tweets[0], dict):
+        if not all([isinstance(t, dict) for t in fetched_tweets]):
             raise TypeError("fetched_tweets[] element must be dict.")
         if not isinstance(link_searcher, LinkSearcher):
             raise TypeError("link_searcher must be LinkSearcher.")
