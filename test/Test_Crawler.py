@@ -38,7 +38,7 @@ class ConcreteCrawler(Crawler):
             mock_logger_info = stack.enter_context(patch.object(logger, "info"))
             mock_logger_exception = stack.enter_context(patch.object(logger, "exception"))
             mock_validate_config = stack.enter_context(patch("PictureGathering.Crawler.Crawler.validate_config_file"))
-            
+
             # Crawler.__init__()で意図的にエラーを起こすための設定
             if error_occur == "IOError":
                 def ioerror():

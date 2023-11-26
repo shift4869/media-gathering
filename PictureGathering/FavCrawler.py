@@ -7,6 +7,7 @@ from PictureGathering.Crawler import Crawler
 from PictureGathering.FavDBController import FavDBController
 from PictureGathering.LogMessage import MSG
 from PictureGathering.tac.LikeFetcher import LikeFetcher
+from PictureGathering.tac.LikeParser import LikeParser
 from PictureGathering.Util import Result
 
 logger = getLogger(__name__)
@@ -66,15 +67,17 @@ class FavCrawler(Crawler):
         like = LikeFetcher(ct0, auth_token, target_screen_name, target_id)
         fetched_tweets = like.fetch()
 
+        parser = LikeParser(fetched_tweets, self.lsb)
+
         # メディア取得
         logger.info(MSG.MEDIA_DOWNLOAD_START.value)
-        tweet_info_list = like.to_convert_TweetInfo(fetched_tweets)
+        tweet_info_list = parser.parse_to_TweetInfo()
         self.interpret_tweets(tweet_info_list)
         logger.info(MSG.MEDIA_DOWNLOAD_DONE.value)
 
         # 外部リンク収集
         logger.info(MSG.GETTING_EXTERNAL_LINK_START.value)
-        external_link_list = like.to_convert_ExternalLink(fetched_tweets, self.lsb)
+        external_link_list = parser.parse_to_ExternalLink()
         self.trace_external_link(external_link_list)
         logger.info(MSG.GETTING_EXTERNAL_LINK_DONE.value)
 

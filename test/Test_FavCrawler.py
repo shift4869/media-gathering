@@ -1,8 +1,3 @@
-"""Favクローラーのテスト
-
-FavCrawler.FavCrawler()の各種機能をテストする
-"""
-
 import configparser
 import random
 import sys
@@ -16,15 +11,10 @@ from freezegun import freeze_time
 from mock import MagicMock, patch
 
 from PictureGathering.FavCrawler import FavCrawler
+from PictureGathering.Util import Result
 
 
 class TestFavCrawler(unittest.TestCase):
-    """FavCrawlerテストメインクラス
-    """
-
-    def setUp(self):
-        pass
-
     def _get_instance(self) -> FavCrawler:
         with ExitStack() as stack:
             mock_logger_fc = stack.enter_context(patch.object(getLogger("PictureGathering.FavCrawler"), "info"))
@@ -107,6 +97,7 @@ class TestFavCrawler(unittest.TestCase):
         with ExitStack() as stack:
             mock_logger = stack.enter_context(patch("PictureGathering.FavCrawler.logger.info"))
             mock_tac_like_fetcher = stack.enter_context(patch("PictureGathering.FavCrawler.LikeFetcher"))
+            mock_parser = stack.enter_context(patch("PictureGathering.FavCrawler.LikeParser"))
             mock_interpret_tweets = stack.enter_context(patch("PictureGathering.FavCrawler.FavCrawler.interpret_tweets"))
             mock_trace_external_link = stack.enter_context(patch("PictureGathering.FavCrawler.FavCrawler.trace_external_link"))
             mock_shrink_folder = stack.enter_context(patch("PictureGathering.FavCrawler.FavCrawler.shrink_folder"))
@@ -114,13 +105,12 @@ class TestFavCrawler(unittest.TestCase):
 
             fc = self._get_instance()
 
-            # TAC use mode
             mock_like_instance = MagicMock()
             mock_like_instance.fetch.side_effect = lambda: ["fetched_tweets"]
-            mock_like_instance.to_convert_TweetInfo.side_effect = lambda ft: ["to_convert_TweetInfo"]
-            mock_like_instance.to_convert_ExternalLink.side_effect = lambda ft, lsb: ["to_convert_ExternalLink"]
-
             mock_tac_like_fetcher.side_effect = lambda ct0, auth_token, target_screen_name, target_id: mock_like_instance
+
+            mock_parser().parse_to_TweetInfo.side_effect = lambda: ["to_convert_TweetInfo"]
+            mock_parser().parse_to_ExternalLink.side_effect = lambda: ["to_convert_ExternalLink"]
 
             fc.config["twitter_api_client"]["ct0"] = "dummy_ct0"
             fc.config["twitter_api_client"]["auth_token"] = "dummy_auth_token"
@@ -128,14 +118,16 @@ class TestFavCrawler(unittest.TestCase):
             fc.config["twitter_api_client"]["target_id"] = "99999999"  # dummy_target_id
 
             res = fc.crawl()
+            self.assertEqual(Result.success, res)
 
             mock_tac_like_fetcher.assert_called_once_with("dummy_ct0", "dummy_auth_token", "dummy_target_screen_name", 99999999)
             mock_like_instance.fetch.assert_called_once_with()
 
-            mock_like_instance.to_convert_TweetInfo.assert_called_once_with(["fetched_tweets"])
+            mock_parser.assert_any_call(["fetched_tweets"], fc.lsb)
+            mock_parser().parse_to_TweetInfo.assert_called_once_with()
             mock_interpret_tweets.assert_called_once_with(["to_convert_TweetInfo"])
 
-            mock_like_instance.to_convert_ExternalLink.assert_called_once_with(["fetched_tweets"], fc.lsb)
+            mock_parser().parse_to_ExternalLink.assert_called_once_with()
             mock_trace_external_link.assert_called_once_with(["to_convert_ExternalLink"])
 
             mock_shrink_folder.assert_called_once_with(int(fc.config["holding"]["holding_file_num"]))
