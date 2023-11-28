@@ -4,30 +4,29 @@ from pathlib import Path
 
 import orjson
 
-from PictureGathering.tac.TwitterAPIClientAdapter import TwitterAPIClientAdapter
+from PictureGathering.tac.FetcherBase import FetcherBase
 from PictureGathering.tac.Username import Username
 
 logger = getLogger(__name__)
 logger.setLevel(INFO)
 
 
-class RetweetFetcher():
-    twitter: TwitterAPIClientAdapter
-
-    # キャッシュファイルパス
-    TWITTER_CACHE_PATH = Path(__file__).parent / "cache/"
-
-    def __init__(self, ct0: str, auth_token: str, target_screen_name: Username | str, target_id: int) -> None:
+class RetweetFetcher(FetcherBase):
+    def __init__(self,
+                 ct0: str,
+                 auth_token: str,
+                 target_screen_name: Username | str,
+                 target_id: int) -> None:
         # ct0 と auth_token は同一のアカウントのクッキーから取得しなければならない
         # target_screen_name と target_id はそれぞれの対応が一致しなければならない（機能上は target_id のみ参照する）
         # ct0 と auth_token が紐づくアカウントと、 target_id は一致しなくても良い（前者のアカウントで後者の id のTL等を見に行く形になる）
-        self.twitter = TwitterAPIClientAdapter(ct0, auth_token, target_screen_name, target_id)
+        super().__init__(ct0, auth_token, target_screen_name, target_id)
 
     def get_retweet_jsons(self, limit: int = 400) -> list[dict]:
         logger.info("Fetched Tweet by TAC -> start")
 
         # キャッシュ保存場所の準備
-        base_path = Path(self.TWITTER_CACHE_PATH)
+        base_path = Path(self.CACHE_PATH)
         if base_path.is_dir():
             shutil.rmtree(base_path)
         base_path.mkdir(parents=True, exist_ok=True)
@@ -85,7 +84,7 @@ if __name__ == "__main__":
     # fetched_tweets = retweet.fetch()
 
     # キャッシュから読み込み
-    base_path = Path(retweet.TWITTER_CACHE_PATH)
+    base_path = Path(retweet.CACHE_PATH)
     fetched_tweets = []
     for cache_path in base_path.glob("*timeline_tweets*"):
         json_dict = orjson.loads(cache_path.read_bytes())

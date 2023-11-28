@@ -18,28 +18,28 @@ class TestRetweetFetcher(unittest.TestCase):
         self.target_screen_name = "dummy_target_screen_name"
         self.target_id = 99999999  # dummy_target_id
 
-        self.TWITTER_CACHE_PATH = Path(__file__).parent / "cache/actual"
+        self.CACHE_PATH = Path(__file__).parent / "cache/actual"
 
         with ExitStack() as stack:
-            mock_twitter = stack.enter_context(patch("PictureGathering.tac.RetweetFetcher.TwitterAPIClientAdapter"))
+            mock_twitter = stack.enter_context(patch("PictureGathering.tac.FetcherBase.TwitterAPIClientAdapter"))
             self.mock_twitter = MagicMock()
             mock_twitter.side_effect = lambda ct0, auth_token, target_screen_name, target_id: self.mock_twitter
 
             self.fetcher = RetweetFetcher(self.ct0, self.auth_token, self.target_screen_name, self.target_id)
-            self.fetcher.TWITTER_CACHE_PATH = self.TWITTER_CACHE_PATH
+            self.fetcher.CACHE_PATH = self.CACHE_PATH
 
             mock_twitter.assert_called_once_with(self.ct0, self.auth_token, self.target_screen_name, self.target_id)
 
     def tearDown(self):
-        if self.TWITTER_CACHE_PATH.exists():
-            shutil.rmtree(self.TWITTER_CACHE_PATH)
+        if self.CACHE_PATH.exists():
+            shutil.rmtree(self.CACHE_PATH)
 
     def _get_sample_json(self) -> list[dict]:
-        cache_path = self.TWITTER_CACHE_PATH.parent / "expect"
+        cache_path = self.CACHE_PATH.parent / "expect"
         return orjson.loads((cache_path / "content_cache_timeline_test.json").read_bytes())
 
     def test_init(self):
-        self.assertEqual(self.TWITTER_CACHE_PATH, self.fetcher.TWITTER_CACHE_PATH)
+        self.assertEqual(self.CACHE_PATH, self.fetcher.CACHE_PATH)
         self.assertEqual(self.mock_twitter, self.fetcher.twitter)
 
     def test_get_retweet_jsons(self):
@@ -58,7 +58,7 @@ class TestRetweetFetcher(unittest.TestCase):
             self.assertEqual(sample_jsons, actual)
 
             expect = [f"timeline_tweets_{i:02}.json" for i in range(DUP_NUM)]
-            actual_cache = self.fetcher.TWITTER_CACHE_PATH.glob("timeline_tweets*.json")
+            actual_cache = self.fetcher.CACHE_PATH.glob("timeline_tweets*.json")
             actual = [p.name for p in actual_cache]
             expect.sort()
             actual.sort()
