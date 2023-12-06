@@ -306,7 +306,7 @@ class Crawler(metaclass=ABCMeta):
 
         payload = {}
         if is_embed:
-            # desc_msg = """Retweet PictureGathering run.
+            # desc_msg = """Retweet MediaGathering run.
             # 2023/02/03 10:31:30 Process Done !!
             # add 4 new images. delete 4 old images."""
             # """https://pbs.twimg.com/media/Fn-iG41aYAAjYb7.jpg

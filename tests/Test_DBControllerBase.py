@@ -63,7 +63,7 @@ class TestDBController(unittest.TestCase):
             dict: ツイートオブジェクト（post後の返り値）
         """
         tweet_texts = [
-            "@s_shift4869 PictureGathering run.",
+            "@s_shift4869 MediaGathering run.",
             f"{created_at} Process Done !!",
             f"add {add_num} new images. delete {del_num} old images."
         ]

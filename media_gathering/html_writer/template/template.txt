@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>PictureGathering</title>
+        <title>MediaGathering</title>
     </head>
     <body>
         <table>

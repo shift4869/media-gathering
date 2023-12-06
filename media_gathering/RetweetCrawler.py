@@ -38,7 +38,7 @@ class RetweetCrawler(Crawler):
 
     def make_done_message(self) -> str:
         now_str = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-        done_msg = "Retweet PictureGathering run.\n"
+        done_msg = "Retweet MediaGathering run.\n"
         done_msg += now_str
         done_msg += " Process Done !!\n"
         done_msg += "add {0} new images. ".format(self.add_cnt)

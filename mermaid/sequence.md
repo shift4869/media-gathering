@@ -3,7 +3,7 @@ sequenceDiagram
     autonumber
 
     actor User
-    participant PictureGathering.py
+    participant media_gathering.py
     participant crawler as FavCrawler.py\<br/>RetweetCrawler.py
     participant fetcher as LikeFetcher.py\<br/>RetweetFetcher.py
     participant LinkSearcher.py
@@ -20,8 +20,8 @@ sequenceDiagram
     participant website
     end
 
-    User ->> PictureGathering.py: python PictureGathering.py --type="Fav/RT"
-    PictureGathering.py ->> crawler : make instance, and call
+    User ->> media_gathering.py: python media_gathering.py --type="Fav/RT"
+    media_gathering.py ->> crawler : make instance, and call
 
     crawler ->> LinkSearcher.py: make instance
     LinkSearcher.py ->> LinkSearcher.py: init, register ***Fetcher
@@ -57,6 +57,6 @@ sequenceDiagram
     LinkSearcher.py ->> fetcher: return 
 
     fetcher ->> crawler: do end_of_process()
-    crawler ->> PictureGathering.py: return
-    PictureGathering.py ->> User: return
+    crawler ->> media_gathering.py: return
+    media_gathering.py ->> User: return
 ```

@@ -68,7 +68,7 @@ class TestRetweetCrawler(unittest.TestCase):
             mock_random.return_value = s_pickup_url_list
 
             s_now_str = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-            s_done_msg = "Retweet PictureGathering run.\n"
+            s_done_msg = "Retweet MediaGathering run.\n"
             s_done_msg += s_now_str
             s_done_msg += " Process Done !!\n"
             s_done_msg += "add {0} new images. ".format(len(s_add_url_list))

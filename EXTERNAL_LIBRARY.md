@@ -195,7 +195,7 @@ MIT License
     - 「Copyright (c) 2018 [shift](https://twitter.com/_shift4869) (https://twitter.com/_shift4869)」と記載する。
         - （同じ意味ならばどんな表記でも良い。）
 - ライセンス表示
-    - [MIT License](https://github.com/shift4869/PictureGathering/blob/master/LICENSE)  であるということを記載する。
+    - [MIT License](https://github.com/shift4869/media-gathering/blob/master/LICENSE)  であるということを記載する。
         - MIT License全文 or MIT License全文へのリンクを記載
 
 また、本ライブラリを利用したことで生じた不利益については一切保障しない。

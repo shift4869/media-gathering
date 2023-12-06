@@ -4,8 +4,8 @@ branch = True
 omit =
 	# omit __init__ file
 	*__init__*
-	# omit PictureGathering.py main file
-	PictureGathering.py
+	# omit media_gathering.py main file
+	media_gathering.py
 
 [report]
 # Regexes for lines to exclude from consideration

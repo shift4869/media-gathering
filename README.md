@@ -1,4 +1,4 @@
-# PictureGathering
+# media-gathering
 
 ![Coverage reports](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/shift4869/ad61760f15c4a67a5c421cf479e3c7e7/raw/01_MediaGathering.json)
 
@@ -65,16 +65,16 @@
 1. config/config_example.iniの中身を自分用に編集してconfig/config.iniにリネーム
     - twitterのセッション情報を設定する（必須）
     - ローカルの保存先パスを設定する（必須）
-1. PictureGathering.pyを実行する（以下は一例）
+1. media-gathering.pyを実行する（以下は一例）
     - ※手動で実行するならパスが通っている環境で以下でOK
     ```
-    python PictureGathering.py --type="Fav"
+    python media_gathering.py --type="Fav"
     ```
     - または、以下を記述した.vbsファイルを用意する  
     ```
     Set ws=CreateObject("Wscript.Shell")
-    ws.CurrentDirectory = "{解凍したPictureGatheringへのパス}\PictureGathering"
-    ws.run "cmd /c """"{python実行ファイルまでのパス}\python.exe"" {解凍したPictureGatheringへのパス}\PictureGathering\PictureGathering.py --type=""Fav""""", vbhide
+    ws.CurrentDirectory = "{解凍したmedia-gatheringへのパス}\media-gathering"
+    ws.run "cmd /c """"{python実行ファイルまでのパス}\python.exe"" {解凍したmedia-gatheringへのパス}\media-gathering\media_gathering.py --type=""Fav""""", vbhide
     ```
     - `--type`を`Fav`でなく`RT`に変更すれば対象がRetweetとなる
     - 作成した.vbsを「タスクのスケジュール」などで実行する
@@ -83,8 +83,8 @@
 
 
 ## License/Author
-[MIT License](https://github.com/shift4869/PictureGathering/blob/master/LICENSE)  
+[MIT License](https://github.com/shift4869/media-gathering/blob/master/LICENSE)  
 Copyright (c) 2018 [shift](https://twitter.com/_shift4869)
 
-使用した外部ライブラリのライセンスについては[こちら](https://github.com/shift4869/PictureGathering/blob/master/EXTERNAL_LIBRARY.md)  を参照
+使用した外部ライブラリのライセンスについては[こちら](https://github.com/shift4869/media-gathering/blob/master/EXTERNAL_LIBRARY.md)  を参照
 

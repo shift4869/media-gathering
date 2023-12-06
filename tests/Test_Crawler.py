@@ -527,7 +527,7 @@ class TestCrawler(unittest.TestCase):
                 "Content-Type": "application/json"
             }
 
-            message = """Retweet PictureGathering run.
+            message = """Retweet MediaGathering run.
             2023/11/23 12:34:56 Process Done !!
             add 4 new images. delete 4 old images.
             https://pbs.twimg.com/media/Fn-iG41aYAAjYb7.jpg
@@ -564,7 +564,7 @@ class TestCrawler(unittest.TestCase):
             mock_req.assert_called_once_with(url, headers=headers, data=orjson.dumps(payload).decode())
             mock_req.reset_mock()
 
-            no_media_message = """Retweet PictureGathering run.
+            no_media_message = """Retweet MediaGathering run.
             2023/11/23 12:34:56 Process Done !!
             add 0 new images. delete 0 old images."""
             description_msg = ""
