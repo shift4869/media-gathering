@@ -4,7 +4,7 @@ from typing import Iterable
 
 from pixivpy3 import AppPixivAPI
 
-from media_gathering.link_search.Pixiv.PixivWorkURL import PixivWorkURL
+from media_gathering.link_search.pixiv.PixivWorkURL import PixivWorkURL
 from media_gathering.link_search.URL import URL
 
 

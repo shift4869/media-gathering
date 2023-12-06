@@ -7,10 +7,10 @@ from time import sleep
 
 from pixivpy3 import AppPixivAPI
 
-from media_gathering.link_search.Pixiv.PixivSaveDirectoryPath import PixivSaveDirectoryPath
-from media_gathering.link_search.Pixiv.PixivSourceList import PixivSourceList
-from media_gathering.link_search.Pixiv.PixivUgoiraDownloader import PixivUgoiraDownloader
-from media_gathering.link_search.Pixiv.Workid import Workid
+from media_gathering.link_search.pixiv.PixivSaveDirectoryPath import PixivSaveDirectoryPath
+from media_gathering.link_search.pixiv.PixivSourceList import PixivSourceList
+from media_gathering.link_search.pixiv.PixivUgoiraDownloader import PixivUgoiraDownloader
+from media_gathering.link_search.pixiv.Workid import Workid
 
 logger = getLogger(__name__)
 logger.setLevel(INFO)
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     import logging.config
 
     from media_gathering.link_search.Password import Password
-    from media_gathering.link_search.Pixiv.PixivFetcher import PixivFetcher
+    from media_gathering.link_search.pixiv.PixivFetcher import PixivFetcher
     from media_gathering.link_search.Username import Username
 
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)

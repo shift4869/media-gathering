@@ -6,10 +6,10 @@ from pixivpy3 import AppPixivAPI
 
 from media_gathering.link_search.FetcherBase import FetcherBase
 from media_gathering.link_search.Password import Password
-from media_gathering.link_search.Pixiv.PixivSaveDirectoryPath import PixivSaveDirectoryPath
-from media_gathering.link_search.Pixiv.PixivSourceList import PixivSourceList
-from media_gathering.link_search.Pixiv.PixivWorkDownloader import PixivWorkDownloader
-from media_gathering.link_search.Pixiv.PixivWorkURL import PixivWorkURL
+from media_gathering.link_search.pixiv.PixivSaveDirectoryPath import PixivSaveDirectoryPath
+from media_gathering.link_search.pixiv.PixivSourceList import PixivSourceList
+from media_gathering.link_search.pixiv.PixivWorkDownloader import PixivWorkDownloader
+from media_gathering.link_search.pixiv.PixivWorkURL import PixivWorkURL
 from media_gathering.link_search.URL import URL
 from media_gathering.link_search.Username import Username
 

@@ -47,7 +47,7 @@ if __name__ == "__main__":
     import configparser
     from pathlib import Path
 
-    from media_gathering.link_search.Nijie.NijieFetcher import NijieFetcher
+    from media_gathering.link_search.nijie.NijieFetcher import NijieFetcher
     from media_gathering.link_search.Password import Password
     from media_gathering.link_search.Username import Username
 

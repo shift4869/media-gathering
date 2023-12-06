@@ -8,9 +8,9 @@ import httpx
 import orjson
 
 from media_gathering.link_search.FetcherBase import FetcherBase
-from media_gathering.link_search.Nijie.NijieCookie import NijieCookie
-from media_gathering.link_search.Nijie.NijieDownloader import NijieDownloader
-from media_gathering.link_search.Nijie.NijieURL import NijieURL
+from media_gathering.link_search.nijie.NijieCookie import NijieCookie
+from media_gathering.link_search.nijie.NijieDownloader import NijieDownloader
+from media_gathering.link_search.nijie.NijieURL import NijieURL
 from media_gathering.link_search.Password import Password
 from media_gathering.link_search.URL import URL
 from media_gathering.link_search.Username import Username

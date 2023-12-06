@@ -6,11 +6,11 @@ from typing import Self
 from plyer import notification
 
 from media_gathering.link_search.FetcherBase import FetcherBase
-from media_gathering.link_search.NicoSeiga.NicoSeigaFetcher import NicoSeigaFetcher
-from media_gathering.link_search.Nijie.NijieFetcher import NijieFetcher
+from media_gathering.link_search.nico_seiga.NicoSeigaFetcher import NicoSeigaFetcher
+from media_gathering.link_search.nijie.NijieFetcher import NijieFetcher
 from media_gathering.link_search.Password import Password
-from media_gathering.link_search.Pixiv.PixivFetcher import PixivFetcher
-from media_gathering.link_search.PixivNovel.PixivNovelFetcher import PixivNovelFetcher
+from media_gathering.link_search.pixiv.PixivFetcher import PixivFetcher
+from media_gathering.link_search.pixiv_novel.PixivNovelFetcher import PixivNovelFetcher
 from media_gathering.link_search.URL import URL
 from media_gathering.link_search.Username import Username
 from media_gathering.LogMessage import MSG

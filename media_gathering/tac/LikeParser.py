@@ -86,7 +86,7 @@ if __name__ == "__main__":
     from media_gathering.link_search.URL import URL
 
     # キャッシュから読み込み
-    base_path = Path("./test/tac/cache/expect/content_cache_likes_test.json")
+    base_path = Path("./tests/tac/cache/expect/content_cache_likes_test.json")
     # base_path = Path("./PictureGathering/tac/cache/likes_00.json")
     fetched_tweets = orjson.loads(base_path.read_bytes())
 

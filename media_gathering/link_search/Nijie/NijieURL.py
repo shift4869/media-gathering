@@ -2,7 +2,7 @@ import re
 import urllib.parse
 from dataclasses import dataclass
 
-from media_gathering.link_search.Nijie.Workid import Workid
+from media_gathering.link_search.nijie.Workid import Workid
 from media_gathering.link_search.URL import URL
 
 
@@ -31,7 +31,7 @@ class NijieURL():
         """
         original_url = self.url.original_url
         if not self.is_valid(original_url):
-            raise ValueError("URL is not Nijie URL.")
+            raise ValueError("URL is not nijie URL.")
 
     @property
     def work_id(self) -> Workid:

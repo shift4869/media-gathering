@@ -4,10 +4,10 @@ from pathlib import Path
 
 from pixivpy3 import AppPixivAPI
 
-from media_gathering.link_search.Pixiv.Authorid import Authorid
-from media_gathering.link_search.Pixiv.Authorname import Authorname
-from media_gathering.link_search.Pixiv.PixivWorkURL import PixivWorkURL
-from media_gathering.link_search.Pixiv.Worktitle import Worktitle
+from media_gathering.link_search.pixiv.Authorid import Authorid
+from media_gathering.link_search.pixiv.Authorname import Authorname
+from media_gathering.link_search.pixiv.PixivWorkURL import PixivWorkURL
+from media_gathering.link_search.pixiv.Worktitle import Worktitle
 
 
 @dataclass(frozen=True)
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     from pathlib import Path
 
     from media_gathering.link_search.Password import Password
-    from media_gathering.link_search.Pixiv.PixivFetcher import PixivFetcher
+    from media_gathering.link_search.pixiv.PixivFetcher import PixivFetcher
     from media_gathering.link_search.Username import Username
 
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)

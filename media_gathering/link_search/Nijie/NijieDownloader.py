@@ -7,10 +7,10 @@ from time import sleep
 import httpx
 from bs4 import BeautifulSoup
 
-from media_gathering.link_search.Nijie.NijieCookie import NijieCookie
-from media_gathering.link_search.Nijie.NijiePageInfo import NijiePageInfo
-from media_gathering.link_search.Nijie.NijieSaveDirectoryPath import NijieSaveDirectoryPath
-from media_gathering.link_search.Nijie.NijieURL import NijieURL
+from media_gathering.link_search.nijie.NijieCookie import NijieCookie
+from media_gathering.link_search.nijie.NijiePageInfo import NijiePageInfo
+from media_gathering.link_search.nijie.NijieSaveDirectoryPath import NijieSaveDirectoryPath
+from media_gathering.link_search.nijie.NijieURL import NijieURL
 
 logger = getLogger(__name__)
 logger.setLevel(INFO)
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     import configparser
     import logging.config
 
-    from media_gathering.link_search.Nijie.NijieFetcher import NijieFetcher
+    from media_gathering.link_search.nijie.NijieFetcher import NijieFetcher
     from media_gathering.link_search.Password import Password
     from media_gathering.link_search.Username import Username
 

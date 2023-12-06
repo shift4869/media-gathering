@@ -3,10 +3,10 @@ from dataclasses import dataclass
 
 from bs4 import BeautifulSoup, Tag
 
-from media_gathering.link_search.Nijie.Authorid import Authorid
-from media_gathering.link_search.Nijie.Authorname import Authorname
-from media_gathering.link_search.Nijie.NijieSourceList import NijieSourceList
-from media_gathering.link_search.Nijie.Worktitle import Worktitle
+from media_gathering.link_search.nijie.Authorid import Authorid
+from media_gathering.link_search.nijie.Authorname import Authorname
+from media_gathering.link_search.nijie.NijieSourceList import NijieSourceList
+from media_gathering.link_search.nijie.Worktitle import Worktitle
 
 
 @dataclass(frozen=True)
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     import configparser
     from pathlib import Path
 
-    from media_gathering.link_search.Nijie.NijieFetcher import NijieFetcher
+    from media_gathering.link_search.nijie.NijieFetcher import NijieFetcher
     from media_gathering.link_search.Password import Password
     from media_gathering.link_search.Username import Username
 

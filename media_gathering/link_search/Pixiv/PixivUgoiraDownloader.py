@@ -7,8 +7,8 @@ from time import sleep
 from PIL import Image
 from pixivpy3 import AppPixivAPI
 
-from media_gathering.link_search.Pixiv.Workid import Workid
-from media_gathering.link_search.Pixiv.Worktitle import Worktitle
+from media_gathering.link_search.pixiv.Workid import Workid
+from media_gathering.link_search.pixiv.Worktitle import Worktitle
 
 logger = getLogger(__name__)
 logger.setLevel(INFO)
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     import logging.config
 
     from media_gathering.link_search.Password import Password
-    from media_gathering.link_search.Pixiv.PixivFetcher import PixivFetcher
+    from media_gathering.link_search.pixiv.PixivFetcher import PixivFetcher
     from media_gathering.link_search.Username import Username
 
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)

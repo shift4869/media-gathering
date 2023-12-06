@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from media_gathering.link_search.Pixiv.Workid import Workid
+from media_gathering.link_search.pixiv.Workid import Workid
 from media_gathering.link_search.URL import URL
 
 
@@ -30,7 +30,7 @@ class PixivWorkURL():
         """
         non_query_url = self.url.non_query_url
         if not self.is_valid(non_query_url):
-            raise ValueError("URL is not Pixiv URL.")
+            raise ValueError("URL is not pixiv URL.")
 
     @property
     def work_id(self) -> Workid:

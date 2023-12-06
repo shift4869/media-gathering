@@ -2,8 +2,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from media_gathering.link_search.Nijie.NijiePageInfo import NijiePageInfo
-from media_gathering.link_search.Nijie.NijieURL import NijieURL
+from media_gathering.link_search.nijie.NijiePageInfo import NijiePageInfo
+from media_gathering.link_search.nijie.NijieURL import NijieURL
 
 
 @dataclass(frozen=True)
@@ -72,7 +72,7 @@ class NijieSaveDirectoryPath():
 if __name__ == "__main__":
     import configparser
 
-    from media_gathering.link_search.Nijie.NijieFetcher import NijieFetcher
+    from media_gathering.link_search.nijie.NijieFetcher import NijieFetcher
     from media_gathering.link_search.Password import Password
     from media_gathering.link_search.Username import Username
 
