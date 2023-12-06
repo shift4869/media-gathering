@@ -31,7 +31,7 @@ class TestFetcherBase(unittest.TestCase):
         self.CACHE_PATH = Path(__file__).parent / "cache/actual"
 
         with ExitStack() as stack:
-            mock_twitter = stack.enter_context(patch("PictureGathering.tac.FetcherBase.TwitterAPIClientAdapter"))
+            mock_twitter = stack.enter_context(patch("media_gathering.tac.FetcherBase.TwitterAPIClientAdapter"))
             self.mock_twitter = MagicMock()
             mock_twitter.side_effect = lambda ct0, auth_token, target_screen_name, target_id: self.mock_twitter
 

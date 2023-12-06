@@ -39,7 +39,7 @@ class TestTwitterAPIClientAdapter(unittest.TestCase):
 
     def test_scraper(self):
         with ExitStack() as stack:
-            mock_scraper = stack.enter_context(patch("PictureGathering.tac.TwitterAPIClientAdapter.Scraper"))
+            mock_scraper = stack.enter_context(patch("media_gathering.tac.TwitterAPIClientAdapter.Scraper"))
             mock_scraper.return_value = "dummy_scraper"
             twitter = TwitterAPIClientAdapter(self.ct0, self.auth_token, self.target_screen_name, self.target_id)
 
@@ -55,7 +55,7 @@ class TestTwitterAPIClientAdapter(unittest.TestCase):
 
     def test_account(self):
         with ExitStack() as stack:
-            mock_account = stack.enter_context(patch("PictureGathering.tac.TwitterAPIClientAdapter.Account"))
+            mock_account = stack.enter_context(patch("media_gathering.tac.TwitterAPIClientAdapter.Account"))
             mock_account.return_value = "dummy_account"
             twitter = TwitterAPIClientAdapter(self.ct0, self.auth_token, self.target_screen_name, self.target_id)
 

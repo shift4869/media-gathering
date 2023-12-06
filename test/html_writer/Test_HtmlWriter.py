@@ -51,7 +51,7 @@ class TestHtmlWriter(unittest.TestCase):
 
     def test_write_result_html(self):
         with ExitStack() as stack:
-            mock_write_text = stack.enter_context(patch("PictureGathering.html_writer.HtmlWriter.Path.write_text"))
+            mock_write_text = stack.enter_context(patch("media_gathering.html_writer.HtmlWriter.Path.write_text"))
 
             record = {
                 "url": "dummy_url",

@@ -5,7 +5,7 @@ from pathlib import Path
 import orjson
 from mock import MagicMock
 
-from media_gathering.LinkSearch.LinkSearcher import LinkSearcher
+from media_gathering.link_search.LinkSearcher import LinkSearcher
 from media_gathering.tac.LikeParser import LikeParser
 from media_gathering.Util import find_values
 

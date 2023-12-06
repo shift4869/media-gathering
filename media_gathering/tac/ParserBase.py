@@ -7,8 +7,8 @@ from pathlib import Path
 
 import orjson
 
-from media_gathering.LinkSearch.FetcherBase import FetcherBase
-from media_gathering.LinkSearch.LinkSearcher import LinkSearcher
+from media_gathering.link_search.FetcherBase import FetcherBase
+from media_gathering.link_search.LinkSearcher import LinkSearcher
 from media_gathering.Model import ExternalLink
 from media_gathering.tac.TweetInfo import TweetInfo
 from media_gathering.Util import Result, find_values
@@ -417,8 +417,8 @@ class ParserBase(metaclass=ABCMeta):
 
 
 if __name__ == "__main__":
-    from media_gathering.LinkSearch.FetcherBase import FetcherBase
-    from media_gathering.LinkSearch.URL import URL
+    from media_gathering.link_search.FetcherBase import FetcherBase
+    from media_gathering.link_search.URL import URL
     from media_gathering.tac.LikeParser import LikeParser
 
     # キャッシュから読み込み

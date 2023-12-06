@@ -1,6 +1,6 @@
 import orjson
 
-from media_gathering.LinkSearch.LinkSearcher import LinkSearcher
+from media_gathering.link_search.LinkSearcher import LinkSearcher
 from media_gathering.tac.ParserBase import ParserBase
 from media_gathering.Util import find_values
 
@@ -82,8 +82,8 @@ if __name__ == "__main__":
     import re
     from pathlib import Path
 
-    from media_gathering.LinkSearch.FetcherBase import FetcherBase
-    from media_gathering.LinkSearch.URL import URL
+    from media_gathering.link_search.FetcherBase import FetcherBase
+    from media_gathering.link_search.URL import URL
 
     # キャッシュから読み込み
     base_path = Path("./test/tac/cache/expect/content_cache_likes_test.json")

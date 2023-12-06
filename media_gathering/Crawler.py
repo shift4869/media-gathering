@@ -18,7 +18,7 @@ from slack_sdk.webhook import WebhookClient
 
 from media_gathering.DBControllerBase import DBControllerBase
 from media_gathering.html_writer.HtmlWriter import HtmlWriter
-from media_gathering.LinkSearch.LinkSearcher import LinkSearcher
+from media_gathering.link_search.LinkSearcher import LinkSearcher
 from media_gathering.LogMessage import MSG
 from media_gathering.Model import ExternalLink
 from media_gathering.tac.TweetInfo import TweetInfo
@@ -27,7 +27,7 @@ from media_gathering.Util import Result
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 for name in logging.root.manager.loggerDict:
     # 自分以外のすべてのライブラリのログ出力を抑制
-    if "PictureGathering" not in name:
+    if "media_gathering" not in name:
         getLogger(name).disabled = True
 logger = getLogger(__name__)
 logger.setLevel(INFO)

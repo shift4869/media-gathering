@@ -10,7 +10,7 @@ from media_gathering.RetweetCrawler import RetweetCrawler
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 for name in logging.root.manager.loggerDict:
     # 自分以外のすべてのライブラリのログ出力を抑制
-    if "PictureGathering" not in name:
+    if "media_gathering" not in name:
         getLogger(name).disabled = True
 logger = getLogger(__name__)
 logger.setLevel(INFO)

@@ -21,7 +21,7 @@ class TestLikeFetcher(unittest.TestCase):
         self.CACHE_PATH = Path(__file__).parent / "cache/actual"
 
         with ExitStack() as stack:
-            mock_twitter = stack.enter_context(patch("PictureGathering.tac.FetcherBase.TwitterAPIClientAdapter"))
+            mock_twitter = stack.enter_context(patch("media_gathering.tac.FetcherBase.TwitterAPIClientAdapter"))
             self.mock_twitter = MagicMock()
             mock_twitter.side_effect = lambda ct0, auth_token, target_screen_name, target_id: self.mock_twitter
 
@@ -44,7 +44,7 @@ class TestLikeFetcher(unittest.TestCase):
 
     def test_get_like_jsons(self):
         with ExitStack() as stack:
-            mock_logger_info = stack.enter_context(patch("PictureGathering.tac.LikeFetcher.logger.info"))
+            mock_logger_info = stack.enter_context(patch("media_gathering.tac.LikeFetcher.logger.info"))
             r = MagicMock()
 
             DUP_NUM = 3
@@ -68,7 +68,7 @@ class TestLikeFetcher(unittest.TestCase):
 
     def test_fetch(self):
         with ExitStack() as stack:
-            mock_get_like_jsons = stack.enter_context(patch("PictureGathering.tac.LikeFetcher.LikeFetcher.get_like_jsons"))
+            mock_get_like_jsons = stack.enter_context(patch("media_gathering.tac.LikeFetcher.LikeFetcher.get_like_jsons"))
             actual = self.fetcher.fetch()
             mock_get_like_jsons.assert_called_once_with()
 
