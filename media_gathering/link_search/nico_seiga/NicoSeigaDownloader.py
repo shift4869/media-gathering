@@ -105,7 +105,7 @@ if __name__ == "__main__":
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE_NAME, encoding="utf8")
 
-    base_path = Path("./PictureGathering/link_search/")
+    base_path = Path("./media_gathering/link_search/")
     if config["nico_seiga"].getboolean("is_seiga_trace"):
         fetcher = NicoSeigaFetcher(Username(config["nico_seiga"]["email"]), Password(config["nico_seiga"]["password"]), base_path)
         illust_id = 11308865

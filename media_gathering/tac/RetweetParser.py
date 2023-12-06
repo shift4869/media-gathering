@@ -87,7 +87,7 @@ if __name__ == "__main__":
 
     # キャッシュから読み込み
     base_path = Path("./tests/tac/cache/expect/content_cache_timeline_test.json")
-    # base_path = Path("./PictureGathering/tac/cache/likes_00.json")
+    # base_path = Path("./media_gathering/tac/cache/likes_00.json")
     fetched_tweets = orjson.loads(base_path.read_bytes())
 
     # インスタンス作成

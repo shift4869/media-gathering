@@ -92,7 +92,7 @@ if __name__ == "__main__":
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE_NAME, encoding="utf8")
 
-    base_path = Path("./PictureGathering/link_search/")
+    base_path = Path("./media_gathering/link_search/")
     if config["pixiv"].getboolean("is_pixiv_trace"):
         fetcher = PixivNovelFetcher(Username(config["pixiv"]["username"]), Password(config["pixiv"]["password"]), base_path)
         work_url = "https://www.pixiv.net/novel/show.php?id=3195243"

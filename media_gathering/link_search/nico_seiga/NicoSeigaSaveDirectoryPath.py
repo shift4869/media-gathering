@@ -72,6 +72,6 @@ if __name__ == "__main__":
     author_name = Authorname("作者名1")
     illust_info = NicoSeigaInfo(illust_id, illust_name, author_id, author_name)
 
-    base_path = Path("./PictureGathering/link_search/")
+    base_path = Path("./media_gathering/link_search/")
     save_directory_path = NicoSeigaSaveDirectoryPath.create(illust_info, base_path)
     print(save_directory_path)
