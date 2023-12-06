@@ -54,7 +54,7 @@ jobs:
     - name: Test with unittest
       run: |
         dir
-        python -m unittest
+        python -m unittest discover
       working-directory: ./
 
     - name: Coverage report
