@@ -6,12 +6,12 @@ from pathlib import Path
 
 from mock import MagicMock, mock_open, patch
 
-from PictureGathering.LinkSearch.PixivNovel.Authorid import Authorid
-from PictureGathering.LinkSearch.PixivNovel.Authorname import Authorname
-from PictureGathering.LinkSearch.PixivNovel.Novelid import Novelid
-from PictureGathering.LinkSearch.PixivNovel.Noveltitle import Noveltitle
-from PictureGathering.LinkSearch.PixivNovel.PixivNovelSaveDirectoryPath import PixivNovelSaveDirectoryPath
-from PictureGathering.LinkSearch.PixivNovel.PixivNovelURL import PixivNovelURL
+from media_gathering.LinkSearch.PixivNovel.Authorid import Authorid
+from media_gathering.LinkSearch.PixivNovel.Authorname import Authorname
+from media_gathering.LinkSearch.PixivNovel.Novelid import Novelid
+from media_gathering.LinkSearch.PixivNovel.Noveltitle import Noveltitle
+from media_gathering.LinkSearch.PixivNovel.PixivNovelSaveDirectoryPath import PixivNovelSaveDirectoryPath
+from media_gathering.LinkSearch.PixivNovel.PixivNovelURL import PixivNovelURL
 
 
 class TestPixivNovelSaveDirectoryPath(unittest.TestCase):

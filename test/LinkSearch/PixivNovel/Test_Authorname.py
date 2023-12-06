@@ -8,7 +8,7 @@ import unittest
 
 import emoji
 
-from PictureGathering.LinkSearch.PixivNovel.Authorname import Authorname
+from media_gathering.LinkSearch.PixivNovel.Authorname import Authorname
 
 
 class TestAuthorname(unittest.TestCase):

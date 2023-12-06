@@ -8,7 +8,7 @@ from contextlib import ExitStack
 
 from mock import MagicMock, call, patch
 
-from PictureGathering.tac.TwitterAPIClientAdapter import TwitterAPIClientAdapter
+from media_gathering.tac.TwitterAPIClientAdapter import TwitterAPIClientAdapter
 
 
 class TestTwitterAPIClientAdapter(unittest.TestCase):

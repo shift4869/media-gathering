@@ -6,7 +6,7 @@ import sys
 import unittest
 import urllib.parse
 
-from PictureGathering.LinkSearch.Pixiv.PixivWorkURL import PixivWorkURL
+from media_gathering.LinkSearch.Pixiv.PixivWorkURL import PixivWorkURL
 
 
 class TestPixivWorkURL(unittest.TestCase):

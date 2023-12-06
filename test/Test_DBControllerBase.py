@@ -9,8 +9,8 @@ from sqlalchemy import *
 from sqlalchemy.orm import *
 from sqlalchemy.orm.exc import *
 
-from PictureGathering import DBControllerBase
-from PictureGathering.Model import *
+from media_gathering import DBControllerBase
+from media_gathering.Model import *
 
 
 class ConcreteDBControllerBase(DBControllerBase.DBControllerBase):

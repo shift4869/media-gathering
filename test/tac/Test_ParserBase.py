@@ -8,13 +8,13 @@ from pathlib import Path
 
 import orjson
 
-from PictureGathering.LinkSearch.FetcherBase import FetcherBase
-from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
-from PictureGathering.LinkSearch.URL import URL
-from PictureGathering.Model import ExternalLink
-from PictureGathering.tac.ParserBase import ParserBase
-from PictureGathering.tac.TweetInfo import TweetInfo
-from PictureGathering.Util import Result, find_values
+from media_gathering.LinkSearch.FetcherBase import FetcherBase
+from media_gathering.LinkSearch.LinkSearcher import LinkSearcher
+from media_gathering.LinkSearch.URL import URL
+from media_gathering.Model import ExternalLink
+from media_gathering.tac.ParserBase import ParserBase
+from media_gathering.tac.TweetInfo import TweetInfo
+from media_gathering.Util import Result, find_values
 
 
 class SampleFetcher(FetcherBase):

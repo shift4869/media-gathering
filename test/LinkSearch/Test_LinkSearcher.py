@@ -10,7 +10,7 @@ from logging import WARNING, getLogger
 
 from mock import MagicMock, patch
 
-from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
+from media_gathering.LinkSearch.LinkSearcher import LinkSearcher
 
 logger = getLogger("PictureGathering.LinkSearch.LinkSearcher")
 logger.setLevel(WARNING)

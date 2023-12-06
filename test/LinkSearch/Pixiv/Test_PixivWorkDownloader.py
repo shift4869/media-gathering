@@ -9,11 +9,11 @@ from pathlib import Path
 from mock import MagicMock, call, patch
 from pixivpy3 import AppPixivAPI
 
-from PictureGathering.LinkSearch.Pixiv.PixivSaveDirectoryPath import PixivSaveDirectoryPath
-from PictureGathering.LinkSearch.Pixiv.PixivSourceList import PixivSourceList
-from PictureGathering.LinkSearch.Pixiv.PixivWorkDownloader import DownloadResult, PixivWorkDownloader
-from PictureGathering.LinkSearch.Pixiv.Workid import Workid
-from PictureGathering.LinkSearch.URL import URL
+from media_gathering.LinkSearch.Pixiv.PixivSaveDirectoryPath import PixivSaveDirectoryPath
+from media_gathering.LinkSearch.Pixiv.PixivSourceList import PixivSourceList
+from media_gathering.LinkSearch.Pixiv.PixivWorkDownloader import DownloadResult, PixivWorkDownloader
+from media_gathering.LinkSearch.Pixiv.Workid import Workid
+from media_gathering.LinkSearch.URL import URL
 
 logger = getLogger("PictureGathering.LinkSearch.Pixiv.PixivWorkDownloader")
 logger.setLevel(WARNING)

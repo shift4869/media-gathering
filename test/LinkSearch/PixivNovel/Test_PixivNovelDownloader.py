@@ -10,14 +10,14 @@ from bs4 import BeautifulSoup
 from mock import MagicMock, call, patch
 from pixivpy3 import AppPixivAPI
 
-from PictureGathering.LinkSearch.PixivNovel.Authorid import Authorid
-from PictureGathering.LinkSearch.PixivNovel.Authorname import Authorname
-from PictureGathering.LinkSearch.PixivNovel.Novelid import Novelid
-from PictureGathering.LinkSearch.PixivNovel.Noveltitle import Noveltitle
-from PictureGathering.LinkSearch.PixivNovel.PixivNovelDownloader import DownloadResult, PixivNovelDownloader
-from PictureGathering.LinkSearch.PixivNovel.PixivNovelSaveDirectoryPath import PixivNovelSaveDirectoryPath
-from PictureGathering.LinkSearch.PixivNovel.PixivNovelURL import PixivNovelURL
-from PictureGathering.LinkSearch.URL import URL
+from media_gathering.LinkSearch.PixivNovel.Authorid import Authorid
+from media_gathering.LinkSearch.PixivNovel.Authorname import Authorname
+from media_gathering.LinkSearch.PixivNovel.Novelid import Novelid
+from media_gathering.LinkSearch.PixivNovel.Noveltitle import Noveltitle
+from media_gathering.LinkSearch.PixivNovel.PixivNovelDownloader import DownloadResult, PixivNovelDownloader
+from media_gathering.LinkSearch.PixivNovel.PixivNovelSaveDirectoryPath import PixivNovelSaveDirectoryPath
+from media_gathering.LinkSearch.PixivNovel.PixivNovelURL import PixivNovelURL
+from media_gathering.LinkSearch.URL import URL
 
 logger = getLogger("PictureGathering.LinkSearch.PixivNovel.PixivNovelDownloader")
 logger.setLevel(WARNING)

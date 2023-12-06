@@ -5,9 +5,9 @@ from pathlib import Path
 import orjson
 from mock import MagicMock
 
-from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
-from PictureGathering.tac.LikeParser import LikeParser
-from PictureGathering.Util import find_values
+from media_gathering.LinkSearch.LinkSearcher import LinkSearcher
+from media_gathering.tac.LikeParser import LikeParser
+from media_gathering.Util import find_values
 
 
 class TestLikeParser(unittest.TestCase):

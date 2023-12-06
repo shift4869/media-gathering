@@ -5,7 +5,7 @@
 import sys
 import unittest
 
-from PictureGathering.LinkSearch.NicoSeiga.Authorid import Authorid
+from media_gathering.LinkSearch.NicoSeiga.Authorid import Authorid
 
 
 class TestAuthorid(unittest.TestCase):

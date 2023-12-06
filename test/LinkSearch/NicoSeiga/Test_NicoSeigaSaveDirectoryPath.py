@@ -8,12 +8,12 @@ import sys
 import unittest
 from pathlib import Path
 
-from PictureGathering.LinkSearch.NicoSeiga.Authorid import Authorid
-from PictureGathering.LinkSearch.NicoSeiga.Authorname import Authorname
-from PictureGathering.LinkSearch.NicoSeiga.Illustid import Illustid
-from PictureGathering.LinkSearch.NicoSeiga.Illustname import Illustname
-from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaInfo import NicoSeigaInfo
-from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaSaveDirectoryPath import NicoSeigaSaveDirectoryPath
+from media_gathering.LinkSearch.NicoSeiga.Authorid import Authorid
+from media_gathering.LinkSearch.NicoSeiga.Authorname import Authorname
+from media_gathering.LinkSearch.NicoSeiga.Illustid import Illustid
+from media_gathering.LinkSearch.NicoSeiga.Illustname import Illustname
+from media_gathering.LinkSearch.NicoSeiga.NicoSeigaInfo import NicoSeigaInfo
+from media_gathering.LinkSearch.NicoSeiga.NicoSeigaSaveDirectoryPath import NicoSeigaSaveDirectoryPath
 
 
 class TestNicoSeigaSaveDirectoryPath(unittest.TestCase):

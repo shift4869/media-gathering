@@ -7,9 +7,9 @@ from sqlalchemy import *
 from sqlalchemy.orm import *
 from sqlalchemy.orm.exc import *
 
-from PictureGathering import FavDBController
-from PictureGathering.Model import *
-from PictureGathering.tac.TweetInfo import TweetInfo
+from media_gathering import FavDBController
+from media_gathering.Model import *
+from media_gathering.tac.TweetInfo import TweetInfo
 
 TEST_DB_FULLPATH = "./test/test.db"
 

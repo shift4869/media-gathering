@@ -8,7 +8,7 @@ import unittest
 
 import emoji
 
-from PictureGathering.LinkSearch.PixivNovel.Noveltitle import Noveltitle
+from media_gathering.LinkSearch.PixivNovel.Noveltitle import Noveltitle
 
 
 class TestNoveltitle(unittest.TestCase):

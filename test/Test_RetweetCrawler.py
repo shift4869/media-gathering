@@ -10,8 +10,8 @@ from pathlib import Path
 from freezegun import freeze_time
 from mock import MagicMock, patch
 
-from PictureGathering.RetweetCrawler import RetweetCrawler
-from PictureGathering.Util import Result
+from media_gathering.RetweetCrawler import RetweetCrawler
+from media_gathering.Util import Result
 
 
 class TestRetweetCrawler(unittest.TestCase):

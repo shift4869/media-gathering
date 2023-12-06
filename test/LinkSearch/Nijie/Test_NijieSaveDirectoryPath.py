@@ -6,14 +6,14 @@ import sys
 import unittest
 from pathlib import Path
 
-from PictureGathering.LinkSearch.Nijie.Authorid import Authorid
-from PictureGathering.LinkSearch.Nijie.Authorname import Authorname
-from PictureGathering.LinkSearch.Nijie.NijiePageInfo import NijiePageInfo
-from PictureGathering.LinkSearch.Nijie.NijieSaveDirectoryPath import NijieSaveDirectoryPath
-from PictureGathering.LinkSearch.Nijie.NijieSourceList import NijieSourceList
-from PictureGathering.LinkSearch.Nijie.NijieURL import NijieURL
-from PictureGathering.LinkSearch.Nijie.Workid import Workid
-from PictureGathering.LinkSearch.Nijie.Worktitle import Worktitle
+from media_gathering.LinkSearch.Nijie.Authorid import Authorid
+from media_gathering.LinkSearch.Nijie.Authorname import Authorname
+from media_gathering.LinkSearch.Nijie.NijiePageInfo import NijiePageInfo
+from media_gathering.LinkSearch.Nijie.NijieSaveDirectoryPath import NijieSaveDirectoryPath
+from media_gathering.LinkSearch.Nijie.NijieSourceList import NijieSourceList
+from media_gathering.LinkSearch.Nijie.NijieURL import NijieURL
+from media_gathering.LinkSearch.Nijie.Workid import Workid
+from media_gathering.LinkSearch.Nijie.Worktitle import Worktitle
 
 
 class TestNijieSaveDirectoryPath(unittest.TestCase):

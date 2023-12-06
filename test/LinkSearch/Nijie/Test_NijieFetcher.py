@@ -9,11 +9,11 @@ from pathlib import Path
 import httpx
 from mock import MagicMock, call, mock_open, patch
 
-from PictureGathering.LinkSearch.Nijie.NijieFetcher import NijieFetcher
-from PictureGathering.LinkSearch.Nijie.NijieURL import NijieURL
-from PictureGathering.LinkSearch.Password import Password
-from PictureGathering.LinkSearch.URL import URL
-from PictureGathering.LinkSearch.Username import Username
+from media_gathering.LinkSearch.Nijie.NijieFetcher import NijieFetcher
+from media_gathering.LinkSearch.Nijie.NijieURL import NijieURL
+from media_gathering.LinkSearch.Password import Password
+from media_gathering.LinkSearch.URL import URL
+from media_gathering.LinkSearch.Username import Username
 
 
 class TestNijieFetcher(unittest.TestCase):

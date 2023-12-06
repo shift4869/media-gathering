@@ -3,8 +3,8 @@
 import sys
 import unittest
 
-from PictureGathering.LinkSearch.Nijie.NijieSourceList import NijieSourceList
-from PictureGathering.LinkSearch.URL import URL
+from media_gathering.LinkSearch.Nijie.NijieSourceList import NijieSourceList
+from media_gathering.LinkSearch.URL import URL
 
 
 class TestNijieSourceList(unittest.TestCase):

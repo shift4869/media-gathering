@@ -6,9 +6,9 @@ from typing import Iterable
 from mock import MagicMock
 from pixivpy3 import AppPixivAPI
 
-from PictureGathering.LinkSearch.Pixiv.PixivSourceList import PixivSourceList
-from PictureGathering.LinkSearch.Pixiv.PixivWorkURL import PixivWorkURL
-from PictureGathering.LinkSearch.URL import URL
+from media_gathering.LinkSearch.Pixiv.PixivSourceList import PixivSourceList
+from media_gathering.LinkSearch.Pixiv.PixivWorkURL import PixivWorkURL
+from media_gathering.LinkSearch.URL import URL
 
 
 class TestPixivSourceList(unittest.TestCase):

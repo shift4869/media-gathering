@@ -9,14 +9,14 @@ from unittest.mock import MagicMock, call, patch
 
 import httpx
 
-from PictureGathering.LinkSearch.NicoSeiga.Authorid import Authorid
-from PictureGathering.LinkSearch.NicoSeiga.Authorname import Authorname
-from PictureGathering.LinkSearch.NicoSeiga.Illustid import Illustid
-from PictureGathering.LinkSearch.NicoSeiga.Illustname import Illustname
-from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaSession import NicoSeigaSession
-from PictureGathering.LinkSearch.Password import Password
-from PictureGathering.LinkSearch.URL import URL
-from PictureGathering.LinkSearch.Username import Username
+from media_gathering.LinkSearch.NicoSeiga.Authorid import Authorid
+from media_gathering.LinkSearch.NicoSeiga.Authorname import Authorname
+from media_gathering.LinkSearch.NicoSeiga.Illustid import Illustid
+from media_gathering.LinkSearch.NicoSeiga.Illustname import Illustname
+from media_gathering.LinkSearch.NicoSeiga.NicoSeigaSession import NicoSeigaSession
+from media_gathering.LinkSearch.Password import Password
+from media_gathering.LinkSearch.URL import URL
+from media_gathering.LinkSearch.Username import Username
 
 
 class TestNicoSeigaSession(unittest.TestCase):

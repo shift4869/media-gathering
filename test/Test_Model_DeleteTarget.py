@@ -1,7 +1,7 @@
 import sys
 import unittest
 
-from PictureGathering.Model import DeleteTarget
+from media_gathering.Model import DeleteTarget
 
 
 class TestModelDeleteTarget(unittest.TestCase):

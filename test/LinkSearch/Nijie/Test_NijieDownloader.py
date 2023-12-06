@@ -8,9 +8,9 @@ from pathlib import Path
 
 from mock import MagicMock, patch
 
-from PictureGathering.LinkSearch.Nijie.NijieCookie import NijieCookie
-from PictureGathering.LinkSearch.Nijie.NijieDownloader import DownloadResult, NijieDownloader
-from PictureGathering.LinkSearch.Nijie.NijieURL import NijieURL
+from media_gathering.LinkSearch.Nijie.NijieCookie import NijieCookie
+from media_gathering.LinkSearch.Nijie.NijieDownloader import DownloadResult, NijieDownloader
+from media_gathering.LinkSearch.Nijie.NijieURL import NijieURL
 
 
 class TestNijieDownloader(unittest.TestCase):

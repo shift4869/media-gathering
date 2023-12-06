@@ -10,8 +10,8 @@ from pathlib import Path
 from freezegun import freeze_time
 from mock import MagicMock, patch
 
-from PictureGathering.FavCrawler import FavCrawler
-from PictureGathering.Util import Result
+from media_gathering.FavCrawler import FavCrawler
+from media_gathering.Util import Result
 
 
 class TestFavCrawler(unittest.TestCase):

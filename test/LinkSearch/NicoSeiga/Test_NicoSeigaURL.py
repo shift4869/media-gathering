@@ -6,7 +6,7 @@ import sys
 import unittest
 import urllib.parse
 
-from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaURL import NicoSeigaURL
+from media_gathering.LinkSearch.NicoSeiga.NicoSeigaURL import NicoSeigaURL
 
 
 class TestNicoSeigaURL(unittest.TestCase):

@@ -5,7 +5,7 @@
 import sys
 import unittest
 
-from PictureGathering.LinkSearch.PixivNovel.Authorid import Authorid
+from media_gathering.LinkSearch.PixivNovel.Authorid import Authorid
 
 
 class TestAuthorid(unittest.TestCase):

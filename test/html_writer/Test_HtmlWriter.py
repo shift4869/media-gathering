@@ -6,9 +6,9 @@ from pathlib import Path
 from jinja2 import Template
 from mock import MagicMock, patch
 
-from PictureGathering.DBControllerBase import DBControllerBase
-from PictureGathering.html_writer.HtmlWriter import HtmlWriter
-from PictureGathering.Util import Result
+from media_gathering.DBControllerBase import DBControllerBase
+from media_gathering.html_writer.HtmlWriter import HtmlWriter
+from media_gathering.Util import Result
 
 
 class TestHtmlWriter(unittest.TestCase):

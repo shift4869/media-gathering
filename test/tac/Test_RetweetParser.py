@@ -5,9 +5,9 @@ from pathlib import Path
 import orjson
 from mock import MagicMock
 
-from PictureGathering.LinkSearch.LinkSearcher import LinkSearcher
-from PictureGathering.Util import find_values
-from PictureGathering.tac.RetweetParser import RetweetParser
+from media_gathering.LinkSearch.LinkSearcher import LinkSearcher
+from media_gathering.Util import find_values
+from media_gathering.tac.RetweetParser import RetweetParser
 
 
 class TestRetweetParser(unittest.TestCase):

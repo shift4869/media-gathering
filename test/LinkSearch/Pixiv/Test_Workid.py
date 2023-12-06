@@ -5,7 +5,7 @@
 import sys
 import unittest
 
-from PictureGathering.LinkSearch.Pixiv.Workid import Workid
+from media_gathering.LinkSearch.Pixiv.Workid import Workid
 
 
 class TestWorkid(unittest.TestCase):

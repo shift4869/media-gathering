@@ -7,7 +7,7 @@ from contextlib import ExitStack
 import httpx
 from mock import MagicMock, call, patch
 
-from PictureGathering.LinkSearch.Nijie.NijieCookie import NijieCookie
+from media_gathering.LinkSearch.Nijie.NijieCookie import NijieCookie
 
 
 class TestNijieCookie(unittest.TestCase):

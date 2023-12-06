@@ -1,7 +1,7 @@
 import sys
 import unittest
 
-from PictureGathering.Model import ExternalLink
+from media_gathering.Model import ExternalLink
 
 
 class TestModelExternalLink(unittest.TestCase):

@@ -6,9 +6,9 @@ import sys
 import unittest
 import urllib.parse
 
-from PictureGathering.LinkSearch.Nijie.NijieURL import NijieURL
-from PictureGathering.LinkSearch.Nijie.Workid import Workid
-from PictureGathering.LinkSearch.URL import URL
+from media_gathering.LinkSearch.Nijie.NijieURL import NijieURL
+from media_gathering.LinkSearch.Nijie.Workid import Workid
+from media_gathering.LinkSearch.URL import URL
 
 
 class TestNijieURL(unittest.TestCase):

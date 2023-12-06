@@ -6,8 +6,8 @@ import sys
 import unittest
 import urllib.parse
 
-from PictureGathering.LinkSearch.PixivNovel.Novelid import Novelid
-from PictureGathering.LinkSearch.PixivNovel.PixivNovelURL import PixivNovelURL
+from media_gathering.LinkSearch.PixivNovel.Novelid import Novelid
+from media_gathering.LinkSearch.PixivNovel.PixivNovelURL import PixivNovelURL
 
 
 class TestPixivNovelURL(unittest.TestCase):

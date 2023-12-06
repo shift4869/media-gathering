@@ -6,8 +6,8 @@ import re
 import sys
 import unittest
 
-from PictureGathering.LinkSearch.FetcherBase import FetcherBase
-from PictureGathering.LinkSearch.URL import URL
+from media_gathering.LinkSearch.FetcherBase import FetcherBase
+from media_gathering.LinkSearch.URL import URL
 
 
 class ConcreteFetcher(FetcherBase):

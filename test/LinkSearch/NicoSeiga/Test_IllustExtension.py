@@ -5,7 +5,7 @@
 import sys
 import unittest
 
-from PictureGathering.LinkSearch.NicoSeiga.IllustExtension import Extension, IllustExtension
+from media_gathering.LinkSearch.NicoSeiga.IllustExtension import Extension, IllustExtension
 
 
 class TestIllustExtension(unittest.TestCase):

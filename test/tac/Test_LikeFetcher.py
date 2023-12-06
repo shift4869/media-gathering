@@ -8,7 +8,7 @@ from pathlib import Path
 import orjson
 from mock import MagicMock, patch
 
-from PictureGathering.tac.LikeFetcher import LikeFetcher
+from media_gathering.tac.LikeFetcher import LikeFetcher
 
 
 class TestLikeFetcher(unittest.TestCase):

@@ -3,9 +3,9 @@ import logging.config
 from logging import INFO, getLogger
 from pathlib import Path
 
-from PictureGathering.FavCrawler import FavCrawler
-from PictureGathering.LogMessage import MSG
-from PictureGathering.RetweetCrawler import RetweetCrawler
+from media_gathering.FavCrawler import FavCrawler
+from media_gathering.LogMessage import MSG
+from media_gathering.RetweetCrawler import RetweetCrawler
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 for name in logging.root.manager.loggerDict:

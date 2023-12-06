@@ -10,17 +10,17 @@ from pathlib import Path
 
 from mock import MagicMock, PropertyMock, mock_open, patch
 
-from PictureGathering.LinkSearch.FetcherBase import FetcherBase
-from PictureGathering.LinkSearch.NicoSeiga.Authorid import Authorid
-from PictureGathering.LinkSearch.NicoSeiga.Authorname import Authorname
-from PictureGathering.LinkSearch.NicoSeiga.Illustname import Illustname
-from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaDownloader import NicoSeigaDownloader
-from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaFetcher import NicoSeigaFetcher
-from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaSession import NicoSeigaSession
-from PictureGathering.LinkSearch.NicoSeiga.NicoSeigaURL import NicoSeigaURL
-from PictureGathering.LinkSearch.Password import Password
-from PictureGathering.LinkSearch.URL import URL
-from PictureGathering.LinkSearch.Username import Username
+from media_gathering.LinkSearch.FetcherBase import FetcherBase
+from media_gathering.LinkSearch.NicoSeiga.Authorid import Authorid
+from media_gathering.LinkSearch.NicoSeiga.Authorname import Authorname
+from media_gathering.LinkSearch.NicoSeiga.Illustname import Illustname
+from media_gathering.LinkSearch.NicoSeiga.NicoSeigaDownloader import NicoSeigaDownloader
+from media_gathering.LinkSearch.NicoSeiga.NicoSeigaFetcher import NicoSeigaFetcher
+from media_gathering.LinkSearch.NicoSeiga.NicoSeigaSession import NicoSeigaSession
+from media_gathering.LinkSearch.NicoSeiga.NicoSeigaURL import NicoSeigaURL
+from media_gathering.LinkSearch.Password import Password
+from media_gathering.LinkSearch.URL import URL
+from media_gathering.LinkSearch.Username import Username
 
 
 class TestNicoSeigaFetcher(unittest.TestCase):

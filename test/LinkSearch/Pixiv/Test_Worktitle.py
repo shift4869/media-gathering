@@ -8,7 +8,7 @@ import unittest
 
 import emoji
 
-from PictureGathering.LinkSearch.Pixiv.Worktitle import Worktitle
+from media_gathering.LinkSearch.Pixiv.Worktitle import Worktitle
 
 
 class TestWorktitle(unittest.TestCase):

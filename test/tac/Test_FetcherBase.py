@@ -5,8 +5,8 @@ from pathlib import Path
 
 from mock import MagicMock, patch
 
-from PictureGathering.tac.FetcherBase import FetcherBase
-from PictureGathering.tac.Username import Username
+from media_gathering.tac.FetcherBase import FetcherBase
+from media_gathering.tac.Username import Username
 
 
 class ConcreteFetcher(FetcherBase):

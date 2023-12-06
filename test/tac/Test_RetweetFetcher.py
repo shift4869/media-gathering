@@ -8,7 +8,7 @@ from pathlib import Path
 import orjson
 from mock import MagicMock, patch
 
-from PictureGathering.tac.RetweetFetcher import RetweetFetcher
+from media_gathering.tac.RetweetFetcher import RetweetFetcher
 
 
 class TestRetweetFetcher(unittest.TestCase):

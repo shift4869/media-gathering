@@ -5,7 +5,7 @@
 import sys
 import unittest
 
-from PictureGathering.LinkSearch.PixivNovel.Novelid import Novelid
+from media_gathering.LinkSearch.PixivNovel.Novelid import Novelid
 
 
 class TestNovelid(unittest.TestCase):

@@ -6,11 +6,11 @@ from pathlib import Path
 
 from mock import patch
 
-from PictureGathering.LinkSearch.Password import Password
-from PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher import PixivNovelFetcher
-from PictureGathering.LinkSearch.PixivNovel.PixivNovelURL import PixivNovelURL
-from PictureGathering.LinkSearch.URL import URL
-from PictureGathering.LinkSearch.Username import Username
+from media_gathering.LinkSearch.Password import Password
+from media_gathering.LinkSearch.PixivNovel.PixivNovelFetcher import PixivNovelFetcher
+from media_gathering.LinkSearch.PixivNovel.PixivNovelURL import PixivNovelURL
+from media_gathering.LinkSearch.URL import URL
+from media_gathering.LinkSearch.Username import Username
 
 logger = getLogger("PictureGathering.LinkSearch.PixivNovel.PixivNovelFetcher")
 logger.setLevel(WARNING)
