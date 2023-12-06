@@ -1,7 +1,7 @@
 DBupsert_del
-DBFavUpsert,sample_1.png,http://www.img.filename.sample.com/media/sample_1.png:orig,http://www.img.filename.sample.com/media/sample_1.png:large,D:\Users\shift\Documents\git\PictureGathering\sample_1.png,True
-DBFavUpsert,sample_2.png,http://www.img.filename.sample.com/media/sample_2.png:orig,http://www.img.filename.sample.com/media/sample_2.png:large,D:\Users\shift\Documents\git\PictureGathering\sample_2.png,False
-DBFavUpsert,sample_3.png,http://www.img.filename.sample.com/media/sample_1.png:orig,http://www.img.filename.sample.com/media/sample_1.png:large,D:\Users\shift\Documents\git\PictureGathering\sample_1.png,True
-DBRetweetUpsert,sample_1.png,http://www.img.filename.sample.com/media/sample_1.png:orig,http://www.img.filename.sample.com/media/sample_1.png:large,D:\Users\shift\Documents\git\PictureGathering\sample_1.png,True
-DBRetweetUpsert,sample_2.png,http://www.img.filename.sample.com/media/sample_2.png:orig,http://www.img.filename.sample.com/media/sample_2.png:large,D:\Users\shift\Documents\git\PictureGathering\sample_2.png,False
-DBRetweetUpsert,sample_3.png,http://www.img.filename.sample.com/media/sample_1.png:orig,http://www.img.filename.sample.com/media/sample_1.png:large,D:\Users\shift\Documents\git\PictureGathering\sample_1.png,True
+DBFavUpsert,sample_1.png,http://www.img.filename.sample.com/media/sample_1.png:orig,http://www.img.filename.sample.com/media/sample_1.png:large,D:\Users\shift\Documents\git\media_gathering\sample_1.png,True
+DBFavUpsert,sample_2.png,http://www.img.filename.sample.com/media/sample_2.png:orig,http://www.img.filename.sample.com/media/sample_2.png:large,D:\Users\shift\Documents\git\media_gathering\sample_2.png,False
+DBFavUpsert,sample_3.png,http://www.img.filename.sample.com/media/sample_1.png:orig,http://www.img.filename.sample.com/media/sample_1.png:large,D:\Users\shift\Documents\git\media_gathering\sample_1.png,True
+DBRetweetUpsert,sample_1.png,http://www.img.filename.sample.com/media/sample_1.png:orig,http://www.img.filename.sample.com/media/sample_1.png:large,D:\Users\shift\Documents\git\media_gathering\sample_1.png,True
+DBRetweetUpsert,sample_2.png,http://www.img.filename.sample.com/media/sample_2.png:orig,http://www.img.filename.sample.com/media/sample_2.png:large,D:\Users\shift\Documents\git\media_gathering\sample_2.png,False
+DBRetweetUpsert,sample_3.png,http://www.img.filename.sample.com/media/sample_1.png:orig,http://www.img.filename.sample.com/media/sample_1.png:large,D:\Users\shift\Documents\git\media_gathering\sample_1.png,True

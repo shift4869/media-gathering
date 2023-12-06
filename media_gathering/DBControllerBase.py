@@ -244,8 +244,8 @@ class DBControllerBase(metaclass=ABCMeta):
 
 
 if __name__ == "__main__":
-    import PictureGathering.FavDBController
+    from media_gathering.FavDBController import FavDBController
     DEBUG = True
     db_fullpath = Path("J:\\twitter") / "PG_DB.db"
-    db_cont = PictureGathering.FavDBController(db_fullpath=str(db_fullpath), save_operation=True)
+    db_cont = FavDBController(db_fullpath=str(db_fullpath), save_operation=True)
     # db_cont.DBReflectFromFile("./archive/operatefile.txt")
