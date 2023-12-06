@@ -65,16 +65,16 @@
 1. config/config_example.iniの中身を自分用に編集してconfig/config.iniにリネーム
     - twitterのセッション情報を設定する（必須）
     - ローカルの保存先パスを設定する（必須）
-1. media-gathering.pyを実行する（以下は一例）
+1. MediaGathering.pyを実行する（以下は一例）
     - ※手動で実行するならパスが通っている環境で以下でOK
     ```
-    python media_gathering.py --type="Fav"
+    python MediaGathering.py --type="Fav"
     ```
     - または、以下を記述した.vbsファイルを用意する  
     ```
     Set ws=CreateObject("Wscript.Shell")
     ws.CurrentDirectory = "{解凍したmedia-gatheringへのパス}\media-gathering"
-    ws.run "cmd /c """"{python実行ファイルまでのパス}\python.exe"" {解凍したmedia-gatheringへのパス}\media-gathering\media_gathering.py --type=""Fav""""", vbhide
+    ws.run "cmd /c """"{python実行ファイルまでのパス}\python.exe"" {解凍したmedia-gatheringへのパス}\media-gathering\MediaGathering.py --type=""Fav""""", vbhide
     ```
     - `--type`を`Fav`でなく`RT`に変更すれば対象がRetweetとなる
     - 作成した.vbsを「タスクのスケジュール」などで実行する
