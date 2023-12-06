@@ -10,8 +10,8 @@ from media_gathering.Util import Result
 
 class HtmlWriter():
     POINTER_PATH = "./pointer.png"
-    FAV_HTML_PATH = "./html/FavPictureGathering.html"
-    RETWEET_HTML_PATH = "./html/RetweetPictureGathering.html"
+    FAV_HTML_PATH = "./html/FavMediaGathering.html"
+    RETWEET_HTML_PATH = "./html/RetweetMediaGathering.html"
 
     def __init__(self, op_type: Literal["Fav", "RT"], db_controller: DBControllerBase,
                  limit: int = 300, column_num: int = 6, pic_width: int = 256) -> None:

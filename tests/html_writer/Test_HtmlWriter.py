@@ -27,8 +27,8 @@ class TestHtmlWriter(unittest.TestCase):
         self.assertEqual(pic_width, html_writer.pic_width)
         self.assertEqual(template, html_writer.template)
         self.assertEqual("./pointer.png", HtmlWriter.POINTER_PATH)
-        self.assertEqual("./html/FavPictureGathering.html", HtmlWriter.FAV_HTML_PATH)
-        self.assertEqual("./html/RetweetPictureGathering.html", HtmlWriter.RETWEET_HTML_PATH)
+        self.assertEqual("./html/FavMediaGathering.html", HtmlWriter.FAV_HTML_PATH)
+        self.assertEqual("./html/RetweetMediaGathering.html", HtmlWriter.RETWEET_HTML_PATH)
 
         with self.assertRaises(TypeError):
             html_writer = HtmlWriter(-1, db_controller)

@@ -138,9 +138,9 @@ class TestLinkSearcher(unittest.TestCase):
 
                 def check_notify_call(mock_notify, fetcher_kind):
                     mock_notify.assert_any_call(
-                        title="Picture Gathering 実行エラー",
+                        title="Media Gathering 実行エラー",
                         message=f"LinkSearcher: {fetcher_kind} register failed.",
-                        app_name="Picture Gathering",
+                        app_name="Media Gathering",
                         timeout=10
                     )
 

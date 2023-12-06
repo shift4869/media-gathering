@@ -70,9 +70,9 @@ class Crawler(metaclass=ABCMeta):
 
         def notify(error_message: str):
             notification.notify(
-                title="Picture Gathering 実行エラー",
+                title="Media Gathering 実行エラー",
                 message=error_message,
-                app_name="Picture Gathering",
+                app_name="Media Gathering",
                 timeout=10
             )
 

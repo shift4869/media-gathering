@@ -58,9 +58,9 @@ class LinkSearcher():
         # 登録に失敗しても処理は続ける
         def notify(fetcher_kind: str):
             notification.notify(
-                title="Picture Gathering 実行エラー",
+                title="Media Gathering 実行エラー",
                 message=f"LinkSearcher: {fetcher_kind} register failed.",
-                app_name="Picture Gathering",
+                app_name="Media Gathering",
                 timeout=10
             )
 
