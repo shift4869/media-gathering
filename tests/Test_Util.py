@@ -4,7 +4,7 @@ from pathlib import Path
 
 import orjson
 
-from media_gathering.Util import Result, find_values
+from media_gathering.util import Result, find_values
 
 
 class TestUtil(unittest.TestCase):

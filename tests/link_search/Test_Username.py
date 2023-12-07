@@ -5,7 +5,7 @@
 import sys
 import unittest
 
-from media_gathering.link_search.Username import Username
+from media_gathering.link_search.username import Username
 
 
 class TestUsername(unittest.TestCase):

@@ -5,7 +5,7 @@
 import sys
 import unittest
 
-from media_gathering.link_search.pixiv.Authorid import Authorid
+from media_gathering.link_search.pixiv.authorid import Authorid
 
 
 class TestAuthorid(unittest.TestCase):

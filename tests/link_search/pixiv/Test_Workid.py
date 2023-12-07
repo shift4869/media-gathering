@@ -5,7 +5,7 @@
 import sys
 import unittest
 
-from media_gathering.link_search.pixiv.Workid import Workid
+from media_gathering.link_search.pixiv.workid import Workid
 
 
 class TestWorkid(unittest.TestCase):

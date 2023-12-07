@@ -5,7 +5,7 @@
 import sys
 import unittest
 
-from media_gathering.link_search.nico_seiga.Illustid import Illustid
+from media_gathering.link_search.nico_seiga.illustid import Illustid
 
 
 class TestIllustid(unittest.TestCase):

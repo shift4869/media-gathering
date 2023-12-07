@@ -8,7 +8,7 @@ import unittest
 
 import emoji
 
-from media_gathering.link_search.nico_seiga.Illustname import Illustname
+from media_gathering.link_search.nico_seiga.illustname import Illustname
 
 
 class TestIllustname(unittest.TestCase):

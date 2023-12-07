@@ -1,12 +1,10 @@
-from types import NoneType
 from typing import Self
 
-from sqlalchemy import *
+from sqlalchemy import Column, Integer, Boolean, text, String, INTEGER, BLOB, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import *
 
 Base = declarative_base()
-
 
 class Favorite(Base):
     """お気に入りツイートモデル

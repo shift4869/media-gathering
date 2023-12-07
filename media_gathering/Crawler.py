@@ -16,13 +16,13 @@ import orjson
 from plyer import notification
 from slack_sdk.webhook import WebhookClient
 
-from media_gathering.DBControllerBase import DBControllerBase
-from media_gathering.html_writer.HtmlWriter import HtmlWriter
-from media_gathering.link_search.LinkSearcher import LinkSearcher
-from media_gathering.LogMessage import MSG
-from media_gathering.Model import ExternalLink
-from media_gathering.tac.TweetInfo import TweetInfo
-from media_gathering.Util import Result
+from media_gathering.db_controller_base import DBControllerBase
+from media_gathering.html_writer.html_writer import HtmlWriter
+from media_gathering.link_search.link_searcher import LinkSearcher
+from media_gathering.log_message import MSG
+from media_gathering.model import ExternalLink
+from media_gathering.tac.tweet_info import TweetInfo
+from media_gathering.util import Result
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 for name in logging.root.manager.loggerDict:
@@ -570,6 +570,6 @@ class Crawler(metaclass=ABCMeta):
 
 
 if __name__ == "__main__":
-    import media_gathering.FavCrawler as FavCrawler
+    import media_gathering.fav_crawler as FavCrawler
     c = FavCrawler.FavCrawler()
     c.crawl()

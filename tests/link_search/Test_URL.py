@@ -2,7 +2,7 @@ import sys
 import unittest
 import urllib.parse
 
-from media_gathering.link_search.URL import URL
+from media_gathering.link_search.url import URL
 
 
 class TestURL(unittest.TestCase):

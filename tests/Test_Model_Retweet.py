@@ -1,7 +1,7 @@
 import sys
 import unittest
 
-from media_gathering.Model import Retweet
+from media_gathering.model import Retweet
 
 
 class TestModelRetweet(unittest.TestCase):

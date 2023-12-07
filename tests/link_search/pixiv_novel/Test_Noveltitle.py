@@ -8,7 +8,7 @@ import unittest
 
 import emoji
 
-from media_gathering.link_search.pixiv_novel.Noveltitle import Noveltitle
+from media_gathering.link_search.pixiv_novel.noveltitle import Noveltitle
 
 
 class TestNoveltitle(unittest.TestCase):

@@ -5,7 +5,7 @@
 import sys
 import unittest
 
-from media_gathering.link_search.nijie.Workid import Workid
+from media_gathering.link_search.nijie.workid import Workid
 
 
 class TestWorkid(unittest.TestCase):

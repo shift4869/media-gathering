@@ -5,7 +5,7 @@
 import sys
 import unittest
 
-from media_gathering.link_search.pixiv_novel.Novelid import Novelid
+from media_gathering.link_search.pixiv_novel.novelid import Novelid
 
 
 class TestNovelid(unittest.TestCase):

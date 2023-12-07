@@ -8,7 +8,7 @@ import unittest
 
 import emoji
 
-from media_gathering.link_search.pixiv.Worktitle import Worktitle
+from media_gathering.link_search.pixiv.worktitle import Worktitle
 
 
 class TestWorktitle(unittest.TestCase):

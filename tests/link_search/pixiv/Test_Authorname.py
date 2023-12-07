@@ -8,7 +8,7 @@ import unittest
 
 import emoji
 
-from media_gathering.link_search.pixiv.Authorname import Authorname
+from media_gathering.link_search.pixiv.authorname import Authorname
 
 
 class TestAuthorname(unittest.TestCase):

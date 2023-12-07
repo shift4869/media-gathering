@@ -8,7 +8,7 @@ import unittest
 
 import emoji
 
-from media_gathering.link_search.nico_seiga.Authorname import Authorname
+from media_gathering.link_search.nico_seiga.authorname import Authorname
 
 
 class TestAuthorname(unittest.TestCase):

@@ -1,7 +1,7 @@
 import sys
 import unittest
 
-from media_gathering.Model import Favorite
+from media_gathering.model import Favorite
 
 
 class TestModelFavorite(unittest.TestCase):

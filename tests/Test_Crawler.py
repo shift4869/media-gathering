@@ -14,10 +14,10 @@ from unittest.mock import call
 import orjson
 from mock import MagicMock, PropertyMock, patch
 
-from media_gathering.Crawler import Crawler, MediaSaveResult
-from media_gathering.Model import ExternalLink
-from media_gathering.tac.TweetInfo import TweetInfo
-from media_gathering.Util import Result
+from media_gathering.crawler import Crawler, MediaSaveResult
+from media_gathering.model import ExternalLink
+from media_gathering.tac.tweet_info import TweetInfo
+from media_gathering.util import Result
 
 logger = getLogger("media_gathering.Crawler")
 logger.setLevel(WARNING)

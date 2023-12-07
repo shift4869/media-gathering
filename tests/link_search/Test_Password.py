@@ -5,7 +5,7 @@
 import sys
 import unittest
 
-from media_gathering.link_search.Password import Password
+from media_gathering.link_search.password import Password
 
 
 class TestPassword(unittest.TestCase):

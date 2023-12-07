@@ -5,7 +5,7 @@
 import sys
 import unittest
 
-from media_gathering.tac.Username import Username
+from media_gathering.tac.username import Username
 
 
 class TestUsername(unittest.TestCase):
