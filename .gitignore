@@ -89,6 +89,9 @@ celerybeat-schedule
 venv/
 ENV/
 
+# ruff
+.ruff_cache
+
 # Spyder project settings
 .spyderproject
 .spyproject
