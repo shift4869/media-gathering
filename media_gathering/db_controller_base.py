@@ -3,12 +3,11 @@ from abc import ABCMeta, abstractmethod
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from sqlalchemy import *
+from sqlalchemy import and_, create_engine, or_
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.orm import *
-from sqlalchemy.orm.exc import *
+from sqlalchemy.orm import sessionmaker
 
-from media_gathering.model import *
+from media_gathering.model import Base, DeleteTarget, ExternalLink
 
 DEBUG = False
 
@@ -247,5 +246,5 @@ if __name__ == "__main__":
     from media_gathering.fav_db_controller import FavDBController
     DEBUG = True
     db_fullpath = Path("J:\\twitter") / "PG_DB.db"
-    db_cont = FavDBController(db_fullpath=str(db_fullpath), save_operation=True)
+    db_cont = FavDBController(db_fullpath=str(db_fullpath))
     # db_cont.DBReflectFromFile("./archive/operatefile.txt")

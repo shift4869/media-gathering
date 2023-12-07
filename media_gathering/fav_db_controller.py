@@ -1,12 +1,11 @@
 from pathlib import Path
 
-from sqlalchemy import *
+from sqlalchemy import or_, desc
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.orm import *
-from sqlalchemy.orm.exc import *
+from sqlalchemy.orm import sessionmaker
 
 from media_gathering.db_controller_base import DBControllerBase
-from media_gathering.model import *
+from media_gathering.model import Favorite
 
 DEBUG = False
 
@@ -169,6 +168,6 @@ class FavDBController(DBControllerBase):
 if __name__ == "__main__":
     DEBUG = True
     db_fullpath = Path("J:\\twitter") / "PG_DB.db"
-    db_cont = FavDBController(db_fullpath=str(db_fullpath), save_operation=True)
+    db_cont = FavDBController(db_fullpath=str(db_fullpath))
     # db_cont.DBReflectFromFile("./archive/operatefile.txt")
     pass

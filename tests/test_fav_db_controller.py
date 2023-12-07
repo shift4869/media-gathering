@@ -3,18 +3,17 @@ import unittest
 from datetime import datetime
 from pathlib import Path
 
-from sqlalchemy import *
-from sqlalchemy.orm import *
-from sqlalchemy.orm.exc import *
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-from media_gathering import FavDBController
-from media_gathering.model import *
+from media_gathering.fav_db_controller import FavDBController
+from media_gathering.model import Base, Favorite, Retweet
 from media_gathering.tac.tweet_info import TweetInfo
 
 TEST_DB_FULLPATH = "./tests/tests.db"
 
 
-class TestDBController(unittest.TestCase):
+class TestFavDBController(unittest.TestCase):
     def setUp(self):
         self.engine = create_engine("sqlite:///:memory:", echo=False)
         Base.metadata.create_all(self.engine)
@@ -138,7 +137,7 @@ class TestDBController(unittest.TestCase):
         """FavoriteへのUPSERTをチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
-        controlar = FavDBController.FavDBController(TEST_DB_FULLPATH)
+        controlar = FavDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
 
         # 1回目（INSERT）
@@ -168,7 +167,7 @@ class TestDBController(unittest.TestCase):
         """FavoriteからのSELECTをチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
-        controlar = FavDBController.FavDBController(TEST_DB_FULLPATH)
+        controlar = FavDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
 
         # SELECT
@@ -182,7 +181,7 @@ class TestDBController(unittest.TestCase):
         """Favoriteからfilenameを条件としてのSELECTをチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
-        controlar = FavDBController.FavDBController(TEST_DB_FULLPATH)
+        controlar = FavDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
 
         # サンプル生成
@@ -201,7 +200,7 @@ class TestDBController(unittest.TestCase):
         """Favoriteのis_exist_saved_fileフラグ更新をチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
-        controlar = FavDBController.FavDBController(TEST_DB_FULLPATH)
+        controlar = FavDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
 
         # 1回目（r1,r2を追加して両方ともTrueに更新）
@@ -238,7 +237,7 @@ class TestDBController(unittest.TestCase):
         """Favoriteのis_exist_saved_fileフラグクリア機能をチェックする
         """
         # engineをテスト用インメモリテーブルに置き換える
-        controlar = FavDBController.FavDBController(TEST_DB_FULLPATH)
+        controlar = FavDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
 
         # サンプル生成

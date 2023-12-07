@@ -2,21 +2,19 @@ import re
 import sys
 import unittest
 from datetime import date, datetime, timedelta
-from pathlib import Path
 
 from freezegun import freeze_time
-from sqlalchemy import *
-from sqlalchemy.orm import *
-from sqlalchemy.orm.exc import *
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-from media_gathering import DBControllerBase
-from media_gathering.model import *
+from media_gathering.db_controller_base import DBControllerBase
+from media_gathering.model import Base, DeleteTarget, ExternalLink
 
 
-class ConcreteDBControllerBase(DBControllerBase.DBControllerBase):
+class ConcreteDBControllerBase(DBControllerBase):
     """テスト用の具体化コントローラー
 
-    DBControllerBase.DBControllerBase()の抽象クラスメソッドを最低限実装したテスト用の派生クラス
+    DBControllerBase()の抽象クラスメソッドを最低限実装したテスト用の派生クラス
     """
 
     def __init__(self, db_fullpath=":memory:"):

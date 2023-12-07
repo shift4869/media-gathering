@@ -10,17 +10,17 @@ from pathlib import Path
 from freezegun import freeze_time
 from mock import MagicMock, patch
 
-from media_gathering.FavCrawler import FavCrawler
+from media_gathering.fav_crawler import FavCrawler
 from media_gathering.util import Result
 
 
 class TestFavCrawler(unittest.TestCase):
     def _get_instance(self) -> FavCrawler:
         with ExitStack() as stack:
-            mock_logger_fc = stack.enter_context(patch.object(getLogger("media_gathering.FavCrawler"), "info"))
-            mock_logger_cr = stack.enter_context(patch.object(getLogger("media_gathering.Crawler"), "info"))
-            mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
-            mock_fav_db_controller = stack.enter_context(patch("media_gathering.FavCrawler.FavDBController"))
+            mock_logger_fc = stack.enter_context(patch.object(getLogger("media_gathering.fav_crawler"), "info"))
+            mock_logger_cr = stack.enter_context(patch.object(getLogger("media_gathering.crawler"), "info"))
+            mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
+            mock_fav_db_controller = stack.enter_context(patch("media_gathering.fav_crawler.FavDBController"))
             fc = FavCrawler()
             fc.lsb = MagicMock()
             return fc
@@ -64,7 +64,7 @@ class TestFavCrawler(unittest.TestCase):
             s_add_url_list = ["http://pbs.twimg.com/media/add_sample{0}.jpg:orig".format(i) for i in range(5)]
             s_del_url_list = ["http://pbs.twimg.com/media/del_sample{0}.jpg:orig".format(i) for i in range(5)]
             s_pickup_url_list = random.sample(s_add_url_list, min(4, len(s_add_url_list)))
-            mock_random = stack.enter_context(patch("media_gathering.FavCrawler.random.sample"))
+            mock_random = stack.enter_context(patch("media_gathering.fav_crawler.random.sample"))
             mock_random.return_value = s_pickup_url_list
 
             s_now_str = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
@@ -95,13 +95,13 @@ class TestFavCrawler(unittest.TestCase):
         """全体クロールの呼び出しをチェックする
         """
         with ExitStack() as stack:
-            mock_logger = stack.enter_context(patch("media_gathering.FavCrawler.logger.info"))
-            mock_tac_like_fetcher = stack.enter_context(patch("media_gathering.FavCrawler.LikeFetcher"))
-            mock_parser = stack.enter_context(patch("media_gathering.FavCrawler.LikeParser"))
-            mock_interpret_tweets = stack.enter_context(patch("media_gathering.FavCrawler.FavCrawler.interpret_tweets"))
-            mock_trace_external_link = stack.enter_context(patch("media_gathering.FavCrawler.FavCrawler.trace_external_link"))
-            mock_shrink_folder = stack.enter_context(patch("media_gathering.FavCrawler.FavCrawler.shrink_folder"))
-            mock_end_of_process = stack.enter_context(patch("media_gathering.FavCrawler.FavCrawler.end_of_process"))
+            mock_logger = stack.enter_context(patch("media_gathering.fav_crawler.logger.info"))
+            mock_tac_like_fetcher = stack.enter_context(patch("media_gathering.fav_crawler.LikeFetcher"))
+            mock_parser = stack.enter_context(patch("media_gathering.fav_crawler.LikeParser"))
+            mock_interpret_tweets = stack.enter_context(patch("media_gathering.fav_crawler.FavCrawler.interpret_tweets"))
+            mock_trace_external_link = stack.enter_context(patch("media_gathering.fav_crawler.FavCrawler.trace_external_link"))
+            mock_shrink_folder = stack.enter_context(patch("media_gathering.fav_crawler.FavCrawler.shrink_folder"))
+            mock_end_of_process = stack.enter_context(patch("media_gathering.fav_crawler.FavCrawler.end_of_process"))
 
             fc = self._get_instance()
 

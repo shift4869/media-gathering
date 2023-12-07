@@ -8,7 +8,7 @@ from pathlib import Path
 import orjson
 from mock import MagicMock, patch
 
-from media_gathering.tac.RetweetFetcher import RetweetFetcher
+from media_gathering.tac.retweet_fetcher import RetweetFetcher
 
 
 class TestRetweetFetcher(unittest.TestCase):
@@ -44,7 +44,7 @@ class TestRetweetFetcher(unittest.TestCase):
 
     def test_get_retweet_jsons(self):
         with ExitStack() as stack:
-            mock_logger_info = stack.enter_context(patch("media_gathering.tac.RetweetFetcher.logger.info"))
+            mock_logger_info = stack.enter_context(patch("media_gathering.tac.retweet_fetcher.logger.info"))
             r = MagicMock()
 
             DUP_NUM = 3
@@ -68,7 +68,7 @@ class TestRetweetFetcher(unittest.TestCase):
 
     def test_fetch(self):
         with ExitStack() as stack:
-            mock_get_retweet_jsons = stack.enter_context(patch("media_gathering.tac.RetweetFetcher.RetweetFetcher.get_retweet_jsons"))
+            mock_get_retweet_jsons = stack.enter_context(patch("media_gathering.tac.retweet_fetcher.RetweetFetcher.get_retweet_jsons"))
             actual = self.fetcher.fetch()
             mock_get_retweet_jsons.assert_called_once_with()
 

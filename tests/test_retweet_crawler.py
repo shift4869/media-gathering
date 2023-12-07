@@ -10,17 +10,17 @@ from pathlib import Path
 from freezegun import freeze_time
 from mock import MagicMock, patch
 
-from media_gathering.RetweetCrawler import RetweetCrawler
+from media_gathering.retweet_crawler import RetweetCrawler
 from media_gathering.util import Result
 
 
 class TestRetweetCrawler(unittest.TestCase):
     def _get_instance(self) -> RetweetCrawler:
         with ExitStack() as stack:
-            mock_logger_rc = stack.enter_context(patch.object(getLogger("media_gathering.RetweetCrawler"), "info"))
-            mock_logger_cr = stack.enter_context(patch.object(getLogger("media_gathering.Crawler"), "info"))
-            mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
-            mock_rt_db_controller = stack.enter_context(patch("media_gathering.RetweetCrawler.RetweetDBController"))
+            mock_logger_rc = stack.enter_context(patch.object(getLogger("media_gathering.retweet_crawler"), "info"))
+            mock_logger_cr = stack.enter_context(patch.object(getLogger("media_gathering.crawler"), "info"))
+            mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
+            mock_rt_db_controller = stack.enter_context(patch("media_gathering.retweet_crawler.RetweetDBController"))
             rc = RetweetCrawler()
             rc.lsb = MagicMock()
             return rc
@@ -64,7 +64,7 @@ class TestRetweetCrawler(unittest.TestCase):
             s_add_url_list = ["http://pbs.twimg.com/media/add_sample{0}.jpg:orig".format(i) for i in range(5)]
             s_del_url_list = ["http://pbs.twimg.com/media/del_sample{0}.jpg:orig".format(i) for i in range(5)]
             s_pickup_url_list = random.sample(s_add_url_list, min(4, len(s_add_url_list)))
-            mock_random = stack.enter_context(patch("media_gathering.RetweetCrawler.random.sample"))
+            mock_random = stack.enter_context(patch("media_gathering.retweet_crawler.random.sample"))
             mock_random.return_value = s_pickup_url_list
 
             s_now_str = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
@@ -95,13 +95,13 @@ class TestRetweetCrawler(unittest.TestCase):
         """全体クロールの呼び出しをチェックする
         """
         with ExitStack() as stack:
-            mock_logger = stack.enter_context(patch("media_gathering.RetweetCrawler.logger.info"))
-            mock_tac_like_fetcher = stack.enter_context(patch("media_gathering.RetweetCrawler.RetweetFetcher"))
-            mock_parser = stack.enter_context(patch("media_gathering.RetweetCrawler.RetweetParser"))
-            mock_interpret_tweets = stack.enter_context(patch("media_gathering.RetweetCrawler.RetweetCrawler.interpret_tweets"))
-            mock_trace_external_link = stack.enter_context(patch("media_gathering.RetweetCrawler.RetweetCrawler.trace_external_link"))
-            mock_shrink_folder = stack.enter_context(patch("media_gathering.RetweetCrawler.RetweetCrawler.shrink_folder"))
-            mock_end_of_process = stack.enter_context(patch("media_gathering.RetweetCrawler.RetweetCrawler.end_of_process"))
+            mock_logger = stack.enter_context(patch("media_gathering.retweet_crawler.logger.info"))
+            mock_tac_like_fetcher = stack.enter_context(patch("media_gathering.retweet_crawler.RetweetFetcher"))
+            mock_parser = stack.enter_context(patch("media_gathering.retweet_crawler.RetweetParser"))
+            mock_interpret_tweets = stack.enter_context(patch("media_gathering.retweet_crawler.RetweetCrawler.interpret_tweets"))
+            mock_trace_external_link = stack.enter_context(patch("media_gathering.retweet_crawler.RetweetCrawler.trace_external_link"))
+            mock_shrink_folder = stack.enter_context(patch("media_gathering.retweet_crawler.RetweetCrawler.shrink_folder"))
+            mock_end_of_process = stack.enter_context(patch("media_gathering.retweet_crawler.RetweetCrawler.end_of_process"))
 
             rc = self._get_instance()
 

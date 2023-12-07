@@ -1,8 +1,8 @@
 from typing import Self
 
-from sqlalchemy import Column, Integer, Boolean, text, String, INTEGER, BLOB, create_engine
+from sqlalchemy import BLOB, INTEGER, Boolean, Column, Integer, String, create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import *
+from sqlalchemy.orm import Session, deferred
 
 Base = declarative_base()
 

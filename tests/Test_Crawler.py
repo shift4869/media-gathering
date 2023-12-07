@@ -19,7 +19,7 @@ from media_gathering.model import ExternalLink
 from media_gathering.tac.tweet_info import TweetInfo
 from media_gathering.util import Result
 
-logger = getLogger("media_gathering.Crawler")
+logger = getLogger("media_gathering.crawler")
 logger.setLevel(WARNING)
 
 
@@ -37,7 +37,7 @@ class ConcreteCrawler(Crawler):
         with ExitStack() as stack:
             mock_logger_info = stack.enter_context(patch.object(logger, "info"))
             mock_logger_exception = stack.enter_context(patch.object(logger, "exception"))
-            mock_validate_config = stack.enter_context(patch("media_gathering.Crawler.Crawler.validate_config_file"))
+            mock_validate_config = stack.enter_context(patch("media_gathering.crawler.Crawler.validate_config_file"))
 
             # Crawler.__init__()で意図的にエラーを起こすための設定
             if error_occur == "IOError":
@@ -46,15 +46,15 @@ class ConcreteCrawler(Crawler):
                 mock_validate_config.side_effect = lambda config_file_path: ioerror()
             elif error_occur == "KeyError":
                 # link_search_register呼び出しを利用して例外を送出するモックを設定する
-                mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
+                mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
                 mock_lsr.side_effect = KeyError()
             elif error_occur == "ValueError":
                 # link_search_register呼び出しを利用して例外を送出するモックを設定する
-                mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
+                mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
                 mock_lsr.side_effect = ValueError("ValueError")
             elif error_occur == "Exception":
                 # link_search_register呼び出しを利用して例外を送出するモックを設定する
-                mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
+                mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
                 mock_lsr.side_effect = Exception()
 
             super().__init__()
@@ -109,8 +109,8 @@ class TestCrawler(unittest.TestCase):
         """ConcreteCrawlerのテスト
         """
         with ExitStack() as stack:
-            mock_notification = stack.enter_context(patch("media_gathering.Crawler.notification"))
-            mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
+            mock_notification = stack.enter_context(patch("media_gathering.crawler.notification"))
+            mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
             crawler = ConcreteCrawler()
 
             self.assertIsInstance(crawler.db_cont, MagicMock)
@@ -128,8 +128,8 @@ class TestCrawler(unittest.TestCase):
             派生クラスで利用する設定値については別ファイルでテストする
         """
         with ExitStack() as stack:
-            mock_notification = stack.enter_context(patch("media_gathering.Crawler.notification"))
-            mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
+            mock_notification = stack.enter_context(patch("media_gathering.crawler.notification"))
+            mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
             # 例外発生テスト
             with self.assertRaises(ValueError):
                 crawler = ConcreteCrawler("IOError")
@@ -214,7 +214,7 @@ class TestCrawler(unittest.TestCase):
 
     def test_validate_config_file(self):
         with ExitStack() as stack:
-            mock_lsc = stack.enter_context(patch("media_gathering.Crawler.LinkSearcher.create"))
+            mock_lsc = stack.enter_context(patch("media_gathering.crawler.LinkSearcher.create"))
 
             crawler = ConcreteCrawler()
             # 元となるコンフィグファイルをコピー
@@ -284,7 +284,7 @@ class TestCrawler(unittest.TestCase):
         """外部リンク探索機構のセットアップをチェックする
         """
         with ExitStack() as stack:
-            mock_lsc = stack.enter_context(patch("media_gathering.Crawler.LinkSearcher.create"))
+            mock_lsc = stack.enter_context(patch("media_gathering.crawler.LinkSearcher.create"))
 
             crawler = ConcreteCrawler()
 
@@ -296,7 +296,7 @@ class TestCrawler(unittest.TestCase):
         """save_pathにあるファイル名一覧取得処理をチェックする
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
+            mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
 
             crawler = ConcreteCrawler()
 
@@ -319,10 +319,10 @@ class TestCrawler(unittest.TestCase):
         """フォルダ内ファイルの数を一定にする機能をチェックする
         """
         with ExitStack() as stack:
-            mock_get_exist_filelist = stack.enter_context(patch("media_gathering.Crawler.Crawler.get_exist_filelist"))
-            mock_update_db_exist_mark = stack.enter_context(patch("media_gathering.Crawler.Crawler.update_db_exist_mark"))
-            mock_get_media_url = stack.enter_context(patch("media_gathering.Crawler.Crawler.get_media_url"))
-            mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
+            mock_get_exist_filelist = stack.enter_context(patch("media_gathering.crawler.Crawler.get_exist_filelist"))
+            mock_update_db_exist_mark = stack.enter_context(patch("media_gathering.crawler.Crawler.update_db_exist_mark"))
+            mock_get_media_url = stack.enter_context(patch("media_gathering.crawler.Crawler.get_media_url"))
+            mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
             mock_unlink = stack.enter_context(patch("pathlib.Path.unlink"))
             image_base_url = "http://pbs.twimg.com/media/{}:orig"
             video_base_url = "https://video.twimg.com/ext_tw_video/1144527536388337664/pu/vid/626x882/{}"
@@ -363,7 +363,7 @@ class TestCrawler(unittest.TestCase):
         """存在マーキング更新をチェックする
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
+            mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
 
             crawler = ConcreteCrawler()
             mock_db_cont = crawler.db_cont
@@ -379,7 +379,7 @@ class TestCrawler(unittest.TestCase):
         """動画URL問い合わせをチェックする
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
+            mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
 
             video_base_url = "https://video.twimg.com/ext_tw_video/1144527536388337664/pu/vid/626x882/{}"
 
@@ -408,11 +408,11 @@ class TestCrawler(unittest.TestCase):
         """取得後処理をチェックする
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
-            mock_whtml = stack.enter_context(patch("media_gathering.Crawler.HtmlWriter"))
-            mock_cpdnotify = stack.enter_context(patch("media_gathering.Crawler.Crawler.post_discord_notify"))
-            mock_cplnotify = stack.enter_context(patch("media_gathering.Crawler.Crawler.post_line_notify"))
-            mock_cpsnotify = stack.enter_context(patch("media_gathering.Crawler.Crawler.post_slack_notify"))
+            mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
+            mock_whtml = stack.enter_context(patch("media_gathering.crawler.HtmlWriter"))
+            mock_cpdnotify = stack.enter_context(patch("media_gathering.crawler.Crawler.post_discord_notify"))
+            mock_cplnotify = stack.enter_context(patch("media_gathering.crawler.Crawler.post_line_notify"))
+            mock_cpsnotify = stack.enter_context(patch("media_gathering.crawler.Crawler.post_slack_notify"))
             mock_logger_debug = stack.enter_context(patch.object(logger, "debug"))
             mock_logger_info = stack.enter_context(patch.object(logger, "info"))
             mock_logger_warn = stack.enter_context(patch.object(logger, "warn"))
@@ -518,8 +518,8 @@ class TestCrawler(unittest.TestCase):
         """Discord通知ポスト機能をチェックする
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
-            mock_req = stack.enter_context(patch("media_gathering.Crawler.httpx.post"))
+            mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
+            mock_req = stack.enter_context(patch("media_gathering.crawler.httpx.post"))
 
             crawler = ConcreteCrawler()
             url = crawler.config["discord_webhook_url"]["webhook_url"]
@@ -595,8 +595,8 @@ class TestCrawler(unittest.TestCase):
         """LINE通知ポスト機能をチェックする
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
-            mock_req = stack.enter_context(patch("media_gathering.Crawler.httpx.post"))
+            mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
+            mock_req = stack.enter_context(patch("media_gathering.crawler.httpx.post"))
 
             crawler = ConcreteCrawler()
 
@@ -615,8 +615,8 @@ class TestCrawler(unittest.TestCase):
         """Slack通知ポスト機能をチェックする
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
-            mock_slack = stack.enter_context(patch("media_gathering.Crawler.WebhookClient"))
+            mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
+            mock_slack = stack.enter_context(patch("media_gathering.crawler.WebhookClient"))
             mock_logger_error = stack.enter_context(patch.object(logger, "error"))
 
             crawler = ConcreteCrawler()
@@ -635,11 +635,11 @@ class TestCrawler(unittest.TestCase):
             実際にファイル保存する
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
-            mock_client = stack.enter_context(patch("media_gathering.Crawler.httpx.Client"))
-            # mock_file_open: MagicMock = stack.enter_context(patch("media_gathering.Crawler.Path.open", mock_open()))
-            mock_read_bytes = stack.enter_context(patch("media_gathering.Crawler.Path.read_bytes"))
-            mock_shutil = stack.enter_context(patch("media_gathering.Crawler.shutil.copy2"))
+            mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
+            mock_client = stack.enter_context(patch("media_gathering.crawler.httpx.Client"))
+            # mock_file_open: MagicMock = stack.enter_context(patch("media_gathering.crawler.Path.open", mock_open()))
+            mock_read_bytes = stack.enter_context(patch("media_gathering.crawler.Path.read_bytes"))
+            mock_shutil = stack.enter_context(patch("media_gathering.crawler.shutil.copy2"))
             mock_logger_warning = stack.enter_context(patch.object(logger, "warning"))
             mock_logger_info = stack.enter_context(patch.object(logger, "info"))
             mock_logger_debug = stack.enter_context(patch.object(logger, "debug"))
@@ -757,9 +757,9 @@ class TestCrawler(unittest.TestCase):
         """ツイートオブジェクトの解釈をチェックする
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
-            mock_tweet_media_saver = stack.enter_context(patch("media_gathering.Crawler.Crawler.tweet_media_saver"))
-            mock_client = stack.enter_context(patch("media_gathering.Crawler.httpx.Client"))
+            mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
+            mock_tweet_media_saver = stack.enter_context(patch("media_gathering.crawler.Crawler.tweet_media_saver"))
+            mock_client = stack.enter_context(patch("media_gathering.crawler.httpx.Client"))
 
             crawler = ConcreteCrawler()
 
@@ -798,7 +798,7 @@ class TestCrawler(unittest.TestCase):
             実際にはファイル保存はしない
         """
         with ExitStack() as stack:
-            mock_lsr = stack.enter_context(patch("media_gathering.Crawler.Crawler.link_search_register"))
+            mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
             mock_logger_debug = stack.enter_context(patch.object(logger, "debug"))
 
             crawler = ConcreteCrawler()

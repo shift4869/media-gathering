@@ -7,7 +7,7 @@ from jinja2 import Template
 from mock import MagicMock, patch
 
 from media_gathering.db_controller_base import DBControllerBase
-from media_gathering.html_writer.HtmlWriter import HtmlWriter
+from media_gathering.html_writer.html_writer import HtmlWriter
 from media_gathering.util import Result
 
 
@@ -51,7 +51,7 @@ class TestHtmlWriter(unittest.TestCase):
 
     def test_write_result_html(self):
         with ExitStack() as stack:
-            mock_write_text = stack.enter_context(patch("media_gathering.html_writer.HtmlWriter.Path.write_text"))
+            mock_write_text = stack.enter_context(patch("media_gathering.html_writer.html_writer.Path.write_text"))
 
             record = {
                 "url": "dummy_url",

@@ -1,12 +1,11 @@
 from pathlib import Path
 
-from sqlalchemy import *
+from sqlalchemy import or_, desc
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.orm import *
-from sqlalchemy.orm.exc import *
+from sqlalchemy.orm import sessionmaker
 
 from media_gathering.db_controller_base import DBControllerBase
-from media_gathering.model import *
+from media_gathering.model import Retweet
 
 DEBUG = False
 

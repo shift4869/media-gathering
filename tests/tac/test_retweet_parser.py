@@ -6,8 +6,8 @@ import orjson
 from mock import MagicMock
 
 from media_gathering.link_search.link_searcher import LinkSearcher
+from media_gathering.tac.retweet_parser import RetweetParser
 from media_gathering.util import find_values
-from media_gathering.tac.RetweetParser import RetweetParser
 
 
 class TestRetweetParser(unittest.TestCase):
