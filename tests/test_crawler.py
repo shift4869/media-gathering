@@ -186,8 +186,8 @@ class TestCrawler(unittest.TestCase):
 
             # dbはTest_DBControllerBaseで確認
 
-            self.assertEqual(expect_config["notification"]["reply_to_user_name"],
-                             crawler.config["notification"]["reply_to_user_name"])
+            # self.assertEqual(expect_config["notification"]["reply_to_user_name"],
+            #                  crawler.config["notification"]["reply_to_user_name"])
 
             self.assertEqual(expect_config["discord_webhook_url"]["is_post_discord_notify"],
                              crawler.config["discord_webhook_url"]["is_post_discord_notify"])

@@ -115,21 +115,29 @@ BSD
 単体テストの時刻を固定するために使用。  
 Apache License 2.0
 
-@googleapis / google-api-python-client  
-GoogleDriveにアップロードするために使用。  
-Apache License 2.0  
+@encode / httpx  
+メディアDL等に使用。  
+3条項BSD
 
 @PyCQA / isort  
 importの自動ソートに使用。  
 MIT License
+
+@pallets / jinja  
+html生成に使用。  
+3条項BSD
 
 @calvinchengx / python-mock mock  
 単体テストのモック機能利用のために使用。  
 BSD 2-Clause "Simplified" License  
 =2条項BSD
 
+@ijl / orjson  
+大規模jsonを扱うために使用。  
+Apache License 2.0, MIT License
+
 @python-pillow / Pillow  
-外部リンク先のgif保存時に使用。
+外部リンク先のgif保存時に使用。  
 HPND License
 
 @upbit / pixivpy  
@@ -140,26 +148,13 @@ The Unlicense
 トースト通知を出すために使用。  
 MIT License
 
-@protocolbuffers / protobuf  
-GoogleAPIの前提。  
-Copyright 2008 Google Inc.  
-BSD（※要約）
-
 @PyCQA / pycodestyle    
-リンター。
+リンター。  
 Expat License
 =MIT License
 
-@pyppeteer / pyppeteer    
-スクレイピング、ページ操作に使用。
-MIT License
-
-@psf / requests
-各種外部通信に使用。  
-Apache License 2.0
-
-@psf / requests-html
-外部通信、ページレンダリングに使用。  
+@astral-sh / ruff  
+リンター。  
 MIT License
 
 @slackapi / python-slack-sdk slack-sdk
@@ -172,6 +167,10 @@ MIT License
 
 @trevorhobenshield / twitter-api-client
 twitterの認証やスクレイピングに使用。
+MIT License
+
+@martinblech / xmltodict  
+xmlの構造解析に使用。
 MIT License
 
 ※今後使用した外部ライブラリが増えた場合は追記する
@@ -192,7 +191,7 @@ MIT License
 ただし、以下の著作権表示、ライセンス表示が必要となる。
 
 - 著作権表示
-    - 「Copyright (c) 2018 [shift](https://twitter.com/_shift4869) (https://twitter.com/_shift4869)」と記載する。
+    - 「Copyright (c) 2018 - 2023 [shift](https://twitter.com/_shift4869) (https://twitter.com/_shift4869)」と記載する。
         - （同じ意味ならばどんな表記でも良い。）
 - ライセンス表示
     - [MIT License](https://github.com/shift4869/media-gathering/blob/master/LICENSE)  であるということを記載する。
@@ -209,5 +208,6 @@ MIT License
 
 以上（情報更新され次第追記）
 
-2021/05/18 初稿作成 [shift](https://twitter.com/_shift4869)  
+2023/12/08 追記・修正 [shift](https://twitter.com/_shift4869)
 2023/08/16 追記 [shift](https://twitter.com/_shift4869)
+2021/05/18 初稿作成 [shift](https://twitter.com/_shift4869)  
