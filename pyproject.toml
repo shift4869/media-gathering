@@ -24,7 +24,7 @@ python = ">=3.11,<4"
 ruff = "^0.1.7"
 slack-sdk = "^3.26.1"
 sqlalchemy = "1.4.46"
-twitter-api-client = "^0.10.12"
+twitter-api-client = "^0.10.15"
 xmltodict = "^0.13.0"
 
 [tool.poetry.dev-dependencies]
