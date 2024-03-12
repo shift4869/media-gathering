@@ -89,13 +89,6 @@ class PixivNovelFetcher(FetcherBase):
         logger.error("process abort")
         raise ValueError("pixiv auth failed.")
 
-        # refresh_tokenを保存
-        refresh_token = api.refresh_token
-        with rt_path.open(mode="w") as fout:
-            fout.write(refresh_token)
-
-        raise ValueError("pixiv auth failed.")
-
     def is_target_url(self, url: URL) -> bool:
         """担当URLかどうか判定する
 

@@ -504,7 +504,8 @@ class Crawler(metaclass=ABCMeta):
             # 常に保存する設定の場合はコピーする
             config = self.config["save_permanent"]
             if config.getboolean("save_permanent_media_flag"):
-                shutil.copy2(save_file_fullpath, config["save_permanent_media_path"])
+                dst_path = Path(config["save_permanent_media_path"])
+                shutil.copy2(save_file_fullpath, dst_path)
         else:
             # 既に存在している場合
             logger.debug(save_file_fullpath.name + " -> exist")
