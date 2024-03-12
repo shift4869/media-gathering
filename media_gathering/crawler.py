@@ -34,10 +34,10 @@ logger.setLevel(INFO)
 
 
 class MediaSaveResult(enum.Enum):
-    success = enum.auto()    # 成功（現在存在せず、過去にも取得したことが無い→今回でDLを実際に実行した）
+    success = enum.auto()  # 成功（現在存在せず、過去にも取得したことが無い→今回でDLを実際に実行した）
     now_exist = enum.auto()  # 現在存在している
     past_done = enum.auto()  # 過去に取得済
-    failed = enum.auto()     # 失敗（メディア辞書構造がエラー、urlが取得できない）
+    failed = enum.auto()  # 失敗（メディア辞書構造がエラー、urlが取得できない）
 
 
 class Crawler(metaclass=ABCMeta):
@@ -63,18 +63,14 @@ class Crawler(metaclass=ABCMeta):
         add_url_list (list): 新規追加したメディアのURLリスト
         del_url_list (list): 削除したメディアのURLリスト
     """
+
     CONFIG_FILE_NAME = "./config/config.ini"
 
     def __init__(self) -> None:
         logger.info(MSG.CRAWLER_INIT_START.value)
 
         def notify(error_message: str):
-            notification.notify(
-                title="Media Gathering 実行エラー",
-                message=error_message,
-                app_name="Media Gathering",
-                timeout=10
-            )
+            notification.notify(title="Media Gathering 実行エラー", message=error_message, app_name="Media Gathering", timeout=10)
 
         try:
             self.validate_config_file(self.CONFIG_FILE_NAME)
@@ -85,6 +81,10 @@ class Crawler(metaclass=ABCMeta):
             config = self.config["save_directory"]
             Path(config["save_fav_path"]).mkdir(parents=True, exist_ok=True)
             Path(config["save_retweet_path"]).mkdir(parents=True, exist_ok=True)
+
+            config = self.config["save_permanent"]
+            if config.getboolean("save_permanent_media_flag"):
+                Path(config["save_permanent_media_path"]).mkdir(parents=True, exist_ok=True)
 
             # 外部リンク探索機構のセットアップ
             self.link_search_register()
@@ -233,8 +233,7 @@ class Crawler(metaclass=ABCMeta):
 
     @abstractmethod
     def make_done_message(self) -> str:
-        """実行後の結果文字列を生成する
-        """
+        """実行後の結果文字列を生成する"""
         return ""
 
     def end_of_process(self) -> Result:
@@ -269,7 +268,7 @@ class Crawler(metaclass=ABCMeta):
                 except Exception as e:
                     logger.exception(e)
                     logger.warn("Discord notify post failed.")
-    
+
             if config["line_token_keys"].getboolean("is_post_line_notify"):
                 try:
                     self.post_line_notify(done_msg)
@@ -300,9 +299,7 @@ class Crawler(metaclass=ABCMeta):
             Result: 成功時Result.success
         """
         url = self.config["discord_webhook_url"]["webhook_url"]
-        headers = {
-            "Content-Type": "application/json"
-        }
+        headers = {"Content-Type": "application/json"}
 
         payload = {}
         if is_embed:
@@ -322,38 +319,23 @@ class Crawler(metaclass=ABCMeta):
                 if line.startswith("http"):
                     media_links.append(line)
                 else:
-                    description_msg += (line + "\n")
+                    description_msg += line + "\n"
 
             embeds = []
             if len(media_links) > 0:
                 key_url = media_links[0]
-                embeds.append({
-                    "description": description_msg,
-                    "url": key_url,
-                    "image": {"url": key_url}
-                })
+                embeds.append({"description": description_msg, "url": key_url, "image": {"url": key_url}})
                 for media_link_url in media_links[1:]:
-                    embeds.append({
-                        "url": key_url,
-                        "image": {"url": media_link_url}
-                    })
+                    embeds.append({"url": key_url, "image": {"url": media_link_url}})
             else:
-                embeds.append({
-                    "description": description_msg
-                })
+                embeds.append({"description": description_msg})
 
-            payload = {
-                "embeds": embeds
-            }
+            payload = {"embeds": embeds}
 
         if not payload:
-            payload = {
-                "content": message
-            }
+            payload = {"content": message}
 
-        response = httpx.post(
-            url, headers=headers, data=orjson.dumps(payload).decode()
-        )
+        response = httpx.post(url, headers=headers, data=orjson.dumps(payload).decode())
         response.raise_for_status()
 
         # if response.status_code != 204:  # 成功すると204 No Contentが返ってくる
@@ -405,11 +387,7 @@ class Crawler(metaclass=ABCMeta):
             return Result.failed
         return Result.success
 
-    def tweet_media_saver(self,
-                          tweet_info: TweetInfo,
-                          atime: float,
-                          mtime: float,
-                          session: httpx.Client | None = None) -> MediaSaveResult:
+    def tweet_media_saver(self, tweet_info: TweetInfo, atime: float, mtime: float, session: httpx.Client | None = None) -> MediaSaveResult:
         """tweet_infoで指定されるツイートのメディアを保存する
 
         Args:
@@ -419,7 +397,7 @@ class Crawler(metaclass=ABCMeta):
             session (httpx.Client | None): 保存時に使うセッション
 
         Returns:
-            MediaSaveResult: 
+            MediaSaveResult:
                 success: 成功（現在存在せず、過去にも取得したことが無い→DLを実際に実行した）
                 now_exist: 現在存在している
                 past_done: 過去に取得済
@@ -528,15 +506,7 @@ class Crawler(metaclass=ABCMeta):
             dts_format = "%Y-%m-%d %H:%M:%S"
             media_tweet_created_time = tweet_info.created_at
             created_time = time.strptime(media_tweet_created_time, dts_format)
-            atime = mtime = time.mktime(
-                (created_time.tm_year,
-                 created_time.tm_mon,
-                 created_time.tm_mday,
-                 created_time.tm_hour,
-                 created_time.tm_min,
-                 created_time.tm_sec,
-                 0, 0, -1)
-            )
+            atime = mtime = time.mktime((created_time.tm_year, created_time.tm_mon, created_time.tm_mday, created_time.tm_hour, created_time.tm_min, created_time.tm_sec, 0, 0, -1))
 
             # メディア保存
             result: MediaSaveResult = self.tweet_media_saver(tweet_info, atime, mtime, session)
@@ -572,5 +542,6 @@ class Crawler(metaclass=ABCMeta):
 
 if __name__ == "__main__":
     import media_gathering.fav_crawler as FavCrawler
+
     c = FavCrawler.FavCrawler()
     c.crawl()
