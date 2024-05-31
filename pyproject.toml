@@ -33,6 +33,30 @@ requires-python = ">= 3.11"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.isort]
+line_length = 256
+multi_line_output = 9
+
+[tool.ruff]
+exclude = [
+    "__pycache__",
+    ".coveragerc",
+    ".git",
+    ".venv",
+    "venv",
+]
+line-length = 119
+
+[tool.ruff.lint]
+fixable = ["ALL"]
+select = ["E", "F"]
+ignore = ["F401", "F541", "F841"]
+preview = true
+
+[tool.ruff.format]
+preview = true
+quote-style = "double"
+
 [tool.rye]
 managed = true
 dev-dependencies = []
@@ -42,20 +66,3 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/media_gathering"]
-
-[tool.isort]
-line_length = 256
-multi_line_output = 9
-
-[tool.ruff]
-exclude = [
-    ".coverage",
-    ".venv",
-    "venv",
-    "__pycache__",
-    ".git",
-]
-line-length = 256
-
-[tool.ruff.lint]
-ignore = ["F401", "F541", "F841"]
