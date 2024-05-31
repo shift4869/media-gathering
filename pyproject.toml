@@ -1,33 +1,47 @@
-[tool.poetry]
-name = "mgPKG"
-version = "2.1.0"
-description = ""
-authors = ["shift <fantasy_world4423-git@yahoo.co.jp>"]
-license = "MIT License"
+[project]
+name = "media-gathering"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "shift" }
+]
+dependencies = [
+    "beautifulsoup4>=4.12.3",
+    "coverage>=7.5.3",
+    "cryptography>=42.0.7",
+    "emoji>=2.12.1",
+    "freezegun>=1.5.1",
+    "httpx>=0.27.0",
+    "isort>=5.13.2",
+    "jinja2>=3.1.4",
+    "mock>=5.1.0",
+    "orjson>=3.10.3",
+    "pillow>=10.3.0",
+    "pixivpy3>=3.7.5",
+    "plyer>=2.1.0",
+    "pycodestyle>=2.11.1",
+    "ruff>=0.4.6",
+    "slack-sdk>=3.27.2",
+    "sqlalchemy>=2.0.30",
+    "twitter-api-client>=0.10.22",
+    "xmltodict>=0.13.0",
+]
+readme = "README.md"
+requires-python = ">= 3.11"
 
-[tool.poetry.dependencies]
-beautifulsoup4 = "^4.12.3"
-coverage = "^7.5.3"
-cryptography = "^42.0.7"
-emoji = "^2.12.1"
-freezegun = "^1.5.1"
-httpx = "^0.25.2"
-isort = "^5.13.2"
-jinja2 = "^3.1.4"
-mock = "^5.1.0"
-orjson = "^3.10.3"
-pillow = "^10.3.0"
-pixivpy3 = "^3.7.5"
-plyer = "^2.1.0"
-pycodestyle = "^2.11.1"
-python = ">=3.11,<4"
-ruff = "^0.1.15"
-slack-sdk = "^3.27.2"
-sqlalchemy = "1.4.46"
-twitter-api-client = "^0.10.22"
-xmltodict = "^0.13.0"
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry.dev-dependencies]
+[tool.rye]
+managed = true
+dev-dependencies = []
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/media_gathering"]
 
 [tool.isort]
 line_length = 256
@@ -35,6 +49,7 @@ multi_line_output = 9
 
 [tool.ruff]
 exclude = [
+    ".coverage",
     ".venv",
     "venv",
     "__pycache__",
@@ -44,7 +59,3 @@ line-length = 256
 
 [tool.ruff.lint]
 ignore = ["F401", "F541", "F841"]
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"

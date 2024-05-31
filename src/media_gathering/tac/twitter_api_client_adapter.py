@@ -9,7 +9,7 @@ logger = getLogger(__name__)
 logger.setLevel(INFO)
 
 
-class TwitterAPIClientAdapter():
+class TwitterAPIClientAdapter:
     _ct0: str
     _auth_token: str
     _target_screen_name: Username
