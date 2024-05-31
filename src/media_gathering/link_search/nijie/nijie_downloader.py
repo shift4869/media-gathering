@@ -23,11 +23,11 @@ class DownloadResult(enum.Enum):
 
 
 @dataclass(frozen=True)
-class NijieDownloader():
-    """nijie作品をDLするクラス
-    """
-    nijie_url: NijieURL   # nijie作品ページURL
-    base_path: Path       # 保存ディレクトリベースパス
+class NijieDownloader:
+    """nijie作品をDLするクラス"""
+
+    nijie_url: NijieURL  # nijie作品ページURL
+    base_path: Path  # 保存ディレクトリベースパス
     cookies: NijieCookie  # nijieのクッキー
 
     def __post_init__(self):
@@ -43,8 +43,7 @@ class NijieDownloader():
         return True
 
     def download(self) -> DownloadResult:
-        """nijie作品ページURLから作品をダウンロードしてbase_path以下に保存する
-        """
+        """nijie作品ページURLから作品をダウンロードしてbase_path以下に保存する"""
         work_id = self.nijie_url.work_id.id
 
         # 作品詳細ページをGET

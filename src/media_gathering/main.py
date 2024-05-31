@@ -25,8 +25,7 @@ if __name__ == "__main__":
     logger.info(MSG.APPLICATION_START.value)
 
     arg_parser = argparse.ArgumentParser(description="Twitter Crawler")
-    arg_parser.add_argument("--type", choices=["Fav", "RT"], default="Fav",
-                            help="Crawl target: Fav or RT")
+    arg_parser.add_argument("--type", choices=["Fav", "RT"], default="Fav", help="Crawl target: Fav or RT")
     args = arg_parser.parse_args()
 
     c = None

@@ -80,7 +80,7 @@ class DBControllerBase(metaclass=ABCMeta):
     @abstractmethod
     def update_flag(self, filename_list=[], set_flag=0) -> list[dict]:
         """filename_list に含まれるファイル名を持つレコードについて
-        　 is_exist_saved_file フラグを更新する
+        is_exist_saved_file フラグを更新する
 
         Note:
             f"update Favorite set is_exist_saved_file = {set_flag} where img_filename in ({filename_list})"
@@ -135,14 +135,20 @@ class DBControllerBase(metaclass=ABCMeta):
             "deleted_at": None,
             "tweet_text": text,
             "add_num": add_num,
-            "del_num": del_num
+            "del_num": del_num,
         }
-        r = DeleteTarget(params["tweet_id"], params["delete_done"], params["created_at"],
-                         params["deleted_at"], params["tweet_text"], params["add_num"], params["del_num"])
+        r = DeleteTarget(
+            params["tweet_id"],
+            params["delete_done"],
+            params["created_at"],
+            params["deleted_at"],
+            params["tweet_text"],
+            params["add_num"],
+            params["del_num"],
+        )
 
         try:
-            q = session.query(DeleteTarget).filter(
-                or_(DeleteTarget.tweet_id == r.tweet_id))
+            q = session.query(DeleteTarget).filter(or_(DeleteTarget.tweet_id == r.tweet_id))
             ex = q.one()
         except NoResultFound:
             # INSERT
@@ -175,8 +181,12 @@ class DBControllerBase(metaclass=ABCMeta):
         # 2日前の通知ツイートを削除する(1日前の日付より前)
         t = date.today() - timedelta(1)
         # 今日未満 = 昨日以前の通知ツイートをDBから取得
-        records = session.query(DeleteTarget).filter(~DeleteTarget.delete_done).\
-            filter(DeleteTarget.created_at < t.strftime("%Y-%m-%d %H:%M:%S")).all()
+        records = (
+            session.query(DeleteTarget)
+            .filter(~DeleteTarget.delete_done)
+            .filter(DeleteTarget.created_at < t.strftime("%Y-%m-%d %H:%M:%S"))
+            .all()
+        )
 
         # 消去フラグを立てる
         for record in records:
@@ -200,7 +210,9 @@ class DBControllerBase(metaclass=ABCMeta):
 
         for r in external_link_list:
             try:
-                q = session.query(ExternalLink).filter(and_(ExternalLink.external_link_url == r.external_link_url, ExternalLink.tweet_url == r.tweet_url))
+                q = session.query(ExternalLink).filter(
+                    and_(ExternalLink.external_link_url == r.external_link_url, ExternalLink.tweet_url == r.tweet_url)
+                )
                 p = q.one()
             except NoResultFound:
                 # INSERT
@@ -244,6 +256,7 @@ class DBControllerBase(metaclass=ABCMeta):
 
 if __name__ == "__main__":
     from media_gathering.fav_db_controller import FavDBController
+
     DEBUG = True
     db_fullpath = Path("J:\\twitter") / "PG_DB.db"
     db_cont = FavDBController(db_fullpath=str(db_fullpath))

@@ -7,12 +7,13 @@ from media_gathering.link_search.nico_seiga.illustname import Illustname
 
 
 @dataclass(frozen=True)
-class NicoSeigaInfo():
+class NicoSeigaInfo:
     """NicoSeigaInfo
 
     Returns:
         NicoSeigaInfo: NicoSeigaInfoを表すValueObject
     """
+
     illust_id: Illustid
     illust_name: Illustname
     author_id: Authorid

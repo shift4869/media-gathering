@@ -1,4 +1,3 @@
-
 from pathlib import Path
 from typing import Literal
 
@@ -8,31 +7,37 @@ from media_gathering.db_controller_base import DBControllerBase
 from media_gathering.util import Result
 
 
-class HtmlWriter():
+class HtmlWriter:
     POINTER_PATH = "./pointer.png"
     FAV_HTML_PATH = "./html/FavMediaGathering.html"
     RETWEET_HTML_PATH = "./html/RetweetMediaGathering.html"
 
-    def __init__(self, op_type: Literal["Fav", "RT"], db_controller: DBControllerBase,
-                 limit: int = 300, column_num: int = 6, pic_width: int = 256) -> None:
+    def __init__(
+        self,
+        op_type: Literal["Fav", "RT"],
+        db_controller: DBControllerBase,
+        limit: int = 300,
+        column_num: int = 6,
+        pic_width: int = 256,
+    ) -> None:
         if not isinstance(op_type, str):
             raise TypeError('op_type must be type str ["Fav", "RT"].')
         if not isinstance(db_controller, DBControllerBase):
-            raise TypeError('db_controller must be DBControllerBase.')
+            raise TypeError("db_controller must be DBControllerBase.")
         if not isinstance(limit, int):
-            raise TypeError('limit must be int.')
+            raise TypeError("limit must be int.")
         if not isinstance(column_num, int):
-            raise TypeError('column_num must be int.')
+            raise TypeError("column_num must be int.")
         if not isinstance(pic_width, int):
-            raise TypeError('limit must be int.')
+            raise TypeError("limit must be int.")
         if op_type not in ["Fav", "RT"]:
             raise ValueError('op_type must be ["Fav", "RT"].')
         if limit < 0:
-            raise ValueError('limit must be 0 < limit.')
+            raise ValueError("limit must be 0 < limit.")
         if column_num < 0:
-            raise ValueError('column_num must be 0 < column_num.')
+            raise ValueError("column_num must be 0 < column_num.")
         if pic_width < 0:
-            raise ValueError('pic_width must be 0 < pic_width.')
+            raise ValueError("pic_width must be 0 < pic_width.")
         self.op_type = op_type
         self.db_controller = db_controller
         self.limit = limit
@@ -50,11 +55,14 @@ class HtmlWriter():
         else:
             return Result.failed
 
-        source_list = [{
-            "url": record["url"],
-            "url_thumbnail": record["url_thumbnail"],
-            "tweet_url": record["tweet_url"],
-        } for record in record_list]
+        source_list = [
+            {
+                "url": record["url"],
+                "url_thumbnail": record["url_thumbnail"],
+                "tweet_url": record["tweet_url"],
+            }
+            for record in record_list
+        ]
 
         template: Template = Template(source=self.template)
         html = template.render(
@@ -70,6 +78,7 @@ class HtmlWriter():
 
 if __name__ == "__main__":
     from media_gathering import FavDBController
+
     SAMPLE_DB_PATH = Path(__file__).parent / "sample/PG_DB.db"
     db_controller = FavDBController.FavDBController(db_fullpath=SAMPLE_DB_PATH)
     html_writer = HtmlWriter("Fav", db_controller)

@@ -2,6 +2,7 @@
 
 外部リンク探索の基底クラスをテストする
 """
+
 import re
 import sys
 import unittest
@@ -11,8 +12,8 @@ from media_gathering.link_search.url import URL
 
 
 class ConcreteFetcher(FetcherBase):
-    """具体的な担当者
-    """
+    """具体的な担当者"""
+
     def __init__(self):
         super().__init__()
 

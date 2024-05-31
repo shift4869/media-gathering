@@ -3,7 +3,7 @@ from typing import Self
 
 
 @dataclass(frozen=True)
-class TweetInfo():
+class TweetInfo:
     media_filename: str
     media_url: str
     media_thumbnail_url: str
@@ -71,17 +71,19 @@ class TweetInfo():
                 "tweet_text": tweet_text,
                 "tweet_via": tweet_via,
             }:
-                return cls(media_filename,
-                           media_url,
-                           media_thumbnail_url,
-                           tweet_id,
-                           tweet_url,
-                           created_at,
-                           user_id,
-                           user_name,
-                           screan_name,
-                           tweet_text,
-                           tweet_via)
+                return cls(
+                    media_filename,
+                    media_url,
+                    media_thumbnail_url,
+                    tweet_id,
+                    tweet_url,
+                    created_at,
+                    user_id,
+                    user_name,
+                    screan_name,
+                    tweet_text,
+                    tweet_via,
+                )
             case _:
                 raise ValueError("TweetInfo instance create failed.")
 

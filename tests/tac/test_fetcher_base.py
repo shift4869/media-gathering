@@ -10,11 +10,7 @@ from media_gathering.tac.username import Username
 
 
 class ConcreteFetcher(FetcherBase):
-    def __init__(self,
-                 ct0: str,
-                 auth_token: str,
-                 target_screen_name: Username | str,
-                 target_id: int) -> None:
+    def __init__(self, ct0: str, auth_token: str, target_screen_name: Username | str, target_id: int) -> None:
         super().__init__(ct0, auth_token, target_screen_name, target_id)
 
     def fetch(self) -> list[dict]:

@@ -2,6 +2,7 @@
 
 作者名を表すクラスをテストする
 """
+
 import re
 import sys
 import unittest

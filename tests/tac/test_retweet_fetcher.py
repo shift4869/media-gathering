@@ -68,7 +68,9 @@ class TestRetweetFetcher(unittest.TestCase):
 
     def test_fetch(self):
         with ExitStack() as stack:
-            mock_get_retweet_jsons = stack.enter_context(patch("media_gathering.tac.retweet_fetcher.RetweetFetcher.get_retweet_jsons"))
+            mock_get_retweet_jsons = stack.enter_context(
+                patch("media_gathering.tac.retweet_fetcher.RetweetFetcher.get_retweet_jsons")
+            )
             actual = self.fetcher.fetch()
             mock_get_retweet_jsons.assert_called_once_with()
 

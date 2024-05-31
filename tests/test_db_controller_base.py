@@ -37,7 +37,6 @@ class ConcreteDBControllerBase(DBControllerBase):
 
 
 class TestDBController(unittest.TestCase):
-
     def setUp(self):
         self.engine = create_engine("sqlite:///:memory:", echo=False)
         Base.metadata.create_all(self.engine)
@@ -63,14 +62,9 @@ class TestDBController(unittest.TestCase):
         tweet_texts = [
             "@s_shift4869 MediaGathering run.",
             f"{created_at} Process Done !!",
-            f"add {add_num} new images. delete {del_num} old images."
+            f"add {add_num} new images. delete {del_num} old images.",
         ]
-        tweet_s = {
-            "data": {
-                "id": "12345_id_str_sample",
-                "text": "\n".join(tweet_texts)
-            }
-        }
+        tweet_s = {"data": {"id": "12345_id_str_sample", "text": "\n".join(tweet_texts)}}
         return tweet_s
 
     def _make_external_link_sample(self, i: int) -> ExternalLink:
@@ -110,8 +104,7 @@ class TestDBController(unittest.TestCase):
         return ExternalLink.create(r)
 
     def test_upsert_del(self):
-        """DeleteTargetへのUPSERTをチェックする
-        """
+        """DeleteTargetへのUPSERTをチェックする"""
         freezed_time = "2022-10-24 10:30:00"
         with freeze_time(freezed_time):
             # engineをテスト用インメモリテーブルに置き換える
@@ -130,7 +123,7 @@ class TestDBController(unittest.TestCase):
                         p.deleted_at == q.deleted_at,
                         p.tweet_text == q.tweet_text,
                         p.add_num == q.add_num,
-                        p.del_num == q.del_num
+                        p.del_num == q.del_num,
                     ]
                     if not all(member):
                         return False
@@ -152,10 +145,17 @@ class TestDBController(unittest.TestCase):
                 "deleted_at": None,
                 "tweet_text": text,
                 "add_num": add_num,
-                "del_num": del_num
+                "del_num": del_num,
             }
-            expect = DeleteTarget(params["tweet_id"], params["delete_done"], params["created_at"],
-                                  params["deleted_at"], params["tweet_text"], params["add_num"], params["del_num"])
+            expect = DeleteTarget(
+                params["tweet_id"],
+                params["delete_done"],
+                params["created_at"],
+                params["deleted_at"],
+                params["tweet_text"],
+                params["add_num"],
+                params["del_num"],
+            )
 
             actual = controlar.upsert_del(tweet_del)
             self.assertIsNone(actual)
@@ -178,10 +178,17 @@ class TestDBController(unittest.TestCase):
                 "deleted_at": None,
                 "tweet_text": text,
                 "add_num": add_num,
-                "del_num": del_num
+                "del_num": del_num,
             }
-            expect = DeleteTarget(params["tweet_id"], params["delete_done"], params["created_at"],
-                                  params["deleted_at"], params["tweet_text"], params["add_num"], params["del_num"])
+            expect = DeleteTarget(
+                params["tweet_id"],
+                params["delete_done"],
+                params["created_at"],
+                params["deleted_at"],
+                params["tweet_text"],
+                params["add_num"],
+                params["del_num"],
+            )
 
             actual = controlar.upsert_del(tweet_del)
             self.assertIsNone(actual)
@@ -189,8 +196,7 @@ class TestDBController(unittest.TestCase):
             self.assertTrue(is_equal_DeleteTarget([expect], actual))
 
     def test_update_del(self):
-        """DeleteTargetからのSELECTしてフラグをUPDATEする機能をチェックする
-        """
+        """DeleteTargetからのSELECTしてフラグをUPDATEする機能をチェックする"""
         # engineをテスト用インメモリテーブルに置き換える
         controlar = ConcreteDBControllerBase()
         controlar.engine = self.engine
@@ -218,8 +224,7 @@ class TestDBController(unittest.TestCase):
             self.assertEqual(expect, actual)
 
     def test_upsert_external_link(self):
-        """ExternalLinkへのUPSERTをチェックする
-        """
+        """ExternalLinkへのUPSERTをチェックする"""
         freezed_time = "2022-10-24 10:30:00"
         with freeze_time(freezed_time):
             # engineをテスト用インメモリテーブルに置き換える
@@ -242,7 +247,7 @@ class TestDBController(unittest.TestCase):
                         p.tweet_text == q.tweet_text,
                         p.tweet_via == q.tweet_via,
                         p.saved_created_at == q.saved_created_at,
-                        p.link_type == q.link_type
+                        p.link_type == q.link_type,
                     ]
                     if not all(member):
                         return False
@@ -277,8 +282,7 @@ class TestDBController(unittest.TestCase):
             self.assertEqual(expect, actual)
 
     def test_select_external_link(self):
-        """ExternalLinkへのSELECTをチェックする
-        """
+        """ExternalLinkへのSELECTをチェックする"""
         freezed_time = "2022-10-24 10:30:00"
         with freeze_time(freezed_time):
             # engineをテスト用インメモリテーブルに置き換える

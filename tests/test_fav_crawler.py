@@ -27,7 +27,7 @@ class TestFavCrawler(unittest.TestCase):
 
     def test_FavCrawlerInit(self):
         """FavCrawlerの初期状態のテスト
-        
+
         Note:
             FavCrawler()内で初期化されたconfigと、configparser.ConfigParser()で取得したconfigを比較する
             どちらのconfigも設定元は"./config/config.ini"である
@@ -54,8 +54,7 @@ class TestFavCrawler(unittest.TestCase):
         self.assertEqual("Fav", fc.type)
 
     def test_make_done_message(self):
-        """終了メッセージ作成機能をチェックする
-        """
+        """終了メッセージ作成機能をチェックする"""
         with ExitStack() as stack:
             mock_freeze_gun = stack.enter_context(freeze_time("2022-10-22 10:30:20"))
 
@@ -92,14 +91,17 @@ class TestFavCrawler(unittest.TestCase):
             self.assertEqual(expect, actual)
 
     def test_crawl(self):
-        """全体クロールの呼び出しをチェックする
-        """
+        """全体クロールの呼び出しをチェックする"""
         with ExitStack() as stack:
             mock_logger = stack.enter_context(patch("media_gathering.fav_crawler.logger.info"))
             mock_tac_like_fetcher = stack.enter_context(patch("media_gathering.fav_crawler.LikeFetcher"))
             mock_parser = stack.enter_context(patch("media_gathering.fav_crawler.LikeParser"))
-            mock_interpret_tweets = stack.enter_context(patch("media_gathering.fav_crawler.FavCrawler.interpret_tweets"))
-            mock_trace_external_link = stack.enter_context(patch("media_gathering.fav_crawler.FavCrawler.trace_external_link"))
+            mock_interpret_tweets = stack.enter_context(
+                patch("media_gathering.fav_crawler.FavCrawler.interpret_tweets")
+            )
+            mock_trace_external_link = stack.enter_context(
+                patch("media_gathering.fav_crawler.FavCrawler.trace_external_link")
+            )
             mock_shrink_folder = stack.enter_context(patch("media_gathering.fav_crawler.FavCrawler.shrink_folder"))
             mock_end_of_process = stack.enter_context(patch("media_gathering.fav_crawler.FavCrawler.end_of_process"))
 
@@ -107,7 +109,9 @@ class TestFavCrawler(unittest.TestCase):
 
             mock_like_instance = MagicMock()
             mock_like_instance.fetch.side_effect = lambda: ["fetched_tweets"]
-            mock_tac_like_fetcher.side_effect = lambda ct0, auth_token, target_screen_name, target_id: mock_like_instance
+            mock_tac_like_fetcher.side_effect = (
+                lambda ct0, auth_token, target_screen_name, target_id: mock_like_instance
+            )
 
             mock_parser().parse_to_TweetInfo.side_effect = lambda: ["to_convert_TweetInfo"]
             mock_parser().parse_to_ExternalLink.side_effect = lambda: ["to_convert_ExternalLink"]
@@ -120,7 +124,9 @@ class TestFavCrawler(unittest.TestCase):
             res = fc.crawl()
             self.assertEqual(Result.success, res)
 
-            mock_tac_like_fetcher.assert_called_once_with("dummy_ct0", "dummy_auth_token", "dummy_target_screen_name", 99999999)
+            mock_tac_like_fetcher.assert_called_once_with(
+                "dummy_ct0", "dummy_auth_token", "dummy_target_screen_name", 99999999
+            )
             mock_like_instance.fetch.assert_called_once_with()
 
             mock_parser.assert_any_call(["fetched_tweets"], fc.lsb)

@@ -4,11 +4,11 @@ import httpx
 
 
 @dataclass(frozen=True)
-class NijieCookie():
-    """nijieのクッキー
-    """
+class NijieCookie:
+    """nijieのクッキー"""
+
     _cookies: httpx.Cookies  # クッキー
-    _headers: dict           # ヘッダー
+    _headers: dict  # ヘッダー
 
     # nijieトップページ
     NIJIE_TOP_URL = "http://nijie.info/index.php"
@@ -26,19 +26,16 @@ class NijieCookie():
             raise ValueError("NijieCookie _headers or _cookies is invalid.")
 
         # トップページをGETしてクッキーが有効かどうか調べる
-        response = httpx.get(
-            self.NIJIE_TOP_URL,
-            headers=self._headers,
-            cookies=self._cookies,
-            follow_redirects=True
-        )
+        response = httpx.get(self.NIJIE_TOP_URL, headers=self._headers, cookies=self._cookies, follow_redirects=True)
         response.raise_for_status()
 
         # 返ってきたレスポンスがトップページのものかチェック
         # 不正なクッキーだと年齢確認画面に飛ばされる（titleとurlから判別可能）
-        if not all([response.status_code == 200,
-                    str(response.url) == self.NIJIE_TOP_URL,
-                    "ニジエ - nijie" in response.text]):
+        if not all([
+            response.status_code == 200,
+            str(response.url) == self.NIJIE_TOP_URL,
+            "ニジエ - nijie" in response.text,
+        ]):
             raise ValueError("NijieCookie is invalid.")
         return True
 

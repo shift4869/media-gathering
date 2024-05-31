@@ -6,7 +6,7 @@ import emoji
 
 
 @dataclass(frozen=True)
-class Noveltitle():
+class Noveltitle:
     _original_title: str
     _title: ClassVar[str]
 

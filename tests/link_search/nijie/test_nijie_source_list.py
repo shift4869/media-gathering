@@ -1,5 +1,5 @@
-"""NijieSourceList のテスト
-"""
+"""NijieSourceList のテスト"""
+
 import sys
 import unittest
 

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class Username():
+class Username:
     _name: str
 
     def __post_init__(self) -> None:

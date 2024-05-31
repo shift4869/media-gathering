@@ -19,7 +19,7 @@ logger = getLogger(__name__)
 logger.setLevel(INFO)
 
 
-class LinkSearcher():
+class LinkSearcher:
     def __init__(self):
         self.fetcher_list: list[FetcherBase] = []
 
@@ -61,7 +61,7 @@ class LinkSearcher():
                 title="Media Gathering 実行エラー",
                 message=f"LinkSearcher: {fetcher_kind} register failed.",
                 app_name="Media Gathering",
-                timeout=10
+                timeout=10,
             )
 
         # pixiv登録
@@ -77,7 +77,9 @@ class LinkSearcher():
         try:
             c = config["pixiv"]
             if c.getboolean("is_pixiv_trace"):
-                fetcher = PixivNovelFetcher(Username(c["username"]), Password(c["password"]), Path(c["save_base_path"]))
+                fetcher = PixivNovelFetcher(
+                    Username(c["username"]), Password(c["password"]), Path(c["save_base_path"])
+                )
                 ls.register(fetcher)
         except Exception:
             notify("pixiv novel")
@@ -115,6 +117,7 @@ class LinkSearcher():
 
 if __name__ == "__main__":
     import logging.config
+
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 
     # url = "https://www.pixiv.net/artworks/86704541"

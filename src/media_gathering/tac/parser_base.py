@@ -324,7 +324,7 @@ class ParserBase(metaclass=ABCMeta):
 
     def parse_to_ExternalLink(self) -> list[ExternalLink]:
         """取得した TL ツイートオブジェクトから ExternalLink のリストを返す
- 
+
         Returns:
             list[ExternalLink]: ExternalLink リスト
         """
@@ -435,6 +435,7 @@ if __name__ == "__main__":
 
         def fetch(self):
             pass
+
     sample_fetcher = SampleFetcher()
     link_searcher = LinkSearcher()
     link_searcher.register(sample_fetcher)

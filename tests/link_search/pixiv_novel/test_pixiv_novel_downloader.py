@@ -105,10 +105,7 @@ class TestPixivNovelDownloader(unittest.TestCase):
             expect = DownloadResult.SUCCESS
             self.assertIs(expect, actual)
 
-            expect = [
-                call.novel_detail(novel_id),
-                call.novel_text(novel_id)
-            ]
+            expect = [call.novel_detail(novel_id), call.novel_text(novel_id)]
             self.assertEqual(expect, aapi.mock_calls)
             aapi.reset_mock()
 
@@ -117,16 +114,17 @@ class TestPixivNovelDownloader(unittest.TestCase):
             with (sd_path.parent / name).open("r", encoding="utf-8") as fin:
                 actual = fin.read()
             text = f"novel {novel_id}'s main text."
-            info_tag = f"[info]\n" \
-                       f"author:作者名1(11111111)\n" \
-                       f"id:{novel_id}\n" \
-                       f"title:作品名1\n" \
-                       f"create_date:2023-03-07T00:00:00+09:00\n" \
-                       f"page_count:2\n" \
-                       f"text_length:{len(text)}\n"
+            info_tag = (
+                f"[info]\n"
+                f"author:作者名1(11111111)\n"
+                f"id:{novel_id}\n"
+                f"title:作品名1\n"
+                f"create_date:2023-03-07T00:00:00+09:00\n"
+                f"page_count:2\n"
+                f"text_length:{len(text)}\n"
+            )
             soup = BeautifulSoup(f"novel {novel_id}'s caption.", "html.parser")
-            caption = f"[caption]\n" \
-                      f"{soup.prettify()}\n"
+            caption = f"[caption]\n" f"{soup.prettify()}\n"
             expect = info_tag + "\n" + caption + "\n[text]\n" + f"novel {novel_id}'s main text.\n"
             self.assertEqual(expect, actual)
 

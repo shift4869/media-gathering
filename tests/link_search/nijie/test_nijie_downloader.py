@@ -1,5 +1,5 @@
-"""NijieDownloader のテスト
-"""
+"""NijieDownloader のテスト"""
+
 import shutil
 import sys
 import unittest
@@ -56,8 +56,12 @@ class TestNijieDownloader(unittest.TestCase):
 
     def test_download(self):
         with ExitStack() as stack:
-            mock_session = stack.enter_context(patch("media_gathering.link_search.nijie.nijie_downloader.httpx.Client"))
-            mock_logger_info = stack.enter_context(patch("media_gathering.link_search.nijie.nijie_downloader.logger.info"))
+            mock_session = stack.enter_context(
+                patch("media_gathering.link_search.nijie.nijie_downloader.httpx.Client")
+            )
+            mock_logger_info = stack.enter_context(
+                patch("media_gathering.link_search.nijie.nijie_downloader.logger.info")
+            )
             mock_sleep = stack.enter_context(patch("media_gathering.link_search.nijie.nijie_downloader.sleep"))
 
             work_id = 10000000

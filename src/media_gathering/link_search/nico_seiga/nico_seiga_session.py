@@ -15,16 +15,19 @@ from media_gathering.util import find_values
 
 
 @dataclass(frozen=True)
-class NicoSeigaSession():
+class NicoSeigaSession:
     """認証済セッションクラス
 
     生成時にusernameとpasswordを受け取り、login()にてセッションを開始し、認証・ログインする
     画像情報等ニコニコ静画とのやりとりには以後この認証済セッションを使う
     """
+
     _session: httpx.Client  # 認証済セッション
 
     # 接続時に使用するヘッダー
-    HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"}
+    HEADERS = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"
+    }
     # ログインエンドポイント
     LOGIN_ENDPOINT = "https://account.nicovideo.jp/api/v1/login?show_button_twitter=1&site=niconico&show_button_facebook=1&next_url=&mail_or_tel=1"
     # 画像情報取得エンドポイントベース
@@ -161,6 +164,7 @@ class NicoSeigaSession():
         response = self._session.get(source_url.original_url, headers=self.HEADERS)
         response.raise_for_status()
         return response.content
+
 
 if __name__ == "__main__":
     import configparser

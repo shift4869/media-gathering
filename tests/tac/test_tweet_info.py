@@ -9,7 +9,7 @@ class TestTweetInfo(unittest.TestCase):
         self.instance = self.make_instance()
 
     def get_arg_dict(self) -> dict:
-        return  {
+        return {
             "media_filename": "dummy_media_filename",
             "media_url": "dummy_media_url",
             "media_thumbnail_url": "dummy_media_thumbnail_url",
@@ -41,7 +41,7 @@ class TestTweetInfo(unittest.TestCase):
             arg_dict["user_name"],
             arg_dict["screan_name"],
             arg_dict["tweet_text"],
-            arg_dict["tweet_via"]
+            arg_dict["tweet_via"],
         )
         return tweetinfo
 

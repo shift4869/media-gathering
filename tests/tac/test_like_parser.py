@@ -89,9 +89,7 @@ class TestLikeParser(unittest.TestCase):
             expect = interpret(tweet)
             self.assertEqual(expect, actual)
 
-        different_hierarchy_tweet_list = [
-            {"tweet": t} for t in tweet_list
-        ]
+        different_hierarchy_tweet_list = [{"tweet": t} for t in tweet_list]
         for tweet in different_hierarchy_tweet_list:
             actual = parser._interpret(tweet)
             expect = interpret(tweet)

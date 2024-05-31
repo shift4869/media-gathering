@@ -99,6 +99,7 @@ if __name__ == "__main__":
 
         def fetch(self):
             pass
+
     sample_fetcher = SampleFetcher()
     link_searcher = LinkSearcher()
     link_searcher.register(sample_fetcher)

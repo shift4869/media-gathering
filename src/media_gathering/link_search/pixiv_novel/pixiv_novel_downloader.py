@@ -19,11 +19,11 @@ class DownloadResult(enum.Enum):
 
 
 @dataclass(frozen=True)
-class PixivNovelDownloader():
-    """pixiv小説作品をDLするクラス
-    """
-    aapi: AppPixivAPI                                 # 非公式pixivAPI操作インスタンス
-    novel_url: PixivNovelURL                          # ノベルURL
+class PixivNovelDownloader:
+    """pixiv小説作品をDLするクラス"""
+
+    aapi: AppPixivAPI  # 非公式pixivAPI操作インスタンス
+    novel_url: PixivNovelURL  # ノベルURL
     save_directory_path: PixivNovelSaveDirectoryPath  # 保存ディレクトリベースパス
 
     def __post_init__(self) -> None:
@@ -83,16 +83,17 @@ class PixivNovelDownloader():
             return DownloadResult.PASSED
 
         # ノベル詳細から作者・キャプション等付与情報を取得する
-        info_tag = f"[info]\n" \
-                   f"author:{work.user.name}({work.user.id})\n" \
-                   f"id:{work.id}\n" \
-                   f"title:{work.title}\n" \
-                   f"create_date:{work.create_date}\n" \
-                   f"page_count:{work.page_count}\n" \
-                   f"text_length:{work.text_length}\n"
+        info_tag = (
+            f"[info]\n"
+            f"author:{work.user.name}({work.user.id})\n"
+            f"id:{work.id}\n"
+            f"title:{work.title}\n"
+            f"create_date:{work.create_date}\n"
+            f"page_count:{work.page_count}\n"
+            f"text_length:{work.text_length}\n"
+        )
         soup = BeautifulSoup(work.caption, "html.parser")
-        caption = f"[caption]\n" \
-                  f"{soup.prettify()}\n"
+        caption = f"[caption]\n" f"{soup.prettify()}\n"
 
         # ノベルテキストの全文を保存する
         # 改ページは"[newpage]"の内部タグで表現される
@@ -122,6 +123,8 @@ if __name__ == "__main__":
 
     base_path = Path("./media_gathering/link_search/")
     if config["pixiv"].getboolean("is_pixiv_trace"):
-        fetcher = PixivNovelFetcher(Username(config["pixiv"]["username"]), Password(config["pixiv"]["password"]), base_path)
+        fetcher = PixivNovelFetcher(
+            Username(config["pixiv"]["username"]), Password(config["pixiv"]["password"]), base_path
+        )
         work_url = "https://www.pixiv.net/novel/show.php?id=3195243&query=1"
         fetcher.fetch(work_url)

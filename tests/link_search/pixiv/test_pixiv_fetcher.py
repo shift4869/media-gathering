@@ -106,9 +106,15 @@ class TestPixivFetcher(unittest.TestCase):
 
     def test_fetch(self):
         with ExitStack() as stack:
-            m_pixiv_source_list = stack.enter_context(patch("media_gathering.link_search.pixiv.pixiv_fetcher.PixivSourceList"))
-            m_pixiv_save_directory_path = stack.enter_context(patch("media_gathering.link_search.pixiv.pixiv_fetcher.PixivSaveDirectoryPath"))
-            m_downloader = stack.enter_context(patch("media_gathering.link_search.pixiv.pixiv_fetcher.PixivWorkDownloader"))
+            m_pixiv_source_list = stack.enter_context(
+                patch("media_gathering.link_search.pixiv.pixiv_fetcher.PixivSourceList")
+            )
+            m_pixiv_save_directory_path = stack.enter_context(
+                patch("media_gathering.link_search.pixiv.pixiv_fetcher.PixivSaveDirectoryPath")
+            )
+            m_downloader = stack.enter_context(
+                patch("media_gathering.link_search.pixiv.pixiv_fetcher.PixivWorkDownloader")
+            )
 
             fetcher = self.get_instance()
 
@@ -118,7 +124,9 @@ class TestPixivFetcher(unittest.TestCase):
             self.assertEqual(None, actual)
             m_pixiv_source_list.create.assert_called_once_with(fetcher.aapi, pixiv_work_url)
             m_pixiv_save_directory_path.create.assert_called_once_with(fetcher.aapi, pixiv_work_url, fetcher.base_path)
-            m_downloader.assert_called_once_with(fetcher.aapi, m_pixiv_source_list.create(), m_pixiv_save_directory_path.create())
+            m_downloader.assert_called_once_with(
+                fetcher.aapi, m_pixiv_source_list.create(), m_pixiv_save_directory_path.create()
+            )
             m_downloader().download.assert_called_once_with()
 
 

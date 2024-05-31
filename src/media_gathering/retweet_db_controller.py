@@ -11,7 +11,10 @@ DEBUG = False
 
 
 class RetweetDBController(DBControllerBase):
-    def __init__(self, db_fullpath="PG_DB.db",):
+    def __init__(
+        self,
+        db_fullpath="PG_DB.db",
+    ):
         super().__init__(db_fullpath)
 
     def upsert(self, params: dict) -> None:
@@ -47,9 +50,12 @@ class RetweetDBController(DBControllerBase):
         for r in records:
             try:
                 q = session.query(Retweet).filter(
-                    or_(Retweet.img_filename == r.img_filename,
+                    or_(
+                        Retweet.img_filename == r.img_filename,
                         Retweet.url == r.url,
-                        Retweet.url_thumbnail == r.url_thumbnail))
+                        Retweet.url_thumbnail == r.url_thumbnail,
+                    )
+                )
                 ex = q.one()
             except NoResultFound:
                 # INSERT
@@ -121,7 +127,7 @@ class RetweetDBController(DBControllerBase):
 
     def update_flag(self, filename_list=[], set_flag=0) -> list[dict]:
         """Retweet中の filename_list に含まれるファイル名を持つレコードについて
-        　 is_exist_saved_fileフラグを更新する
+        is_exist_saved_fileフラグを更新する
 
         Note:
             "update Retweet set is_exist_saved_file = {} where img_filename in ({})".format(set_flag, filename)

@@ -20,7 +20,9 @@ logger.setLevel(WARNING)
 
 
 class TestPixivUgoiraDownloader(unittest.TestCase):
-    def mock_aapi(self, original_image_url, work_title, author_id, author_name, illust_type="ugoira", error_occur=False) -> MagicMock:
+    def mock_aapi(
+        self, original_image_url, work_title, author_id, author_name, illust_type="ugoira", error_occur=False
+    ) -> MagicMock:
         aapi = MagicMock(spec=AppPixivAPI)
         illust = MagicMock()
         illust.user.name = author_name
@@ -90,12 +92,7 @@ class TestPixivUgoiraDownloader(unittest.TestCase):
             author_id = Authorid(1234567)
             author_name = Authorname("作者名1")
             original_image_url = "https://www.pixiv.net/artworks/12346578_ugoira0.jpg"
-            mock_aapi = self.mock_aapi(
-                original_image_url,
-                work_title.title,
-                author_id.id,
-                author_name.name
-            )
+            mock_aapi = self.mock_aapi(original_image_url, work_title.title, author_id.id, author_name.name)
 
             base_path = Path("./tests/link_search/pixiv")
             sd_path = base_path / f"./{work_title.title}({work_id.id})/"
@@ -139,23 +136,14 @@ class TestPixivUgoiraDownloader(unittest.TestCase):
             self.assertIs(expect, actual)
 
             mock_aapi = self.mock_aapi(
-                original_image_url,
-                work_title.title,
-                author_id.id,
-                author_name.name,
-                "not ugoira"
+                original_image_url, work_title.title, author_id.id, author_name.name, "not ugoira"
             )
             actual = PixivUgoiraDownloader(mock_aapi, work_id, base_path).download()
             expect = DownloadResult.PASSED
             self.assertIs(expect, actual)
 
             mock_aapi = self.mock_aapi(
-                original_image_url,
-                work_title.title,
-                author_id.id,
-                author_name.name,
-                "ugoira",
-                True
+                original_image_url, work_title.title, author_id.id, author_name.name, "ugoira", True
             )
             with self.assertRaises(ValueError):
                 actual = PixivUgoiraDownloader(mock_aapi, work_id, base_path).download()

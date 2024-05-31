@@ -22,7 +22,9 @@ class TestPixivNovelFetcher(unittest.TestCase):
 
     def get_instance(self) -> PixivNovelFetcher:
         with ExitStack() as stack:
-            self.mock_login = stack.enter_context(patch("media_gathering.link_search.pixiv_novel.pixiv_novel_fetcher.PixivNovelFetcher.login"))
+            self.mock_login = stack.enter_context(
+                patch("media_gathering.link_search.pixiv_novel.pixiv_novel_fetcher.PixivNovelFetcher.login")
+            )
 
             username = Username("ユーザー1_ID")
             password = Password("ユーザー1_PW")
@@ -33,7 +35,9 @@ class TestPixivNovelFetcher(unittest.TestCase):
 
     def test_PixivNovelFetcher(self):
         with ExitStack() as stack:
-            mock_login = stack.enter_context(patch("media_gathering.link_search.pixiv_novel.pixiv_novel_fetcher.PixivNovelFetcher.login"))
+            mock_login = stack.enter_context(
+                patch("media_gathering.link_search.pixiv_novel.pixiv_novel_fetcher.PixivNovelFetcher.login")
+            )
 
             REFRESH_TOKEN_PATH = "./config/refresh_token.ini"
             username = Username("ユーザー1_ID")
@@ -56,7 +60,9 @@ class TestPixivNovelFetcher(unittest.TestCase):
 
     def test_login(self):
         with ExitStack() as stack:
-            mock_aapi = stack.enter_context(patch("media_gathering.link_search.pixiv_novel.pixiv_novel_fetcher.AppPixivAPI"))
+            mock_aapi = stack.enter_context(
+                patch("media_gathering.link_search.pixiv_novel.pixiv_novel_fetcher.AppPixivAPI")
+            )
             mock_logger_error = stack.enter_context(patch.object(logger, "error"))
 
             username = Username("ユーザー1_ID")
@@ -102,8 +108,12 @@ class TestPixivNovelFetcher(unittest.TestCase):
 
     def test_fetch(self):
         with ExitStack() as stack:
-            mock_save_directory_path = stack.enter_context(patch("media_gathering.link_search.pixiv_novel.pixiv_novel_fetcher.PixivNovelSaveDirectoryPath.create"))
-            mock_downloader = stack.enter_context(patch("media_gathering.link_search.pixiv_novel.pixiv_novel_fetcher.PixivNovelDownloader"))
+            mock_save_directory_path = stack.enter_context(
+                patch("media_gathering.link_search.pixiv_novel.pixiv_novel_fetcher.PixivNovelSaveDirectoryPath.create")
+            )
+            mock_downloader = stack.enter_context(
+                patch("media_gathering.link_search.pixiv_novel.pixiv_novel_fetcher.PixivNovelDownloader")
+            )
 
             mock_save_directory_path.side_effect = lambda aapi, novel_url, base_path: str(self.TBP)
             fetcher = self.get_instance()

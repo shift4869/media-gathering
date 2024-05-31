@@ -12,11 +12,7 @@ logger.setLevel(INFO)
 
 
 class RetweetFetcher(FetcherBase):
-    def __init__(self,
-                 ct0: str,
-                 auth_token: str,
-                 target_screen_name: Username | str,
-                 target_id: int) -> None:
+    def __init__(self, ct0: str, auth_token: str, target_screen_name: Username | str, target_id: int) -> None:
         # ct0 と auth_token は同一のアカウントのクッキーから取得しなければならない
         # target_screen_name と target_id はそれぞれの対応が一致しなければならない（機能上は target_id のみ参照する）
         # ct0 と auth_token が紐づくアカウントと、 target_id は一致しなくても良い（前者のアカウントで後者の id のTL等を見に行く形になる）
@@ -37,9 +33,7 @@ class RetweetFetcher(FetcherBase):
 
         # キャッシュに保存
         for i, tweet in enumerate(timeline_tweets):
-            Path(base_path / f"timeline_tweets_{i:02}.json").write_bytes(
-                orjson.dumps(tweet, orjson.OPT_INDENT_2)
-            )
+            Path(base_path / f"timeline_tweets_{i:02}.json").write_bytes(orjson.dumps(tweet, orjson.OPT_INDENT_2))
 
         # キャッシュから読み込み
         # 保存して読み込みをするのでほぼ同一の内容になる
@@ -90,4 +84,3 @@ if __name__ == "__main__":
         json_dict = orjson.loads(cache_path.read_bytes())
         fetched_tweets.append(json_dict)
     print(len(fetched_tweets))
-

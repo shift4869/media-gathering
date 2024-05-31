@@ -11,9 +11,9 @@ from media_gathering.link_search.pixiv_novel.pixiv_novel_url import PixivNovelUR
 
 
 @dataclass(frozen=True)
-class PixivNovelSaveDirectoryPath():
-    """pixivノベル作品の保存先ディレクトリパス
-    """
+class PixivNovelSaveDirectoryPath:
+    """pixivノベル作品の保存先ディレクトリパス"""
+
     path: Path  # 保存先ディレクトリパス
 
     def __post_init__(self) -> None:
@@ -62,7 +62,7 @@ class PixivNovelSaveDirectoryPath():
         for mtime, path in sorted(filelist_tp, reverse=True):
             filelist.append(path)
 
-        regex = re.compile(r'.*\(([0-9]*)\)$')
+        regex = re.compile(r".*\(([0-9]*)\)$")
         for dir_name in filelist:
             result = regex.match(dir_name)
             if result:
@@ -94,7 +94,11 @@ if __name__ == "__main__":
 
     base_path = Path("./media_gathering/link_search/")
     if config["pixiv"].getboolean("is_pixiv_trace"):
-        fetcher = PixivNovelFetcher(Username(config["pixiv"]["username"]), Password(config["pixiv"]["password"]), base_path)
+        fetcher = PixivNovelFetcher(
+            Username(config["pixiv"]["username"]), Password(config["pixiv"]["password"]), base_path
+        )
         work_url = "https://www.pixiv.net/novel/show.php?id=3195243"
-        save_directory_path = PixivNovelSaveDirectoryPath.create(fetcher.aapi, PixivNovelURL.create(work_url), base_path)
+        save_directory_path = PixivNovelSaveDirectoryPath.create(
+            fetcher.aapi, PixivNovelURL.create(work_url), base_path
+        )
         print(save_directory_path)

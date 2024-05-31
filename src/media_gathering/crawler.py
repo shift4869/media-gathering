@@ -70,7 +70,9 @@ class Crawler(metaclass=ABCMeta):
         logger.info(MSG.CRAWLER_INIT_START.value)
 
         def notify(error_message: str):
-            notification.notify(title="Media Gathering 実行エラー", message=error_message, app_name="Media Gathering", timeout=10)
+            notification.notify(
+                title="Media Gathering 実行エラー", message=error_message, app_name="Media Gathering", timeout=10
+            )
 
         try:
             self.validate_config_file(self.CONFIG_FILE_NAME)
@@ -387,7 +389,9 @@ class Crawler(metaclass=ABCMeta):
             return Result.failed
         return Result.success
 
-    def tweet_media_saver(self, tweet_info: TweetInfo, atime: float, mtime: float, session: httpx.Client | None = None) -> MediaSaveResult:
+    def tweet_media_saver(
+        self, tweet_info: TweetInfo, atime: float, mtime: float, session: httpx.Client | None = None
+    ) -> MediaSaveResult:
         """tweet_infoで指定されるツイートのメディアを保存する
 
         Args:
@@ -506,7 +510,17 @@ class Crawler(metaclass=ABCMeta):
             dts_format = "%Y-%m-%d %H:%M:%S"
             media_tweet_created_time = tweet_info.created_at
             created_time = time.strptime(media_tweet_created_time, dts_format)
-            atime = mtime = time.mktime((created_time.tm_year, created_time.tm_mon, created_time.tm_mday, created_time.tm_hour, created_time.tm_min, created_time.tm_sec, 0, 0, -1))
+            atime = mtime = time.mktime((
+                created_time.tm_year,
+                created_time.tm_mon,
+                created_time.tm_mday,
+                created_time.tm_hour,
+                created_time.tm_min,
+                created_time.tm_sec,
+                0,
+                0,
+                -1,
+            ))
 
             # メディア保存
             result: MediaSaveResult = self.tweet_media_saver(tweet_info, atime, mtime, session)

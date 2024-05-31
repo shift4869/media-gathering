@@ -6,7 +6,7 @@ import emoji
 
 
 @dataclass(frozen=True)
-class Illustname():
+class Illustname:
     _original_name: str
     _name: ClassVar[str]
 

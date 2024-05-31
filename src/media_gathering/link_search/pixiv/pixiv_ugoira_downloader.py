@@ -21,12 +21,12 @@ class DownloadResult(enum.Enum):
 
 
 @dataclass(frozen=True)
-class PixivUgoiraDownloader():
-    """うごイラをDLするクラス
-    """
+class PixivUgoiraDownloader:
+    """うごイラをDLするクラス"""
+
     aapi: AppPixivAPI  # 非公式pixivAPI操作インスタンス
-    work_id: Workid    # 作品ID
-    base_path: Path    # 保存ディレクトリベースパス
+    work_id: Workid  # 作品ID
+    base_path: Path  # 保存ディレクトリベースパス
 
     def __post_init__(self):
         self._is_valid()
@@ -89,7 +89,7 @@ class PixivUgoiraDownloader():
             self.aapi.download(frame_url, path=str(sd_path))
             logger.info("\t\t: " + frame_url.rsplit("/", 1)[1] + " -> done({}/{})".format(i + 1, frames_len))
             sleep(0.5)
-        
+
         # DLした各フレーム画像のパスを収集
         frames = []
         fr = [(sp.stat().st_mtime, str(sp)) for sp in sd_path.glob("*") if sp.is_file()]
@@ -112,7 +112,7 @@ class PixivUgoiraDownloader():
             append_images=image_list,
             optimize=False,
             duration=delays,
-            loop=0
+            loop=0,
         )
         logger.info("\t\t: animated gif saved: " + name + " -> done")
         return DownloadResult.SUCCESS

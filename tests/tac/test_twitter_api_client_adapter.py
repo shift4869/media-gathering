@@ -2,6 +2,7 @@
 
 TwitterAPIClientとのアダプタを担うクラスのテスト
 """
+
 import sys
 import unittest
 from contextlib import ExitStack

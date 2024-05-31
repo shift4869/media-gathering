@@ -10,8 +10,8 @@ from media_gathering.link_search.url import URL
 
 @dataclass(frozen=True)
 class PixivSourceList(Iterable):
-    """pixiv作品の直リンクURLリスト
-    """
+    """pixiv作品の直リンクURLリスト"""
+
     _list: list[URL]  # URLリスト
 
     def __post_init__(self) -> None:

@@ -11,9 +11,9 @@ from media_gathering.link_search.pixiv.worktitle import Worktitle
 
 
 @dataclass(frozen=True)
-class PixivSaveDirectoryPath():
-    """pixiv作品の保存先ディレクトリパス
-    """
+class PixivSaveDirectoryPath:
+    """pixiv作品の保存先ディレクトリパス"""
+
     path: Path  # 保存先ディレクトリパス
 
     def __post_init__(self):
@@ -62,7 +62,7 @@ class PixivSaveDirectoryPath():
         for mtime, path in sorted(filelist_tp, reverse=True):
             filelist.append(path)
 
-        regex = re.compile(r'.*\(([0-9]*)\)$')
+        regex = re.compile(r".*\(([0-9]*)\)$")
         for dir_name in filelist:
             result = regex.match(dir_name)
             if result:
@@ -70,7 +70,7 @@ class PixivSaveDirectoryPath():
                 if ai == str(author_id):
                     sd_path = f"./{dir_name}/{work_title}({work_id})/"
                     break
-        
+
         if sd_path == "":
             sd_path = f"./{author_name}({author_id})/{work_title}({work_id})/"
 

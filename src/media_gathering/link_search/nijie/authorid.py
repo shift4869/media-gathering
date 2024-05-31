@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class Authorid():
+class Authorid:
     _id: int
 
     def __post_init__(self) -> None:

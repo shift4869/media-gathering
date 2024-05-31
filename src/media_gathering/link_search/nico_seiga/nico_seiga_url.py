@@ -7,7 +7,7 @@ from media_gathering.link_search.url import URL
 
 
 @dataclass
-class NicoSeigaURL():
+class NicoSeigaURL:
     """NicoSeigaURL
 
     NicoSeigaURL を表す文字列を受け取る
@@ -19,6 +19,7 @@ class NicoSeigaURL():
     Returns:
         NicoSeigaURL: NicoSeigaURLを表すValueObject
     """
+
     url: URL
 
     NICOSEIGA_URL_PATTERN_1 = r"^https://seiga.nicovideo.jp/seiga/(im)[0-9]+"
@@ -35,8 +36,7 @@ class NicoSeigaURL():
 
     @property
     def illust_id(self) -> Illustid:
-        """イラストIDを返す
-        """
+        """イラストIDを返す"""
         non_query_url = self.non_query_url
         tail = Path(non_query_url).name
         if tail[:2] != "im":
@@ -47,14 +47,12 @@ class NicoSeigaURL():
 
     @property
     def non_query_url(self) -> str:
-        """クエリなしURLを返す
-        """
+        """クエリなしURLを返す"""
         return self.url.non_query_url
 
     @property
     def original_url(self) -> str:
-        """元のURLを返す
-        """
+        """元のURLを返す"""
         return self.url.original_url
 
     @classmethod

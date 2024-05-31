@@ -5,7 +5,7 @@ from typing import ClassVar
 
 
 @dataclass
-class URL():
+class URL:
     """URL
 
     URL を表す文字列を受け取る
@@ -18,6 +18,7 @@ class URL():
     Returns:
         URL: URLを表すValueObject
     """
+
     non_query_url: str  # クエリなしURL
     original_url: ClassVar[str]  # もとのURL
 
@@ -45,9 +46,7 @@ class URL():
             raise ValueError("args is not URL string.")
 
         # クエリ除去
-        non_query_url = urllib.parse.urlunparse(
-            urllib.parse.urlparse(str(url))._replace(query=None, fragment=None)
-        )
+        non_query_url = urllib.parse.urlunparse(urllib.parse.urlparse(str(url))._replace(query=None, fragment=None))
         self.non_query_url = non_query_url
         self.original_url = url
 

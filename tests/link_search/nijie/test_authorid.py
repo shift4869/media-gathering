@@ -2,6 +2,7 @@
 
 作者IDを表すクラスをテストする
 """
+
 import sys
 import unittest
 

@@ -38,7 +38,7 @@ class TestModelFavorite(unittest.TestCase):
             saved_localpath,
             saved_created_at,
             media_size,
-            media_blob
+            media_blob,
         )
 
     def test_init(self):
@@ -60,13 +60,21 @@ class TestModelFavorite(unittest.TestCase):
         media_blob = None
         actual = Favorite(
             is_exist_saved_file,
-            img_filename, url, url_thumbnail,
-            tweet_id, tweet_url,
+            img_filename,
+            url,
+            url_thumbnail,
+            tweet_id,
+            tweet_url,
             created_at,
-            user_id, user_name, screan_name,
-            tweet_text, tweet_via,
-            saved_localpath, saved_created_at,
-            media_size, media_blob
+            user_id,
+            user_name,
+            screan_name,
+            tweet_text,
+            tweet_via,
+            saved_localpath,
+            saved_created_at,
+            media_size,
+            media_blob,
         )
         self.assertEqual(is_exist_saved_file, actual.is_exist_saved_file)
         self.assertEqual(img_filename, actual.img_filename)
@@ -120,7 +128,7 @@ class TestModelFavorite(unittest.TestCase):
                 params["saved_localpath"],
                 params["saved_created_at"],
                 -1,
-                params["media_blob"]
+                params["media_blob"],
             )
         for k in reversed(params.keys()):
             if k == "media_size":
@@ -144,15 +152,12 @@ class TestModelFavorite(unittest.TestCase):
                     params["saved_localpath"],
                     params["saved_created_at"],
                     params["media_size"],
-                    params["media_blob"]
+                    params["media_blob"],
                 )
 
     def test_repr(self):
         record = self.make_instance(1)
-        columns = ", ".join([
-            f"{k}={v}"
-            for k, v in record.__dict__.items() if k[0] != "_"
-        ])
+        columns = ", ".join([f"{k}={v}" for k, v in record.__dict__.items() if k[0] != "_"])
         expect = f"<{record.__class__.__name__}({columns})>"
         actual = repr(record)
         self.assertEqual(expect, actual)

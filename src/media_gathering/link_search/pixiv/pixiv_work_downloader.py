@@ -23,11 +23,11 @@ class DownloadResult(enum.Enum):
 
 
 @dataclass(frozen=True)
-class PixivWorkDownloader():
-    """pixiv作品をDLするクラス
-    """
-    aapi: AppPixivAPI                            # 非公式pixivAPI操作インスタンス
-    source_list: PixivSourceList                 # 直リンクURLリスト
+class PixivWorkDownloader:
+    """pixiv作品をDLするクラス"""
+
+    aapi: AppPixivAPI  # 非公式pixivAPI操作インスタンス
+    source_list: PixivSourceList  # 直リンクURLリスト
     save_directory_path: PixivSaveDirectoryPath  # 保存先ディレクトリパス
 
     def __post_init__(self) -> None:
@@ -96,7 +96,7 @@ class PixivWorkDownloader():
             logger.info(f"Download pixiv work: {author_name_id} / {name} -> done")
 
             # うごイラの場合は追加で保存する
-            regex = re.compile(r'.*\(([0-9]*)\)$')
+            regex = re.compile(r".*\(([0-9]*)\)$")
             result = regex.match(sd_path.name)
             if result:
                 work_id = Workid(int(result.group(1)))

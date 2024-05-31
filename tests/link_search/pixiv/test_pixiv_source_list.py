@@ -49,6 +49,7 @@ class TestPixivSourceList(unittest.TestCase):
             r = MagicMock()
             r.image_urls.large = image_url
             return r
+
         mock_work.meta_pages = [make_property(url) for url in work_urls]
         mock_works.error = False
         mock_works.illust = mock_work

@@ -2,6 +2,7 @@
 
 ユーザー名を表すクラスのテスト
 """
+
 import sys
 import unittest
 

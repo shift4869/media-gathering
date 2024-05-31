@@ -1,4 +1,3 @@
-
 import argparse
 import os
 from pathlib import Path
@@ -28,7 +27,7 @@ def Encrypt(path: str, key: str = "") -> int:
             fout.write(token)
     with open(new_key_path, "wb") as fout:
         fout.write(key)
-    
+
     print("Encrypt success -> ({}, {})".format(new_path.name, new_key_path.name))
     return 0
 
@@ -62,7 +61,7 @@ if __name__ == "__main__":
     arg_parser.add_argument("--key", help="encrypt/decrypt key", default="")
     arg_parser.add_argument("--type", help="encrypt or decrypt", default="")
     args = arg_parser.parse_args()
-    
+
     if args.type == "encrypt":
         Encrypt(args.path, args.key)
     elif args.type == "decrypt":

@@ -10,16 +10,17 @@ from media_gathering.link_search.nijie.worktitle import Worktitle
 
 
 @dataclass(frozen=True)
-class NijiePageInfo():
+class NijiePageInfo:
     """NijiePageInfo
 
     Returns:
         NijiePageInfo: NijiePageInfoを表すValueObject
     """
-    urls: NijieSourceList    # nijie作品直リンクリスト
+
+    urls: NijieSourceList  # nijie作品直リンクリスト
     author_name: Authorname  # 作者名
-    author_id: Authorid      # 作者ID
-    work_title: Worktitle    # 作品名
+    author_id: Authorid  # 作者ID
+    work_title: Worktitle  # 作品名
 
     def __post_init__(self) -> None:
         """初期化処理

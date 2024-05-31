@@ -18,10 +18,10 @@ logger.setLevel(INFO)
 
 @dataclass(frozen=True)
 class PixivNovelFetcher(FetcherBase):
-    """pixiv小説作品を取得するクラス
-    """
+    """pixiv小説作品を取得するクラス"""
+
     aapi: AppPixivAPI  # 非公式pixivAPI操作インスタンス
-    base_path: Path    # 保存ディレクトリベースパス
+    base_path: Path  # 保存ディレクトリベースパス
 
     # refresh_tokenファイルパス
     REFRESH_TOKEN_PATH = "./config/refresh_token.ini"
@@ -118,6 +118,7 @@ class PixivNovelFetcher(FetcherBase):
 if __name__ == "__main__":
     import configparser
     import logging.config
+
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
     CONFIG_FILE_NAME = "./config/config.ini"
     config = configparser.ConfigParser()
@@ -125,6 +126,8 @@ if __name__ == "__main__":
 
     base_path = Path("./media_gathering/link_search/")
     if config["pixiv"].getboolean("is_pixiv_trace"):
-        pa_cont = PixivNovelFetcher(Username(config["pixiv"]["username"]), Password(config["pixiv"]["password"]), base_path)
+        pa_cont = PixivNovelFetcher(
+            Username(config["pixiv"]["username"]), Password(config["pixiv"]["password"]), base_path
+        )
         work_url = "https://www.pixiv.net/novel/show.php?id=3195243"
         pa_cont.fetch(work_url)

@@ -1,5 +1,5 @@
-"""NijieFetcher のテスト
-"""
+"""NijieFetcher のテスト"""
+
 import shutil
 import sys
 import unittest
@@ -27,7 +27,9 @@ class TestNijieFetcher(unittest.TestCase):
 
     def _get_instance(self):
         with ExitStack() as stack:
-            self.mock_login = stack.enter_context(patch("media_gathering.link_search.nijie.nijie_fetcher.NijieFetcher.login"))
+            self.mock_login = stack.enter_context(
+                patch("media_gathering.link_search.nijie.nijie_fetcher.NijieFetcher.login")
+            )
 
             self.username = Username("ユーザー1_ID")
             self.password = Password("ユーザー1_PW")
@@ -44,7 +46,9 @@ class TestNijieFetcher(unittest.TestCase):
         self.assertTrue(hasattr(actual, "base_path"))
         self.assertEqual(self.base_path, actual.base_path)
 
-        expect = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"}
+        expect = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"
+        }
         self.assertEqual(expect, actual.HEADERS)
         expect = "./config/nijie_cookie.json"
         self.assertEqual(expect, actual.NIJIE_COOKIE_PATH)
@@ -63,10 +67,14 @@ class TestNijieFetcher(unittest.TestCase):
         object.__setattr__(fetcher, "NIJIE_COOKIE_PATH", str(ncp))
 
         with ExitStack() as stack:
-            mock_path_open = stack.enter_context(patch("media_gathering.link_search.nijie.nijie_fetcher.Path.open", mock_open()))
+            mock_path_open = stack.enter_context(
+                patch("media_gathering.link_search.nijie.nijie_fetcher.Path.open", mock_open())
+            )
             mock_get = stack.enter_context(patch("media_gathering.link_search.nijie.nijie_fetcher.httpx.get"))
             mock_post = stack.enter_context(patch("media_gathering.link_search.nijie.nijie_fetcher.httpx.post"))
-            mock_nijie_cookie = stack.enter_context(patch("media_gathering.link_search.nijie.nijie_fetcher.NijieCookie"))
+            mock_nijie_cookie = stack.enter_context(
+                patch("media_gathering.link_search.nijie.nijie_fetcher.NijieCookie")
+            )
 
             # クッキーが存在しない場合
             ncp = Path(fetcher.NIJIE_COOKIE_PATH)
@@ -92,9 +100,7 @@ class TestNijieFetcher(unittest.TestCase):
             actual = fetcher.login(self.username, self.password)
 
             mock_get.assert_called_once_with(
-                "https://nijie.info/age_jump.php?url=",
-                headers=fetcher.HEADERS,
-                follow_redirects=True
+                "https://nijie.info/age_jump.php?url=", headers=fetcher.HEADERS, follow_redirects=True
             )
             mock_get_res.raise_for_status.assert_called_once_with()
 
@@ -103,27 +109,27 @@ class TestNijieFetcher(unittest.TestCase):
                 "password": self.password.password,
                 "save": "on",
                 "ticket": "",
-                "url": "for_login_url"
+                "url": "for_login_url",
             }
-            mock_post.assert_called_once_with(
-                "https://nijie.info/login_int.php",
-                data=payload,
-                follow_redirects=True
-            )
+            mock_post.assert_called_once_with("https://nijie.info/login_int.php", data=payload, follow_redirects=True)
             mock_post_res.raise_for_status.assert_called_once_with()
             mock_nijie_cookie.assert_called_once_with(jar, fetcher.HEADERS)
 
         with ExitStack() as stack:
-            mock_read_bytes = stack.enter_context(patch("media_gathering.link_search.nijie.nijie_fetcher.Path.read_bytes"))
-            mock_nijie_cookie = stack.enter_context(patch("media_gathering.link_search.nijie.nijie_fetcher.NijieCookie"))
+            mock_read_bytes = stack.enter_context(
+                patch("media_gathering.link_search.nijie.nijie_fetcher.Path.read_bytes")
+            )
+            mock_nijie_cookie = stack.enter_context(
+                patch("media_gathering.link_search.nijie.nijie_fetcher.NijieCookie")
+            )
 
-            read_data = '''[{
+            read_data = """[{
                 "name": "dummy_name",
                 "value": "dummy_value",
                 "expires": null,
                 "path": "/",
                 "domain": ".dummy.domain"
-            }]'''
+            }]"""
             mock_read_bytes.return_value = read_data
             # クッキーが既に存在している場合
             ncp = Path(fetcher.NIJIE_COOKIE_PATH)
@@ -175,7 +181,9 @@ class TestNijieFetcher(unittest.TestCase):
 
     def test_fetch(self):
         with ExitStack() as stack:
-            mock_nijie_downloader = stack.enter_context(patch("media_gathering.link_search.nijie.nijie_fetcher.NijieDownloader"))
+            mock_nijie_downloader = stack.enter_context(
+                patch("media_gathering.link_search.nijie.nijie_fetcher.NijieDownloader")
+            )
 
             fetcher = self._get_instance()
             nijie_url = f"https://nijie.info/view_popup.php?id=11111111"
@@ -185,10 +193,7 @@ class TestNijieFetcher(unittest.TestCase):
 
             f_calls = mock_nijie_downloader.mock_calls
             self.assertEqual(2, len(f_calls))
-            self.assertEqual(
-                call(NijieURL.create(url), fetcher.base_path, fetcher.cookies),
-                f_calls[0]
-            )
+            self.assertEqual(call(NijieURL.create(url), fetcher.base_path, fetcher.cookies), f_calls[0])
             self.assertEqual(call().download(), f_calls[1])
 
             with self.assertRaises(TypeError):

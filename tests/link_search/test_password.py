@@ -2,6 +2,7 @@
 
 パスワードを表すクラスをテストする
 """
+
 import sys
 import unittest
 

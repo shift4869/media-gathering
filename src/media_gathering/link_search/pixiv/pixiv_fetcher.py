@@ -19,10 +19,10 @@ logger.setLevel(INFO)
 
 @dataclass(frozen=True)
 class PixivFetcher(FetcherBase):
-    """pixiv作品を取得するクラス
-    """
+    """pixiv作品を取得するクラス"""
+
     aapi: AppPixivAPI  # 非公式pixivAPI操作インスタンス
-    base_path: Path    # 保存ディレクトリベースパス
+    base_path: Path  # 保存ディレクトリベースパス
 
     # refresh_tokenファイルパス
     REFRESH_TOKEN_PATH = "./config/refresh_token.ini"
@@ -120,6 +120,7 @@ class PixivFetcher(FetcherBase):
 if __name__ == "__main__":
     import configparser
     import logging.config
+
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
     CONFIG_FILE_NAME = "./config/config.ini"
     config = configparser.ConfigParser()

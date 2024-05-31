@@ -30,7 +30,7 @@ class TestFavDBController(unittest.TestCase):
 
     def tearDown(self):
         self.session.commit()
-    
+
         records = self.session.query(Favorite).all()
         for r in records:
             lp = Path(r.saved_localpath)
@@ -127,15 +127,13 @@ class TestFavDBController(unittest.TestCase):
         return tweet_s
 
     def test_QuerySample(self):
-        """クエリテストサンプル
-        """
+        """クエリテストサンプル"""
         expect = [self.f]
         actual = self.session.query(Favorite).all()
         self.assertEqual(actual, expect)
 
     def test_upsert(self):
-        """FavoriteへのUPSERTをチェックする
-        """
+        """FavoriteへのUPSERTをチェックする"""
         # engineをテスト用インメモリテーブルに置き換える
         controlar = FavDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
@@ -164,8 +162,7 @@ class TestFavDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_select(self):
-        """FavoriteからのSELECTをチェックする
-        """
+        """FavoriteからのSELECTをチェックする"""
         # engineをテスト用インメモリテーブルに置き換える
         controlar = FavDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
@@ -178,8 +175,7 @@ class TestFavDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_select_from_media_url(self):
-        """Favoriteからfilenameを条件としてのSELECTをチェックする
-        """
+        """Favoriteからfilenameを条件としてのSELECTをチェックする"""
         # engineをテスト用インメモリテーブルに置き換える
         controlar = FavDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
@@ -197,8 +193,7 @@ class TestFavDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_update_flag(self):
-        """Favoriteのis_exist_saved_fileフラグ更新をチェックする
-        """
+        """Favoriteのis_exist_saved_fileフラグ更新をチェックする"""
         # engineをテスト用インメモリテーブルに置き換える
         controlar = FavDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
@@ -234,8 +229,7 @@ class TestFavDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_clear_flag(self):
-        """Favoriteのis_exist_saved_fileフラグクリア機能をチェックする
-        """
+        """Favoriteのis_exist_saved_fileフラグクリア機能をチェックする"""
         # engineをテスト用インメモリテーブルに置き換える
         controlar = FavDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine

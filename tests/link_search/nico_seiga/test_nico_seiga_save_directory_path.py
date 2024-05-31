@@ -2,6 +2,7 @@
 
 NicoSeigaSaveDirectoryPathを表すクラスをテストする
 """
+
 import re
 import shutil
 import sys
@@ -37,7 +38,7 @@ class TestNicoSeigaSaveDirectoryPath(unittest.TestCase):
             for mtime, path in sorted(filelist_tp, reverse=True):
                 filelist.append(path)
 
-            regex = re.compile(r'.*\(([0-9]*)\)$')
+            regex = re.compile(r".*\(([0-9]*)\)$")
             for dir_name in filelist:
                 result = regex.match(dir_name)
                 if result:

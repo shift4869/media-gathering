@@ -2,6 +2,7 @@
 
 外部リンク探索クラスをテストする
 """
+
 import configparser
 import sys
 import unittest
@@ -84,11 +85,17 @@ class TestLinkSearcher(unittest.TestCase):
     def test_create(self):
         with ExitStack() as stack:
             mock_logger = stack.enter_context(patch.object(logger, "info"))
-            mock_notification = stack.enter_context(patch("media_gathering.link_search.link_searcher.notification.notify"))
+            mock_notification = stack.enter_context(
+                patch("media_gathering.link_search.link_searcher.notification.notify")
+            )
             mock_pixiv_fetcher = stack.enter_context(patch("media_gathering.link_search.link_searcher.PixivFetcher"))
-            mock_pixiv_novel_fetcher = stack.enter_context(patch("media_gathering.link_search.link_searcher.PixivNovelFetcher"))
+            mock_pixiv_novel_fetcher = stack.enter_context(
+                patch("media_gathering.link_search.link_searcher.PixivNovelFetcher")
+            )
             mock_nijie_fetcher = stack.enter_context(patch("media_gathering.link_search.link_searcher.NijieFetcher"))
-            mock_nico_seiga_fetcher = stack.enter_context(patch("media_gathering.link_search.link_searcher.NicoSeigaFetcher"))
+            mock_nico_seiga_fetcher = stack.enter_context(
+                patch("media_gathering.link_search.link_searcher.NicoSeigaFetcher")
+            )
 
             CONFIG_FILE_NAME = "./config/config.ini"
             config = configparser.ConfigParser()
@@ -128,12 +135,16 @@ class TestLinkSearcher(unittest.TestCase):
                 return config
 
             def check_branch(lsc, is_pixiv, is_pixiv_novel, is_nijie, is_seiga, error_occur):
-                register_num = 0 if error_occur else [
-                    is_pixiv,
-                    is_pixiv_novel,
-                    is_nijie,
-                    is_seiga,
-                ].count(True)
+                register_num = (
+                    0
+                    if error_occur
+                    else [
+                        is_pixiv,
+                        is_pixiv_novel,
+                        is_nijie,
+                        is_seiga,
+                    ].count(True)
+                )
                 self.assertEqual(register_num, len(lsc.fetcher_list))
 
                 def check_notify_call(mock_notify, fetcher_kind):
@@ -141,7 +152,7 @@ class TestLinkSearcher(unittest.TestCase):
                         title="Media Gathering 実行エラー",
                         message=f"LinkSearcher: {fetcher_kind} register failed.",
                         app_name="Media Gathering",
-                        timeout=10
+                        timeout=10,
                     )
 
                 if is_pixiv:
@@ -184,17 +195,10 @@ class TestLinkSearcher(unittest.TestCase):
                 (False, False, False, True, True),
             ]
             for params in params_list:
-                config = make_branch(
-                    config,
-                    params[0], params[1], params[2], params[3],
-                    params[4]
-                )
+                config = make_branch(config, params[0], params[1], params[2], params[3], params[4])
                 actual = LinkSearcher.create(config)
-                check_branch(
-                    actual,
-                    params[0], params[1], params[2], params[3],
-                    params[4]
-                )
+                check_branch(actual, params[0], params[1], params[2], params[3], params[4])
+
 
 if __name__ == "__main__":
     if sys.argv:

@@ -2,6 +2,7 @@
 
 イラスト拡張子を表すクラスをテストする
 """
+
 import sys
 import unittest
 

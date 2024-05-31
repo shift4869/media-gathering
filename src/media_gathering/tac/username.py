@@ -2,12 +2,11 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class Username():
+class Username:
     _name: str
 
     def __post_init__(self) -> None:
-        """初期化後処理
-        """
+        """初期化後処理"""
         if not isinstance(self._name, str):
             raise TypeError("name is not string, invalid Username.")
         if self._name == "":

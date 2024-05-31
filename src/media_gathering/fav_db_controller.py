@@ -47,9 +47,12 @@ class FavDBController(DBControllerBase):
         for r in records:
             try:
                 q = session.query(Favorite).filter(
-                    or_(Favorite.img_filename == r.img_filename,
+                    or_(
+                        Favorite.img_filename == r.img_filename,
                         Favorite.url == r.url,
-                        Favorite.url_thumbnail == r.url_thumbnail))
+                        Favorite.url_thumbnail == r.url_thumbnail,
+                    )
+                )
                 ex = q.one()
             except NoResultFound:
                 # INSERT
@@ -121,7 +124,7 @@ class FavDBController(DBControllerBase):
 
     def update_flag(self, filename_list=[], set_flag=0) -> list[dict]:
         """Favorite中の filename_list に含まれるファイル名を持つレコードについて
-        　 is_exist_saved_fileフラグを更新する
+        is_exist_saved_fileフラグを更新する
 
         Note:
             f"update Favorite set is_exist_saved_file = {set_flag} where img_filename in ({filename_list})"

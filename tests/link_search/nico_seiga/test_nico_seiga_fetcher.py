@@ -2,6 +2,7 @@
 
 ニコニコ静画作品をDLするクラスをテストする
 """
+
 import shutil
 import sys
 import unittest
@@ -32,7 +33,9 @@ class TestNicoSeigaFetcher(unittest.TestCase):
 
     def test_NicoSeigaFetcher(self):
         with ExitStack() as stack:
-            m_session = stack.enter_context(patch("media_gathering.link_search.nico_seiga.nico_seiga_fetcher.NicoSeigaSession"))
+            m_session = stack.enter_context(
+                patch("media_gathering.link_search.nico_seiga.nico_seiga_fetcher.NicoSeigaSession")
+            )
 
             username = Username("ユーザー1_ID")
             password = Password("ユーザー1_PW")
@@ -55,7 +58,9 @@ class TestNicoSeigaFetcher(unittest.TestCase):
 
     def test_is_target_url(self):
         with ExitStack() as stack:
-            m_session = stack.enter_context(patch("media_gathering.link_search.nico_seiga.nico_seiga_fetcher.NicoSeigaSession"))
+            m_session = stack.enter_context(
+                patch("media_gathering.link_search.nico_seiga.nico_seiga_fetcher.NicoSeigaSession")
+            )
 
             username = Username("ユーザー1_ID")
             password = Password("ユーザー1_PW")
@@ -76,8 +81,12 @@ class TestNicoSeigaFetcher(unittest.TestCase):
 
     def test_fetch(self):
         with ExitStack() as stack:
-            m_session = stack.enter_context(patch("media_gathering.link_search.nico_seiga.nico_seiga_fetcher.NicoSeigaSession"))
-            m_downloader = stack.enter_context(patch("media_gathering.link_search.nico_seiga.nico_seiga_fetcher.NicoSeigaDownloader"))
+            m_session = stack.enter_context(
+                patch("media_gathering.link_search.nico_seiga.nico_seiga_fetcher.NicoSeigaSession")
+            )
+            m_downloader = stack.enter_context(
+                patch("media_gathering.link_search.nico_seiga.nico_seiga_fetcher.NicoSeigaDownloader")
+            )
 
             username = Username("ユーザー1_ID")
             password = Password("ユーザー1_PW")

@@ -14,9 +14,7 @@ class TestUtil(unittest.TestCase):
 
     def test_find_values(self):
         cache_filepath = Path("./tests/cache/test_notes_with_reactions.json")
-        sample_dict = orjson.loads(
-            cache_filepath.read_bytes()
-        ).get("result")
+        sample_dict = orjson.loads(cache_filepath.read_bytes()).get("result")
 
         # 辞書とキーのみ指定
         actual = find_values(sample_dict, "username")
@@ -105,6 +103,7 @@ class TestUtil(unittest.TestCase):
         # 一意に確定する想定の指定だが、見つからなかった場合
         with self.assertRaises(ValueError):
             actual = find_values(sample_dict, "invalid_key", True)
+
 
 if __name__ == "__main__":
     if sys.argv:

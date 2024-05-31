@@ -21,12 +21,12 @@ class DownloadResult(enum.Enum):
 
 
 @dataclass(frozen=True)
-class NicoSeigaDownloader():
-    """ニコニコ静画作品をDLするクラス
-    """
+class NicoSeigaDownloader:
+    """ニコニコ静画作品をDLするクラス"""
+
     nicoseiga_url: NicoSeigaURL  # ニコニコ静画作品ページURL
-    base_path: Path              # 保存ディレクトリベースパス
-    session: NicoSeigaSession    # 認証済セッション
+    base_path: Path  # 保存ディレクトリベースパス
+    session: NicoSeigaSession  # 認証済セッション
 
     def __post_init__(self):
         self._is_valid()
@@ -41,8 +41,7 @@ class NicoSeigaDownloader():
         return True
 
     def download(self) -> DownloadResult:
-        """ニコニコ静画作品ページURLからダウンロードする
-        """
+        """ニコニコ静画作品ページURLからダウンロードする"""
         # イラスト情報取得
         illust_id = self.nicoseiga_url.illust_id
         author_id = self.session.get_author_id(illust_id)
@@ -107,7 +106,9 @@ if __name__ == "__main__":
 
     base_path = Path("./media_gathering/link_search/")
     if config["nico_seiga"].getboolean("is_seiga_trace"):
-        fetcher = NicoSeigaFetcher(Username(config["nico_seiga"]["email"]), Password(config["nico_seiga"]["password"]), base_path)
+        fetcher = NicoSeigaFetcher(
+            Username(config["nico_seiga"]["email"]), Password(config["nico_seiga"]["password"]), base_path
+        )
         illust_id = 11308865
         illust_url = f"https://seiga.nicovideo.jp/seiga/im{illust_id}?query=1"
         fetcher.fetch(illust_url)

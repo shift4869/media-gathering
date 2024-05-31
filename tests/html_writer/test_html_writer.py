@@ -53,11 +53,7 @@ class TestHtmlWriter(unittest.TestCase):
         with ExitStack() as stack:
             mock_write_text = stack.enter_context(patch("media_gathering.html_writer.html_writer.Path.write_text"))
 
-            record = {
-                "url": "dummy_url",
-                "url_thumbnail": "dummy_url_thumbnail",
-                "tweet_url": "dummy_tweet_url"
-            }
+            record = {"url": "dummy_url", "url_thumbnail": "dummy_url_thumbnail", "tweet_url": "dummy_tweet_url"}
             db_controller = MagicMock(spec=DBControllerBase)
             db_controller.select.side_effect = lambda limit: [record]
             html_writer = HtmlWriter("Fav", db_controller)
@@ -66,11 +62,14 @@ class TestHtmlWriter(unittest.TestCase):
             self.assertEqual(Result.success, actual)
 
             record_list = [record]
-            source_list = [{
-                "url": record["url"],
-                "url_thumbnail": record["url_thumbnail"],
-                "tweet_url": record["tweet_url"],
-            } for record in record_list]
+            source_list = [
+                {
+                    "url": record["url"],
+                    "url_thumbnail": record["url_thumbnail"],
+                    "tweet_url": record["tweet_url"],
+                }
+                for record in record_list
+            ]
             column_num = 6
             pic_width = 256
             template_file = (Path(__file__).parent / "template/template.txt").read_text(encoding="utf-8")

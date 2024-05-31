@@ -7,9 +7,9 @@ from media_gathering.link_search.nijie.nijie_url import NijieURL
 
 
 @dataclass(frozen=True)
-class NijieSaveDirectoryPath():
-    """nijie作品の保存先ディレクトリパス
-    """
+class NijieSaveDirectoryPath:
+    """nijie作品の保存先ディレクトリパス"""
+
     path: Path  # 保存先ディレクトリパス
 
     def __post_init__(self):
@@ -53,7 +53,7 @@ class NijieSaveDirectoryPath():
         for mtime, path in sorted(filelist_tp, reverse=True):
             filelist.append(path)
 
-        regex = re.compile(r'.*\(([0-9]*)\)$')
+        regex = re.compile(r".*\(([0-9]*)\)$")
         for dir_name in filelist:
             result = regex.match(dir_name)
             if result:

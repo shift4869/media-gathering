@@ -11,9 +11,9 @@ class Extension(enum.Enum):
 
 
 @dataclass(frozen=True)
-class IllustExtension():
-    """画像バイナリから拡張子を判別するクラス
-    """
+class IllustExtension:
+    """画像バイナリから拡張子を判別するクラス"""
+
     _extension: Extension
 
     def __post_init__(self) -> None:
@@ -26,14 +26,12 @@ class IllustExtension():
 
     @property
     def extension(self) -> str:
-        """拡張子を返す
-        """
+        """拡張子を返す"""
         return str(self._extension.value)
 
     @classmethod
     def create(self, data: bytes) -> "IllustExtension":
-        """画像バイナリから拡張子を判別し、IllustExtensionインスタンスを生成する
-        """
+        """画像バイナリから拡張子を判別し、IllustExtensionインスタンスを生成する"""
         ext = ""
 
         if not isinstance(data, bytes):

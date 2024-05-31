@@ -1,5 +1,5 @@
-"""NijieCookie のテスト
-"""
+"""NijieCookie のテスト"""
+
 import sys
 import unittest
 from contextlib import ExitStack
@@ -13,7 +13,9 @@ from media_gathering.link_search.nijie.nijie_cookie import NijieCookie
 class TestNijieCookie(unittest.TestCase):
     def test_post_init(self):
         with ExitStack() as stack:
-            mock_is_valid = stack.enter_context(patch("media_gathering.link_search.nijie.nijie_cookie.NijieCookie._is_valid"))
+            mock_is_valid = stack.enter_context(
+                patch("media_gathering.link_search.nijie.nijie_cookie.NijieCookie._is_valid")
+            )
             nijie_cookie = NijieCookie(httpx.Cookies(), {"headers": "dummy_headers"})
 
             NIJIE_TOP_URL = "http://nijie.info/index.php"

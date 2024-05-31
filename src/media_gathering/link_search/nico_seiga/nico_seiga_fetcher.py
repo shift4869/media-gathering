@@ -16,10 +16,10 @@ logger.setLevel(INFO)
 
 @dataclass(frozen=True)
 class NicoSeigaFetcher(FetcherBase):
-    """ニコニコ静画を取得するクラス
-    """
+    """ニコニコ静画を取得するクラス"""
+
     session: NicoSeigaSession  # 取得に使う認証済セッション
-    base_path: Path            # 保存ディレクトリベースパス
+    base_path: Path  # 保存ディレクトリベースパス
 
     def __init__(self, username: Username, password: Password, base_path: Path):
         """初期化処理
@@ -71,6 +71,7 @@ class NicoSeigaFetcher(FetcherBase):
 if __name__ == "__main__":
     import configparser
     import logging.config
+
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
     CONFIG_FILE_NAME = "./config/config.ini"
     config = configparser.ConfigParser()
@@ -78,7 +79,9 @@ if __name__ == "__main__":
 
     base_path = Path("./media_gathering/link_search/")
     if config["nico_seiga"].getboolean("is_seiga_trace"):
-        fetcher = NicoSeigaFetcher(Username(config["nico_seiga"]["email"]), Password(config["nico_seiga"]["password"]), base_path)
+        fetcher = NicoSeigaFetcher(
+            Username(config["nico_seiga"]["email"]), Password(config["nico_seiga"]["password"]), base_path
+        )
         illust_id = 11308865
         illust_url = f"https://seiga.nicovideo.jp/seiga/im{illust_id}?query=1"
         fetcher.fetch(illust_url)

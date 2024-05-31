@@ -2,6 +2,7 @@
 
 PixivNovelURLを表すクラスをテストする
 """
+
 import sys
 import unittest
 import urllib.parse

@@ -29,7 +29,7 @@ class TestModelExternalLink(unittest.TestCase):
             tweet_text,
             tweet_via,
             saved_created_at,
-            link_type
+            link_type,
         )
 
     def test_init(self):
@@ -46,12 +46,16 @@ class TestModelExternalLink(unittest.TestCase):
         link_type = "link_type"
         actual = ExternalLink(
             external_link_url,
-            tweet_id, tweet_url,
+            tweet_id,
+            tweet_url,
             created_at,
-            user_id, user_name, screan_name,
-            tweet_text, tweet_via,
+            user_id,
+            user_name,
+            screan_name,
+            tweet_text,
+            tweet_via,
             saved_created_at,
-            link_type
+            link_type,
         )
         self.assertEqual(external_link_url, actual.external_link_url)
         self.assertEqual(tweet_id, actual.tweet_id)
@@ -92,15 +96,12 @@ class TestModelExternalLink(unittest.TestCase):
                     params["tweet_text"],
                     params["tweet_via"],
                     params["saved_created_at"],
-                    params["link_type"]
+                    params["link_type"],
                 )
 
     def test_repr(self):
         record = self.make_instance(1)
-        columns = ", ".join([
-            f"{k}={v}"
-            for k, v in record.__dict__.items() if k[0] != "_"
-        ])
+        columns = ", ".join([f"{k}={v}" for k, v in record.__dict__.items() if k[0] != "_"])
         expect = f"<{record.__class__.__name__}({columns})>"
         actual = repr(record)
         self.assertEqual(expect, actual)

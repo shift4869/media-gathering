@@ -66,11 +66,15 @@ class TestPixivWorkDownloader(unittest.TestCase):
     def test_download(self):
         with ExitStack() as stack:
             mock_sleep = stack.enter_context(patch("media_gathering.link_search.pixiv.pixiv_work_downloader.sleep"))
-            mock_ugoira = stack.enter_context(patch("media_gathering.link_search.pixiv.pixiv_work_downloader.PixivUgoiraDownloader"))
+            mock_ugoira = stack.enter_context(
+                patch("media_gathering.link_search.pixiv.pixiv_work_downloader.PixivUgoiraDownloader")
+            )
             mock_logger_info = stack.enter_context(patch.object(logger, "info"))
 
             # 一枚絵
-            source_url = "https://i.pximg.net/c/600x1200_90/img-master/img/2023/03/01/00/00/00/12345678_p0_master1200.jpg"
+            source_url = (
+                "https://i.pximg.net/c/600x1200_90/img-master/img/2023/03/01/00/00/00/12345678_p0_master1200.jpg"
+            )
             source_list = PixivSourceList([URL(source_url)])
 
             base_path = Path("./tests/link_search/pixiv")
@@ -88,7 +92,7 @@ class TestPixivWorkDownloader(unittest.TestCase):
             url = source_list[0].non_query_url
             ext = Path(url).suffix
             name = f"{sd_path.name}{ext}"
-            work_id = Workid(int(re.findall(r'.*\(([0-9]*)\)$', sd_path.name)[0]))
+            work_id = Workid(int(re.findall(r".*\(([0-9]*)\)$", sd_path.name)[0]))
             self.assertEqual(1, len(aapi.mock_calls))
             self.assertEqual(call.download(url, path=str(sd_path.parent), name=name), aapi.mock_calls[0])
             self.assertEqual(2, len(mock_ugoira.mock_calls))
@@ -107,7 +111,9 @@ class TestPixivWorkDownloader(unittest.TestCase):
                 shutil.rmtree(sd_path.parent)
 
             # 漫画形式
-            source_url_base = "https://i.pximg.net/c/600x1200_90/img-master/img/2023/03/01/00/00/00/12345678_p{}_master1200.jpg"
+            source_url_base = (
+                "https://i.pximg.net/c/600x1200_90/img-master/img/2023/03/01/00/00/00/12345678_p{}_master1200.jpg"
+            )
             source_urls = [URL(source_url_base.format(i)) for i in range(10)]
             source_list = PixivSourceList(source_urls)
 

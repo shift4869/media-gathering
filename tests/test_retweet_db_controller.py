@@ -30,7 +30,7 @@ class TestRetweetDBController(unittest.TestCase):
 
     def tearDown(self):
         self.session.commit()
-    
+
         records = self.session.query(Favorite).all()
         for r in records:
             lp = Path(r.saved_localpath)
@@ -126,15 +126,13 @@ class TestRetweetDBController(unittest.TestCase):
         return tweet_s
 
     def test_QuerySample(self):
-        """クエリテストサンプル
-        """
+        """クエリテストサンプル"""
         expect = [self.rt]
         actual = self.session.query(Retweet).all()
         self.assertEqual(actual, expect)
 
     def test_upsert(self):
-        """RetweetへのUPSERTをチェックする
-        """
+        """RetweetへのUPSERTをチェックする"""
         # engineをテスト用インメモリテーブルに置き換える
         controlar = RetweetDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
@@ -163,8 +161,7 @@ class TestRetweetDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_select(self):
-        """RetweetからのSELECTをチェックする
-        """
+        """RetweetからのSELECTをチェックする"""
         # engineをテスト用インメモリテーブルに置き換える
         controlar = RetweetDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
@@ -177,8 +174,7 @@ class TestRetweetDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_select_from_media_url(self):
-        """Retweetからfilenameを条件としてのSELECTをチェックする
-        """
+        """Retweetからfilenameを条件としてのSELECTをチェックする"""
         # engineをテスト用インメモリテーブルに置き換える
         controlar = RetweetDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
@@ -196,8 +192,7 @@ class TestRetweetDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_update_flag(self):
-        """Retweetのis_exist_saved_fileフラグ更新をチェックする
-        """
+        """Retweetのis_exist_saved_fileフラグ更新をチェックする"""
         # engineをテスト用インメモリテーブルに置き換える
         controlar = RetweetDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
@@ -233,8 +228,7 @@ class TestRetweetDBController(unittest.TestCase):
         self.assertEqual(expect, actual)
 
     def test_clear_flag(self):
-        """Retweetのis_exist_saved_fileフラグクリア機能をチェックする
-        """
+        """Retweetのis_exist_saved_fileフラグクリア機能をチェックする"""
         # engineをテスト用インメモリテーブルに置き換える
         controlar = RetweetDBController(TEST_DB_FULLPATH)
         controlar.engine = self.engine
