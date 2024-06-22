@@ -14,8 +14,10 @@ logger.setLevel(INFO)
 class RetweetFetcher(FetcherBase):
     def __init__(self, ct0: str, auth_token: str, target_screen_name: Username | str, target_id: int) -> None:
         # ct0 と auth_token は同一のアカウントのクッキーから取得しなければならない
-        # target_screen_name と target_id はそれぞれの対応が一致しなければならない（機能上は target_id のみ参照する）
-        # ct0 と auth_token が紐づくアカウントと、 target_id は一致しなくても良い（前者のアカウントで後者の id のTL等を見に行く形になる）
+        # target_screen_name と target_id はそれぞれの対応が一致しなければならない
+        # 機能上は target_id のみ参照する
+        # ct0 と auth_token が紐づくアカウントと、 target_id は一致しなくても良い
+        # 前者のアカウントで後者の id のTL等を見に行く形になる
         super().__init__(ct0, auth_token, target_screen_name, target_id)
 
     def get_retweet_jsons(self, limit: int = 400) -> list[dict]:
@@ -62,7 +64,7 @@ if __name__ == "__main__":
     import logging.config
 
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
-    CONFIG_FILE_NAME = "./config/config.ini"
+    CONFIG_FILE_NAME = "./config/config.json"
     config_parser = configparser.ConfigParser()
     if not config_parser.read(CONFIG_FILE_NAME, encoding="utf8"):
         raise IOError

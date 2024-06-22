@@ -25,11 +25,12 @@ class NicoSeigaSession:
     _session: httpx.Client  # 認証済セッション
 
     # 接続時に使用するヘッダー
-    HEADERS = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"
-    }
+    chrome_ver = "Chrome/88.0.4324.190 Safari/537.36"
+    user_agent = f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) {chrome_ver}"
+    HEADERS = {"User-Agent": user_agent}
     # ログインエンドポイント
-    LOGIN_ENDPOINT = "https://account.nicovideo.jp/api/v1/login?show_button_twitter=1&site=niconico&show_button_facebook=1&next_url=&mail_or_tel=1"
+    endpoint_query = "show_button_twitter=1&site=niconico&show_button_facebook=1&next_url=&mail_or_tel=1"
+    LOGIN_ENDPOINT = f"https://account.nicovideo.jp/api/v1/login?{endpoint_query}"
     # 画像情報取得エンドポイントベース
     IMAGE_INFO_API_ENDPOINT_BASE = "http://seiga.nicovideo.jp/api/illust/info?id="
     # ユーザー情報取得エンドポイントベース
@@ -172,7 +173,7 @@ if __name__ == "__main__":
 
     from media_gathering.link_search.nico_seiga.nico_seiga_fetcher import NicoSeigaFetcher
 
-    CONFIG_FILE_NAME = "./config/config.ini"
+    CONFIG_FILE_NAME = "./config/config.json"
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE_NAME, encoding="utf8")
 

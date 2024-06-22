@@ -70,18 +70,17 @@ class NijieSaveDirectoryPath:
 
 
 if __name__ == "__main__":
-    import configparser
+    import orjson
 
     from media_gathering.link_search.nijie.nijie_fetcher import NijieFetcher
     from media_gathering.link_search.password import Password
     from media_gathering.link_search.username import Username
 
-    CONFIG_FILE_NAME = "./config/config.ini"
-    config = configparser.ConfigParser()
-    config.read(CONFIG_FILE_NAME, encoding="utf8")
+    CONFIG_FILE_NAME = "./config/config.json"
+    config = orjson.loads(Path(CONFIG_FILE_NAME).read_bytes())
 
     base_path = Path("./media_gathering/link_search/")
-    if config["nijie"].getboolean("is_nijie_trace"):
+    if config["nijie"]["is_nijie_trace"]:
         fetcher = NijieFetcher(Username(config["nijie"]["email"]), Password(config["nijie"]["password"]), base_path)
 
         illust_id = 251267  # 一枚絵

@@ -50,9 +50,11 @@ class LinkSearcher:
         return False
 
     @classmethod
-    def create(self, config: configparser.ConfigParser) -> Self:
+    def create(self, config_dict: dict) -> Self:
         logger.info(MSG.LINKSEARCHER_CREATE_START.value)
         ls = LinkSearcher()
+
+        config = config_dict
 
         # 登録失敗時の通知用
         # 登録に失敗しても処理は続ける
@@ -67,7 +69,7 @@ class LinkSearcher:
         # pixiv登録
         try:
             c = config["pixiv"]
-            if c.getboolean("is_pixiv_trace"):
+            if c["is_pixiv_trace"]:
                 fetcher = PixivFetcher(Username(c["username"]), Password(c["password"]), Path(c["save_base_path"]))
                 ls.register(fetcher)
         except Exception:
@@ -76,7 +78,7 @@ class LinkSearcher:
         # pixivノベル登録
         try:
             c = config["pixiv"]
-            if c.getboolean("is_pixiv_trace"):
+            if c["is_pixiv_trace"]:
                 fetcher = PixivNovelFetcher(
                     Username(c["username"]), Password(c["password"]), Path(c["save_base_path"])
                 )
@@ -87,7 +89,7 @@ class LinkSearcher:
         # nijie登録
         try:
             c = config["nijie"]
-            if c.getboolean("is_nijie_trace"):
+            if c["is_nijie_trace"]:
                 fetcher = NijieFetcher(Username(c["email"]), Password(c["password"]), Path(c["save_base_path"]))
                 ls.register(fetcher)
         except Exception:
@@ -96,17 +98,19 @@ class LinkSearcher:
         # ニコニコ静画登録
         try:
             c = config["nico_seiga"]
-            if c.getboolean("is_seiga_trace"):
+            if c["is_seiga_trace"]:
                 fetcher = NicoSeigaFetcher(Username(c["email"]), Password(c["password"]), Path(c["save_base_path"]))
                 ls.register(fetcher)
         except Exception:
             notify("niconico seiga")
 
-        # skeb登録
+        # # skeb登録
         # try:
         #     c = config["skeb"]
-        #     if c.getboolean("is_skeb_trace"):
-        #         fetcher = SkebFetcher(Username(c["twitter_id"]), Password(c["twitter_password"]), Path(c["save_base_path"]))
+        #     if c["is_skeb_trace"]:
+        #         fetcher = SkebFetcher(
+        #             Username(c["twitter_id"]), Password(c["twitter_password"]), Path(c["save_base_path"])
+        #         )
         #         ls.register(fetcher)
         # except Exception:
         #     notify("skeb")
@@ -127,7 +131,7 @@ if __name__ == "__main__":
     # url = "https://skeb.jp/@matsukitchi12/works/25?query=1"
     # url = "https://www.anyurl/sample/index_{}.html"
 
-    CONFIG_FILE_NAME = "./config/config.ini"
+    CONFIG_FILE_NAME = "./config/config.json"
     config = configparser.ConfigParser()
     if not config.read(CONFIG_FILE_NAME, encoding="utf8"):
         raise IOError

@@ -118,16 +118,16 @@ class PixivFetcher(FetcherBase):
 
 
 if __name__ == "__main__":
-    import configparser
     import logging.config
 
+    import orjson
+
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
-    CONFIG_FILE_NAME = "./config/config.ini"
-    config = configparser.ConfigParser()
-    config.read(CONFIG_FILE_NAME, encoding="utf8")
+    CONFIG_FILE_NAME = "./config/config.json"
+    config = orjson.loads(Path(CONFIG_FILE_NAME).read_bytes())
 
     base_path = Path("./media_gathering/link_search/")
-    if config["pixiv"].getboolean("is_pixiv_trace"):
+    if config["pixiv"]["is_pixiv_trace"]:
         pa_cont = PixivFetcher(Username(config["pixiv"]["username"]), Password(config["pixiv"]["password"]), base_path)
         work_url = "https://www.pixiv.net/artworks/86704541"
         pa_cont.fetch(work_url)

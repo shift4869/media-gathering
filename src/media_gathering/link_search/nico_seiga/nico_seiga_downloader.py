@@ -92,20 +92,20 @@ class NicoSeigaDownloader:
 
 
 if __name__ == "__main__":
-    import configparser
     import logging.config
+
+    import orjson
 
     from media_gathering.link_search.nico_seiga.nico_seiga_fetcher import NicoSeigaFetcher
     from media_gathering.link_search.password import Password
     from media_gathering.link_search.username import Username
 
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
-    CONFIG_FILE_NAME = "./config/config.ini"
-    config = configparser.ConfigParser()
-    config.read(CONFIG_FILE_NAME, encoding="utf8")
+    CONFIG_FILE_NAME = "./config/config.json"
+    config = orjson.loads(Path(CONFIG_FILE_NAME).read_bytes())
 
     base_path = Path("./media_gathering/link_search/")
-    if config["nico_seiga"].getboolean("is_seiga_trace"):
+    if config["nico_seiga"]["is_seiga_trace"]:
         fetcher = NicoSeigaFetcher(
             Username(config["nico_seiga"]["email"]), Password(config["nico_seiga"]["password"]), base_path
         )

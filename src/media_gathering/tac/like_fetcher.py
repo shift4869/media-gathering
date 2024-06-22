@@ -62,7 +62,7 @@ if __name__ == "__main__":
     import logging.config
 
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
-    CONFIG_FILE_NAME = "./config/config.ini"
+    CONFIG_FILE_NAME = "./config/config.json"
     config_parser = configparser.ConfigParser()
     if not config_parser.read(CONFIG_FILE_NAME, encoding="utf8"):
         raise IOError

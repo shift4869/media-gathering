@@ -1,4 +1,3 @@
-import configparser
 import enum
 import logging.config
 import os
@@ -64,28 +63,26 @@ class Crawler(metaclass=ABCMeta):
         del_url_list (list): 削除したメディアのURLリスト
     """
 
-    CONFIG_FILE_NAME = "./config/config.ini"
+    CONFIG_FILE_NAME = "./config/config.json"
 
     def __init__(self) -> None:
         logger.info(MSG.CRAWLER_INIT_START.value)
 
         def notify(error_message: str):
             notification.notify(
-                title="Media Gathering 実行エラー", message=error_message, app_name="Media Gathering", timeout=10
+                title="media-gathering 実行エラー", message=error_message, app_name="media-gathering", timeout=10
             )
 
         try:
             self.validate_config_file(self.CONFIG_FILE_NAME)
 
-            self.config = configparser.ConfigParser()
-            self.config.read(self.CONFIG_FILE_NAME, encoding="utf8")
-
+            self.config = orjson.loads(Path(self.CONFIG_FILE_NAME).read_bytes())
             config = self.config["save_directory"]
             Path(config["save_fav_path"]).mkdir(parents=True, exist_ok=True)
             Path(config["save_retweet_path"]).mkdir(parents=True, exist_ok=True)
 
             config = self.config["save_permanent"]
-            if config.getboolean("save_permanent_media_flag"):
+            if config["save_permanent_media_flag"]:
                 Path(config["save_permanent_media_path"]).mkdir(parents=True, exist_ok=True)
 
             # 外部リンク探索機構のセットアップ
@@ -139,8 +136,7 @@ class Crawler(metaclass=ABCMeta):
         path: Path = Path(config_file_path)
         if not path.is_file():
             raise ValueError(f"{path.name} is not exist.")
-        config = configparser.ConfigParser()
-        config.read(path, encoding="utf8")
+        config = orjson.loads(path.read_bytes())
 
         ct0 = config["twitter_api_client"]["ct0"]
         auth_token = config["twitter_api_client"]["auth_token"]
@@ -263,7 +259,7 @@ class Crawler(metaclass=ABCMeta):
                 for url in self.del_url_list:
                     logger.debug(url)
 
-            if config["discord_webhook_url"].getboolean("is_post_discord_notify"):
+            if config["discord_webhook_url"]["is_post_discord_notify"]:
                 try:
                     self.post_discord_notify(done_msg)
                     logger.info("Discord notify posted.")
@@ -271,7 +267,7 @@ class Crawler(metaclass=ABCMeta):
                     logger.exception(e)
                     logger.warn("Discord notify post failed.")
 
-            if config["line_token_keys"].getboolean("is_post_line_notify"):
+            if config["line_token_keys"]["is_post_line_notify"]:
                 try:
                     self.post_line_notify(done_msg)
                     logger.info("Line notify posted.")
@@ -279,7 +275,7 @@ class Crawler(metaclass=ABCMeta):
                     logger.exception(e)
                     logger.warn("Line notify post failed.")
 
-            if config["slack_webhook_url"].getboolean("is_post_slack_notify"):
+            if config["slack_webhook_url"]["is_post_slack_notify"]:
                 try:
                     self.post_slack_notify(done_msg)
                     logger.info("Slack notify posted.")
@@ -453,7 +449,7 @@ class Crawler(metaclass=ABCMeta):
                 "saved_created_at": datetime.now().strftime(dts_format),
             }
             media_size = -1
-            save_blob_flag = self.config["db"].getboolean("save_blob")
+            save_blob_flag = self.config["db"]["save_blob"]
             try:
                 if save_blob_flag:
                     params["media_blob"] = save_file_fullpath.read_bytes()
@@ -485,7 +481,7 @@ class Crawler(metaclass=ABCMeta):
 
             # 常に保存する設定の場合はコピーする
             config = self.config["save_permanent"]
-            if config.getboolean("save_permanent_media_flag"):
+            if config["save_permanent_media_flag"]:
                 dst_path = Path(config["save_permanent_media_path"])
                 shutil.copy2(save_file_fullpath, dst_path)
         else:

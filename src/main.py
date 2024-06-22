@@ -17,9 +17,6 @@ logger.setLevel(INFO)
 
 PREVENT_MULTIPLE_RUN_PATH = "./prevent_multiple_run"
 
-# python MediaGathering.py --type="Fav"
-# python MediaGathering.py --type="RT"
-
 if __name__ == "__main__":
     logger.info(MSG.HORIZONTAL_LINE.value)
     logger.info(MSG.APPLICATION_START.value)

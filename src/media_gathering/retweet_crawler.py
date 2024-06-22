@@ -26,7 +26,7 @@ class RetweetCrawler(Crawler):
             self.db_cont = RetweetDBController(db_fullpath)  # テーブルはRetweetを使用
 
             config = self.config["save_permanent"]
-            if config.getboolean("save_permanent_media_flag"):
+            if config["save_permanent_media_flag"]:
                 Path(config["save_permanent_media_path"]).mkdir(parents=True, exist_ok=True)
 
             self.save_path = Path(self.config["save_directory"]["save_retweet_path"])

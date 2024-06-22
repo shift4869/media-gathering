@@ -79,21 +79,20 @@ class PixivNovelSaveDirectoryPath:
 
 
 if __name__ == "__main__":
-    import configparser
     import logging.config
-    from pathlib import Path
+
+    import orjson
 
     from media_gathering.link_search.password import Password
     from media_gathering.link_search.pixiv_novel.pixiv_novel_fetcher import PixivNovelFetcher
     from media_gathering.link_search.username import Username
 
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
-    CONFIG_FILE_NAME = "./config/config.ini"
-    config = configparser.ConfigParser()
-    config.read(CONFIG_FILE_NAME, encoding="utf8")
+    CONFIG_FILE_NAME = "./config/config.json"
+    config = orjson.loads(Path(CONFIG_FILE_NAME).read_bytes())
 
     base_path = Path("./media_gathering/link_search/")
-    if config["pixiv"].getboolean("is_pixiv_trace"):
+    if config["pixiv"]["is_pixiv_trace"]:
         fetcher = PixivNovelFetcher(
             Username(config["pixiv"]["username"]), Password(config["pixiv"]["password"]), base_path
         )
