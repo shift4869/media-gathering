@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from itertools import chain
 from pathlib import Path
 
+from mock import patch
 import orjson
 
 from media_gathering.link_search.fetcher_base import FetcherBase
@@ -41,6 +42,7 @@ class ConcreteParserBase(ParserBase):
 
 class TestParserBase(unittest.TestCase):
     def setUp(self):
+        self.enterContext(patch("media_gathering.link_search.link_searcher.logger"))
         self.cache_path = Path(__file__).parent / "cache/expect/content_cache_likes_test.json"
         self.fetched_tweets = orjson.loads(self.cache_path.read_bytes())
 

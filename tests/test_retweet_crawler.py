@@ -1,12 +1,9 @@
-import configparser
-import random
 import sys
 import unittest
-from contextlib import ExitStack
 from datetime import datetime
-from logging import getLogger
 from pathlib import Path
 
+import orjson
 from freezegun import freeze_time
 from mock import MagicMock, patch
 
@@ -16,130 +13,122 @@ from media_gathering.util import Result
 
 class TestRetweetCrawler(unittest.TestCase):
     def _get_instance(self) -> RetweetCrawler:
-        with ExitStack() as stack:
-            mock_logger_rc = stack.enter_context(patch.object(getLogger("media_gathering.retweet_crawler"), "info"))
-            mock_logger_cr = stack.enter_context(patch.object(getLogger("media_gathering.crawler"), "info"))
-            mock_lsr = stack.enter_context(patch("media_gathering.crawler.Crawler.link_search_register"))
-            mock_rt_db_controller = stack.enter_context(patch("media_gathering.retweet_crawler.RetweetDBController"))
-            rc = RetweetCrawler()
-            rc.lsb = MagicMock()
-            return rc
+        mock_logger_rt_crawler = self.enterContext(patch("media_gathering.retweet_crawler.logger"))
+        mock_logger_crawler = self.enterContext(patch("media_gathering.crawler.logger"))
+        mock_validate_config_file = self.enterContext(patch("media_gathering.crawler.Crawler.validate_config_file"))
+        mock_lsr = self.enterContext(patch("media_gathering.crawler.Crawler.link_search_register"))
+        mock_rt_db_controller = self.enterContext(patch("media_gathering.retweet_crawler.RetweetDBController"))
+        RetweetCrawler.CONFIG_FILE_NAME = "./config/config_sample.json"
+        instance = RetweetCrawler()
+        instance.lsb = MagicMock()
+        return instance
 
-    def test_RetweetCrawlerInit(self):
-        """RetweetCrawlerの初期状態のテスト
+    def test_init(self):
+        mock_logger_rt_crawler = self.enterContext(patch("media_gathering.retweet_crawler.logger"))
+        mock_logger_crawler = self.enterContext(patch("media_gathering.crawler.logger"))
+        mock_validate_config_file = self.enterContext(patch("media_gathering.crawler.Crawler.validate_config_file"))
+        mock_lsr = self.enterContext(patch("media_gathering.crawler.Crawler.link_search_register"))
+        mock_rt_db_controller = self.enterContext(patch("media_gathering.retweet_crawler.RetweetDBController"))
 
-        Note:
-            RetweetCrawler()内で初期化されたconfigと、configparser.ConfigParser()で取得したconfigを比較する
-            どちらのconfigも設定元は"./config/config.ini"である
-            RetweetCrawlerで利用する設定値のみテストする（基底クラスのテストは別ファイル）
-        """
-        rc = self._get_instance()
+        RetweetCrawler.CONFIG_FILE_NAME = "./config/config_sample.json"
+        instance = RetweetCrawler()
 
-        # expect_config読み込みテスト
-        CONFIG_FILE_NAME = "./config/config.ini"
-        expect_config = configparser.ConfigParser()
-        self.assertTrue(Path(CONFIG_FILE_NAME).is_file())
-        self.assertFalse(expect_config.read("ERROR_PATH" + CONFIG_FILE_NAME, encoding="utf8"))
-        expect_config.read(CONFIG_FILE_NAME, encoding="utf8")
+        CONFIG_FILE_NAME = "./config/config_sample.json"
+        expect_config = orjson.loads(Path(CONFIG_FILE_NAME).read_bytes())
 
-        # 存在しないキーを指定するテスト
+        config = expect_config["db"]
+        save_path = Path(config["save_path"])
+        self.assertTrue(save_path.is_dir())
+        db_fullpath = save_path / config["save_file_name"]
+        mock_rt_db_controller.assert_called_once_with(db_fullpath)
+        self.assertEqual(mock_rt_db_controller.return_value, instance.db_cont)
+
+        config = expect_config["save_permanent"]
+        if config["save_permanent_media_flag"]:
+            self.assertTrue(Path(config["save_permanent_media_path"]).is_dir())
+
+        self.assertEqual(Path(expect_config["save_directory"]["save_retweet_path"]), instance.save_path)
+        self.assertEqual("RT", instance.type)
+
+        mock_rt_db_controller.side_effect = KeyError
         with self.assertRaises(KeyError):
-            print(expect_config["ERROR_KEY1"]["ERROR_KEY2"])
-
-        # 設定値比較
-        expect = Path(expect_config["save_directory"]["save_retweet_path"])
-        actual = rc.save_path
-        self.assertEqual(expect, actual)
-
-        self.assertEqual("RT", rc.type)
+            instance = RetweetCrawler()
 
     def test_make_done_message(self):
-        """終了メッセージ作成機能をチェックする"""
-        with ExitStack() as stack:
-            mock_freeze_gun = stack.enter_context(freeze_time("2022-10-22 10:30:20"))
+        mock_freeze_gun = self.enterContext(freeze_time("2022-10-22 10:30:20"))
+        mock_random = self.enterContext(patch("media_gathering.retweet_crawler.random.sample"))
 
-            rc = self._get_instance()
+        instance = self._get_instance()
 
-            s_add_url_list = ["http://pbs.twimg.com/media/add_sample{0}.jpg:orig".format(i) for i in range(5)]
-            s_del_url_list = ["http://pbs.twimg.com/media/del_sample{0}.jpg:orig".format(i) for i in range(5)]
-            s_pickup_url_list = random.sample(s_add_url_list, min(4, len(s_add_url_list)))
-            mock_random = stack.enter_context(patch("media_gathering.retweet_crawler.random.sample"))
-            mock_random.return_value = s_pickup_url_list
+        add_url_list = [f"http://pbs.twimg.com/media/add_sample{i}.jpg:orig" for i in range(5)]
+        del_url_list = [f"http://pbs.twimg.com/media/del_sample{i}.jpg:orig" for i in range(5)]
+        pickup_url_list = add_url_list[1:5]
+        mock_random.return_value = pickup_url_list
 
-            s_now_str = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-            s_done_msg = "Retweet MediaGathering run.\n"
-            s_done_msg += s_now_str
-            s_done_msg += " Process Done !!\n"
-            s_done_msg += "add {0} new images. ".format(len(s_add_url_list))
-            s_done_msg += "delete {0} old images.".format(len(s_del_url_list))
-            s_done_msg += "\n"
+        now_str = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+        done_msg = "Retweet MediaGathering run.\n"
+        done_msg += now_str
+        done_msg += " Process Done !!\n"
+        done_msg += f"add {len(add_url_list)} new images. "
+        done_msg += f"delete {len(del_url_list)} old images."
+        done_msg += "\n"
 
-            random_pickup = True
-            if random_pickup:
-                # pickup_url_list = random.sample(self.add_url_list, min(4, len(self.add_url_list)))
-                for pickup_url in s_pickup_url_list:
-                    pickup_url = str(pickup_url).replace(":orig", "")
-                    s_done_msg += pickup_url + "\n"
-            expect = s_done_msg
+        for pickup_url in pickup_url_list:
+            pickup_url = str(pickup_url).replace(":orig", "")
+            done_msg += pickup_url + "\n"
+        expect = done_msg
 
-            rc.add_url_list = s_add_url_list
-            rc.add_cnt = len(s_add_url_list)
-            rc.del_url_list = s_del_url_list
-            rc.del_cnt = len(s_del_url_list)
-            actual = rc.make_done_message()
+        instance.add_url_list = add_url_list
+        instance.add_cnt = len(add_url_list)
+        instance.del_url_list = del_url_list
+        instance.del_cnt = len(del_url_list)
+        actual = instance.make_done_message()
 
-            self.assertEqual(expect, actual)
+        self.assertEqual(expect, actual)
 
     def test_crawl(self):
-        """全体クロールの呼び出しをチェックする"""
-        with ExitStack() as stack:
-            mock_logger = stack.enter_context(patch("media_gathering.retweet_crawler.logger.info"))
-            mock_tac_like_fetcher = stack.enter_context(patch("media_gathering.retweet_crawler.RetweetFetcher"))
-            mock_parser = stack.enter_context(patch("media_gathering.retweet_crawler.RetweetParser"))
-            mock_interpret_tweets = stack.enter_context(
-                patch("media_gathering.retweet_crawler.RetweetCrawler.interpret_tweets")
-            )
-            mock_trace_external_link = stack.enter_context(
-                patch("media_gathering.retweet_crawler.RetweetCrawler.trace_external_link")
-            )
-            mock_shrink_folder = stack.enter_context(
-                patch("media_gathering.retweet_crawler.RetweetCrawler.shrink_folder")
-            )
-            mock_end_of_process = stack.enter_context(
-                patch("media_gathering.retweet_crawler.RetweetCrawler.end_of_process")
-            )
+        mock_tac_like_fetcher = self.enterContext(patch("media_gathering.retweet_crawler.RetweetFetcher"))
+        mock_parser = self.enterContext(patch("media_gathering.retweet_crawler.RetweetParser"))
+        mock_interpret_tweets = self.enterContext(
+            patch("media_gathering.retweet_crawler.RetweetCrawler.interpret_tweets")
+        )
+        mock_trace_external_link = self.enterContext(
+            patch("media_gathering.retweet_crawler.RetweetCrawler.trace_external_link")
+        )
+        mock_shrink_folder = self.enterContext(patch("media_gathering.retweet_crawler.RetweetCrawler.shrink_folder"))
+        mock_end_of_process = self.enterContext(patch("media_gathering.retweet_crawler.RetweetCrawler.end_of_process"))
 
-            rc = self._get_instance()
+        instance = self._get_instance()
 
-            mock_rt_instance = MagicMock()
-            mock_rt_instance.fetch.side_effect = lambda: ["fetched_tweets"]
-            mock_tac_like_fetcher.side_effect = lambda ct0, auth_token, target_screen_name, target_id: mock_rt_instance
+        mock_rt_instance = MagicMock()
+        mock_rt_instance.fetch.side_effect = lambda: ["fetched_tweets"]
+        mock_tac_like_fetcher.side_effect = lambda ct0, auth_token, target_screen_name, target_id: mock_rt_instance
 
-            mock_parser().parse_to_TweetInfo.side_effect = lambda: ["to_convert_TweetInfo"]
-            mock_parser().parse_to_ExternalLink.side_effect = lambda: ["to_convert_ExternalLink"]
+        mock_parser().parse_to_TweetInfo.side_effect = lambda: ["to_convert_TweetInfo"]
+        mock_parser().parse_to_ExternalLink.side_effect = lambda: ["to_convert_ExternalLink"]
 
-            rc.config["twitter_api_client"]["ct0"] = "dummy_ct0"
-            rc.config["twitter_api_client"]["auth_token"] = "dummy_auth_token"
-            rc.config["twitter_api_client"]["target_screen_name"] = "dummy_target_screen_name"
-            rc.config["twitter_api_client"]["target_id"] = "99999999"  # dummy_target_id
+        instance.config["twitter_api_client"]["ct0"] = "dummy_ct0"
+        instance.config["twitter_api_client"]["auth_token"] = "dummy_auth_token"
+        instance.config["twitter_api_client"]["target_screen_name"] = "dummy_target_screen_name"
+        instance.config["twitter_api_client"]["target_id"] = 99999999
 
-            res = rc.crawl()
-            self.assertEqual(Result.success, res)
+        res = instance.crawl()
+        self.assertEqual(Result.success, res)
 
-            mock_tac_like_fetcher.assert_called_once_with(
-                "dummy_ct0", "dummy_auth_token", "dummy_target_screen_name", 99999999
-            )
-            mock_rt_instance.fetch.assert_called_once_with()
+        mock_tac_like_fetcher.assert_called_once_with(
+            "dummy_ct0", "dummy_auth_token", "dummy_target_screen_name", 99999999
+        )
+        mock_rt_instance.fetch.assert_called_once_with()
 
-            mock_parser.assert_any_call(["fetched_tweets"], rc.lsb)
-            mock_parser().parse_to_TweetInfo.assert_called_once_with()
-            mock_interpret_tweets.assert_called_once_with(["to_convert_TweetInfo"])
+        mock_parser.assert_any_call(["fetched_tweets"], instance.lsb)
+        mock_parser().parse_to_TweetInfo.assert_called_once_with()
+        mock_interpret_tweets.assert_called_once_with(["to_convert_TweetInfo"])
 
-            mock_parser().parse_to_ExternalLink.assert_called_once_with()
-            mock_trace_external_link.assert_called_once_with(["to_convert_ExternalLink"])
+        mock_parser().parse_to_ExternalLink.assert_called_once_with()
+        mock_trace_external_link.assert_called_once_with(["to_convert_ExternalLink"])
 
-            mock_shrink_folder.assert_called_once_with(int(rc.config["holding"]["holding_file_num"]))
-            mock_end_of_process.assert_called_once_with()
+        mock_shrink_folder.assert_called_once_with(int(instance.config["holding"]["holding_file_num"]))
+        mock_end_of_process.assert_called_once_with()
 
 
 if __name__ == "__main__":

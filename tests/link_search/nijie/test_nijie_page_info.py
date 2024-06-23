@@ -76,9 +76,10 @@ class TestNijiePageInfo(unittest.TestCase):
             <title>作品名1 | 作者名1 | ニジエ</title>
             <div id="img_filter" data-index='0'>
             <a href="javascript:void(0);">
-            <video autoplay="autoplay" loop="loop" class="mozamoza ngtag" illust_id="542233" user_id="11111111" itemprop="image"
-             src="//pic.nijie.net/02/nijie/23m02/12/11111111/illust/sample_01.mp4"
-             alt="sample_01" style="display:none;"></video>
+            <video autoplay="autoplay" loop="loop" class="mozamoza ngtag"
+                illust_id="542233" user_id="11111111" itemprop="image"
+                src="//pic.nijie.net/02/nijie/23m02/12/11111111/illust/sample_01.mp4"
+                alt="sample_01" style="display:none;"></video>
             </a>
             </div>
         """
