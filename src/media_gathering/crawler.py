@@ -45,7 +45,7 @@ class Crawler(metaclass=ABCMeta):
     Fav/Retweetクローラーのベースとなるクローラークラス
 
     Note:
-        このクラスを継承するためには@abstractmethodデコレータつきのメソッドを実装する必要がある。
+        このクラスを継承するためには@abstractmethod デコレータつきのメソッドを実装する必要がある。
 
     Args:
         metaclass (metaclass): 抽象クラス指定
@@ -121,15 +121,14 @@ class Crawler(metaclass=ABCMeta):
     def validate_config_file(self, config_file_path: str) -> Result:
         """コンフィグファイルが正当な内容か簡易的に調べる
 
-        Notes:
-            このメソッドでエラーがraiseしなかったとしても、
-            コンフィグファイルに必要なキーがすべて存在するかは保証されない。
+        このメソッドでエラーがraiseしなかったとしても、
+        コンフィグファイルに必要なキーがすべて存在するかは保証されない。
 
         Args:
             config_file_path (str): コンフィグファイルパス
 
         Raise:
-            コンフィグファイルが不正ならばValueError, またはKeyError
+            コンフィグファイルが不正ならばValueError
         """
         if not isinstance(config_file_path, str):
             raise ValueError("Argument 'config_file_path' must be str.")
@@ -143,13 +142,13 @@ class Crawler(metaclass=ABCMeta):
         target_screen_name = config["twitter_api_client"]["target_screen_name"]
         target_id = config["twitter_api_client"]["target_id"]
 
-        if ct0 == "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx":
+        if ct0 == "dummy_ct0":
             raise ValueError("'ct0' must be your account 'ct0' value.")
-        if auth_token == "xxxxxxxxxxxxxxxxxxxxxxxxx":
+        if auth_token == "dummy_auth_token":
             raise ValueError("'auth_token' must be your account 'auth_token' value.")
-        if target_screen_name == "{your Twitter ID screen_name (exclude @)}":
+        if target_screen_name == "dummy_target_screen_name":
             raise ValueError("'target_screen_name' must be target screen_name for crawl.")
-        if target_id == "{your Twitter ID (numeric)}":
+        if target_id == -1:
             raise ValueError("'target_id' must be target account id.")
         return Result.success
 
@@ -199,9 +198,11 @@ class Crawler(metaclass=ABCMeta):
             url = ""
             file_path = Path(file)
 
-            if ".mp4" == file_path.suffix:  # media_type == "video":
+            if ".mp4" == file_path.suffix:
+                # media_type == "video":
                 url = self.get_media_url(file_path.name)
-            else:  # media_type == "photo":
+            else:
+                # media_type == "photo":
                 image_base_url = "http://pbs.twimg.com/media/{}:orig"
                 url = image_base_url.format(file_path.name)
 
@@ -224,7 +225,7 @@ class Crawler(metaclass=ABCMeta):
         return Result.success
 
     def get_media_url(self, filename) -> str:
-        # 'https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/b0ZDq8zG_HppFWb6.mp4?tag=10'
+        # 'https://video.twimg.com/ext_tw_video/1139678486296031232/pu/vid/640x720/xxxxxx.mp4?tag=10'
         response = self.db_cont.select_from_media_url(filename)
         url = response[0]["url"] if len(response) == 1 else ""
         return url
@@ -303,11 +304,11 @@ class Crawler(metaclass=ABCMeta):
         if is_embed:
             # desc_msg = """Retweet MediaGathering run.
             # 2023/02/03 10:31:30 Process Done !!
-            # add 4 new images. delete 4 old images."""
-            # """https://pbs.twimg.com/media/Fn-iG41aYAAjYb7.jpg
-            # https://pbs.twimg.com/media/Fn_OTxhXEAIMyb0.jpg
-            # https://pbs.twimg.com/media/Fn4DUHSaIAM8Ehz.jpg
-            # https://pbs.twimg.com/media/Fn-2N4UagAAlzEd.jpg"""
+            # add 4 new images. delete 4 old images.
+            # https://pbs.twimg.com/media/photo_01.jpg
+            # https://pbs.twimg.com/media/photo_02.jpg
+            # https://pbs.twimg.com/media/video_01.mp4
+            # https://pbs.twimg.com/media/video_02.mp4"""
 
             description_msg = ""
             media_links = []
@@ -342,11 +343,11 @@ class Crawler(metaclass=ABCMeta):
 
         return Result.success
 
-    def post_line_notify(self, str: str) -> Result:
+    def post_line_notify(self, message: str) -> Result:
         """LINE通知ポスト
 
         Args:
-            str (str): LINEに通知する文字列
+            message (str): LINEに通知する文字列
 
         Returns:
             Result: 成功時Result.success
@@ -355,22 +356,22 @@ class Crawler(metaclass=ABCMeta):
         token = self.config["line_token_keys"]["token_key"]
 
         headers = {"Authorization": "Bearer " + token}
-        payload = {"message": str}
+        payload = {"message": message}
 
         response = httpx.post(url, headers=headers, params=payload)
         response.raise_for_status()
 
         # if response.status_code != 200:
         #     logger.error("Error code: {0}".format(response.status_code))
-        #     return -1
+        #     return Result.failed
 
         return Result.success
 
-    def post_slack_notify(self, str: str) -> Result:
+    def post_slack_notify(self, message: str) -> Result:
         """Slack通知ポスト
 
         Args:
-            str (str): Slackに通知する文字列
+            message (str): Slackに通知する文字列
 
         Returns:
             Result: 成功時Result.success, 失敗時Result.failed
@@ -378,7 +379,7 @@ class Crawler(metaclass=ABCMeta):
         url = self.config["slack_webhook_url"]["webhook_url"]
         ssl_context = ssl.create_default_context(cafile=certifi.where())
         webhook = WebhookClient(url, ssl=ssl_context)
-        post_text = "<!here> " + str
+        post_text = "<!here> " + message
         response = webhook.send(text=post_text)
         if response.status_code != 200:
             logger.error("Error code: {0}".format(response.status_code))
@@ -404,7 +405,8 @@ class Crawler(metaclass=ABCMeta):
                 failed: 失敗（メディア辞書構造がエラー、urlが取得できない）
         """
         if not session:
-            session = httpx.Client(follow_redirects=True)
+            transport = httpx.HTTPTransport(retries=3)
+            session = httpx.Client(follow_redirects=True, transport=transport)
         url_orig = tweet_info.media_url
         url_thumbnail = tweet_info.media_thumbnail_url
         file_name = tweet_info.media_filename
@@ -448,26 +450,19 @@ class Crawler(metaclass=ABCMeta):
                 "saved_localpath": str(save_file_fullpath),
                 "saved_created_at": datetime.now().strftime(dts_format),
             }
-            media_size = -1
+            media_size = 0
             save_blob_flag = self.config["db"]["save_blob"]
-            try:
-                if save_blob_flag:
-                    params["media_blob"] = save_file_fullpath.read_bytes()
-                    media_size = len(params["media_blob"])
-                    params["media_size"] = media_size
-                else:
-                    params["media_blob"] = None
-                    media_size = save_file_fullpath.stat().st_size
-                    params["media_size"] = media_size
-            except Exception:
+            if save_blob_flag:
+                params["media_blob"] = save_file_fullpath.read_bytes()
+                media_size = len(params["media_blob"])
+                params["media_size"] = media_size
+            else:
                 params["media_blob"] = None
-                params["media_size"] = -1
+                media_size = save_file_fullpath.stat().st_size
+                params["media_size"] = media_size
 
-            if media_size <= 0:
-                if media_size == 0:
-                    logger.warning(save_file_fullpath.name + " -> failed (0 byte file).")
-                else:
-                    logger.warning(save_file_fullpath.name + " -> failed.")
+            if media_size == 0:
+                logger.warning(save_file_fullpath.name + " -> failed (0 byte file).")
                 return MediaSaveResult.failed
 
             self.db_cont.upsert(params)
@@ -491,18 +486,27 @@ class Crawler(metaclass=ABCMeta):
         return MediaSaveResult.success
 
     def interpret_tweets(self, tweet_info_list: list[TweetInfo]) -> Result:
+        """tweet_info_list を解釈してメディアを収集する
+
+        タイムスタンプについて
+        https://srbrnote.work/archives/4054
+        作成日時:ctime, 更新日時:mtime, アクセス日時:atimeがある
+        ctimeはOS依存のため設定には外部ライブラリが必要
+        ここでは
+            Favならばatime=mtime=ツイート投稿日時 とする
+            RTならばatime=mtime=ツイート投稿日時 とする
+        収集されたツイートの投稿日時はDBのcreated_at項目に保持される
+
+        Args:
+            tweet_info_list (list[TweetInfo]): 対象の tweet_info_list
+
+        Returns:
+            Result: 成功時 Result.success, 一つでもメディア保存に失敗したならば Result.failed
+        """
         result_list: list[MediaSaveResult] = []
-        session = httpx.Client(follow_redirects=True)
+        transport = httpx.HTTPTransport(retries=3)
+        session = httpx.Client(follow_redirects=True, transport=transport)
         for tweet_info in tweet_info_list:
-            """タイムスタンプについて
-                https://srbrnote.work/archives/4054
-                作成日時:ctime, 更新日時:mtime, アクセス日時:atimeがある
-                ctimeはOS依存のため設定には外部ライブラリが必要
-                ここでは
-                    Favならばatime=mtime=ツイート投稿日時 とする
-                    RTならばatime=mtime=ツイート投稿日時 とする
-                収集されたツイートの投稿日時はDBのcreated_at項目に保持される
-            """
             dts_format = "%Y-%m-%d %H:%M:%S"
             media_tweet_created_time = tweet_info.created_at
             created_time = time.strptime(media_tweet_created_time, dts_format)
@@ -526,7 +530,14 @@ class Crawler(metaclass=ABCMeta):
         return Result.success
 
     def trace_external_link(self, external_link_list: list[ExternalLink]) -> Result:
-        # 外部リンク探索
+        """外部リンク探索
+
+        Args:
+            external_link_list (list[ExternalLink]): 対象の external_link_list
+
+        Returns:
+            Result: 成功時 Result.success
+        """
         for external_link in external_link_list:
             url = external_link.external_link_url
             # 過去に取得済かどうか調べる
