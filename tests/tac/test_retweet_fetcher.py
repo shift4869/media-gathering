@@ -71,8 +71,9 @@ class TestRetweetFetcher(unittest.TestCase):
             mock_get_retweet_jsons = stack.enter_context(
                 patch("media_gathering.tac.retweet_fetcher.RetweetFetcher.get_retweet_jsons")
             )
+            limit = 400
             actual = self.fetcher.fetch()
-            mock_get_retweet_jsons.assert_called_once_with()
+            mock_get_retweet_jsons.assert_called_once_with(limit)
 
 
 if __name__ == "__main__":

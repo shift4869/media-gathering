@@ -18,8 +18,11 @@ class FetcherBase(metaclass=ABCMeta):
         self.twitter = TwitterAPIClientAdapter(ct0, auth_token, target_screen_name, target_id)
 
     @abstractmethod
-    def fetch(self) -> list[dict]:
+    def fetch(self, limit: int = 400) -> list[dict]:
         """TwitterページからJSONをfetchする
+
+        Args:
+            limit (int, optional): 取得上限
 
         Returns:
             list[dict]: fetchされたJSONを表す辞書のリスト

@@ -63,7 +63,9 @@ class FavCrawler(Crawler):
         target_screen_name = config["target_screen_name"]
         target_id = int(config["target_id"])
         like = LikeFetcher(ct0, auth_token, target_screen_name, target_id)
-        fetched_tweets = like.fetch()
+
+        limit = int(self.config["tweet_timeline"]["likes_get_max_count"])
+        fetched_tweets = like.fetch(limit)
 
         parser = LikeParser(fetched_tweets, self.lsb)
 

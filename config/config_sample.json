@@ -6,10 +6,8 @@
         "target_id": -1
     },
     "tweet_timeline": {
-        "likes_get_max_loop": 40,
-        "likes_get_max_count": 300,
-        "retweet_get_max_loop": 40,
-        "retweet_get_max_count": 300
+        "likes_get_max_count": 400,
+        "retweet_get_max_count": 400
     },
     "save_directory": {
         "save_fav_path": "tests/save/twitterFav",

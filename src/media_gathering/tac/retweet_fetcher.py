@@ -49,13 +49,16 @@ class RetweetFetcher(FetcherBase):
         logger.info("Fetched Tweet by TAC -> done")
         return result
 
-    def fetch(self) -> list[dict]:
-        """TL ページをクロールしてロード時のJSONをキャプチャする
+    def fetch(self, limit: int = 400) -> list[dict]:
+        """TL ページをクロールして取得する
+
+        Args:
+            limit (int, optional): 取得上限
 
         Returns:
             list[dict]: ツイートオブジェクトを表すJSONリスト
         """
-        result = self.get_retweet_jsons()
+        result = self.get_retweet_jsons(limit)
         return result
 
 

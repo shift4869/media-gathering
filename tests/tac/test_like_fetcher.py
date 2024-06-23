@@ -71,8 +71,9 @@ class TestLikeFetcher(unittest.TestCase):
             mock_get_like_jsons = stack.enter_context(
                 patch("media_gathering.tac.like_fetcher.LikeFetcher.get_like_jsons")
             )
+            limit = 400
             actual = self.fetcher.fetch()
-            mock_get_like_jsons.assert_called_once_with()
+            mock_get_like_jsons.assert_called_once_with(limit)
 
 
 if __name__ == "__main__":

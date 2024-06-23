@@ -49,13 +49,16 @@ class LikeFetcher(FetcherBase):
         logger.info("Fetched Tweet by TAC -> done")
         return result
 
-    def fetch(self) -> list[dict]:
-        """Likes ページをクロールしてロード時のJSONをキャプチャする
+    def fetch(self, limit: int = 400) -> list[dict]:
+        """Likes ページをクロールして取得する
+
+        Args:
+            limit (int, optional): 取得上限
 
         Returns:
             list[dict]: ツイートオブジェクトを表すJSONリスト
         """
-        result = self.get_like_jsons()
+        result = self.get_like_jsons(limit)
         return result
 
 

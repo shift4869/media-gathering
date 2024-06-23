@@ -101,7 +101,7 @@ class TestRetweetCrawler(unittest.TestCase):
         instance = self._get_instance()
 
         mock_rt_instance = MagicMock()
-        mock_rt_instance.fetch.side_effect = lambda: ["fetched_tweets"]
+        mock_rt_instance.fetch.side_effect = lambda limit: ["fetched_tweets"]
         mock_tac_like_fetcher.side_effect = lambda ct0, auth_token, target_screen_name, target_id: mock_rt_instance
 
         mock_parser().parse_to_TweetInfo.side_effect = lambda: ["to_convert_TweetInfo"]
@@ -111,6 +111,7 @@ class TestRetweetCrawler(unittest.TestCase):
         instance.config["twitter_api_client"]["auth_token"] = "dummy_auth_token"
         instance.config["twitter_api_client"]["target_screen_name"] = "dummy_target_screen_name"
         instance.config["twitter_api_client"]["target_id"] = 99999999
+        instance.config["tweet_timeline"]["retweet_get_max_count"] = 400
 
         res = instance.crawl()
         self.assertEqual(Result.success, res)
@@ -118,7 +119,7 @@ class TestRetweetCrawler(unittest.TestCase):
         mock_tac_like_fetcher.assert_called_once_with(
             "dummy_ct0", "dummy_auth_token", "dummy_target_screen_name", 99999999
         )
-        mock_rt_instance.fetch.assert_called_once_with()
+        mock_rt_instance.fetch.assert_called_once_with(400)
 
         mock_parser.assert_any_call(["fetched_tweets"], instance.lsb)
         mock_parser().parse_to_TweetInfo.assert_called_once_with()

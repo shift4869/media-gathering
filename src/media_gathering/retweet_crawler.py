@@ -63,7 +63,9 @@ class RetweetCrawler(Crawler):
         target_screen_name = config["target_screen_name"]
         target_id = int(config["target_id"])
         retweet = RetweetFetcher(ct0, auth_token, target_screen_name, target_id)
-        fetched_tweets = retweet.fetch()
+
+        limit = int(self.config["tweet_timeline"]["retweet_get_max_count"])
+        fetched_tweets = retweet.fetch(limit)
 
         parser = RetweetParser(fetched_tweets, self.lsb)
 
