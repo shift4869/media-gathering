@@ -50,7 +50,10 @@ class TestFavDBController(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         if Path(TEST_DB_FULLPATH).is_file():
-            Path(TEST_DB_FULLPATH).unlink(missing_ok=True)
+            try:
+                Path(TEST_DB_FULLPATH).unlink(missing_ok=True)
+            except Exception:
+                pass
 
     def _Favorite_sample_factory(self, img_url: str) -> Favorite:
         """Favoriteオブジェクトを生成する
