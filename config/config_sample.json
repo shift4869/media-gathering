@@ -1,0 +1,65 @@
+{
+    "twitter_api_client": {
+        "ct0": "dummy_ct0",
+        "auth_token": "dummy_auth_token",
+        "target_screen_name": "dummy_target_screen_name",
+        "target_id": -1
+    },
+    "tweet_timeline": {
+        "likes_get_max_loop": 40,
+        "likes_get_max_count": 300,
+        "retweet_get_max_loop": 40,
+        "retweet_get_max_count": 300
+    },
+    "save_directory": {
+        "save_fav_path": "tests/save/twitterFav",
+        "save_retweet_path": "tests/save/twitterRetweet"
+    },
+    "save_permanent": {
+        "save_permanent_media_flag": true,
+        "save_permanent_media_path": "tests/save/permanent"
+    },
+    "holding": {
+        "holding_file_num": 300
+    },
+    "db": {
+        "save_path": "tests/db",
+        "save_file_name": "PG_DB.db",
+        "save_blob": false
+    },
+    "pixiv": {
+        "is_pixiv_trace": true,
+        "username": "dummy_username",
+        "password": "dummy_password",
+        "save_base_path": "tests/save/PG_Pixiv"
+    },
+    "nijie": {
+        "is_nijie_trace": true,
+        "email": "dummy_email",
+        "password": "dummy_password",
+        "save_base_path": "tests/save/PG_Nijie"
+    },
+    "nico_seiga": {
+        "is_seiga_trace": true,
+        "email": "dummy_email",
+        "password": "dummy_password",
+        "save_base_path": "tests/save/PG_Seiga"
+    },
+    "notification": {
+        "reply_to_user_name": "dummy_user_name",
+        "is_post_fav_done_reply": false,
+        "is_post_retweet_done_reply": false
+    },
+    "discord_webhook_url": {
+        "is_post_discord_notify": false,
+        "webhook_url": "dummy_webhook_url"
+    },
+    "line_token_keys": {
+        "is_post_line_notify": false,
+        "token_key": "dummy_token_key"
+    },
+    "slack_webhook_url": {
+        "is_post_slack_notify": false,
+        "webhook_url": "dummy_webhook_url"
+    }
+}

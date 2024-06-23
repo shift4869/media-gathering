@@ -22,7 +22,6 @@
             "nijie": "http://nijie.info/view_popup.php?id=xxxxxx",
             "seiga": "https://seiga.nicovideo.jp/seiga/imxxxxxxx",
             ```
-            <!-- "skeb": "https://skeb.jp/@xxxxxxxx/works/xx",-->
 - 収集したメディアの情報をDBに蓄積する。  
     - 元ツイートURLなど。  
 - 収集したメディアを一覧で見ることができるhtmlを出力する。  
@@ -30,9 +29,8 @@
 - 処理完了時に各種他媒体に通知ツイートを送る。（任意）  
     - 以下の媒体へ通知の連携が可能。  
         - Discord, Line, Slack,   
-<!-- - Google Drive へのアーカイブ機能。(wip)  -->
 
-※定期的な実行を前提としてますが機能としては同梱していないので「タスクのスケジュール」などOS標準の機能で定期実行してください。  
+※定期的な実行を前提としていますが機能としては同梱していないので「タスクのスケジュール」などOS標準の機能で定期実行してください。  
 ※windows 11でのみ動作確認をしております。  
 
 
@@ -47,34 +45,25 @@
     - ブラウザ上でのクッキーの確認方法
         - 各ブラウザによって異なるが、概ね `F12を押す→ページ更新→アプリケーションタブ→クッキー` で確認可能
     - 詳しくは「twitter クッキー ct0 auth_token」等で検索
-<!--
-- twitterアカウントのAPIトークン
-    - TwitterAPI(v2)を使用するためのAPIトークン。以下の4つのキーが必要
-        - APIキー (API Key)
-        - APIキーシークレット (API Key Secret)
-        - アクセストークン (Access Token)
-        - アクセストークンシークレット (Access Token Secret)
-    - 自分のtwitterアカウントも必要
-        - 加えて上記4つのキーを取得するためにDeveloper登録が必要なのでそのための電話番号の登録が必要
-    - 詳しくは「twitter API トークン v2」等で検索
--->
+
 
 ## 使い方
 1. このリポジトリをDL
     - 右上の「Clone or download」->「Download ZIP」からDLして解凍
-1. config/config_example.iniの中身を自分用に編集してconfig/config.iniにリネーム
+1. config/config_sample.json の中身を自分用に編集してconfig/config.jsonにリネーム
     - twitterのセッション情報を設定する（必須）
     - ローカルの保存先パスを設定する（必須）
-1. media_gathering.pyを実行する（以下は一例）
+    - その他`dummy`や`tests`とついている箇所を自分の環境に合わせて修正する
+1. main.pyを実行する（以下は一例）
     - ※手動で実行するならパスが通っている環境で以下でOK
     ```
-    python media_gathering.py --type="Fav"
+    python ./src/main.py --type="Fav"
     ```
     - または、以下を記述した.vbsファイルを用意する  
     ```
     Set ws=CreateObject("Wscript.Shell")
     ws.CurrentDirectory = "{解凍したmedia-gatheringへのパス}\media-gathering"
-    ws.run "cmd /c """"{python実行ファイルまでのパス}\python.exe"" {解凍したmedia-gatheringへのパス}\media-gathering\media_gathering.py --type=""Fav""""", vbhide
+    ws.run "cmd /c """"{python実行ファイルまでのパス}\python.exe"" {解凍したmedia-gatheringへのパス}\media-gathering\src\main.py --type=""Fav""""", vbhide
     ```
     - `--type`を`Fav`でなく`RT`に変更すれば対象がRetweetとなる
     - 作成した.vbsを「タスクのスケジュール」などで実行する
