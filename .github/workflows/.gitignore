@@ -1,1 +1,5 @@
 !.coveragerc
+
+encrypt_config_ci.ini
+encrypt_credentials_ci.json
+EncryptConfig.py
