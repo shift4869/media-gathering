@@ -21,6 +21,7 @@ from media_gathering.link_search.link_searcher import LinkSearcher
 from media_gathering.log_message import MSG
 from media_gathering.model import ExternalLink
 from media_gathering.tac.tweet_info import TweetInfo
+from media_gathering.tac.twitter_api_client_adapter import TwitterAPIClientAdapter
 from media_gathering.util import Result
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
@@ -231,6 +232,11 @@ class Crawler(metaclass=ABCMeta):
         return url
 
     @abstractmethod
+    def is_post(self) -> bool:
+        """実行後の通知フラグを調べる"""
+        return False
+
+    @abstractmethod
     def make_done_message(self) -> str:
         """実行後の結果文字列を生成する"""
         return ""
@@ -259,6 +265,16 @@ class Crawler(metaclass=ABCMeta):
                 logger.debug("del url:")
                 for url in self.del_url_list:
                     logger.debug(url)
+
+            if self.is_post():
+                ct0 = config["twitter_api_client"]["ct0"]
+                auth_token = config["twitter_api_client"]["auth_token"]
+                target_screen_name = config["twitter_api_client"]["target_screen_name"]
+                target_id = int(config["twitter_api_client"]["target_id"])
+                twitter = TwitterAPIClientAdapter(ct0, auth_token, target_screen_name, target_id)
+                reply_to_user_name = config["notification"]["reply_to_user_name"]
+                msg = f"@{reply_to_user_name} {done_msg}"
+                twitter.account.tweet(msg)
 
             if config["discord_webhook_url"]["is_post_discord_notify"]:
                 try:

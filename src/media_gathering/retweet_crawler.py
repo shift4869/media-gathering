@@ -36,6 +36,9 @@ class RetweetCrawler(Crawler):
             raise
         logger.info(MSG.RTCRAWLER_INIT_DONE.value)
 
+    def is_post(self) -> bool:
+        return self.config["notification"]["is_post_retweet_done_reply"]
+
     def make_done_message(self) -> str:
         now_str = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
         done_msg = "Retweet MediaGathering run.\n"

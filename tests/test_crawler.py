@@ -346,12 +346,14 @@ class TestCrawler(unittest.TestCase):
         mock_discord_notify = self.enterContext(patch("media_gathering.crawler.Crawler.post_discord_notify"))
         mock_line_notify = self.enterContext(patch("media_gathering.crawler.Crawler.post_line_notify"))
         mock_slack_notify = self.enterContext(patch("media_gathering.crawler.Crawler.post_slack_notify"))
+        mock_twitter = self.enterContext(patch("media_gathering.crawler.TwitterAPIClientAdapter"))
 
         Params = namedtuple(
             "Params",
             [
                 "add_url_list",
                 "del_url_list",
+                "notification",
                 "discord_notify",
                 "line_notify",
                 "slack_notify",
@@ -369,11 +371,13 @@ class TestCrawler(unittest.TestCase):
             instance.config["discord_webhook_url"]["is_post_discord_notify"] = params.discord_notify
             instance.config["line_token_keys"]["is_post_line_notify"] = params.line_notify
             instance.config["slack_webhook_url"]["is_post_slack_notify"] = params.slack_notify
+            instance.config["notification"]["is_post_fav_done_reply"] = params.notification
 
             mock_html_writer.reset_mock()
             mock_discord_notify.reset_mock(side_effect=True)
             mock_line_notify.reset_mock(side_effect=True)
             mock_slack_notify.reset_mock(side_effect=True)
+            mock_twitter.reset_mock(side_effect=True)
 
             if params.error_occur:
                 if params.discord_notify:
@@ -393,6 +397,15 @@ class TestCrawler(unittest.TestCase):
             add_cnt = len(params.add_url_list)
             del_cnt = len(params.del_url_list)
             if add_cnt != 0 or del_cnt != 0:
+                if params.notification:
+                    ct0 = instance.config["twitter_api_client"]["ct0"]
+                    auth_token = instance.config["twitter_api_client"]["auth_token"]
+                    target_screen_name = instance.config["twitter_api_client"]["target_screen_name"]
+                    target_id = int(instance.config["twitter_api_client"]["target_id"])
+                    self.assertEqual(
+                        [call(ct0, auth_token, target_screen_name, target_id), call().account.tweet(done_msg)],
+                        mock_twitter.mock_calls,
+                    )
                 if params.discord_notify:
                     mock_discord_notify.assert_called_once_with(done_msg)
                 if params.line_notify:
@@ -401,18 +414,23 @@ class TestCrawler(unittest.TestCase):
                     mock_slack_notify.assert_called_once_with(done_msg)
 
         params_list = [
-            Params([], [], False, False, False, False, Result.success, "add and del is nothing case"),
-            Params(["add_url_1"], [], False, False, False, False, Result.success, "one add case"),
-            Params(["add_url_1", "add_url_2"], [], False, False, False, False, Result.success, "multi add case"),
-            Params([], ["del_url_1"], False, False, False, False, Result.success, "one del case"),
-            Params([], ["del_url_1", "del_url_2"], False, False, False, False, Result.success, "multi del case"),
-            Params(["add_url_1"], [], True, False, False, False, Result.success, "discord_notify case"),
-            Params(["add_url_1"], [], False, True, False, False, Result.success, "line_notify case"),
-            Params(["add_url_1"], [], False, False, True, False, Result.success, "slack_notify case"),
-            Params(["add_url_1"], [], True, True, True, False, Result.success, "all notify case"),
-            Params(["add_url_1"], [], True, False, False, True, Result.success, "discord_notify error case"),
-            Params(["add_url_1"], [], False, True, False, True, Result.success, "line_notify error case"),
-            Params(["add_url_1"], [], False, False, True, True, Result.success, "slack_notify error case"),
+            Params([], [], False, False, False, False, False, Result.success, "add and del is nothing case"),
+            Params(["add_url_1"], [], False, False, False, False, False, Result.success, "one add case"),
+            Params(
+                ["add_url_1", "add_url_2"], [], False, False, False, False, False, Result.success, "multi add case"
+            ),
+            Params([], ["del_url_1"], False, False, False, False, False, Result.success, "one del case"),
+            Params(
+                [], ["del_url_1", "del_url_2"], False, False, False, False, False, Result.success, "multi del case"
+            ),
+            Params(["add_url_1"], [], False, True, False, False, False, Result.success, "discord_notify case"),
+            Params(["add_url_1"], [], False, False, True, False, False, Result.success, "line_notify case"),
+            Params(["add_url_1"], [], False, False, False, True, False, Result.success, "slack_notify case"),
+            Params(["add_url_1"], [], False, True, True, True, False, Result.success, "all notify case"),
+            Params(["add_url_1"], [], False, True, False, False, True, Result.success, "discord_notify error case"),
+            Params(["add_url_1"], [], False, False, True, False, True, Result.success, "line_notify error case"),
+            Params(["add_url_1"], [], False, False, False, True, True, Result.success, "slack_notify error case"),
+            Params(["add_url_1"], [], True, False, False, False, False, Result.success, "tweet notification case"),
         ]
         for params in params_list:
             instance = pre_run(params, self._get_instance())
