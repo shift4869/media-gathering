@@ -30,6 +30,9 @@ class ConcreteCrawler(Crawler):
         Crawler.CONFIG_FILE_NAME = config_file_name
         super().__init__()
 
+    def is_post(self) -> bool:
+        return self.config["notification"]["is_post_fav_done_reply"]
+
     def make_done_message(self) -> str:
         return "ConcreteCrawler.make_done_message : done"
 
@@ -402,8 +405,10 @@ class TestCrawler(unittest.TestCase):
                     auth_token = instance.config["twitter_api_client"]["auth_token"]
                     target_screen_name = instance.config["twitter_api_client"]["target_screen_name"]
                     target_id = int(instance.config["twitter_api_client"]["target_id"])
+                    reply_to_user_name = instance.config["notification"]["reply_to_user_name"]
+                    msg = f"@{reply_to_user_name} {done_msg}"
                     self.assertEqual(
-                        [call(ct0, auth_token, target_screen_name, target_id), call().account.tweet(done_msg)],
+                        [call(ct0, auth_token, target_screen_name, target_id), call().account.tweet(msg)],
                         mock_twitter.mock_calls,
                     )
                 if params.discord_notify:
