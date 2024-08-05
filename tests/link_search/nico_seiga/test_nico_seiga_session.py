@@ -32,7 +32,7 @@ class TestNicoSeigaSession(unittest.TestCase):
 
             IMAGE_INFO_API_ENDPOINT_BASE = "http://seiga.nicovideo.jp/api/illust/info?id="
             USERNAME_API_ENDPOINT_BASE = "https://seiga.nicovideo.jp/api/user/info?id="
-            IMAGE_SOUECE_API_ENDPOINT_BASE = "http://seiga.nicovideo.jp/image/source?id="
+            IMAGE_SOUECE_API_ENDPOINT_BASE = "https://seiga.nicovideo.jp/image/source?id="
 
             def return_get_html(url, headers):
                 r = MagicMock()
@@ -58,13 +58,13 @@ class TestNicoSeigaSession(unittest.TestCase):
     def test_NicoSeigaSession(self):
         session = self._get_session()
 
-        HEADERS = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36"
-        }
+        AppleWebKit_header = "AppleWebKit/537.36 (KHTML, like Gecko)"
+        chrome_header = "Chrome/88.0.4324.190 Safari/537.36"
+        HEADERS = {"User-Agent": f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) {AppleWebKit_header} {chrome_header}"}
         LOGIN_ENDPOINT = "https://account.nicovideo.jp/api/v1/login?show_button_twitter=1&site=niconico&show_button_facebook=1&next_url=&mail_or_tel=1"
         IMAGE_INFO_API_ENDPOINT_BASE = "http://seiga.nicovideo.jp/api/illust/info?id="
         USERNAME_API_ENDPOINT_BASE = "https://seiga.nicovideo.jp/api/user/info?id="
-        IMAGE_SOUECE_API_ENDPOINT_BASE = "http://seiga.nicovideo.jp/image/source?id="
+        IMAGE_SOUECE_API_ENDPOINT_BASE = "https://seiga.nicovideo.jp/image/source?id="
         self.assertIsNotNone(session._session)
         self.assertEqual(HEADERS, session.HEADERS)
         self.assertEqual(LOGIN_ENDPOINT, session.LOGIN_ENDPOINT)
