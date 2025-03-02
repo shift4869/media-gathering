@@ -1,5 +1,3 @@
-"""NijiePageInfo のテスト"""
-
 import sys
 import unittest
 
@@ -61,13 +59,13 @@ class TestNijiePageInfo(unittest.TestCase):
             </a>
             </div>
         """
+        author_id = Authorid(11111111)
         soup = BeautifulSoup(html_img, "html.parser")
-        actual = NijiePageInfo.create(soup)
+        actual = NijiePageInfo.create(soup, int(author_id.id))
 
         urls = ["http://pic.nijie.net/04/nijie/23m02/24/11111111/illust/sample_01.jpg"]
         source_list = NijieSourceList.create(urls)
         author_name = Authorname("作者名1")
-        author_id = Authorid(11111111)
         illust_name = Worktitle("作品名1")
         expect = NijiePageInfo(source_list, author_name, author_id, illust_name)
         self.assertEqual(expect, actual)
@@ -77,29 +75,28 @@ class TestNijiePageInfo(unittest.TestCase):
             <div id="img_filter" data-index='0'>
             <a href="javascript:void(0);">
             <video autoplay="autoplay" loop="loop" class="mozamoza ngtag"
-                illust_id="542233" user_id="11111111" itemprop="image"
-                src="//pic.nijie.net/02/nijie/23m02/12/11111111/illust/sample_01.mp4"
-                alt="sample_01" style="display:none;"></video>
+             illust_id="542233" user_id="11111111" itemprop="image"
+             src="//pic.nijie.net/02/nijie/23m02/12/11111111/illust/sample_01.mp4"
+             alt="sample_01" style="display:none;"></video>
             </a>
             </div>
         """
         soup = BeautifulSoup(html_video, "html.parser")
-        actual = NijiePageInfo.create(soup)
+        actual = NijiePageInfo.create(soup, int(author_id.id))
 
         urls = ["http://pic.nijie.net/02/nijie/23m02/12/11111111/illust/sample_01.mp4"]
         source_list = NijieSourceList.create(urls)
         author_name = Authorname("作者名1")
-        author_id = Authorid(11111111)
         illust_name = Worktitle("作品名1")
         expect = NijiePageInfo(source_list, author_name, author_id, illust_name)
         self.assertEqual(expect, actual)
 
         with self.assertRaises(ValueError):
             soup = BeautifulSoup("", "html.parser")
-            actual = NijiePageInfo.create(soup)
+            actual = NijiePageInfo.create(soup, int(author_id.id))
 
         with self.assertRaises(TypeError):
-            actual = NijiePageInfo.create(-1)
+            actual = NijiePageInfo.create(-1, int(author_id.id))
 
 
 if __name__ == "__main__":

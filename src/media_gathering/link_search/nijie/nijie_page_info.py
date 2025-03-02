@@ -1,4 +1,3 @@
-import urllib.parse
 from dataclasses import dataclass
 
 from bs4 import BeautifulSoup, Tag
@@ -41,7 +40,7 @@ class NijiePageInfo:
         return True
 
     @classmethod
-    def create(cls, soup: BeautifulSoup) -> "NijiePageInfo":
+    def create(cls, soup: BeautifulSoup, author_id: int) -> "NijiePageInfo":
         """nijie作品詳細ページを解析する
 
         画像はaタグから、うごイラはvideoタグから探す
@@ -89,9 +88,10 @@ class NijiePageInfo:
             raise ValueError("NijiePageInfo create error")
 
         # 作者IDを1枚目の直リンクから取得する
-        ps: str = urllib.parse.urlparse(urls[0]).path
-        pt: str = ps.split("/")[-3]
-        author_id = int(pt)
+        # →作者IDが取得できなくなったので引数で受け付ける方針に変更
+        # ps: str = urllib.parse.urlparse(urls[0]).path
+        # pt: str = ps.split("/")[-3]
+        # author_id = int(pt)
 
         # 作品タイトル、作者名はページタイトルから取得する
         title_tag = soup.find("title")
@@ -109,19 +109,19 @@ class NijiePageInfo:
 
 
 if __name__ == "__main__":
+    import configparser
     from pathlib import Path
-
-    import orjson
 
     from media_gathering.link_search.nijie.nijie_fetcher import NijieFetcher
     from media_gathering.link_search.password import Password
     from media_gathering.link_search.username import Username
 
-    CONFIG_FILE_NAME = "./config/config.json"
-    config = orjson.loads(Path(CONFIG_FILE_NAME).read_bytes())
+    CONFIG_FILE_NAME = "./config/config.ini"
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE_NAME, encoding="utf8")
 
     base_path = Path("./media_gathering/link_search/")
-    if config["nijie"]["is_nijie_trace"]:
+    if config["nijie"].getboolean("is_nijie_trace"):
         fetcher = NijieFetcher(Username(config["nijie"]["email"]), Password(config["nijie"]["password"]), base_path)
 
         illust_id = 251267  # 一枚絵

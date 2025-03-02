@@ -1,4 +1,6 @@
 import enum
+import logging
+import re
 from dataclasses import dataclass
 from logging import INFO, getLogger
 from pathlib import Path
@@ -46,6 +48,20 @@ class NijieDownloader:
         """nijie作品ページURLから作品をダウンロードしてbase_path以下に保存する"""
         work_id = self.nijie_url.work_id.id
 
+        # 作品概要ページをGET
+        work_url = f"https://nijie.info/view.php?id={work_id}"
+        headers = self.cookies._headers
+        cookies = self.cookies._cookies
+        transport = httpx.HTTPTransport(retries=5)
+        session = httpx.Client(follow_redirects=True, timeout=60.0, transport=transport)
+        res = session.get(work_url, headers=headers, cookies=cookies)
+        res.raise_for_status()
+
+        # author_idを取得
+        pattern = r"https://nijie\.info/members\.php\?id=(\d+)"
+        m = re.findall(pattern, res.text)
+        author_id = int(m[0]) if m else 0
+
         # 作品詳細ページをGET
         work_url = f"http://nijie.info/view_popup.php?id={work_id}"
         headers = self.cookies._headers
@@ -57,7 +73,7 @@ class NijieDownloader:
 
         # BeautifulSoupを用いてhtml解析を行う
         soup = BeautifulSoup(res.text, "html.parser")
-        page_info = NijiePageInfo.create(soup)
+        page_info = NijiePageInfo.create(soup, author_id)
 
         # 保存先ディレクトリを取得
         save_directory_path = NijieSaveDirectoryPath.create(self.nijie_url, page_info, self.base_path)
@@ -121,26 +137,27 @@ class NijieDownloader:
 
 
 if __name__ == "__main__":
+    import configparser
     import logging.config
-
-    import orjson
 
     from media_gathering.link_search.nijie.nijie_fetcher import NijieFetcher
     from media_gathering.link_search.password import Password
     from media_gathering.link_search.username import Username
 
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
-    CONFIG_FILE_NAME = "./config/config.json"
-    config = orjson.loads(Path(CONFIG_FILE_NAME).read_bytes())
+    CONFIG_FILE_NAME = "./config/config.ini"
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE_NAME, encoding="utf8")
 
     base_path = Path("./media_gathering/link_search/")
-    if config["nijie"]["is_nijie_trace"]:
+    if config["nijie"].getboolean("is_nijie_trace"):
         fetcher = NijieFetcher(Username(config["nijie"]["email"]), Password(config["nijie"]["password"]), base_path)
 
         # work_id = 251267  # 一枚絵
         work_id = 251197  # 漫画
         # work_id = 414793  # うごイラ一枚
         # work_id = 409587  # うごイラ複数
+        work_id = 673355  # 漫画
 
         work_url = f"https://nijie.info/view_popup.php?id={work_id}"
         fetcher.fetch(work_url)
