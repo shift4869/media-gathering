@@ -58,7 +58,7 @@ class RetweetCrawler(Crawler):
 
     def crawl(self) -> Result:
         logger.info(MSG.RTCRAWLER_CRAWL_START.value)
-        logger.info("TAC use mode...")
+        logger.info(MSG.RTCRAWLER_MODE.value)
 
         config = self.config["twitter_api_client"]
         ct0 = config["ct0"]

@@ -32,6 +32,7 @@ class LikeFetcher(FetcherBase):
         # TAC で likes ページをスクレイピング
         scraper = self.tac_twitter.scraper
         likes = scraper.likes([self.target_id], limit=limit)
+        logger.info(f"Fetched Tweet num {len(likes)}.")
 
         # キャッシュに保存
         for i, like in enumerate(likes):

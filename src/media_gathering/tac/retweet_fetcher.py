@@ -21,7 +21,7 @@ class RetweetFetcher(FetcherBase):
         super().__init__(ct0, auth_token, target_screen_name, target_id)
 
     def get_retweet_jsons(self, limit: int = 400) -> list[dict]:
-        logger.info("Fetched Tweet by TAC -> start")
+        logger.info("Fetched Tweet by TP -> start")
 
         # キャッシュ保存場所の準備
         base_path = Path(self.CACHE_PATH)
@@ -32,9 +32,9 @@ class RetweetFetcher(FetcherBase):
         # TAC で TL をスクレイピング
         # scraper = self.twitter.scraper
         # timeline_tweets = scraper.tweets_and_replies([self.twitter.target_id], limit=limit)
-        timeline_tweets = self.twitter.get_user_tweets(user_id=self.target_id, with_replies=True, total=limit)[
-            "data"
-        ]
+        # TP で TL をスクレイピング
+        timeline_tweets = self.twitter.get_user_tweets(user_id=self.target_id, with_replies=True, total=limit)["data"]
+        logger.info(f"Fetched Tweet num {len(timeline_tweets)}.")
 
         # キャッシュに保存
         for i, tweet in enumerate(timeline_tweets):
@@ -49,7 +49,7 @@ class RetweetFetcher(FetcherBase):
             json_dict = orjson.loads(Path(base_path / f"timeline_tweets_{i:02}.json").read_bytes())
             result.append(json_dict)
 
-        logger.info("Fetched Tweet by TAC -> done")
+        logger.info("Fetched Tweet by TP -> done")
         return result
 
     def fetch(self, limit: int = 400) -> list[dict]:

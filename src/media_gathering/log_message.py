@@ -14,11 +14,13 @@ class MSG(enum.Enum):
 
     FAVCRAWLER_INIT_START = "Fav Crawler init -> start"
     FAVCRAWLER_INIT_DONE = "Fav Crawler init -> done"
+    FAVCRAWLER_MODE = "TAC use mode..."
     FAVCRAWLER_CRAWL_START = "Fav Crawler crawl -> start"
     FAVCRAWLER_CRAWL_DONE = "Fav Crawler crawl -> done"
 
     RTCRAWLER_INIT_START = "Retweet Crawler init -> start"
     RTCRAWLER_INIT_DONE = "Retweet Crawler init -> done"
+    RTCRAWLER_MODE = "TP use mode..."
     RTCRAWLER_CRAWL_START = "Retweet Crawler crawl -> start"
     RTCRAWLER_CRAWL_DONE = "Retweet Crawler crawl -> done"
 

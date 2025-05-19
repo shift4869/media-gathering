@@ -58,7 +58,7 @@ class FavCrawler(Crawler):
 
     def crawl(self) -> Result:
         logger.info(MSG.FAVCRAWLER_CRAWL_START.value)
-        logger.info("TAC use mode...")
+        logger.info(MSG.FAVCRAWLER_MODE.value)
 
         config = self.config["twitter_api_client"]
         ct0 = config["ct0"]
