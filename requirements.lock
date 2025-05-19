@@ -14,8 +14,9 @@ aiofiles==23.2.1
     # via twitter-api-client
 anyio==4.4.0
     # via httpx
-beautifulsoup4==4.12.3
-    # via media-gathering
+beautifulsoup4==4.12.2
+    # via tweeterpy
+    # via xclienttransaction
 certifi==2024.2.2
     # via httpcore
     # via httpx
@@ -32,6 +33,8 @@ coverage==7.5.3
     # via media-gathering
 cryptography==42.0.7
     # via media-gathering
+demjson3==3.0.6
+    # via tweeterpy
 emoji==2.12.1
     # via media-gathering
 freezegun==1.5.1
@@ -53,6 +56,8 @@ isort==5.13.2
     # via media-gathering
 jinja2==3.1.4
     # via media-gathering
+lxml==5.2.2
+    # via tweeterpy
 m3u8==5.0.0
     # via twitter-api-client
 markupsafe==2.1.5
@@ -74,14 +79,17 @@ pycodestyle==2.11.1
     # via media-gathering
 pycparser==2.22
     # via cffi
+pyotp==2.9.0
+    # via tweeterpy
 pyparsing==3.1.2
     # via cloudscraper
 python-dateutil==2.9.0.post0
     # via freezegun
-requests==2.32.3
+requests==2.32.2
     # via cloudscraper
     # via pixivpy3
     # via requests-toolbelt
+    # via tweeterpy
 requests-toolbelt==1.0.0
     # via cloudscraper
     # via pixivpy3
@@ -100,6 +108,8 @@ sqlalchemy==2.0.30
     # via media-gathering
 tqdm==4.66.4
     # via twitter-api-client
+tweeterpy==2.0.12
+    # via media-gathering
 twitter-api-client==0.10.22
     # via media-gathering
 typing-extensions==4.12.0
@@ -111,5 +121,7 @@ urllib3==2.2.1
     # via requests
 websockets==12.0
     # via twitter-api-client
+xclienttransaction==1.0.0
+    # via tweeterpy
 xmltodict==0.13.0
     # via media-gathering

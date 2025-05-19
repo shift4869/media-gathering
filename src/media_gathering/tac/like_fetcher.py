@@ -30,8 +30,8 @@ class LikeFetcher(FetcherBase):
         base_path.mkdir(parents=True, exist_ok=True)
 
         # TAC で likes ページをスクレイピング
-        scraper = self.twitter.scraper
-        likes = scraper.likes([self.twitter.target_id], limit=limit)
+        scraper = self.tac_twitter.scraper
+        likes = scraper.likes([self.target_id], limit=limit)
 
         # キャッシュに保存
         for i, like in enumerate(likes):
@@ -63,24 +63,22 @@ class LikeFetcher(FetcherBase):
 
 
 if __name__ == "__main__":
-    import configparser
     import logging.config
 
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
     CONFIG_FILE_NAME = "./config/config.json"
-    config_parser = configparser.ConfigParser()
-    if not config_parser.read(CONFIG_FILE_NAME, encoding="utf8"):
+    config = orjson.loads(Path(CONFIG_FILE_NAME).read_bytes())
+    if not config:
         raise IOError
 
-    config = config_parser["twitter_api_client"]
-    ct0 = config["ct0"]
-    auth_token = config["auth_token"]
-    target_screen_name = config["target_screen_name"]
-    target_id = int(config["target_id"])
+    ct0 = config["twitter_api_client"]["ct0"]
+    auth_token = config["twitter_api_client"]["auth_token"]
+    target_screen_name = config["twitter_api_client"]["target_screen_name"]
+    target_id = int(config["twitter_api_client"]["target_id"])
     like = LikeFetcher(ct0, auth_token, target_screen_name, target_id)
 
     # like取得
-    # fetched_tweets = like.fetch()
+    fetched_tweets = like.fetch()
 
     # キャッシュから読み込み
     base_path = Path(like.CACHE_PATH)

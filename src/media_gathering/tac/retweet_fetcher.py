@@ -30,8 +30,11 @@ class RetweetFetcher(FetcherBase):
         base_path.mkdir(parents=True, exist_ok=True)
 
         # TAC で TL をスクレイピング
-        scraper = self.twitter.scraper
-        timeline_tweets = scraper.tweets_and_replies([self.twitter.target_id], limit=limit)
+        # scraper = self.twitter.scraper
+        # timeline_tweets = scraper.tweets_and_replies([self.twitter.target_id], limit=limit)
+        timeline_tweets = self.twitter.get_user_tweets(user_id=self.target_id, with_replies=True, total=limit)[
+            "data"
+        ]
 
         # キャッシュに保存
         for i, tweet in enumerate(timeline_tweets):
@@ -63,24 +66,22 @@ class RetweetFetcher(FetcherBase):
 
 
 if __name__ == "__main__":
-    import configparser
     import logging.config
 
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
     CONFIG_FILE_NAME = "./config/config.json"
-    config_parser = configparser.ConfigParser()
-    if not config_parser.read(CONFIG_FILE_NAME, encoding="utf8"):
+    config = orjson.loads(Path(CONFIG_FILE_NAME).read_bytes())
+    if not config:
         raise IOError
 
-    config = config_parser["twitter_api_client"]
-    ct0 = config["ct0"]
-    auth_token = config["auth_token"]
-    target_screen_name = config["target_screen_name"]
-    target_id = int(config["target_id"])
+    ct0 = config["twitter_api_client"]["ct0"]
+    auth_token = config["twitter_api_client"]["auth_token"]
+    target_screen_name = config["twitter_api_client"]["target_screen_name"]
+    target_id = int(config["twitter_api_client"]["target_id"])
     retweet = RetweetFetcher(ct0, auth_token, target_screen_name, target_id)
 
     # retweet取得
-    # fetched_tweets = retweet.fetch()
+    fetched_tweets = retweet.fetch()
 
     # キャッシュから読み込み
     base_path = Path(retweet.CACHE_PATH)
