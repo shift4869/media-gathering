@@ -169,6 +169,10 @@ MIT License
 twitterの認証やスクレイピングに使用。
 MIT License
 
+@iSarabjitDhiman / tweeterpy
+twitterのweb通信を模倣する。
+MIT License
+
 @martinblech / xmltodict  
 xmlの構造解析に使用。
 MIT License
@@ -191,7 +195,7 @@ MIT License
 ただし、以下の著作権表示、ライセンス表示が必要となる。
 
 - 著作権表示
-    - 「Copyright (c) 2018 - 2023 [shift](https://twitter.com/_shift4869) (https://twitter.com/_shift4869)」と記載する。
+    - 「Copyright (c) 2018 - 2025 [shift](https://twitter.com/_shift4869) (https://twitter.com/_shift4869)」と記載する。
         - （同じ意味ならばどんな表記でも良い。）
 - ライセンス表示
     - [MIT License](https://github.com/shift4869/media-gathering/blob/master/LICENSE)  であるということを記載する。
@@ -208,6 +212,7 @@ MIT License
 
 以上（情報更新され次第追記）
 
-2023/12/08 追記・修正 [shift](https://twitter.com/_shift4869)
-2023/08/16 追記 [shift](https://twitter.com/_shift4869)
-2021/05/18 初稿作成 [shift](https://twitter.com/_shift4869)  
+2025/05/21 追記（tweeterpy追加） [shift](https://x.com/_shift4869)  
+2023/12/08 追記・修正 [shift](https://twitter.com/_shift4869)  
+2023/08/16 追記 [shift](https://twitter.com/_shift4869)  
+2021/05/18 初稿作成 [shift](https://twitter.com/_shift4869)    
