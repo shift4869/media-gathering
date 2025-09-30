@@ -95,6 +95,9 @@ class ParserBase(metaclass=ABCMeta):
                 "source": via_html,
             }:
                 via = re.findall(r"^<.+?>([^<]*?)<.+?>$", via_html)[0]
+                if "screen_name" not in author.keys():
+                    author = data["core"]["user_results"]["result"]["core"]
+
                 result = {
                     "author": author,
                     "tweet": tweet,
