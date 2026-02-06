@@ -73,7 +73,7 @@
 
 ## License/Author
 [MIT License](https://github.com/shift4869/media-gathering/blob/master/LICENSE)  
-Copyright (c) 2018 - 2025 [shift](https://x.com/_shift4869)
+Copyright (c) 2018 ~ [shift](https://x.com/_shift4869)
 
 使用した外部ライブラリのライセンスについては[こちら](https://github.com/shift4869/media-gathering/blob/master/EXTERNAL_LIBRARY.md)  を参照
 
