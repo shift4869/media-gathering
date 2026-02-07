@@ -63,7 +63,7 @@ dev-dependencies = []
 
 [tool.rye.scripts]
 unittest = "python -m unittest"
-coverage_html = {chain = ["coverage run --source . -m unittest discover", "coverage html"]}
+cover = {chain = ["coverage run --source . -m unittest discover", "coverage html"]}
 copy_to_run = "./copy_to_run.bat"
 
 [tool.hatch.metadata]
