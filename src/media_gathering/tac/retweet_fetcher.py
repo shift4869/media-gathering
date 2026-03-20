@@ -30,8 +30,8 @@ class RetweetFetcher(FetcherBase):
         base_path.mkdir(parents=True, exist_ok=True)
 
         # TAC で TL をスクレイピング
-        # scraper = self.twitter.scraper
-        # timeline_tweets = scraper.tweets_and_replies([self.twitter.target_id], limit=limit)
+        # scraper = self.tac_twitter.scraper
+        # timeline_tweets = scraper.tweets_and_replies([self.tac_twitter.target_id], limit=limit)
         # TP で TL をスクレイピング
         timeline_tweets = self.twitter.get_user_tweets(user_id=self.target_id, with_replies=True, total=limit)["data"]
         logger.info(f"Fetched Tweet num {len(timeline_tweets)}.")

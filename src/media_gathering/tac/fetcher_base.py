@@ -24,7 +24,7 @@ class FetcherBase(metaclass=ABCMeta):
         self.target_screen_name = target_screen_name
         self.target_id = target_id
 
-        self.twitter = TweeterPy(log_level="WARNING")
+        self.twitter = TweeterPy()
         self.session_path.parent.mkdir(parents=True, exist_ok=True)
         self.twitter.generate_session(auth_token=self.auth_token)
         # self.twitter.save_session(path=Path(self.session_path).parent)
@@ -48,4 +48,32 @@ class FetcherBase(metaclass=ABCMeta):
 
 
 if __name__ == "__main__":
-    pass
+    import logging.config
+
+    import orjson
+
+    from media_gathering.tac.like_fetcher import LikeFetcher
+    from media_gathering.tac.retweet_fetcher import RetweetFetcher
+
+    logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
+    CONFIG_FILE_NAME = "./config/config.json"
+    config = orjson.loads(Path(CONFIG_FILE_NAME).read_bytes())
+    if not config:
+        raise IOError
+
+    ct0 = config["twitter_api_client"]["ct0"]
+    auth_token = config["twitter_api_client"]["auth_token"]
+    target_screen_name = config["twitter_api_client"]["target_screen_name"]
+    target_id = int(config["twitter_api_client"]["target_id"])
+    retweet = RetweetFetcher(ct0, auth_token, target_screen_name, target_id)
+
+    # retweet取得
+    fetched_tweets = retweet.fetch()
+
+    # キャッシュから読み込み
+    base_path = Path(retweet.CACHE_PATH)
+    fetched_tweets = []
+    for cache_path in base_path.glob("*timeline_tweets*"):
+        json_dict = orjson.loads(cache_path.read_bytes())
+        fetched_tweets.append(json_dict)
+    print(len(fetched_tweets))
