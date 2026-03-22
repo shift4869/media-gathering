@@ -85,7 +85,6 @@ class RetweetCrawler(Crawler):
         logger.info(MSG.GETTING_EXTERNAL_LINK_DONE.value)
 
         # 後処理
-        self.shrink_folder(int(self.config["holding"]["holding_file_num"]))
         self.end_of_process()
         logger.info(MSG.RTCRAWLER_CRAWL_DONE.value)
 

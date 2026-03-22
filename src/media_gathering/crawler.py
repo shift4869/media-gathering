@@ -22,7 +22,7 @@ from media_gathering.log_message import MSG
 from media_gathering.model import ExternalLink
 from media_gathering.tac.tweet_info import TweetInfo
 from media_gathering.tac.twitter_api_client_adapter import TwitterAPIClientAdapter
-from media_gathering.util import Result
+from media_gathering.util import Result, manage_cache_file
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
 for name in logging.root.manager.loggerDict:
@@ -247,25 +247,39 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             Result: 成功時Result.success
         """
-        logger.info("")
-
-        done_msg = self.make_done_message()
+        logger.info(MSG.CRAWLER_EOP_START.value)
         config = self.config
-        HtmlWriter(self.type, self.db_cont).write_result_html()
 
+        # フォルダ内ファイルの数を一定にする
+        self.shrink_folder(int(config["holding"]["holding_file_num"]))
+
+        # キャッシュファイルの後始末
+        target_id = config["twitter_api_client"]["target_id"]
+        cache_file_path = Path(f"./data/{target_id}")
+        manage_cache_file(cache_file_path)
+
+        # 完了時メッセージ作成
+        done_msg = self.make_done_message()
         logger.info("\t".join(done_msg.splitlines()))
 
+        # html書き出し
+        HtmlWriter(self.type, self.db_cont).write_result_html()
+
+        # 新たにメディアを追加した、または削除した場合
         if self.add_cnt != 0 or self.del_cnt != 0:
+            # 追加したメディアURLをログ書き出し(debug)
             if self.add_cnt != 0:
                 logger.debug("add url:")
                 for url in self.add_url_list:
                     logger.debug(url)
 
+            # 削除したメディアURLをログ書き出し(debug)
             if self.del_cnt != 0:
                 logger.debug("del url:")
                 for url in self.del_url_list:
                     logger.debug(url)
 
+            # ツイート通知をする設定ならば
             if self.is_post():
                 ct0 = config["twitter_api_client"]["ct0"]
                 auth_token = config["twitter_api_client"]["auth_token"]
@@ -276,6 +290,7 @@ class Crawler(metaclass=ABCMeta):
                 msg = f"@{reply_to_user_name} {done_msg}"
                 twitter.account.tweet(msg)
 
+            # discord通知をする設定ならば
             if config["discord_webhook_url"]["is_post_discord_notify"]:
                 try:
                     self.post_discord_notify(done_msg)
@@ -301,6 +316,7 @@ class Crawler(metaclass=ABCMeta):
                     logger.warn("Slack notify post failed.")
 
         logger.info("End Of " + self.type + " Crawl Process.")
+        logger.info(MSG.CRAWLER_EOP_DONE.value)
         return Result.success
 
     def post_discord_notify(self, message: str, is_embed: bool = True) -> Result:

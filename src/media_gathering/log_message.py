@@ -11,6 +11,8 @@ class MSG(enum.Enum):
 
     CRAWLER_INIT_START = "Crawler init -> start"
     CRAWLER_INIT_DONE = "Crawler init -> done"
+    CRAWLER_EOP_START = "Crawler end of process -> start"
+    CRAWLER_EOP_DONE = "Crawler end of process -> done"
 
     FAVCRAWLER_INIT_START = "Fav Crawler init -> start"
     FAVCRAWLER_INIT_DONE = "Fav Crawler init -> done"
