@@ -6,12 +6,10 @@ from pathlib import Path
 from media_gathering.fav_crawler import FavCrawler
 from media_gathering.log_message import MSG
 from media_gathering.retweet_crawler import RetweetCrawler
+from media_gathering.util import log_suppress
 
 logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
-for name in logging.root.manager.loggerDict:
-    # 自分以外のすべてのライブラリのログ出力を抑制
-    if "media_gathering" not in name:
-        getLogger(name).disabled = True
+log_suppress()
 logger = getLogger(__name__)
 logger.setLevel(INFO)
 

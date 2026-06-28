@@ -1,8 +1,10 @@
 import calendar
 import enum
+import logging
 import zipfile
 from collections import defaultdict
 from datetime import datetime, timedelta
+from logging import getLogger
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +12,13 @@ from typing import Any
 class Result(enum.Enum):
     success = enum.auto()
     failed = enum.auto()
+
+
+def log_suppress():
+    for name in logging.root.manager.loggerDict:
+        # 自分以外のすべてのライブラリのログ出力を抑制
+        if "media_gathering" not in name and "__main__" not in name:
+            getLogger(name).disabled = True
 
 
 def find_values(

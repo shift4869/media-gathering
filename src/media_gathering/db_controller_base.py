@@ -1,3 +1,4 @@
+import logging
 import re
 from abc import ABCMeta, abstractmethod
 from datetime import date, datetime, timedelta
@@ -8,6 +9,7 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import sessionmaker
 
 from media_gathering.model import Base, DeleteTarget, ExternalLink
+from media_gathering.util import log_suppress
 
 DEBUG = False
 
@@ -16,6 +18,7 @@ class DBControllerBase(metaclass=ABCMeta):
     def __init__(self, db_fullpath="PG_DB.db"):
         self.dbname = db_fullpath
         self.engine = create_engine(f"sqlite:///{self.dbname}", echo=False)
+        log_suppress()
         Base.metadata.create_all(self.engine)
 
     @abstractmethod
@@ -182,7 +185,8 @@ class DBControllerBase(metaclass=ABCMeta):
         t = date.today() - timedelta(1)
         # 今日未満 = 昨日以前の通知ツイートをDBから取得
         records = (
-            session.query(DeleteTarget)
+            session
+            .query(DeleteTarget)
             .filter(~DeleteTarget.delete_done)
             .filter(DeleteTarget.created_at < t.strftime("%Y-%m-%d %H:%M:%S"))
             .all()
