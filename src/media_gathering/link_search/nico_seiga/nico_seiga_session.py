@@ -8,9 +8,7 @@ from media_gathering.link_search.nico_seiga.authorid import Authorid
 from media_gathering.link_search.nico_seiga.authorname import Authorname
 from media_gathering.link_search.nico_seiga.illustid import Illustid
 from media_gathering.link_search.nico_seiga.illustname import Illustname
-from media_gathering.link_search.password import Password
 from media_gathering.link_search.url import URL
-from media_gathering.link_search.username import Username
 from media_gathering.util import find_values
 
 
@@ -38,8 +36,8 @@ class NicoSeigaSession:
     # 静画直リンクエンドポイントベース
     IMAGE_SOUECE_API_ENDPOINT_BASE = "https://seiga.nicovideo.jp/image/source?id="
 
-    def __init__(self, username: Username, password: Password) -> None:
-        object.__setattr__(self, "_session", self.login(username, password))
+    def __init__(self, config: dict) -> None:
+        object.__setattr__(self, "_session", self.login(config))
         self._is_valid()
 
     def _is_valid(self) -> bool:
@@ -47,12 +45,8 @@ class NicoSeigaSession:
             raise TypeError("_session is not httpx.Client.")
         return True
 
-    def login(self, username: Username, password: Password) -> httpx.Client:
+    def login(self, config: dict) -> httpx.Client:
         """セッションを開始し、認証・ログインする
-
-        Args:
-            username (Username): ニコニコログイン用ユーザーID
-            password (Password):  ニコニコログイン用パスワード
 
         Returns:
             session (NicoSeigaSession): 認証済セッション
@@ -62,12 +56,17 @@ class NicoSeigaSession:
         session = httpx.Client(follow_redirects=True, timeout=60.0, transport=transport)
 
         # ログイン
-        params = {
-            "mail_tel": username.name,
-            "password": password.password,
+        cookies = {
+            "user_session": config["nico_seiga"]["user_session"],
         }
-        response = session.post(self.LOGIN_ENDPOINT, data=params, headers=self.HEADERS)
-        response.raise_for_status()
+        for name, value in cookies.items():
+            session.cookies.set(
+                name,
+                value,
+                domain=".nicovideo.jp",
+            )
+        # response = session.post(self.LOGIN_ENDPOINT, data=params, headers=self.HEADERS)
+        # response.raise_for_status()
         return session
 
     def get_author_id(self, illust_id: Illustid) -> Authorid:
@@ -168,19 +167,29 @@ class NicoSeigaSession:
 
 
 if __name__ == "__main__":
+    import pprint
     from pathlib import Path
 
     import orjson
 
-    from media_gathering.link_search.nico_seiga.nico_seiga_fetcher import NicoSeigaFetcher
-
     CONFIG_FILE_NAME = "./config/config.json"
     config = orjson.loads(Path(CONFIG_FILE_NAME).read_bytes())
 
-    base_path = Path("./media_gathering/link_search/")
-    username = Username(config["nico_seiga"]["email"])
-    password = Password(config["nico_seiga"]["password"])
-    fetcher = NicoSeigaFetcher(username, password, base_path)
-    illust_id = 11308865
-    illust_url = f"https://seiga.nicovideo.jp/seiga/im{illust_id}?query=1"
-    fetcher.fetch(illust_url)
+    nicoseiga_session = NicoSeigaSession(config)
+    illust_id = Illustid(11308865)
+    illust_url = f"https://seiga.nicovideo.jp/seiga/im11308865?query=1"
+    author_id: Authorid = nicoseiga_session.get_author_id(illust_id)
+    author_name: Authorname = nicoseiga_session.get_author_name(author_id)
+    title: Illustname = nicoseiga_session.get_illust_title(illust_id)
+    source_url: URL = nicoseiga_session.get_source_url(illust_id)
+    illust_binary: bytes = nicoseiga_session.get_illust_binary(source_url)
+
+    pprint.pprint({
+        "illust_id": illust_id,
+        "illust_url": illust_url,
+        "author_id": author_id,
+        "author_name": author_name,
+        "title": title,
+        "source_url": source_url,
+        "illust_binary(length)": len(illust_binary),
+    })

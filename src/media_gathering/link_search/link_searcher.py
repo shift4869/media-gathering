@@ -99,7 +99,7 @@ class LinkSearcher:
         try:
             c = config["nico_seiga"]
             if c["is_seiga_trace"]:
-                fetcher = NicoSeigaFetcher(Username(c["email"]), Password(c["password"]), Path(c["save_base_path"]))
+                fetcher = NicoSeigaFetcher(config, Path(c["save_base_path"]))
                 ls.register(fetcher)
         except Exception:
             notify("niconico seiga")

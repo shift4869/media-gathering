@@ -6,9 +6,7 @@ from media_gathering.link_search.fetcher_base import FetcherBase
 from media_gathering.link_search.nico_seiga.nico_seiga_downloader import NicoSeigaDownloader
 from media_gathering.link_search.nico_seiga.nico_seiga_session import NicoSeigaSession
 from media_gathering.link_search.nico_seiga.nico_seiga_url import NicoSeigaURL
-from media_gathering.link_search.password import Password
 from media_gathering.link_search.url import URL
-from media_gathering.link_search.username import Username
 
 logger = getLogger(__name__)
 logger.setLevel(INFO)
@@ -21,26 +19,22 @@ class NicoSeigaFetcher(FetcherBase):
     session: NicoSeigaSession  # 取得に使う認証済セッション
     base_path: Path  # 保存ディレクトリベースパス
 
-    def __init__(self, username: Username, password: Password, base_path: Path):
+    def __init__(self, config: dict, base_path: Path):
         """初期化処理
 
         バリデーションとクッキー取得
 
         Args:
-            username (Username): ニコニコログイン用ユーザーID
-            password (Password):  ニコニコログイン用パスワード
             base_path (Path): 保存ディレクトリベースパス
         """
         super().__init__()
 
-        if not isinstance(username, Username):
-            raise TypeError("username is not Username.")
-        if not isinstance(password, Password):
-            raise TypeError("password is not Password.")
+        if not isinstance(config, dict):
+            raise TypeError("config must be dict.")
         if not isinstance(base_path, Path):
-            raise TypeError("base_path is not Path.")
+            raise TypeError("base_path must be Path.")
 
-        object.__setattr__(self, "session", NicoSeigaSession(username, password))
+        object.__setattr__(self, "session", NicoSeigaSession(config))
         object.__setattr__(self, "base_path", base_path)
 
     def is_target_url(self, url: URL) -> bool:
@@ -79,9 +73,7 @@ if __name__ == "__main__":
 
     base_path = Path("./media_gathering/link_search/")
     if config["nico_seiga"]["is_seiga_trace"]:
-        fetcher = NicoSeigaFetcher(
-            Username(config["nico_seiga"]["email"]), Password(config["nico_seiga"]["password"]), base_path
-        )
+        fetcher = NicoSeigaFetcher(config, base_path)
         illust_id = 11308865
         illust_url = f"https://seiga.nicovideo.jp/seiga/im{illust_id}?query=1"
         fetcher.fetch(illust_url)

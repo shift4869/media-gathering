@@ -97,8 +97,6 @@ if __name__ == "__main__":
     import orjson
 
     from media_gathering.link_search.nico_seiga.nico_seiga_fetcher import NicoSeigaFetcher
-    from media_gathering.link_search.password import Password
-    from media_gathering.link_search.username import Username
 
     logging.config.fileConfig("./log/logging.ini", disable_existing_loggers=False)
     CONFIG_FILE_NAME = "./config/config.json"
@@ -106,9 +104,7 @@ if __name__ == "__main__":
 
     base_path = Path("./media_gathering/link_search/")
     if config["nico_seiga"]["is_seiga_trace"]:
-        fetcher = NicoSeigaFetcher(
-            Username(config["nico_seiga"]["email"]), Password(config["nico_seiga"]["password"]), base_path
-        )
+        fetcher = NicoSeigaFetcher(config, base_path)
         illust_id = 11308865
         illust_url = f"https://seiga.nicovideo.jp/seiga/im{illust_id}?query=1"
         fetcher.fetch(illust_url)
