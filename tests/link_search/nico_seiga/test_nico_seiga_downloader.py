@@ -1,129 +1,111 @@
-"""NicoSeigaDownloader のテスト
-
-ニコニコ静画作品をDLするクラスをテストする
-"""
-
 import shutil
 import sys
 import unittest
-from contextlib import ExitStack
 from pathlib import Path
-
-from mock import MagicMock, mock_open, patch
+from unittest import TestCase
+from unittest.mock import Mock, patch
 
 from media_gathering.link_search.nico_seiga.authorid import Authorid
 from media_gathering.link_search.nico_seiga.authorname import Authorname
+from media_gathering.link_search.nico_seiga.illustid import Illustid
 from media_gathering.link_search.nico_seiga.illustname import Illustname
 from media_gathering.link_search.nico_seiga.nico_seiga_downloader import DownloadResult, NicoSeigaDownloader
-from media_gathering.link_search.nico_seiga.nico_seiga_info import NicoSeigaInfo
-from media_gathering.link_search.nico_seiga.nico_seiga_save_directory_path import NicoSeigaSaveDirectoryPath
 from media_gathering.link_search.nico_seiga.nico_seiga_session import NicoSeigaSession
 from media_gathering.link_search.nico_seiga.nico_seiga_url import NicoSeigaURL
+from media_gathering.link_search.url import URL
 
 
-class TestNicoSeigaDownloader(unittest.TestCase):
+class TestNicoSeigaDownloader(TestCase):
     def setUp(self):
-        self.TBP = Path("./tests")
+        self.base_path = Path("./test_output")
+        self.url = NicoSeigaURL.create("https://seiga.nicovideo.jp/seiga/im12345?query=1")
+        self.session = Mock(spec=NicoSeigaSession)
+        self.session.get_author_id.return_value = Authorid(11111)
+        self.session.get_illust_title.return_value = Illustname("test title")
+        self.session.get_author_name.return_value = Authorname("test author")
+        self.session.get_source_url.return_value = URL("https://seiga.nicovideo.jp/seiga/im12345?query=1")
+        self.session.get_illust_binary.return_value = b"\x89PNG\r\n\x1a\n"
+        self.mock_logger = self.enterContext(
+            patch("media_gathering.link_search.nico_seiga.nico_seiga_downloader.logger")
+        )
 
     def tearDown(self):
-        pass
+        if self.base_path.exists():
+            shutil.rmtree(self.base_path)
 
-    def test_DownloadResult(self):
-        expect = ["SUCCESS", "PASSED"]
-        actual = [r.name for r in DownloadResult]
-        self.assertEqual(expect, actual)
+    def test_init(self):
+        downloader = NicoSeigaDownloader(
+            self.url,
+            self.base_path,
+            self.session,
+        )
 
-    def test_NicoSeigaDownloader(self):
-        nicoseiga_url = NicoSeigaURL.create("https://seiga.nicovideo.jp/seiga/im11111111")
-        base_path = Path("./tests")
-        session = None
-        with ExitStack() as stack:
-            m_sessionlogin = stack.enter_context(
-                patch("media_gathering.link_search.nico_seiga.nico_seiga_session.NicoSeigaSession.login")
-            )
-            m_is_valid = stack.enter_context(
-                patch("media_gathering.link_search.nico_seiga.nico_seiga_session.NicoSeigaSession._is_valid")
-            )
-            session = NicoSeigaSession("username", "password")
+        self.assertTrue(downloader._is_valid())
 
-        downloader = NicoSeigaDownloader(nicoseiga_url, base_path, session)
-
-        self.assertEqual(nicoseiga_url, downloader.nicoseiga_url)
-        self.assertEqual(base_path, downloader.base_path)
-        self.assertEqual(session, downloader.session)
-
-    def test_is_valid(self):
-        nicoseiga_url = NicoSeigaURL.create("https://seiga.nicovideo.jp/seiga/im11111111")
-        base_path = Path("./tests")
-        session = None
-        with ExitStack() as stack:
-            m_sessionlogin = stack.enter_context(
-                patch("media_gathering.link_search.nico_seiga.nico_seiga_session.NicoSeigaSession.login")
-            )
-            m_is_valid = stack.enter_context(
-                patch("media_gathering.link_search.nico_seiga.nico_seiga_session.NicoSeigaSession._is_valid")
-            )
-            session = NicoSeigaSession("username", "password")
-
-        downloader = NicoSeigaDownloader(nicoseiga_url, base_path, session)
-
-        # 正常系
-        self.assertEqual(True, downloader._is_valid())
-
-        # 異常系
-        # 作品ページ指定が不正
         with self.assertRaises(TypeError):
-            downloader = NicoSeigaDownloader("invalid args", base_path, session)
-
-        # 保存ディレクトリベースパス指定が不正
-        with self.assertRaises(TypeError):
-            downloader = NicoSeigaDownloader(nicoseiga_url, "invalid args", session)
-
-        # セッション指定が不正
-        with self.assertRaises(TypeError):
-            downloader = NicoSeigaDownloader(nicoseiga_url, base_path, "invalid args")
-
-    def test_download(self):
-        nicoseiga_url = NicoSeigaURL.create("https://seiga.nicovideo.jp/seiga/im11111111")
-        base_path = Path("./tests")
-        author_id = Authorid(12345678)
-        illust_id = nicoseiga_url.illust_id
-        illust_name = Illustname("作品名1")
-        author_name = Authorname("作成者1")
-        illust_info = NicoSeigaInfo(illust_id, illust_name, author_id, author_name)
-        save_directory_path = NicoSeigaSaveDirectoryPath.create(illust_info, base_path)
-
-        session = MagicMock()
-        session.get_author_id.side_effect = lambda id: author_id
-        session.get_illust_title.side_effect = lambda id: illust_name
-        session.get_author_name.side_effect = lambda id: author_name
-        session.get_source_url.side_effect = lambda id: None
-        session.get_illust_binary.side_effect = lambda url: b"\x89\x50\x4e\x47\x0d\x0a\x1a\x0a"
-        with ExitStack() as stack:
-            m_is_valid = stack.enter_context(
-                patch("media_gathering.link_search.nico_seiga.nico_seiga_downloader.NicoSeigaDownloader._is_valid")
-            )
-            # m_mkdir = stack.enter_context(patch("media_gathering.link_search.nico_seiga.nico_seiga_downloader.Path.mkdir"))
-            # m_open = stack.enter_context(patch("media_gathering.link_search.nico_seiga.nico_seiga_downloader.Path.open", mock_open()))
-            m_logger_info = stack.enter_context(
-                patch("media_gathering.link_search.nico_seiga.nico_seiga_downloader.logger.info")
+            NicoSeigaDownloader(
+                "invalid",
+                self.base_path,
+                self.session,
             )
 
-            # 初回DL想定
-            downloader = NicoSeigaDownloader(nicoseiga_url, base_path, session)
-            expect = DownloadResult.SUCCESS
-            actual = downloader.download()
-            self.assertEqual(expect, actual)
+        with self.assertRaises(TypeError):
+            NicoSeigaDownloader(
+                self.url,
+                "invalid",
+                self.session,
+            )
 
-            # 2回目DL想定
-            expect = DownloadResult.PASSED
-            actual = downloader.download()
-            self.assertEqual(expect, actual)
+        with self.assertRaises(TypeError):
+            NicoSeigaDownloader(
+                self.url,
+                self.base_path,
+                "invalid",
+            )
 
-            # 後始末
-            sd_path = save_directory_path.path
-            if sd_path.parent.exists():
-                shutil.rmtree(sd_path.parent)
+    def test_download_success(self):
+        mock_extension = self.enterContext(
+            patch("media_gathering.link_search.nico_seiga.nico_seiga_downloader.IllustExtension.create")
+        )
+        mock_extension.return_value.extension = ".png"
+
+        downloader = NicoSeigaDownloader(
+            self.url,
+            self.base_path,
+            self.session,
+        )
+
+        result = downloader.download()
+        self.assertEqual(
+            result,
+            DownloadResult.SUCCESS,
+        )
+
+    def test_download_skip_existing_file(self):
+        downloader = NicoSeigaDownloader(
+            self.url,
+            self.base_path,
+            self.session,
+        )
+
+        # 1回目DLしてファイル作成
+        result1 = downloader.download()
+        self.assertEqual(
+            result1,
+            DownloadResult.SUCCESS,
+        )
+        self.session.get_illust_binary.assert_called_once()
+
+        # Mockの呼び出し履歴をリセット
+        self.session.get_illust_binary.reset_mock()
+        # 2回目は存在判定でPASS
+        result2 = downloader.download()
+        self.assertEqual(
+            result2,
+            DownloadResult.PASSED,
+        )
+        # 再DLされていないことを確認
+        self.session.get_illust_binary.assert_not_called()
 
 
 if __name__ == "__main__":

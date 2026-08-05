@@ -93,7 +93,6 @@ class TestFavCrawler(unittest.TestCase):
         mock_trace_external_link = self.enterContext(
             patch("media_gathering.fav_crawler.FavCrawler.trace_external_link")
         )
-        mock_shrink_folder = self.enterContext(patch("media_gathering.fav_crawler.FavCrawler.shrink_folder"))
         mock_end_of_process = self.enterContext(patch("media_gathering.fav_crawler.FavCrawler.end_of_process"))
 
         instance = self._get_instance()
@@ -126,7 +125,6 @@ class TestFavCrawler(unittest.TestCase):
         mock_parser().parse_to_ExternalLink.assert_called_once_with()
         mock_trace_external_link.assert_called_once_with(["to_convert_ExternalLink"])
 
-        mock_shrink_folder.assert_called_once_with(int(instance.config["holding"]["holding_file_num"]))
         mock_end_of_process.assert_called_once_with()
 
 

@@ -27,13 +27,13 @@ class TestLikeFetcher(unittest.TestCase):
         mock_tac_twitter.side_effect = lambda ct0, auth_token, target_screen_name, target_id: self.mock_tac_twitter
 
         self.mock_twitter = MagicMock()
-        mock_twitter.side_effect = lambda log_level: self.mock_twitter
+        mock_twitter.side_effect = lambda: self.mock_twitter
 
         self.fetcher = LikeFetcher(self.ct0, self.auth_token, self.target_screen_name, self.target_id)
         self.fetcher.CACHE_PATH = self.CACHE_PATH
 
         mock_tac_twitter.assert_called_once_with(self.ct0, self.auth_token, self.target_screen_name, self.target_id)
-        mock_twitter.assert_called_once_with(log_level="WARNING")
+        mock_twitter.assert_called_once_with()
 
     def tearDown(self):
         if self.CACHE_PATH.exists():

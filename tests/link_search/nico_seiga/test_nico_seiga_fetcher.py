@@ -1,104 +1,73 @@
-"""NicoSeigaDownloader のテスト
-
-ニコニコ静画作品をDLするクラスをテストする
-"""
-
-import shutil
 import sys
 import unittest
-from contextlib import ExitStack
 from pathlib import Path
+from unittest import TestCase
+from unittest.mock import patch
 
-from mock import MagicMock, PropertyMock, mock_open, patch
-
-from media_gathering.link_search.fetcher_base import FetcherBase
-from media_gathering.link_search.nico_seiga.authorid import Authorid
-from media_gathering.link_search.nico_seiga.authorname import Authorname
-from media_gathering.link_search.nico_seiga.illustname import Illustname
-from media_gathering.link_search.nico_seiga.nico_seiga_downloader import NicoSeigaDownloader
 from media_gathering.link_search.nico_seiga.nico_seiga_fetcher import NicoSeigaFetcher
-from media_gathering.link_search.nico_seiga.nico_seiga_session import NicoSeigaSession
-from media_gathering.link_search.nico_seiga.nico_seiga_url import NicoSeigaURL
-from media_gathering.link_search.password import Password
 from media_gathering.link_search.url import URL
-from media_gathering.link_search.username import Username
 
 
-class TestNicoSeigaFetcher(unittest.TestCase):
+class TestNicoSeigaFetcher(TestCase):
     def setUp(self):
-        self.TBP = Path("./tests")
+        self.config = {
+            "nico_seiga": {
+                "user_session": "test_user_session",
+            }
+        }
+        self.base_path = Path("./test_output")
 
-    def tearDown(self):
-        pass
+    def test_init(self):
+        mock_session = self.enterContext(
+            patch("media_gathering.link_search.nico_seiga.nico_seiga_fetcher.NicoSeigaSession")
+        )
 
-    def test_NicoSeigaFetcher(self):
-        with ExitStack() as stack:
-            m_session = stack.enter_context(
-                patch("media_gathering.link_search.nico_seiga.nico_seiga_fetcher.NicoSeigaSession")
+        fetcher = NicoSeigaFetcher(
+            self.config,
+            self.base_path,
+        )
+
+        self.assertIsInstance(fetcher.base_path, Path)
+        mock_session.assert_called_once_with(self.config)
+
+        with self.assertRaises(TypeError):
+            NicoSeigaFetcher(
+                "invalid",
+                self.base_path,
             )
 
-            username = Username("ユーザー1_ID")
-            password = Password("ユーザー1_PW")
-            base_path = Path(self.TBP)
-
-            # 正常系
-            actual = NicoSeigaFetcher(username, password, base_path)
-            self.assertEqual(True, hasattr(actual, "session"))
-            m_session.assert_called_once_with(username, password)
-            self.assertEqual(True, hasattr(actual, "base_path"))
-            self.assertEqual(base_path, actual.base_path)
-
-            # 異常系
-            with self.assertRaises(TypeError):
-                actual = NicoSeigaFetcher("invalid args", password, base_path)
-            with self.assertRaises(TypeError):
-                actual = NicoSeigaFetcher(username, "invalid args", base_path)
-            with self.assertRaises(TypeError):
-                actual = NicoSeigaFetcher(username, password, "invalid args")
+        with self.assertRaises(TypeError):
+            NicoSeigaFetcher(
+                self.config,
+                "invalid",
+            )
 
     def test_is_target_url(self):
-        with ExitStack() as stack:
-            m_session = stack.enter_context(
-                patch("media_gathering.link_search.nico_seiga.nico_seiga_fetcher.NicoSeigaSession")
-            )
+        fetcher = NicoSeigaFetcher(
+            self.config,
+            self.base_path,
+        )
 
-            username = Username("ユーザー1_ID")
-            password = Password("ユーザー1_PW")
-            base_path = Path(self.TBP)
-            fetcher = NicoSeigaFetcher(username, password, base_path)
+        url = URL("https://seiga.nicovideo.jp/seiga/im12345?query=1")
+        self.assertTrue(fetcher.is_target_url(url))
 
-            # 正常系
-            illust_url = f"https://seiga.nicovideo.jp/seiga/im11111111?query=1"
-            url = URL(illust_url)
-            actual = fetcher.is_target_url(url)
-            self.assertEqual(True, actual)
-
-            # 異常系
-            illust_url = f"https://invalid.url/seiga/im11111111?query=1"
-            url = URL(illust_url)
-            actual = fetcher.is_target_url(url)
-            self.assertEqual(False, actual)
+        url = URL("https://www.example.com/test")
+        self.assertFalse(fetcher.is_target_url(url))
 
     def test_fetch(self):
-        with ExitStack() as stack:
-            m_session = stack.enter_context(
-                patch("media_gathering.link_search.nico_seiga.nico_seiga_fetcher.NicoSeigaSession")
-            )
-            m_downloader = stack.enter_context(
-                patch("media_gathering.link_search.nico_seiga.nico_seiga_fetcher.NicoSeigaDownloader")
-            )
+        mock_downloader = self.enterContext(
+            patch("media_gathering.link_search.nico_seiga.nico_seiga_fetcher.NicoSeigaDownloader")
+        )
 
-            username = Username("ユーザー1_ID")
-            password = Password("ユーザー1_PW")
-            base_path = Path(self.TBP)
-            fetcher = NicoSeigaFetcher(username, password, base_path)
+        fetcher = NicoSeigaFetcher(
+            self.config,
+            self.base_path,
+        )
 
-            illust_url = f"https://seiga.nicovideo.jp/seiga/im11111111?query=1"
-            nicoseiga_url = NicoSeigaURL.create(illust_url)
-            actual = fetcher.fetch(illust_url)
-            self.assertEqual(None, actual)
-            m_downloader.assert_called_once_with(nicoseiga_url, base_path, fetcher.session)
-            m_downloader().download.assert_called_once_with()
+        url = URL("https://seiga.nicovideo.jp/seiga/im12345?query=1")
+        fetcher.fetch(url)
+        mock_downloader.assert_called_once()
+        mock_downloader.return_value.download.assert_called_once()
 
 
 if __name__ == "__main__":

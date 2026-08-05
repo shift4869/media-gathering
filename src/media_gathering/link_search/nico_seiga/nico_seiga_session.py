@@ -26,9 +26,6 @@ class NicoSeigaSession:
     chrome_ver = "Chrome/88.0.4324.190 Safari/537.36"
     user_agent = f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) {chrome_ver}"
     HEADERS = {"User-Agent": user_agent}
-    # ログインエンドポイント
-    endpoint_query = "show_button_twitter=1&site=niconico&show_button_facebook=1&next_url=&mail_or_tel=1"
-    LOGIN_ENDPOINT = f"https://account.nicovideo.jp/api/v1/login?{endpoint_query}"
     # 画像情報取得エンドポイントベース
     IMAGE_INFO_API_ENDPOINT_BASE = "http://seiga.nicovideo.jp/api/illust/info?id="
     # ユーザー情報取得エンドポイントベース
@@ -37,25 +34,11 @@ class NicoSeigaSession:
     IMAGE_SOUECE_API_ENDPOINT_BASE = "https://seiga.nicovideo.jp/image/source?id="
 
     def __init__(self, config: dict) -> None:
-        object.__setattr__(self, "_session", self.login(config))
-        self._is_valid()
-
-    def _is_valid(self) -> bool:
-        if not isinstance(self._session, httpx.Client):
-            raise TypeError("_session is not httpx.Client.")
-        return True
-
-    def login(self, config: dict) -> httpx.Client:
-        """セッションを開始し、認証・ログインする
-
-        Returns:
-            session (NicoSeigaSession): 認証済セッション
-        """
         # セッション開始
         transport = httpx.HTTPTransport(retries=5)
-        session = httpx.Client(follow_redirects=True, timeout=60.0, transport=transport)
+        session = httpx.Client(follow_redirects=True, timeout=60.0, transport=transport, headers=self.HEADERS)
 
-        # ログイン
+        # クッキー情報登録
         cookies = {
             "user_session": config["nico_seiga"]["user_session"],
         }
@@ -65,9 +48,31 @@ class NicoSeigaSession:
                 value,
                 domain=".nicovideo.jp",
             )
-        # response = session.post(self.LOGIN_ENDPOINT, data=params, headers=self.HEADERS)
-        # response.raise_for_status()
-        return session
+
+        object.__setattr__(self, "_session", session)
+        self._is_valid()
+
+    def _is_valid(self) -> bool:
+        if not isinstance(self._session, httpx.Client):
+            raise TypeError("_session is not httpx.Client.")
+        return True
+
+    def _get_illust_info(self, illust_id: Illustid) -> dict:
+        """静画情報を取得する
+
+        Args:
+            illust_id (Illustid): イラストID
+
+        Returns:
+            dict: 静画情報xmlを辞書に変換したもの
+        """
+        url = self.IMAGE_INFO_API_ENDPOINT_BASE + str(illust_id.id)
+
+        response = self._session.get(url)
+        response.raise_for_status()
+
+        result = xmltodict.parse(response.text)
+        return result
 
     def get_author_id(self, illust_id: Illustid) -> Authorid:
         """作者IDを取得する
@@ -78,14 +83,8 @@ class NicoSeigaSession:
         Returns:
             Authorid: 作者ID
         """
-        # 静画情報を取得する
-        info_url = self.IMAGE_INFO_API_ENDPOINT_BASE + str(illust_id.id)
-        response = self._session.get(info_url, headers=self.HEADERS)
-        response.raise_for_status()
-
-        # 静画情報解析
-        response_dict = xmltodict.parse(response.text)
-        author_id_str = find_values(response_dict, "user_id", True, [], [])
+        response_dict = self._get_illust_info(illust_id)
+        author_id_str: str = find_values(response_dict, "user_id", True, [], [])
         author_id = int(author_id_str)
         return Authorid(author_id)
 
@@ -100,12 +99,12 @@ class NicoSeigaSession:
         """
         # 作者情報を取得する
         username_info_url = self.USERNAME_API_ENDPOINT_BASE + str(author_id.id)
-        response = self._session.get(username_info_url, headers=self.HEADERS)
+        response = self._session.get(username_info_url)
         response.raise_for_status()
 
         # 作者情報解析
         response_dict = xmltodict.parse(response.text)
-        author_name = find_values(response_dict, "nickname", True, [], [])
+        author_name: str = find_values(response_dict, "nickname", True, [], [])
         return Authorname(author_name)
 
     def get_illust_title(self, illust_id: Illustid) -> Illustname:
@@ -117,14 +116,8 @@ class NicoSeigaSession:
         Returns:
             Illustname: イラストタイトル
         """
-        # 静画情報を取得する
-        info_url = self.IMAGE_INFO_API_ENDPOINT_BASE + str(illust_id.id)
-        response = self._session.get(info_url, headers=self.HEADERS)
-        response.raise_for_status()
-
-        # 静画情報解析
-        response_dict = xmltodict.parse(response.text)
-        illust_title = find_values(response_dict, "title", True, [], [])
+        response_dict = self._get_illust_info(illust_id)
+        illust_title: str = find_values(response_dict, "title", True, [], [])
         return Illustname(illust_title)
 
     def get_source_url(self, illust_id: Illustid) -> URL:
@@ -138,7 +131,7 @@ class NicoSeigaSession:
         """
         # ニコニコ静画ページ取得（画像表示部分のみ）
         source_page_url = self.IMAGE_SOUECE_API_ENDPOINT_BASE + str(illust_id.id)
-        response = self._session.get(source_page_url, headers=self.HEADERS)
+        response = self._session.get(source_page_url)
         response.raise_for_status()
 
         # ニコニコ静画ページを解析して画像直リンクを取得する
@@ -161,7 +154,7 @@ class NicoSeigaSession:
             bytes: 画像の実体（バイナリ）
         """
         # 画像DL
-        response = self._session.get(source_url.original_url, headers=self.HEADERS)
+        response = self._session.get(source_url.original_url)
         response.raise_for_status()
         return response.content
 

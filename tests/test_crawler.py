@@ -66,7 +66,10 @@ class TestCrawler(unittest.TestCase):
             patch("media_gathering.crawler.Crawler.validate_config_file")
         )
         self.mock_lsr = self.enterContext(patch("media_gathering.crawler.Crawler.link_search_register"))
-        return ConcreteCrawler()
+        instance = ConcreteCrawler()
+        instance.save_path = self.base_path
+        instance.db_cont = MagicMock()
+        return instance
 
     def _make_tweet_info(self, i: int) -> TweetInfo:
         arg_dict = {
