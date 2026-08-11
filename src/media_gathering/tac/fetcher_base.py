@@ -8,8 +8,14 @@ from media_gathering.tac.username import Username
 
 
 class FetcherBase(metaclass=ABCMeta):
+    ct0: str
+    auth_token: str
+    target_screen_name: str
+    target_id: int
+    tac_twitter: TwitterAPIClientAdapter
     twitter: TweeterPy
-    CACHE_PATH = Path("./data/cache/")
+    cache_path: Path
+    session_path: Path
 
     def __init__(self, ct0: str, auth_token: str, target_screen_name: Username | str, target_id: int) -> None:
         # ct0 と auth_token は同一のアカウントのクッキーから取得しなければならない
@@ -25,15 +31,17 @@ class FetcherBase(metaclass=ABCMeta):
         self.target_id = target_id
 
         self.cache_path = Path("./data/") / str(target_id)
-        self.twitter = TweeterPy()
+        self.cache_path.mkdir(parents=True, exist_ok=True)
         self.session_path.parent.mkdir(parents=True, exist_ok=True)
+
+        self.twitter = TweeterPy()
         self.twitter.generate_session(auth_token=self.auth_token)
         # self.twitter.save_session(path=Path(self.session_path).parent)
 
     @property
     def session_path(self) -> Path:
         """セッションファイルパス"""
-        return self.cache_path / f"session/{self.target_screen_name}.pkl"
+        return self.cache_path / f"session_{self.target_screen_name}.pkl"
 
     @abstractmethod
     def fetch(self, limit: int = 400) -> list[dict]:

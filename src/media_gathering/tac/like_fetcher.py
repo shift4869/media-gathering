@@ -1,4 +1,5 @@
 import shutil
+import time
 from logging import INFO, getLogger
 from pathlib import Path
 
@@ -33,17 +34,14 @@ class LikeFetcher(FetcherBase):
         logger.info(f"Fetched Tweet num {len(likes)}.")
 
         # キャッシュに保存
-        for i, like in enumerate(likes):
-            Path(base_path / f"likes_{i:02}.json").write_bytes(orjson.dumps(like, orjson.OPT_INDENT_2))
+        filename = f"{time.time_ns()}_tac_likes.json"
+        Path(base_path / filename).write_bytes(orjson.dumps(likes, option=orjson.OPT_INDENT_2))
+        logger.info(f"Cached to {filename}.")
 
         # キャッシュから読み込み
         # 保存して読み込みをするのでほぼ同一の内容になる
         # 違いは result は json.dump→json.load したときに、エンコード等が吸収されていること
-        result: list[dict] = []
-        n = len(likes)
-        for i in range(n):
-            json_dict = orjson.loads(Path(base_path / f"likes_{i:02}.json").read_bytes())
-            result.append(json_dict)
+        result: list[dict] = orjson.loads(Path(base_path / filename).read_bytes())
 
         logger.info("Fetched Tweet by TAC -> done")
         return result
