@@ -3,15 +3,20 @@ import sys
 import urllib.parse
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta
+from logging import INFO, getLogger
 from pathlib import Path
 
 import orjson
 
 from media_gathering.link_search.fetcher_base import FetcherBase
 from media_gathering.link_search.link_searcher import LinkSearcher
+from media_gathering.log_message import MSG
 from media_gathering.model import ExternalLink
 from media_gathering.tac.tweet_info import TweetInfo
 from media_gathering.util import Result, find_values
+
+logger = getLogger(__name__)
+logger.setLevel(INFO)
 
 
 class ParserBase(metaclass=ABCMeta):
@@ -237,6 +242,7 @@ class ParserBase(metaclass=ABCMeta):
         Returns:
             list[TweetInfo]: TweetInfo リスト
         """
+        logger.info(MSG.PARSING_FETCHED_TWEETS_START.value)
         # 辞書パース
         # fetched_tweets は TL 内のツイートが入っている想定
         # media を含むかどうかはこの時点では don't care
@@ -249,14 +255,18 @@ class ParserBase(metaclass=ABCMeta):
 
         if not target_data_list:
             # 辞書パースエラー or 1件も TL にツイートが無かった
-            # raise ValueError("no tweet included in fetched_tweets.")
+            logger.info("No tweet included in Fetched Tweets.")
+            logger.info(MSG.PARSING_FETCHED_TWEETS_DONE.value)
             return []
 
         # target_data_list を入力として media 情報を収集
         # media 情報を含むかどうかを確認しつつ、対象ならば収集する
         seen_ids: list[str] = []
         result: list[TweetInfo] = []
-        for data in target_data_list:
+        n = len(target_data_list)
+        PROGRESS_BAND = 20
+        next_progress = PROGRESS_BAND
+        for i, data in enumerate(target_data_list):
             try:
                 data_dict = self._match_data(data)
                 if not data_dict:
@@ -320,9 +330,18 @@ class ParserBase(metaclass=ABCMeta):
 
                     if id_str not in seen_ids:
                         seen_ids.append(id_str)
+
+                if n > 10:
+                    # nが十分大きい場合のみ、進捗率をログに出力する
+                    progress = i / n * 100
+                    # next_progress ％刻みでログ出力
+                    if progress >= next_progress or i == n - 1:
+                        logger.info(f"\t\t{next_progress}% ({i + 1}/{n}) -> done")
+                        next_progress += PROGRESS_BAND
             except KeyError:
                 continue
         result.reverse()
+        logger.info(MSG.PARSING_FETCHED_TWEETS_DONE.value)
         return result
 
     def parse_to_ExternalLink(self) -> list[ExternalLink]:

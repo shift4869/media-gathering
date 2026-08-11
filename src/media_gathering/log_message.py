@@ -34,5 +34,11 @@ class MSG(enum.Enum):
     MEDIA_DOWNLOAD_START = "Media download -> start"
     MEDIA_DOWNLOAD_DONE = "Media download -> done"
 
+    PARSING_FETCHED_TWEETS_START = "Parsing Fetched Tweet info -> start"
+    PARSING_FETCHED_TWEETS_DONE = "Parsing Fetched Tweet info -> done"
+
+    DOWNLOADING_MEDIA_FILE_START = "Downloading media file -> start"
+    DOWNLOADING_MEDIA_FILE_DONE = "Downloading media file -> done"
+
     GETTING_EXTERNAL_LINK_START = "Getting external link -> start"
     GETTING_EXTERNAL_LINK_DONE = "Getting external link -> done"

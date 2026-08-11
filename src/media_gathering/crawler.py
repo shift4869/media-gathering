@@ -535,6 +535,7 @@ class Crawler(metaclass=ABCMeta):
         Returns:
             Result: 成功時 Result.success, 一つでもメディア保存に失敗したならば Result.failed
         """
+        logger.info(MSG.DOWNLOADING_MEDIA_FILE_START.value)
         result_list: list[MediaSaveResult] = []
         transport = httpx.HTTPTransport(retries=3)
         session = httpx.Client(follow_redirects=True, transport=transport)
@@ -557,6 +558,8 @@ class Crawler(metaclass=ABCMeta):
             # メディア保存
             result: MediaSaveResult = self.tweet_media_saver(tweet_info, atime, mtime, session)
             result_list.append(result)
+
+        logger.info(MSG.DOWNLOADING_MEDIA_FILE_DONE.value)
         if [r for r in result_list if r == MediaSaveResult.failed]:
             return Result.failed
         return Result.success
