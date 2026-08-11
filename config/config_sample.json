@@ -39,8 +39,7 @@
     },
     "nico_seiga": {
         "is_seiga_trace": true,
-        "email": "dummy_email",
-        "password": "dummy_password",
+        "user_session": "dummy_user_session",
         "save_base_path": "tests/save/PG_Seiga"
     },
     "notification": {

@@ -9,7 +9,7 @@ from media_gathering.tac.username import Username
 
 class FetcherBase(metaclass=ABCMeta):
     twitter: TweeterPy
-    CACHE_PATH = Path(__file__).parent / "cache/"
+    CACHE_PATH = Path("./data/cache/")
 
     def __init__(self, ct0: str, auth_token: str, target_screen_name: Username | str, target_id: int) -> None:
         # ct0 と auth_token は同一のアカウントのクッキーから取得しなければならない
@@ -24,6 +24,7 @@ class FetcherBase(metaclass=ABCMeta):
         self.target_screen_name = target_screen_name
         self.target_id = target_id
 
+        self.cache_path = Path("./data/") / str(target_id)
         self.twitter = TweeterPy()
         self.session_path.parent.mkdir(parents=True, exist_ok=True)
         self.twitter.generate_session(auth_token=self.auth_token)
@@ -32,7 +33,7 @@ class FetcherBase(metaclass=ABCMeta):
     @property
     def session_path(self) -> Path:
         """セッションファイルパス"""
-        return Path(self.CACHE_PATH) / f"session/{self.target_screen_name}.pkl"
+        return self.cache_path / f"session/{self.target_screen_name}.pkl"
 
     @abstractmethod
     def fetch(self, limit: int = 400) -> list[dict]:
@@ -71,7 +72,7 @@ if __name__ == "__main__":
     fetched_tweets = retweet.fetch()
 
     # キャッシュから読み込み
-    base_path = Path(retweet.CACHE_PATH)
+    base_path = Path(retweet.cache_path)
     fetched_tweets = []
     for cache_path in base_path.glob("*timeline_tweets*"):
         json_dict = orjson.loads(cache_path.read_bytes())

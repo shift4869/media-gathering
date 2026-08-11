@@ -24,9 +24,7 @@ class RetweetFetcher(FetcherBase):
         logger.info("Fetched Tweet by TP -> start")
 
         # キャッシュ保存場所の準備
-        base_path = Path(self.CACHE_PATH)
-        if base_path.is_dir():
-            shutil.rmtree(base_path)
+        base_path = Path(self.cache_path)
         base_path.mkdir(parents=True, exist_ok=True)
 
         # TAC で TL をスクレイピング
@@ -84,7 +82,7 @@ if __name__ == "__main__":
     fetched_tweets = retweet.fetch()
 
     # キャッシュから読み込み
-    base_path = Path(retweet.CACHE_PATH)
+    base_path = Path(retweet.cache_path)
     fetched_tweets = []
     for cache_path in base_path.glob("*timeline_tweets*"):
         json_dict = orjson.loads(cache_path.read_bytes())
