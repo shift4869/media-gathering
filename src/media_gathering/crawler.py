@@ -447,7 +447,7 @@ class Crawler(metaclass=ABCMeta):
 
         # 過去に取得済かどうか調べる
         if self.db_cont.select_from_media_url(file_name) != []:
-            logger.debug(save_file_fullpath.name + " -> skip")
+            logger.debug("\t\t" + save_file_fullpath.name + " -> skip")
             return MediaSaveResult.past_done
 
         if not save_file_fullpath.is_file():
@@ -459,7 +459,7 @@ class Crawler(metaclass=ABCMeta):
             except Exception:
                 # URLからのメディア取得に失敗
                 # 削除されていた場合など
-                logger.info(save_file_fullpath.name + " -> failed (maybe removed).")
+                logger.info("\t\t" + save_file_fullpath.name + " -> failed (maybe removed).")
                 return MediaSaveResult.failed
             self.add_url_list.append(url_orig)
 
@@ -494,7 +494,7 @@ class Crawler(metaclass=ABCMeta):
                 params["media_size"] = media_size
 
             if media_size == 0:
-                logger.warning(save_file_fullpath.name + " -> failed (0 byte file).")
+                logger.warning("\t\t" + save_file_fullpath.name + " -> failed (0 byte file).")
                 return MediaSaveResult.failed
 
             self.db_cont.upsert(params)
@@ -503,7 +503,7 @@ class Crawler(metaclass=ABCMeta):
             os.utime(save_file_fullpath, (atime, mtime))
 
             # ログ書き出し
-            logger.info(save_file_fullpath.name + " -> done")
+            logger.info("\t\t" + save_file_fullpath.name + " -> done")
             self.add_cnt += 1
 
             # 常に保存する設定の場合はコピーする
@@ -513,7 +513,7 @@ class Crawler(metaclass=ABCMeta):
                 shutil.copy2(save_file_fullpath, dst_path)
         else:
             # 既に存在している場合
-            logger.debug(save_file_fullpath.name + " -> exist")
+            logger.debug("\t\t" + save_file_fullpath.name + " -> exist")
             return MediaSaveResult.now_exist
         return MediaSaveResult.success
 
@@ -539,7 +539,10 @@ class Crawler(metaclass=ABCMeta):
         result_list: list[MediaSaveResult] = []
         transport = httpx.HTTPTransport(retries=3)
         session = httpx.Client(follow_redirects=True, transport=transport)
-        for tweet_info in tweet_info_list:
+        n = len(tweet_info_list)
+        PROGRESS_BAND = 20
+        next_progress = PROGRESS_BAND
+        for i, tweet_info in enumerate(tweet_info_list):
             dts_format = "%Y-%m-%d %H:%M:%S"
             media_tweet_created_time = tweet_info.created_at
             created_time = time.strptime(media_tweet_created_time, dts_format)
@@ -558,6 +561,13 @@ class Crawler(metaclass=ABCMeta):
             # メディア保存
             result: MediaSaveResult = self.tweet_media_saver(tweet_info, atime, mtime, session)
             result_list.append(result)
+            if n > 10:
+                # nが十分大きい場合のみ、進捗率をログに出力する
+                progress = i / n * 100
+                # next_progress ％刻みでログ出力
+                if progress >= next_progress or i == n - 1:
+                    logger.info(f"\t{next_progress}% ({i + 1}/{n}) -> done")
+                    next_progress += PROGRESS_BAND
 
         logger.info(MSG.DOWNLOADING_MEDIA_FILE_DONE.value)
         if [r for r in result_list if r == MediaSaveResult.failed]:

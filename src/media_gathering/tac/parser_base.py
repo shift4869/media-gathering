@@ -336,7 +336,7 @@ class ParserBase(metaclass=ABCMeta):
                     progress = i / n * 100
                     # next_progress ％刻みでログ出力
                     if progress >= next_progress or i == n - 1:
-                        logger.info(f"\t\t{next_progress}% ({i + 1}/{n}) -> done")
+                        logger.info(f"\t{next_progress}% ({i + 1}/{n}) -> done")
                         next_progress += PROGRESS_BAND
             except KeyError:
                 continue
