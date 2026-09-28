@@ -11,7 +11,7 @@ class NijieCookie:
     _headers: dict  # ヘッダー
 
     # nijieトップページ
-    NIJIE_TOP_URL = "http://nijie.info/index.php"
+    NIJIE_TOP_URL = "https://nijie.info/index.php"
 
     def __post_init__(self) -> None:
         self._is_valid()

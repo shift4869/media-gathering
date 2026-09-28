@@ -63,7 +63,7 @@ class NijieDownloader:
         author_id = int(m[0]) if m else 0
 
         # 作品詳細ページをGET
-        work_url = f"http://nijie.info/view_popup.php?id={work_id}"
+        work_url = f"https://nijie.info/view_popup.php?id={work_id}"
         headers = self.cookies._headers
         cookies = self.cookies._cookies
         transport = httpx.HTTPTransport(retries=5)
@@ -157,7 +157,7 @@ if __name__ == "__main__":
         work_id = 251197  # 漫画
         # work_id = 414793  # うごイラ一枚
         # work_id = 409587  # うごイラ複数
-        work_id = 673355  # 漫画
+        # work_id = 673355  # 漫画
 
         work_url = f"https://nijie.info/view_popup.php?id={work_id}"
         fetcher.fetch(work_url)
