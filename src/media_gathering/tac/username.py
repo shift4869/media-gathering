@@ -17,6 +17,9 @@ class Username:
         if self._name.startswith("@"):
             raise ValueError("Username start with '@' string, shuoud exclude '@' Username.")
 
+    def __str__(self) -> str:
+        return self._name
+
     @property
     def name(self) -> str:
         return self._name
@@ -34,5 +37,6 @@ if __name__ == "__main__":
         try:
             username = Username(name)
             print(username)
+            print(str(username))
         except (ValueError, TypeError) as e:
             print(e.args[0])

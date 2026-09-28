@@ -22,7 +22,7 @@ dependencies = [
     "ruff>=0.16.1",
     "slack-sdk>=3.43.0",
     "sqlalchemy>=2.0.51",
-    "tweeterpy>=2.0.17",
+    "tweeterpy @ git+https://github.com/iSarabjitDhiman/TweeterPy@version-3-dev",
     "twitter-api-client>=0.10.22",
     "xmltodict>=1.0.4",
 ]

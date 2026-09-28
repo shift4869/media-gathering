@@ -39,6 +39,12 @@ class RetweetParser(ParserBase):
         if not isinstance(tweet, dict):
             raise TypeError("argument tweet is not dict.")
 
+        # 現在の id_str を取得
+        tweet_ids = find_values(tweet, "rest_id")
+        # 固定ツイートは除外
+        if "1674347066150240257" in tweet_ids:
+            return []
+
         # 返信できるアカウントを制限しているときなど階層が異なる場合がある
         if "tweet" in tweet:
             tweet = tweet.get("tweet")

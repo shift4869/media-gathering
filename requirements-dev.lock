@@ -12,6 +12,8 @@
 -e file:.
 aiofiles==25.1.0
     # via twitter-api-client
+annotated-types==0.8.0
+    # via pydantic
 anyio==4.14.2
     # via httpx
 beautifulsoup4==4.12.2
@@ -37,8 +39,6 @@ cryptography==50.0.0
     # via media-gathering
 curl-cffi==0.13.0
     # via tweeterpy
-demjson3==3.0.6
-    # via tweeterpy
 emoji==2.15.0
     # via media-gathering
 freezegun==1.5.5
@@ -60,8 +60,6 @@ isort==8.0.1
     # via media-gathering
 jinja2==3.1.6
     # via media-gathering
-lxml==5.2.2
-    # via tweeterpy
 m3u8==6.0.0
     # via twitter-api-client
 markupsafe==3.0.3
@@ -83,6 +81,10 @@ pycodestyle==2.14.0
     # via media-gathering
 pycparser==3.0
     # via cffi
+pydantic==2.12.5
+    # via tweeterpy
+pydantic-core==2.41.5
+    # via pydantic
 pyotp==2.9.0
     # via tweeterpy
 pyparsing==3.3.2
@@ -108,14 +110,20 @@ sqlalchemy==2.0.51
     # via media-gathering
 tqdm==4.70.0
     # via twitter-api-client
-tweeterpy==2.0.17
+tweeterpy @ git+https://github.com/iSarabjitDhiman/TweeterPy@8d2416792f48ee2df43b24f47110b12cb5bb9948
     # via media-gathering
 twitter-api-client==0.10.22
     # via media-gathering
 typing-extensions==4.16.0
     # via anyio
     # via pixivpy3
+    # via pydantic
+    # via pydantic-core
     # via sqlalchemy
+    # via tweeterpy
+    # via typing-inspection
+typing-inspection==0.4.4
+    # via pydantic
 urllib3==2.7.0
     # via pixivpy3
     # via requests

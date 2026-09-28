@@ -1,12 +1,17 @@
+import math
+import random
 import shutil
 import time
+from copy import deepcopy
 from logging import INFO, getLogger
 from pathlib import Path
 
 import orjson
+from tweeterpy.core.resources import XOperations
 
 from media_gathering.tac.fetcher_base import FetcherBase
 from media_gathering.tac.username import Username
+from media_gathering.util import find_values
 
 logger = getLogger(__name__)
 logger.setLevel(INFO)
@@ -28,12 +33,49 @@ class RetweetFetcher(FetcherBase):
         base_path = Path(self.cache_path)
         base_path.mkdir(parents=True, exist_ok=True)
 
-        # TAC で TL をスクレイピング
-        # scraper = self.tac_twitter.scraper
-        # timeline_tweets = scraper.tweets_and_replies([self.tac_twitter.target_id], limit=limit)
         # TP で TL をスクレイピング
-        timeline_tweets = self.twitter.get_user_tweets(user_id=self.target_id, with_replies=True, total=limit)["data"]
-        logger.info(f"Fetched Tweet num {len(timeline_tweets)}.")
+        result = []
+        timeline_tweets = []
+
+        # ページング処理
+        next_cursor = ""
+        current_cursor = ""
+        max_page = range(math.ceil(limit / 20))
+        for _ in max_page:
+            variables_dict = {
+                "userId": str(self.target_id),
+                "count": 20,
+                "includePromotedContent": True,
+                "withQuickPromoteEligibilityTweetFields": True,
+                "withVoice": True,
+                "withV2Timeline": True,
+            }
+
+            if next_cursor != "":
+                variables_dict["cursor"] = next_cursor
+                current_cursor = next_cursor
+
+            timeline_tweet_partial = self.twitter.execute(
+                operation=XOperations.UserTweets,
+                variables=variables_dict,
+            )
+            timeline_tweets.append(timeline_tweet_partial["data"])
+
+            content_list = find_values(timeline_tweet_partial, "content")
+            for content in content_list:
+                if "__typename" in content and content["__typename"] == "TimelineTimelineCursor":
+                    if "cursorType" in content and content["cursorType"] == "Bottom":
+                        next_cursor = content["value"]
+                        break
+            if not next_cursor:
+                break
+            if current_cursor == next_cursor:
+                break
+
+            time.sleep(random.uniform(0.1, 0.5))
+
+        if not timeline_tweets:
+            raise ValueError("Failed getting XOperations.UserTweets -> abort")
 
         # キャッシュに保存
         filename = f"{time.time_ns()}_tp_timeline_tweets.json"
